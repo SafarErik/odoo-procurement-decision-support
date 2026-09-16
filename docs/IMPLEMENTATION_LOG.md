@@ -406,8 +406,8 @@ supplier evaluation or a recommendation.
   and unavailable states.
 - Fast tests for the adapter request contract and mapping, API boundary and errors,
   frontend endpoint construction and presentation mapping, valid empty results, and
-  invalid responses. A separate integration-marked test performs a live read when
-  ignored local Odoo credentials are available.
+  invalid responses. Integration-marked tests perform a live read and verify that
+  the configured identity is non-admin with read-only `purchase.order` access.
 
 ### Local evidence
 
@@ -415,24 +415,35 @@ On 2026-09-16, the `procurement_poc` Odoo 19 Community database had Purchase and
 Inventory installed with demo data. The database-specific `/doc` page and live
 JSON-2 calls confirmed `purchase.order/search_read` and the seven fields used by the
 adapter: `id`, `name`, `partner_id`, `date_order`, `state`, `amount_total`, and
-`currency_id`. A JSON-2 context request authenticated as local user ID 2.
+`currency_id`. User ID 2 was used only for the initial discovery.
 
-All three integration tests passed with the local services running: the live adapter
-read, the separately served FastAPI health contract, and Odoo HTTP availability.
-The FastAPI RFQ route also returned HTTP 200 with five mapped RFQs. Eighteen fast
-tests passed, with all three integration tests excluded by the fast marker
-expression. Ruff lint, Python compilation, Compose configuration validation, and
-Reflex's Python/component compilation passed. The production frontend build remained
-blocked only because the Windows NVM installation had no active Node version; the
-workflow continues to provision Node.js 22.22 for this check.
+The durable key now authenticates as user ID 7, `Procurement Integration`. The user
+is internal, limited to company ID 1, is not a Settings administrator, and has a
+custom read-only `purchase.order` ACL. Live access probes returned read `True` and
+create/write/unlink `False` without performing a write operation.
+
+All four integration tests passed with the local services running: least-privilege
+access, the live adapter read, the separately served FastAPI health contract, and
+Odoo HTTP availability. The FastAPI RFQ route returned HTTP 200 with seven mapped
+RFQs. Eighteen fast tests passed, with all four integration tests excluded by the
+fast marker expression. Ruff, Python compilation, dependency checking, Compose
+configuration validation, whitespace checking, and the Reflex production export
+passed. The export used the already installed Node.js 24.20.0; CI retains its
+declared Node.js 22.22 baseline.
+
+Manual browser acceptance also passed. The connected ledger displayed seven RFQs
+with reference, vendor, order date, status, total, and currency. After FastAPI was
+stopped, Refresh data cleared the prior rows and showed the explicit unavailable
+state. Restarting FastAPI and refreshing restored the ledger. A temporary invalid
+key produced HTTP 502 with code `odoo_response_error`; the UI showed the same safe
+unavailable state and recovered after the correct process restarted.
 
 ### Security and scope decisions
 
 - The API key exists only in the ignored `.env`; `.env.example` leaves the key blank
   to avoid both credential exposure and misleading secret-scanner findings.
-- The current API key belongs to the local administrator and was acceptable only for
-  discovery. A dedicated least-privilege, read-only integration user remains required
-  before the identity is treated as durable PoC configuration.
+- The durable API key belongs to the dedicated read-only integration user. The
+  administrator discovery key is no longer required and should be revoked.
 - The adapter performs no Odoo writes and never accesses PostgreSQL directly.
 - No raw upstream response or credential is returned through API errors.
 - The working demo records are capability evidence, not canonical thesis data.

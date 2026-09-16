@@ -83,6 +83,12 @@ decision logic, and production data access.
   them.
 - A live integration test and the FastAPI route both succeeded against this local
   database on 2026-09-16. The test deliberately performs reads only.
+- A dedicated internal user, `Procurement Integration` (user ID 7), replaced the
+  administrator as the durable application identity. It is limited to company ID 1
+  and a custom `Procurement RFQ API Reader` group.
+- Live access checks proved `purchase.order` read access and denied create, write,
+  and unlink access. The identity is not a Settings administrator. These checks use
+  Odoo's access introspection methods and perform no business-data write.
 
 ### Candidate business data concepts
 
@@ -116,16 +122,14 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 - JSON-2 authentication, `context_get`, `purchase.order/fields_get`, and a bounded
   `purchase.order/search_read` were executed successfully. XML-RPC and JSON-RPC were
   not exercised because JSON-2 is the selected Odoo 19 baseline.
-- The API key used for discovery belongs to the local administrator. A dedicated
-  lower-privilege integration identity and its exact record rules remain unverified.
+- The administrator key was used only for discovery. The configured application key
+  now authenticates as the dedicated user and the application no longer depends on
+  administrator access. The old discovery key should be revoked.
 - The only persistence probes remain synthetic PostgreSQL and Odoo-volume markers.
   Successful RFQ reads do not yet prove persistence of an Odoo business transaction.
 
 ## Assumptions
 
-- A dedicated non-administrator integration user can be restricted to read-only
-  access to the validated source data. This is a design target, not verified Odoo
-  permission evidence.
 - The locally validated `purchase.order` field behaviour will remain stable for the
   pinned Odoo image and initialized database. It must still be rechecked after a
   material image, module, permission, or deployment change.
@@ -134,17 +138,15 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 
 ## Unresolved questions
 
-1. Can a low-privilege local user create and use an API key for JSON-2 without
-   broader administration access?
-2. Which precise purchase-line, receipt, product, supplier, record-rule, and
+1. Which precise purchase-line, receipt, product, supplier, record-rule, and
    multi-company contracts are visible to that user?
-3. What pagination pattern, maximum page size, transaction duration, timeout,
+2. What pagination pattern, maximum page size, transaction duration, timeout,
    throttling, and error responses apply to the target endpoint and deployment?
-4. Which date is the contractual supplier commitment, which is Odoo's calculated
+3. Which date is the contractual supplier commitment, which is Odoo's calculated
    expected arrival, and which receipt timestamp is authoritative for performance?
-5. How should partial receipts, returns, backorders, cancelled lines, services, and
+4. How should partial receipts, returns, backorders, cancelled lines, services, and
    unit conversions affect later canonical data and KPI definitions?
-6. Is `/web/database/selector` an acceptable local-only readiness probe, or should a
+5. Is `/web/database/selector` an acceptable local-only readiness probe, or should a
    future initialized environment expose a narrower application-level endpoint?
 
 ## Implications for the planned adapter
@@ -154,8 +156,8 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 - Extend the adapter only after inspecting the target database's `/doc` page and
   running focused read-only experiments. The RFQ summary is validated; candidate
   purchase-line, receipt, performance, and recommendation inputs are not.
-- Prefer a dedicated low-privilege API identity, keep its API key outside the
-  repository, and document the exact permissions after validation.
+- Preserve the validated dedicated low-privilege identity, keep its rotating API
+  key outside the repository, and revalidate permissions after security changes.
 - Expose only ERP-independent DTOs to the later application/Decision Core boundary.
 - Treat reporting dashboards as validation aids, not the authority for the project's
   future performance calculations.

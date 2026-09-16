@@ -38,6 +38,14 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 Never commit `.env`.
 
+After initializing Odoo, create the dedicated internal `Procurement Integration`
+user with access to only the current company. Assign a custom
+`Procurement RFQ API Reader` group whose sole model access is read-only access to
+`purchase.order`; do not assign standard Purchase or Inventory roles. Generate an
+API key from that user's preferences and save it only as `ODOO_API_KEY` in `.env`.
+Rotate it before expiry and revoke superseded keys after the replacement passes the
+live integration test.
+
 ## Start everything after a PC restart
 
 Open three PowerShell terminals at the repository root. In each terminal, activate

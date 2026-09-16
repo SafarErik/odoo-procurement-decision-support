@@ -8,7 +8,8 @@ leaving the final selection to a human decision-maker.
 **Current status:** T0 is complete and the first read-only Odoo integration
 increment is implemented. The application can retrieve recent open RFQs from the
 local Odoo 19 database through JSON-2, expose an ERP-neutral FastAPI response, and
-display the result in a responsive Reflex procurement ledger. It still contains no
+display the result in a responsive Reflex procurement ledger using a validated
+dedicated read-only Odoo identity. It still contains no
 procurement decision algorithm, ranking, scoring, constraints, historical KPI
 calculation, write operation, or production persistence. See
 [the T1 handoff](docs/T1_HANDOFF.md) for the current verification matrix.
@@ -69,10 +70,12 @@ setup used by this repository, see
 [Local development and SSH quick start](docs/LOCAL_DEVELOPMENT_AND_SSH.md).
 
 Create local configuration and fill both blank password values with separate,
-random local-development secrets. After creating the Odoo database, generate an API
-key in the Odoo user's preferences and set `ODOO_DATABASE` and `ODOO_API_KEY` in
-`.env`. The implemented integration is read-only, but the API key still has all
-permissions of its Odoo user; a dedicated least-privilege user is the target setup.
+random local-development secrets. The validated local setup uses the internal
+`Procurement Integration` user, limited to the current company, with a custom
+`Procurement RFQ API Reader` group granting read access to `purchase.order` only.
+Do not assign the standard Purchase User/Administrator or Inventory roles: they
+grant broader capabilities than this adapter needs. Generate the API key from that
+dedicated user's preferences and set `ODOO_DATABASE` and `ODOO_API_KEY` in `.env`.
 `.env` is ignored by Git and must never be committed. The tracked example keeps all
 secret values blank so secret scanners do not mistake documentation for credentials.
 
@@ -238,6 +241,11 @@ confirm both states in a browser:
 Keep this manual evidence separate from frontend compilation until a dedicated E2E
 workflow is implemented.
 
+This milestone was manually verified on 2026-09-16: seven RFQs rendered with every
+listed field, refresh succeeded, stopping FastAPI produced the unavailable state
+without stale rows, and restarting it restored the ledger. A temporary invalid
+integration key also produced the stable API error and the same safe UI state.
+
 ## Sources of truth
 
 - This repository is the primary source of truth for executable implementation
@@ -278,10 +286,12 @@ This CI increment does not modify Google Drive documents.
 The integration is deliberately read-only and limited to the validated
 `purchase.order` summary fields required by the RFQ ledger. It has no pagination,
 retry policy, write operation, application authentication/authorization, production
-persistence, procurement decision logic, or validated purchase-line and inventory
-receipt mapping. The current discovery API key belongs to the local administrator;
-replace it with a dedicated least-privilege integration identity before treating
-the setup as more than a local PoC. Image tags are explicit but are not
+persistence, WSM, normalization, ranking, hard constraints, supplier recommendation,
+historical KPI logic, final canonical procurement model, or validated purchase-line
+and inventory receipt mapping. The local PoC uses a validated dedicated read-only
+integration identity; its key still requires rotation before its configured expiry,
+and the old administrator discovery key should be revoked. Image tags are explicit
+but are not
 digest-pinned. The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
