@@ -39,16 +39,23 @@ docs/           Implementation log and capability evidence
 ## Prerequisites
 
 - Git
-- Python 3.11 or later with `pip`
+- Python 3.11 with `pip`; this is the shared local-development and CI compatibility
+  baseline
+- Node.js 22.22 or later only when running the production frontend export locally;
+  the integration workflow provisions it automatically
 - Podman on Windows with a running Linux-based Podman machine; Podman Desktop is not
   required for the command-line workflow
 - A Compose provider for `podman compose`; the project `dev` extra installs the
   verified `podman-compose` provider
 
-The T0 closure checks used Python 3.14.7, Podman client/server 6.0.2,
+The package metadata permits Python 3.11 or later and Ruff targets Python 3.11.
+The T0 closure checks used Python 3.14.7, which is additional compatibility evidence
+rather than the CI baseline. They also used Podman client/server 6.0.2,
 `podman-compose` 1.6.0, Reflex 0.9.11.post1, and Reflex-managed Bun 1.4.0.
-Reflex manages the web toolchain on first run, so a globally active Node.js version
-is not a prerequisite for this verified workflow.
+Reflex manages Bun and its web dependencies on first run. The ordinary local T0
+runtime was verified without treating a global Node.js installation as a general
+prerequisite, but the locked production export toolchain currently requires Node.js
+22.22 or later.
 
 ## Setup
 
@@ -62,7 +69,7 @@ Copy-Item .env.example .env
 Create a virtual environment and install the API, frontend, and developer tools:
 
 ```powershell
-py -3 -m venv .venv
+py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[frontend,dev]"
@@ -146,13 +153,79 @@ UI and container logs after startup.
 ```powershell
 ruff format --check .
 ruff check .
-pytest
+python -m compileall backend frontend decision_core odoo_adapter
+pytest -m "not integration and not e2e" -v
+python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
 ```
 
-Run these after every material change. The tests cover the FastAPI health contract,
-the frontend's configured API URL, and the separate Reflex state-backend port. No
-static type checker is currently configured.
+Run these after every material change. Unmarked tests are fast. Tests requiring
+running application or infrastructure components use the `integration` marker;
+browser-level full-flow tests use the reserved `e2e` marker. Strict marker checking
+prevents misspelled categories from silently running in the wrong suite.
+
+The fast tests cover the FastAPI health contract, frontend API URL configuration,
+successful health-response mapping, unavailable or invalid backend responses, and
+the separate Reflex state-backend port. With the documented runtime services
+running, integration tests can be selected explicitly:
+
+```powershell
+pytest -m "integration and not e2e" -v
+```
+
+No browser E2E suite or static type checker is currently configured.
+
+## Continuous integration
+
+GitHub Actions runs two independent workflows on ephemeral Ubuntu runners:
+
+- **Quality:** runs for every pull request, pushes to `main`, and manual dispatch.
+  Its stable `quality` job performs the fast checks and validates the Compose model
+  with temporary synthetic credentials.
+- **Container and API integration:** runs only for relevant runtime paths on pull
+  requests and `main`, plus manual dispatch. It starts PostgreSQL, Odoo, and FastAPI;
+  runs only integration-marked tests; verifies frontend compilation; and checks
+  technical named-volume persistence. It provisions Node.js 22.22 for the locked
+  frontend build dependencies. Superseded runs are cancelled.
+
+The integration workflow is not browser-level E2E coverage. In particular,
+`reflex export --frontend-only --no-zip` proves that the frontend compiles, not that
+the running Reflex UI successfully communicates with FastAPI.
+
+Configure branch protection manually after the `quality` job has run at least once:
+
+1. In the GitHub repository, open **Settings**, then the applicable branch rule or
+   ruleset for `main`.
+2. Enable required status checks and select the check named `quality`.
+3. Do not make `container-api-integration` required at this stage.
+
+The workflows do not change branch protection, repository settings, or any other
+remote governance configuration. They require no cloud account, deployment token,
+or persistent Google Cloud or AWS environment.
+
+## Manual browser milestone acceptance
+
+For milestone verification, start FastAPI and Reflex using the commands above and
+confirm both states in a browser:
+
+1. With FastAPI running, Reflex displays the `ok` status and API service/version
+   detail returned over HTTP.
+2. After stopping FastAPI, reloading the page or pressing **Check backend** displays
+   `Unavailable` and a useful connection error.
+
+Keep this manual evidence separate from frontend compilation until a dedicated E2E
+workflow is implemented.
+
+## Sources of truth
+
+- This repository is the primary source of truth for executable implementation
+  artifacts: source code, tests, workflows, Compose configuration, and technical
+  implementation logs.
+- Google Drive remains the primary source of truth for the Hungarian thesis living
+  documentation, project status, roadmap, requirements baseline, and architectural
+  decision records.
+
+This CI increment does not modify Google Drive documents.
 
 ## Troubleshooting
 
@@ -168,6 +241,9 @@ static type checker is currently configured.
   this value changed after the first database creation.
 - **Reflex says the backend is unavailable:** start FastAPI, confirm the health URL,
   then check `BACKEND_BASE_URL` in `.env`.
+- **Frontend export reports no active Node.js version:** activate Node.js 22.22 or
+  later before running `reflex export --frontend-only --no-zip`; CI configures this
+  version explicitly.
 - **Odoo is healthy in the container but localhost refuses the connection:** restart
   the Podman machine and inspect its Windows forwarding helper. The audited host had
   this Podman-machine proxy issue; a temporary localhost-only SSH tunnel was used for
@@ -186,3 +262,8 @@ automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
 facts, assumptions, and open questions.
+
+The CI persistence check uses synthetic files to verify only that Docker named
+volumes survive stack recreation. It does not establish persistence of an actual
+Odoo business scenario. That evidence must come later from the implemented Odoo
+integration flow.

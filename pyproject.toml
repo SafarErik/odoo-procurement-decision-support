@@ -33,6 +33,11 @@ include = ["backend*", "frontend*", "decision_core*", "odoo_adapter*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "--strict-markers"
+markers = [
+    "integration: tests requiring running application or infrastructure components",
+    "e2e: browser-level tests covering the complete user-facing flow",
+]
 
 [tool.ruff]
 target-version = "py311"

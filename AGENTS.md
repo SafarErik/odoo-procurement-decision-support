@@ -24,19 +24,50 @@ Use English for all repository software-engineering artifacts, including source,
 tests, logs, UI strings, documentation, branches, and commits. Preserve official
 external names where appropriate. Update `README.md`, `docs/IMPLEMENTATION_LOG.md`,
 and relevant spike documentation when implementation or verified facts change.
-Google Drive thesis documents must not be changed unless the user explicitly asks.
+The repository is the primary source of truth for executable implementation
+artifacts: source code, tests, workflows, Compose configuration, and technical
+implementation logs. Google Drive is the primary source of truth for the Hungarian
+thesis living documentation, project status, roadmap, requirements baseline, and
+architectural decision records. Google Drive thesis documents must not be changed
+unless the user explicitly asks.
 
 ## Commands
 
-After creating and activating a Python 3.11+ virtual environment:
+Use Python 3.11 as the local and CI compatibility baseline. `requires-python =
+">=3.11"` permits later compatible versions, but do not change the baseline or add
+a CI version matrix without documenting the compatibility reason.
+
+After creating and activating a Python 3.11 virtual environment:
 
 ```powershell
 python -m pip install -e ".[frontend,dev]"
 ruff format --check .
 ruff check .
-pytest
+python -m compileall backend frontend decision_core odoo_adapter
+pytest -m "not integration and not e2e" -v
+python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
 ```
 
 Run the backend with `uvicorn backend.app.main:app --reload` and the frontend
 from `frontend/` with `reflex run`.
+
+## Verification policy
+
+- Unmarked tests are fast tests. Mark tests that require running services with
+  `integration` and browser-level full-flow tests with `e2e`; unknown markers fail.
+- Run the fast checks before handoff. Run `pytest -m "integration and not e2e" -v`
+  only with the documented runtime services available.
+- GitHub Actions uses Docker Compose on Ubuntu; local Windows development continues
+  to use Podman Compose.
+- The `quality` job is the only check intended to be required for branch protection.
+  The heavier container/API integration job remains path-filtered and optional.
+- `reflex export --frontend-only --no-zip` verifies compilation only. Browser-level
+  Reflex-to-FastAPI success and unavailable-backend behaviour remain local or
+  milestone acceptance checks until a separate E2E suite exists.
+- Synthetic volume markers prove technical named-volume persistence only. They do
+  not prove persistence of an Odoo business scenario; verify that later through the
+  implemented Odoo integration flow.
+- Use synthetic CI credentials and never commit generated environment files. Do not
+  claim a check passed unless it was actually executed.
+- Permanent cloud deployment is outside the current increment.

@@ -1,8 +1,8 @@
 """Minimal Reflex UI proving presentation-to-API communication."""
 
-import httpx
 import reflex as rx
 from config import settings
+from health_client import fetch_health_display
 
 
 class HealthState(rx.State):
@@ -16,18 +16,10 @@ class HealthState(rx.State):
     async def refresh_health(self) -> None:
         """Request the documented health endpoint and render a concise result."""
 
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(settings.health_url)
-                response.raise_for_status()
-            payload = response.json()
-            self.backend_status = payload["status"]
-            self.detail = f"{payload['service']} ({payload['api_version']})"
-            self.error_message = ""
-        except (httpx.HTTPError, KeyError, TypeError) as error:
-            self.backend_status = "Unavailable"
-            self.detail = ""
-            self.error_message = f"Could not reach the backend: {error}"
+        display = await fetch_health_display(settings.health_url)
+        self.backend_status = display.backend_status
+        self.detail = display.detail
+        self.error_message = display.error_message
 
 
 def index() -> rx.Component:

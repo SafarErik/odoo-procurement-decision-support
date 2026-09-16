@@ -296,3 +296,67 @@ directly by the API schema, even though FastAPI also depends on it.
   Odoo data.
 - Authentication/authorization, dashboard design, cloud deployment, queues,
   background workers, SaaS features, and LLM functionality.
+
+## T0 automation follow-up — CI verification boundaries
+
+### Objective and implementation
+
+Automate repeatable verification without provisioning Google Cloud, AWS, or a
+persistent deployment. GitHub Actions now defines two independent Ubuntu workflows:
+
+- `quality` is the fast gate for pull requests, `main`, and manual dispatch. It uses
+  Python 3.11, checks Ruff formatting and linting, compiles Python sources, runs only
+  fast tests, checks installed dependencies and whitespace, and validates Compose
+  configuration with temporary synthetic credentials.
+- `container-api-integration` is path-filtered and cancellable. It starts Odoo and
+  PostgreSQL through Docker Compose, starts FastAPI, runs only integration-marked
+  tests, verifies Reflex frontend compilation with Node.js 22.22 as required by the
+  locked frontend dependencies, and checks that synthetic files in both named
+  volumes survive stack recreation. Failure logs are retained briefly.
+
+Pytest now rejects unknown markers. Unmarked tests are fast, `integration` identifies
+tests requiring running components, and `e2e` is reserved for a future browser-level
+suite. The frontend HTTP mapping was isolated from Reflex state mutation so fast
+tests cover successful responses, connection failures, and incomplete payloads.
+
+### Compatibility and governance decisions
+
+Python 3.11 is the single local and CI compatibility baseline because it is the
+declared minimum in `pyproject.toml` and Ruff already targets `py311`. The earlier
+successful Python 3.14.7 T0 run remains additional compatibility evidence. No
+version matrix is introduced yet.
+
+Only the stable `quality` check is intended to become mandatory. Maintainers must
+configure that branch-protection requirement manually; this increment does not
+modify GitHub settings or any other remote governance configuration. The heavier
+integration workflow remains informative and manually dispatchable.
+
+### Evidence limits
+
+`reflex export --frontend-only --no-zip` verifies compilation only. Actual
+Reflex-to-FastAPI success and unavailable-backend states remain documented browser
+milestone checks, not automated E2E evidence. Likewise, synthetic marker files prove
+technical named-volume persistence only; a real Odoo business scenario must be
+verified later through the implemented Odoo adapter flow.
+
+The repository remains the primary source of truth for executable implementation
+artifacts and technical logs. Google Drive remains the primary source of truth for
+the Hungarian thesis living documentation, project status, roadmap, requirements
+baseline, and architectural decision records. No Google Drive document was changed
+by this follow-up.
+
+### Verification performed
+
+Local verification on 2026-09-16 used the existing Python 3.14.7 environment because
+Python 3.11 is not installed on this workstation. Ruff format and lint checks,
+Python compilation, dependency checking, whitespace checking, and all six selected
+fast tests passed; the two integration tests were excluded from the fast selection
+and collected by `integration and not e2e`. The workflow YAML parsed successfully,
+its trigger/job/concurrency structure was asserted, and Podman Compose accepted the
+Compose configuration.
+
+The local Reflex export reached the production build but could not complete because
+the workstation's Node version-manager shim has no active Node.js version. The
+integration workflow therefore provisions Node.js 22.22 explicitly. A full Python
+3.11 run, frontend export, and container lifecycle remain to be confirmed by the
+first GitHub Actions execution; they are not recorded here as locally passed.
