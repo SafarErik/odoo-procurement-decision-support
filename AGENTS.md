@@ -71,3 +71,12 @@ from `frontend/` with `reflex run`.
 - Use synthetic CI credentials and never commit generated environment files. Do not
   claim a check passed unless it was actually executed.
 - Permanent cloud deployment is outside the current increment.
+
+## Code navigation
+
+When a `.codegraph/` index exists, use a focused
+`codegraph explore "<question or symbols>"` query before broad text searches or
+reading multiple code files. Prefer the returned current source and dependency
+paths to conserve context and tokens. Fall back to `rg` for exact text, non-code
+files, or details CodeGraph does not return. Do not rebuild or replace the index
+unless the user explicitly asks.

@@ -366,3 +366,18 @@ human-readable replacement strings were not credentials, but resembled passwords
 closely enough to trigger secret scanning. Compose's required-variable expressions
 still prevent startup until a developer supplies separate local values in the
 ignored `.env` file; no scanner-wide ignore rule was added.
+
+### Developer operations guide and code navigation
+
+`docs/LOCAL_DEVELOPMENT_AND_SSH.md` provides a concise PowerShell reference for
+starting and stopping PostgreSQL, Odoo, FastAPI, and Reflex, running fast checks,
+and configuring the Windows OpenSSH agent to cache the protected GitHub key across
+restarts. The instructions keep the key passphrase and align Git for Windows with
+the native Windows OpenSSH agent rather than introducing another agent process.
+
+The repository now has a user-managed `.codegraph/` index. The generated local
+index is ignored by Git, while `AGENTS.md` requires a focused CodeGraph query before
+broad code searches or multi-file reads whenever that index is available. `rg`
+remains the fallback for exact-text and non-code lookup. This reduces unnecessary
+repository scanning and context use without treating the index as authoritative
+for prose.

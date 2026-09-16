@@ -28,3 +28,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local generated code-navigation index
+.codegraph/

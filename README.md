@@ -59,6 +59,10 @@ prerequisite, but the locked production export toolchain currently requires Node
 
 ## Setup
 
+For a condensed terminal-by-terminal startup reference and the Windows SSH-agent
+setup used by this repository, see
+[Local development and SSH quick start](docs/LOCAL_DEVELOPMENT_AND_SSH.md).
+
 Create local configuration and fill both blank password values with separate,
 random local-development secrets. `.env` is ignored by Git and must never be
 committed. The tracked example intentionally contains no password-like placeholder
