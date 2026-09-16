@@ -59,12 +59,17 @@ prerequisite, but the locked production export toolchain currently requires Node
 
 ## Setup
 
-Create local configuration and replace both placeholder passwords. `.env` is ignored
-by Git and must never be committed.
+Create local configuration and fill both blank password values with separate,
+random local-development secrets. `.env` is ignored by Git and must never be
+committed. The tracked example intentionally contains no password-like placeholder
+values so secret scanners do not mistake documentation for credentials.
 
 ```powershell
 Copy-Item .env.example .env
 ```
+
+Compose will reject the configuration until both `POSTGRES_PASSWORD` and
+`ODOO_MASTER_PASSWORD` are set in `.env`.
 
 Create a virtual environment and install the API, frontend, and developer tools:
 

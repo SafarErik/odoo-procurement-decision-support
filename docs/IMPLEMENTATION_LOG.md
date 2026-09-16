@@ -360,3 +360,9 @@ the workstation's Node version-manager shim has no active Node.js version. The
 integration workflow therefore provisions Node.js 22.22 explicitly. A full Python
 3.11 run, frontend export, and container lifecycle remain to be confirmed by the
 first GitHub Actions execution; they are not recorded here as locally passed.
+
+The two password assignments in `.env.example` are intentionally blank. Earlier
+human-readable replacement strings were not credentials, but resembled passwords
+closely enough to trigger secret scanning. Compose's required-variable expressions
+still prevent startup until a developer supplies separate local values in the
+ignored `.env` file; no scanner-wide ignore rule was added.
