@@ -19,8 +19,27 @@ canonical mapping, decision logic, or production data access.
   [PostgreSQL official-image tags](https://hub.docker.com/_/postgres/tags?name=16&page=1)
 - The official 19.0 image entrypoint uses `HOST`, `PORT`, `USER`, and `PASSWORD`
   values to construct database connection arguments, waits for PostgreSQL, then runs
-  Odoo. This supports the Compose connection configuration but does not replace a
-  successful local startup test. [Official Odoo 19.0 entrypoint](https://github.com/odoo/docker/blob/master/19.0/entrypoint.sh)
+  Odoo. [Official Odoo 19.0 entrypoint](https://github.com/odoo/docker/blob/master/19.0/entrypoint.sh)
+
+### Runtime-verified local facts
+
+- Podman pulled and ran `postgres:16.15-bookworm` (image ID
+  `5f71c21b69a7977b82247582e2e731ed76bdebaadb7dd7945ed76bcc9ed06632`)
+  and `odoo:19.0-20260908` (image ID
+  `400a621198ea355394df4a328b0f65043ffd1f4e79a5025ba16edf03cb26893d`).
+- PostgreSQL reported version 16.15 in its logs, became healthy through
+  `pg_isready`, and was not published to the Windows host.
+- The pinned Odoo 19 image rejects the legacy `--admin-passwd` server option. Its
+  default configuration still documents `admin_passwd`, so Compose now creates a
+  mode-restricted runtime configuration in the named Odoo data volume and then
+  invokes the official entrypoint. Odoo subsequently logged version 19.0-20260908,
+  connected to `odoo@db:5432`, and started HTTP on port 8069.
+- `GET /web/database/selector` returned HTTP 200 and HTML from the Windows host
+  through a temporary localhost-only SSH tunnel into the Podman machine. The tunnel
+  was necessary because this host's Podman Windows forwarding helper did not expose
+  the Compose localhost binding even though Podman reported it correctly.
+- Synthetic markers in PostgreSQL and `/var/lib/odoo` survived both a container
+  restart and a normal Compose down/up cycle. No volume-removal command was used.
 
 ### Supported external interfaces and authentication
 
@@ -60,14 +79,21 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 
 ## Observations limited to the local environment
 
-- The project directory was already a clean Git repository with one project-specific
-  README and no partial implementation.
-- Docker, Docker Compose, Python, and Python package managers were not found on
-  `PATH` during assessment. Node/npm reported no active Node.js version.
-- Therefore, the selected Odoo and PostgreSQL images were not pulled, containers
-  were not started, no database was initialized, and no API endpoint, authentication
-  mechanism, model, field, or permission was inspected locally.
-- No synthetic Odoo data was created.
+- The closure audit used Podman client/server 6.0.2 with a WSL-based,
+  Linux/amd64 `podman-machine-default`. The external Compose provider was
+  `podman-compose` 1.6.0 from the project virtual environment.
+- Podman was installed under the user's local application directory but was not on
+  the initial shell `PATH`; the audit prepended that directory without relying on
+  Podman Desktop operations.
+- The machine's Windows forwarding helper failed to publish localhost ports. Direct
+  in-container HTTP returned 200, and a localhost-only SSH tunnel provided host-side
+  HTTP evidence without widening the Compose bind address.
+- The Odoo database manager page was reachable, but no Odoo database was created and
+  no Purchase or Inventory application was installed. The only persistence probes
+  were a synthetic PostgreSQL table marker and a synthetic Odoo-volume file marker.
+- No JSON-2, XML-RPC, or JSON-RPC call was executed. No API key, user permission,
+  model, field, method, record rule, or edition-specific licensing behaviour was
+  inspected locally. Candidate concepts below remain unverified mapping inputs.
 
 ## Assumptions
 
@@ -84,7 +110,8 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 ## Unresolved questions
 
 1. Which Odoo edition, apps/modules, pricing plan, and configuration form the
-   selected PoC environment, and is JSON-2 usable there?
+   selected PoC environment, and is JSON-2 usable there? The container startup and
+   database-manager smoke test do not answer this.
 2. Can a low-privilege local user create and use an API key for JSON-2 without
    broader administration access?
 3. Which precise models, fields, methods, relationships, record rules, and
@@ -95,9 +122,8 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
    expected arrival, and which receipt timestamp is authoritative for performance?
 6. How should partial receipts, returns, backorders, cancelled lines, services, and
    unit conversions affect later canonical data and KPI definitions?
-7. Does the official Odoo 19 image provide a suitable observable HTTP readiness
-   endpoint for Compose health checks, or should application-level smoke testing be
-   the only readiness evidence?
+7. Is `/web/database/selector` an acceptable local-only readiness probe, or should a
+   future initialized environment expose a narrower application-level endpoint?
 
 ## Implications for the planned adapter
 

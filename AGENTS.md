@@ -35,7 +35,7 @@ python -m pip install -e ".[frontend,dev]"
 ruff format --check .
 ruff check .
 pytest
-docker compose --env-file .env -f infra/odoo/compose.yaml config
+podman compose --env-file .env -f infra/odoo/compose.yaml config
 ```
 
 Run the backend with `uvicorn backend.app.main:app --reload` and the frontend

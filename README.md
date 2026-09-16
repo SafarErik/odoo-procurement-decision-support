@@ -5,9 +5,11 @@ ERP-independent procurement decision-support system integrated with Odoo. The
 system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
-**Current status:** T0 — development foundation and early Odoo capability spike.
-T0 deliberately contains no procurement decision algorithm, ranking, scoring,
-constraints, historical KPI calculation, production persistence, or Odoo adapter.
+**Current status:** T0 is complete. The development foundation, local Podman
+runtime, API/frontend boundary, persistence behaviour, and capability spike were
+verified on 2026-09-16. T0 deliberately contains no procurement decision algorithm,
+ranking, scoring, constraints, historical KPI calculation, production persistence,
+or Odoo adapter. See [the T0 handoff](docs/T0_HANDOFF.md) for the verification matrix.
 
 ## Architecture
 
@@ -38,13 +40,15 @@ docs/           Implementation log and capability evidence
 
 - Git
 - Python 3.11 or later with `pip`
-- Docker Desktop with Docker Compose v2, for the Odoo environment
-- A supported Node.js version is installed automatically or required by Reflex,
-  depending on the installed Reflex version
+- Podman on Windows with a running Linux-based Podman machine; Podman Desktop is not
+  required for the command-line workflow
+- A Compose provider for `podman compose`; the project `dev` extra installs the
+  verified `podman-compose` provider
 
-The project checks were run in the local `.venv` with Python 3.14.7. Docker and an
-active Node.js runtime still need to be available before container and full frontend
-runtime verification can be completed. See the implementation log for details.
+The T0 closure checks used Python 3.14.7, Podman client/server 6.0.2,
+`podman-compose` 1.6.0, Reflex 0.9.11.post1, and Reflex-managed Bun 1.4.0.
+Reflex manages the web toolchain on first run, so a globally active Node.js version
+is not a prerequisite for this verified workflow.
 
 ## Setup
 
@@ -64,13 +68,28 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[frontend,dev]"
 ```
 
+Ensure the Podman CLI is on `PATH`, start the existing machine, and confirm the
+Compose provider. The temporary `PATH` adjustment is needed only when the installer
+has not updated the current shell.
+
+```powershell
+if (-not (Get-Command podman -ErrorAction SilentlyContinue)) {
+    $env:Path = "$env:LOCALAPPDATA\Programs\Podman;$env:Path"
+}
+podman version
+podman machine list
+podman machine start podman-machine-default
+podman compose version
+```
+
 ## Local startup and shutdown
 
 Start the Odoo and PostgreSQL environment from the repository root:
 
 ```powershell
-docker compose --env-file .env -f infra/odoo/compose.yaml up -d
-docker compose --env-file .env -f infra/odoo/compose.yaml ps
+podman compose --env-file .env -f infra/odoo/compose.yaml up -d --build
+podman compose --env-file .env -f infra/odoo/compose.yaml ps
+podman compose --env-file .env -f infra/odoo/compose.yaml logs --tail=100
 ```
 
 On the first Odoo start, open the database manager, create a local development
@@ -85,7 +104,8 @@ uvicorn backend.app.main:app --reload
 ```
 
 Start Reflex in a third terminal. It reads `BACKEND_BASE_URL` from the repository
-root `.env`; do not hard-code a deployment-specific URL in components.
+root `.env`; do not hard-code a deployment-specific URL in components. Reflex uses
+port 8001 for its own state backend so it does not collide with FastAPI on port 8000.
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -97,21 +117,18 @@ Pop-Location
 Stop containers while preserving persistent volumes:
 
 ```powershell
-docker compose --env-file .env -f infra/odoo/compose.yaml down
+podman compose --env-file .env -f infra/odoo/compose.yaml down
 ```
 
-The following command permanently removes local Odoo and PostgreSQL volumes. Use it
-only when intentionally discarding local data:
-
-```powershell
-docker compose --env-file .env -f infra/odoo/compose.yaml down --volumes
-```
+This normal shutdown preserves both named volumes. Do not add `--volumes` unless
+local Odoo and PostgreSQL data are intentionally being discarded; T0 verification
+did not use that destructive option.
 
 ## Service URLs and checks
 
 - FastAPI health: <http://127.0.0.1:8000/api/v1/health>
 - FastAPI OpenAPI UI: <http://127.0.0.1:8000/docs>
-- Reflex frontend: the URL printed by `reflex run` (typically `http://localhost:3000`)
+- Reflex frontend: the URL printed by `reflex run` (normally `http://localhost:3000`)
 - Odoo: `http://127.0.0.1:<ODOO_HTTP_PORT>` (default `http://127.0.0.1:8069`)
 
 The API health response is stable and infrastructure-free:
@@ -130,24 +147,31 @@ UI and container logs after startup.
 ruff format --check .
 ruff check .
 pytest
-docker compose --env-file .env -f infra/odoo/compose.yaml config
+podman compose --env-file .env -f infra/odoo/compose.yaml config
 ```
 
-Run these after every material change. The tests cover the FastAPI health contract
-and the frontend's configured API URL. Full frontend and container runtime checks
-require the respective locally installed runtimes.
+Run these after every material change. The tests cover the FastAPI health contract,
+the frontend's configured API URL, and the separate Reflex state-backend port. No
+static type checker is currently configured.
 
 ## Troubleshooting
 
-- **`docker` or `python` not found:** install Docker Desktop or Python 3.11+, reopen
-  the terminal, and rerun the relevant version command.
-- **Odoo waits for PostgreSQL:** inspect `docker compose ... logs db` and verify the
+- **`podman` not found:** prepend `$env:LOCALAPPDATA\Programs\Podman` to the current
+  shell `PATH`, or reinstall the Podman CLI with its `PATH` integration enabled.
+- **No Compose provider:** activate `.venv`, rerun
+  `python -m pip install -e ".[frontend,dev]"`, and check `podman compose version`.
+- **Machine is stopped:** run `podman machine start podman-machine-default`.
+- **Odoo waits for PostgreSQL:** inspect `podman compose ... logs db` and verify the
   three matching `POSTGRES_*` values in `.env`.
 - **Database manager rejects the master password:** use `ODOO_MASTER_PASSWORD`, not
   the PostgreSQL password; recreate only deliberately disposable local volumes if
   this value changed after the first database creation.
 - **Reflex says the backend is unavailable:** start FastAPI, confirm the health URL,
   then check `BACKEND_BASE_URL` in `.env`.
+- **Odoo is healthy in the container but localhost refuses the connection:** restart
+  the Podman machine and inspect its Windows forwarding helper. The audited host had
+  this Podman-machine proxy issue; a temporary localhost-only SSH tunnel was used for
+  the host HTTP smoke test. Do not broaden the Compose bind address as a workaround.
 - **Port conflict:** change `ODOO_HTTP_PORT`; for the API or frontend, stop the
   conflicting local process or use their runtime-specific port options.
 
@@ -155,6 +179,10 @@ require the respective locally installed runtimes.
 
 T0 has no production persistence layer, no authentication or authorization, no
 Odoo adapter, no validated Odoo data mapping, and no procurement decision logic.
+The local Odoo database manager was reached, but no Odoo database, external API
+authentication, model, field, or licensing behaviour was validated. Image tags are
+explicit but are not digest-pinned. The frontend has browser smoke evidence but no
+automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
 facts, assumptions, and open questions.

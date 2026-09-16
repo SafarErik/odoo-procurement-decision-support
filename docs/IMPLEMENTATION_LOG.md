@@ -25,9 +25,9 @@ checks, and an evidence-based assessment of Odoo integration capability.
   backend state clearly. Its state-changing handlers use `@rx.event` so Reflex and
   static type checkers treat them as valid UI event handlers.
 - Explicit empty boundary directories for the future Decision Core and Odoo adapter.
-- A Docker Compose local environment for Odoo 19.0 and PostgreSQL, with named
-  volumes, an internal network, localhost-only Odoo exposure, and a PostgreSQL
-  health check.
+- A portable Compose local environment, verified with Podman, for Odoo 19.0 and
+  PostgreSQL, with named volumes, an internal network, localhost-only Odoo exposure,
+  and a PostgreSQL health check.
 - Automated tests for the API response contract and frontend API URL configuration.
 - An initial Odoo capability spike at `docs/spikes/odoo-capability-spike.md`.
 
@@ -117,11 +117,75 @@ they do not validate Compose parsing or runtime behaviour.
 A separate Python-source length check found no lines longer than the configured
 100-character limit.
 
-The following checks are **not yet executed** and T0 is not complete:
+Those initial gaps were closed by the formal audit below. The earlier result is
+retained here as chronological evidence, not as the current project status.
 
-- `docker compose --env-file .env -f infra/odoo/compose.yaml config`
-- Odoo/PostgreSQL startup, health, persistence, and restart verification
-- Reflex browser rendering and live HTTP connectivity verification
+### Formal T0 closure audit — 2026-09-16
+
+The audit used the committed T0 baseline `9af70cc` and preserved all existing work.
+The installed Podman CLI was not initially on `PATH`; its local installation
+directory was prepended for the audit. The existing WSL machine was started through
+the CLI, without relying on Podman Desktop operations.
+
+Verified versions:
+
+- Python 3.14.7; Ruff 0.16.7; Pytest 8.4.2.
+- FastAPI 0.141.1; Uvicorn 0.53.0; Reflex 0.9.11.post1; HTTPX 0.28.1;
+  Pydantic 2.13.5; Reflex-managed Bun 1.4.0.
+- Podman client/server 6.0.2, Windows/amd64 client and Linux/amd64 server on the
+  WSL provider.
+- `podman-compose` 1.6.0, invoked by `podman compose` as its external provider.
+- `postgres:16.15-bookworm` image ID
+  `5f71c21b69a7977b82247582e2e731ed76bdebaadb7dd7945ed76bcc9ed06632`.
+- `odoo:19.0-20260908` image ID
+  `400a621198ea355394df4a328b0f65043ffd1f4e79a5025ba16edf03cb26893d`.
+
+Representative commands actually executed:
+
+```text
+podman version
+podman info
+podman machine list
+podman system connection list
+podman compose version
+podman compose --env-file .env -f infra/odoo/compose.yaml config
+podman compose --env-file .env -f infra/odoo/compose.yaml up -d --build
+podman compose --env-file .env -f infra/odoo/compose.yaml ps
+podman compose --env-file .env -f infra/odoo/compose.yaml logs --no-color --tail=100
+podman compose --env-file .env -f infra/odoo/compose.yaml restart
+podman compose --env-file .env -f infra/odoo/compose.yaml down
+podman compose --env-file .env -f infra/odoo/compose.yaml up -d
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pytest -v
+.\.venv\Scripts\python.exe -m compileall -q backend frontend decision_core odoo_adapter
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+Push-Location frontend; ..\.venv\Scripts\reflex.exe run --loglevel info; Pop-Location
+```
+
+Runtime results:
+
+- Compose configuration parsed successfully. PostgreSQL 16.15 became healthy and
+  Odoo 19.0 started after replacing its removed `--admin-passwd` CLI option with a
+  mode-restricted runtime configuration file.
+- Odoo's database selector returned HTTP 200. The Windows forwarding helper on this
+  particular Podman machine failed to expose the declared localhost binding, so the
+  host smoke test used a temporary SSH tunnel bound only to `127.0.0.1`. A broader
+  network bind was explicitly rejected.
+- FastAPI returned the documented JSON at `GET /api/v1/health` with HTTP 200.
+- Reflex compiled and ran after declaring the flat app-module import, moving its
+  state backend to port 8001, and removing the package marker that Reflex forbids in
+  the app root. Browser inspection displayed the FastAPI `ok` state, a clear
+  `Unavailable` state while FastAPI was stopped, and recovery to `ok` after restart.
+- Container restart succeeded. Synthetic markers in both the PostgreSQL and Odoo
+  named volumes survived a normal Compose down/up cycle. No volume deletion command
+  was executed.
+- Final static results after the closure fixes are recorded in `docs/T0_HANDOFF.md`.
+
+**Closure decision: COMPLETE.** Every T0 Definition of Done item has executable or
+inspection evidence. The Podman Windows forwarding-helper issue is an
+environment-specific limitation with a localhost-only verification path, not an
+unverified T0 feature.
 
 ### Verified technical facts
 
@@ -183,12 +247,15 @@ Sources and evidence are recorded in the capability spike.
 
 ### Known limitations and technical debt
 
-- Docker and a usable Node.js runtime remain unavailable to the agent shell, so
-  Compose and full Reflex browser runtime verification remain blocking gaps for T0
-  completion.
 - Image tags are explicit but not digest-pinned; a future reproducibility/security
   decision may pin multi-platform image digests after validating the target host.
-- The frontend does not yet have browser-level end-to-end coverage.
+- The frontend has a successful browser smoke test but no automated browser-level
+  end-to-end test suite.
+- No static type checker is configured. Ruff and Python compilation are the current
+  static gates.
+- The audited Podman Windows forwarding helper did not expose a localhost-published
+  port. The runtime itself was verified through a temporary localhost-only SSH
+  tunnel; the Compose file remains portable and securely bound to localhost.
 
 ### Dependency-isolation update
 
@@ -208,6 +275,7 @@ directly by the API schema, even though FastAPI also depends on it.
   checks.
 - `docs/spikes/odoo-capability-spike.md` — external-source and local-environment
   evidence.
+- `docs/T0_HANDOFF.md` — final Definition of Done matrix and runtime handoff.
 
 ### Suggested thesis chapter destinations
 
@@ -216,7 +284,8 @@ directly by the API schema, even though FastAPI also depends on it.
   gates.
 - ERP integration design: capability spike, API selection, least privilege, and
   unresolved data-mapping questions.
-- Limitations and future work: unverified runtime checks and deferred decision logic.
+- Limitations and future work: environment-specific Podman forwarding, missing
+  browser automation, and deferred decision logic.
 
 ### Explicitly unimplemented functionality
 

@@ -30,9 +30,15 @@ services:
       PORT: "5432"
       USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      ODOO_RC: /var/lib/odoo/odoo.conf
+      ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD:?Set ODOO_MASTER_PASSWORD in .env}
     command:
-      - odoo
-      - --admin-passwd=${ODOO_MASTER_PASSWORD:?Set ODOO_MASTER_PASSWORD in .env}
+      - bash
+      - -ceu
+      - |
+        umask 077
+        printf '[options]\nadmin_passwd = %s\ndata_dir = /var/lib/odoo\n' "$$ODOO_MASTER_PASSWORD" > "$$ODOO_RC"
+        exec /entrypoint.sh odoo
     ports:
       - "127.0.0.1:${ODOO_HTTP_PORT:-8069}:8069"
     volumes:
