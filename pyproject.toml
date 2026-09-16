@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "odoo-procurement-decision-support"
+version = "0.0.1"
+description = "Development foundation for an ERP-independent procurement decision-support system."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "pydantic>=2.6,<3.0",
+    "pydantic-settings>=2.6,<3.0",
+    "uvicorn[standard]>=0.32,<1.0",
+]
+
+[project.optional-dependencies]
+frontend = [
+    "httpx>=0.27,<1.0",
+    "reflex>=0.8,<1.0",
+]
+dev = [
+    "httpx>=0.27,<1.0",
+    "pytest>=8.3,<9.0",
+    "ruff>=0.8,<1.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["backend*", "frontend*", "decision_core*", "odoo_adapter*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "frontend"]
