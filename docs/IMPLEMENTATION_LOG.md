@@ -381,3 +381,68 @@ broad code searches or multi-file reads whenever that index is available. `rg`
 remains the fallback for exact-text and non-code lookup. This reduces unnecessary
 repository scanning and context use without treating the index as authoritative
 for prose.
+
+## T1 — Read-only Odoo RFQ vertical slice
+
+### Objective
+
+Demonstrate one complete but deliberately narrow business-data path: Odoo JSON-2 to
+an isolated adapter, an ERP-neutral application use case, a thin FastAPI endpoint,
+and a useful Reflex view. This increment remains read-only and does not implement
+supplier evaluation or a recommendation.
+
+### Implemented components
+
+- An ERP-neutral `application/` contract containing the bounded open-RFQ use case,
+  immutable RFQ and money DTOs, and an adapter protocol.
+- A read-only `OdooRfqReader` using the validated Odoo 19 JSON-2
+  `purchase.order/search_read` method with explicit fields, open-state filtering,
+  newest-first ordering, a timeout, payload validation, and stable error translation.
+- A FastAPI `GET /api/v1/procurement/rfqs` route with a 1–50 result bound. The route
+  exposes no raw Odoo field names or payloads and maps upstream unavailability to
+  HTTP 503 and invalid/rejected responses to HTTP 502.
+- A restrained, responsive Reflex procurement ledger showing RFQ reference, vendor,
+  order date, neutral status, and currency-aware total, plus explicit loading, empty,
+  and unavailable states.
+- Fast tests for the adapter request contract and mapping, API boundary and errors,
+  frontend endpoint construction and presentation mapping, valid empty results, and
+  invalid responses. A separate integration-marked test performs a live read when
+  ignored local Odoo credentials are available.
+
+### Local evidence
+
+On 2026-09-16, the `procurement_poc` Odoo 19 Community database had Purchase and
+Inventory installed with demo data. The database-specific `/doc` page and live
+JSON-2 calls confirmed `purchase.order/search_read` and the seven fields used by the
+adapter: `id`, `name`, `partner_id`, `date_order`, `state`, `amount_total`, and
+`currency_id`. A JSON-2 context request authenticated as local user ID 2.
+
+All three integration tests passed with the local services running: the live adapter
+read, the separately served FastAPI health contract, and Odoo HTTP availability.
+The FastAPI RFQ route also returned HTTP 200 with five mapped RFQs. Eighteen fast
+tests passed, with all three integration tests excluded by the fast marker
+expression. Ruff lint, Python compilation, Compose configuration validation, and
+Reflex's Python/component compilation passed. The production frontend build remained
+blocked only because the Windows NVM installation had no active Node version; the
+workflow continues to provision Node.js 22.22 for this check.
+
+### Security and scope decisions
+
+- The API key exists only in the ignored `.env`; `.env.example` leaves the key blank
+  to avoid both credential exposure and misleading secret-scanner findings.
+- The current API key belongs to the local administrator and was acceptable only for
+  discovery. A dedicated least-privilege, read-only integration user remains required
+  before the identity is treated as durable PoC configuration.
+- The adapter performs no Odoo writes and never accesses PostgreSQL directly.
+- No raw upstream response or credential is returned through API errors.
+- The working demo records are capability evidence, not canonical thesis data.
+
+### Deferred work
+
+- Purchase-order lines, products, receipts, promised and actual delivery dates,
+  partial receipts, returns, units, and multi-company record rules remain unvalidated.
+- There is no pagination, retry policy, application authentication, browser E2E
+  automation, or procurement decision logic.
+- A real Odoo business-persistence scenario must be designed after an actual write or
+  state-transition use case exists; synthetic volume markers still prove only
+  technical named-volume persistence.

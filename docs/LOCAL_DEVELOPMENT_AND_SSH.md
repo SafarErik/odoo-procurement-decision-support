@@ -67,6 +67,20 @@ podman compose --env-file .env -f infra/odoo/compose.yaml up -d db odoo
 podman compose --env-file .env -f infra/odoo/compose.yaml ps
 ```
 
+if odoo is running but can't access it:
+
+```powershell
+$machine = (podman machine inspect podman-machine-default | ConvertFrom-Json)[0]
+
+ssh.exe `
+  -i $machine.SSHConfig.IdentityPath `
+  -p $machine.SSHConfig.Port `
+  -N `
+  -L 127.0.0.1:8069:127.0.0.1:8069 `
+  user@127.0.0.1
+```
+
+
 Useful container commands:
 
 ```powershell

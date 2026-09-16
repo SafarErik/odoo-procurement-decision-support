@@ -8,6 +8,14 @@ and an evidence-based Odoo capability spike. It does not implement procurement
 decision logic, rankings, constraints, KPIs, persistence schemas, or a final
 domain model.
 
+## Current read-only integration scope
+
+The first post-T0 increment validates a narrow Odoo 19 JSON-2 path for listing open
+`purchase.order` records. It may expose only the verified RFQ summary through the
+ERP-neutral application contract. It does not authorize Odoo writes, scoring,
+ranking, supplier recommendations, purchase-line or receipt mappings, or a broader
+canonical procurement model.
+
 ## Architectural boundaries
 
 - Keep the Decision Core independent of Odoo, FastAPI, Reflex, and database frameworks.
@@ -43,7 +51,7 @@ After creating and activating a Python 3.11 virtual environment:
 python -m pip install -e ".[frontend,dev]"
 ruff format --check .
 ruff check .
-python -m compileall backend frontend decision_core odoo_adapter
+python -m compileall application backend frontend decision_core odoo_adapter
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config

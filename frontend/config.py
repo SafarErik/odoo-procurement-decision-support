@@ -24,5 +24,11 @@ class FrontendSettings(BaseSettings):
 
         return f"{self.backend_base_url.rstrip('/')}/api/v1/health"
 
+    @property
+    def rfqs_url(self) -> str:
+        """Return the documented open-RFQ endpoint."""
+
+        return f"{self.backend_base_url.rstrip('/')}/api/v1/procurement/rfqs"
+
 
 settings = FrontendSettings()

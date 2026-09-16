@@ -1,7 +1,8 @@
-# Odoo capability spike — T0
+# Odoo capability spike — T0 baseline and first read-only integration
 
-**Purpose:** reduce integration uncertainty without implementing an adapter,
-canonical mapping, decision logic, or production data access.
+**Purpose:** reduce integration uncertainty, record the first validated read-only
+adapter contract, and keep that evidence separate from future canonical mapping,
+decision logic, and production data access.
 
 **Assessment date:** 2026-09-16.
 
@@ -61,6 +62,28 @@ canonical mapping, decision logic, or production data access.
   Community environment's exact JSON-2 entitlement and behaviour still require
   runtime confirmation; do not extrapolate hosted-plan wording without testing.
 
+### Locally validated JSON-2 RFQ contract
+
+- A local Odoo 19 Community database named `procurement_poc` was created with the
+  Purchase and Inventory applications installed and demo data enabled.
+- An API key generated for the local administrator successfully authenticated a
+  JSON-2 request. `res.users/context_get` returned the authenticated context for
+  user ID 2. This proves the mechanism in this local database; it is not evidence
+  of a least-privilege production identity.
+- The database-specific `/doc` page exposed Purchase and Inventory model
+  documentation. A read-only `purchase.order/search_read` request returned demo
+  open RFQs.
+- `purchase.order/fields_get` confirmed the exact fields used by the first adapter:
+  `id`, `name`, `partner_id`, `date_order`, `state`, `amount_total`, and
+  `currency_id`. The observed states were `draft`, `sent`, `to approve`,
+  `purchase`, and `cancel`.
+- The implemented query includes only `draft`, `sent`, and `to approve`, limits the
+  result to at most 50 records, and orders by newest `date_order` and ID. It maps
+  Odoo-specific values to an ERP-neutral RFQ summary before FastAPI or Reflex sees
+  them.
+- A live integration test and the FastAPI route both succeeded against this local
+  database on 2026-09-16. The test deliberately performs reads only.
+
 ### Candidate business data concepts
 
 These are **candidate source concepts only**, based on Odoo 19 functional
@@ -88,50 +111,49 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 - The machine's Windows forwarding helper failed to publish localhost ports. Direct
   in-container HTTP returned 200, and a localhost-only SSH tunnel provided host-side
   HTTP evidence without widening the Compose bind address.
-- The Odoo database manager page was reachable, but no Odoo database was created and
-  no Purchase or Inventory application was installed. The only persistence probes
-  were a synthetic PostgreSQL table marker and a synthetic Odoo-volume file marker.
-- No JSON-2, XML-RPC, or JSON-RPC call was executed. No API key, user permission,
-  model, field, method, record rule, or edition-specific licensing behaviour was
-  inspected locally. Candidate concepts below remain unverified mapping inputs.
+- The Odoo database manager was used to create `procurement_poc`; Purchase and
+  Inventory were installed and demo purchase records were available.
+- JSON-2 authentication, `context_get`, `purchase.order/fields_get`, and a bounded
+  `purchase.order/search_read` were executed successfully. XML-RPC and JSON-RPC were
+  not exercised because JSON-2 is the selected Odoo 19 baseline.
+- The API key used for discovery belongs to the local administrator. A dedicated
+  lower-privilege integration identity and its exact record rules remain unverified.
+- The only persistence probes remain synthetic PostgreSQL and Odoo-volume markers.
+  Successful RFQ reads do not yet prove persistence of an Odoo business transaction.
 
 ## Assumptions
 
-- A fresh local database will be created through the Odoo database manager using the
-  master password supplied in the ignored `.env` file.
 - A dedicated non-administrator integration user can be restricted to read-only
   access to the validated source data. This is a design target, not verified Odoo
   permission evidence.
-- JSON-2 with a dedicated API key will be preferred if it works in the selected PoC
-  environment and gives the required least-privilege access.
-- HTTP timeouts, bounded requests, retry policy for transient failures, and explicit
-  error translation will be required in the future adapter.
+- The locally validated `purchase.order` field behaviour will remain stable for the
+  pinned Odoo image and initialized database. It must still be rechecked after a
+  material image, module, permission, or deployment change.
+- Retry policy and production observability will be required beyond the current
+  bounded request, timeout, validation, and explicit error translation.
 
 ## Unresolved questions
 
-1. Which Odoo edition, apps/modules, pricing plan, and configuration form the
-   selected PoC environment, and is JSON-2 usable there? The container startup and
-   database-manager smoke test do not answer this.
-2. Can a low-privilege local user create and use an API key for JSON-2 without
+1. Can a low-privilege local user create and use an API key for JSON-2 without
    broader administration access?
-3. Which precise models, fields, methods, relationships, record rules, and
-   multi-company constraints are visible from `/doc` and the external interface?
-4. What pagination pattern, maximum page size, transaction duration, timeout,
+2. Which precise purchase-line, receipt, product, supplier, record-rule, and
+   multi-company contracts are visible to that user?
+3. What pagination pattern, maximum page size, transaction duration, timeout,
    throttling, and error responses apply to the target endpoint and deployment?
-5. Which date is the contractual supplier commitment, which is Odoo's calculated
+4. Which date is the contractual supplier commitment, which is Odoo's calculated
    expected arrival, and which receipt timestamp is authoritative for performance?
-6. How should partial receipts, returns, backorders, cancelled lines, services, and
+5. How should partial receipts, returns, backorders, cancelled lines, services, and
    unit conversions affect later canonical data and KPI definitions?
-7. Is `/web/database/selector` an acceptable local-only readiness probe, or should a
+6. Is `/web/database/selector` an acceptable local-only readiness probe, or should a
    future initialized environment expose a narrower application-level endpoint?
 
 ## Implications for the planned adapter
 
 - Keep all HTTP transport, authentication, pagination, retry/timeout handling, and
   Odoo-specific mapping inside `odoo_adapter/`.
-- Design the adapter after inspecting the target database's `/doc` page and running
-  read-only API experiments with synthetic data. Do not map directly from this
-  document's candidate concepts.
+- Extend the adapter only after inspecting the target database's `/doc` page and
+  running focused read-only experiments. The RFQ summary is validated; candidate
+  purchase-line, receipt, performance, and recommendation inputs are not.
 - Prefer a dedicated low-privilege API identity, keep its API key outside the
   repository, and document the exact permissions after validation.
 - Expose only ERP-independent DTOs to the later application/Decision Core boundary.

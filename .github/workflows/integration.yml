@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/integration.yml"
       - ".env.example"
+      - "application/**"
       - "backend/**"
       - "decision_core/**/*.py"
       - "frontend/**"
@@ -18,6 +19,7 @@ on:
     paths:
       - ".github/workflows/integration.yml"
       - ".env.example"
+      - "application/**"
       - "backend/**"
       - "decision_core/**/*.py"
       - "frontend/**"

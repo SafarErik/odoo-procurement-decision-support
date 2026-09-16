@@ -5,34 +5,39 @@ ERP-independent procurement decision-support system integrated with Odoo. The
 system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
-**Current status:** T0 is complete. The development foundation, local Podman
-runtime, API/frontend boundary, persistence behaviour, and capability spike were
-verified on 2026-09-16. T0 deliberately contains no procurement decision algorithm,
-ranking, scoring, constraints, historical KPI calculation, production persistence,
-or Odoo adapter. See [the T0 handoff](docs/T0_HANDOFF.md) for the verification matrix.
+**Current status:** T0 is complete and the first read-only Odoo integration
+increment is implemented. The application can retrieve recent open RFQs from the
+local Odoo 19 database through JSON-2, expose an ERP-neutral FastAPI response, and
+display the result in a responsive Reflex procurement ledger. It still contains no
+procurement decision algorithm, ranking, scoring, constraints, historical KPI
+calculation, write operation, or production persistence. See
+[the T1 handoff](docs/T1_HANDOFF.md) for the current verification matrix.
 
 ## Architecture
 
 ```text
-Reflex frontend --HTTP--> FastAPI application/API --> future Decision Core
-                                  |
-                                  +--> future Odoo integration adapter --supported external API--> Odoo
+Reflex frontend --HTTP--> FastAPI API --> application RFQ use case
+                                               |
+                                               +--> Odoo adapter --JSON-2--> Odoo
+
+                         future Decision Core (still independent and empty)
 ```
 
-The frontend has no direct Odoo or database access. The Decision Core will remain
-independent of Odoo, FastAPI, Reflex, and database frameworks. Odoo database access
-by this project is prohibited; the later adapter must use a validated supported
-external interface.
+The frontend has no direct Odoo or database access. The application contract is
+ERP-neutral, while Odoo transport and payload mapping remain inside
+`odoo_adapter/`. The Decision Core remains independent of Odoo, FastAPI, Reflex,
+and database frameworks. Direct Odoo database access by this project is prohibited.
 
 ## Repository layout
 
 ```text
-backend/        Minimal FastAPI boundary
-frontend/       Minimal, separate Reflex frontend
+application/    ERP-neutral use cases and adapter ports
+backend/        FastAPI boundary and dependency composition
+frontend/       Separate Reflex procurement ledger
 decision_core/  Reserved ERP-independent decision logic boundary
-odoo_adapter/   Reserved Odoo integration boundary
+odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
 infra/odoo/     Local Odoo and PostgreSQL Compose configuration
-tests/          Automated T0 checks
+tests/          Fast contract tests and optional live integration checks
 docs/           Implementation log and capability evidence
 ```
 
@@ -64,9 +69,12 @@ setup used by this repository, see
 [Local development and SSH quick start](docs/LOCAL_DEVELOPMENT_AND_SSH.md).
 
 Create local configuration and fill both blank password values with separate,
-random local-development secrets. `.env` is ignored by Git and must never be
-committed. The tracked example intentionally contains no password-like placeholder
-values so secret scanners do not mistake documentation for credentials.
+random local-development secrets. After creating the Odoo database, generate an API
+key in the Odoo user's preferences and set `ODOO_DATABASE` and `ODOO_API_KEY` in
+`.env`. The implemented integration is read-only, but the API key still has all
+permissions of its Odoo user; a dedicated least-privilege user is the target setup.
+`.env` is ignored by Git and must never be committed. The tracked example keeps all
+secret values blank so secret scanners do not mistake documentation for credentials.
 
 ```powershell
 Copy-Item .env.example .env
@@ -109,8 +117,10 @@ podman compose --env-file .env -f infra/odoo/compose.yaml logs --tail=100
 ```
 
 On the first Odoo start, open the database manager, create a local development
-database, and use `ODOO_MASTER_PASSWORD` from `.env` when asked for the master
-password. Use synthetic data only during the capability spike.
+database named `procurement_poc`, and use `ODOO_MASTER_PASSWORD` from `.env` when
+asked for the master password. Install Purchase and Inventory, generate an API key,
+and save it only as `ODOO_API_KEY` in the ignored `.env`. The current proof of
+concept uses Odoo's demo RFQs; do not use production credentials or data.
 
 Start the API in a second terminal:
 
@@ -143,6 +153,7 @@ did not use that destructive option.
 ## Service URLs and checks
 
 - FastAPI health: <http://127.0.0.1:8000/api/v1/health>
+- Open RFQs: <http://127.0.0.1:8000/api/v1/procurement/rfqs>
 - FastAPI OpenAPI UI: <http://127.0.0.1:8000/docs>
 - Reflex frontend: the URL printed by `reflex run` (normally `http://localhost:3000`)
 - Odoo: `http://127.0.0.1:<ODOO_HTTP_PORT>` (default `http://127.0.0.1:8069`)
@@ -162,7 +173,7 @@ UI and container logs after startup.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall backend frontend decision_core odoo_adapter
+python -m compileall application backend frontend decision_core odoo_adapter
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
@@ -173,10 +184,12 @@ running application or infrastructure components use the `integration` marker;
 browser-level full-flow tests use the reserved `e2e` marker. Strict marker checking
 prevents misspelled categories from silently running in the wrong suite.
 
-The fast tests cover the FastAPI health contract, frontend API URL configuration,
-successful health-response mapping, unavailable or invalid backend responses, and
-the separate Reflex state-backend port. With the documented runtime services
-running, integration tests can be selected explicitly:
+The fast tests cover the health contract, the ERP-neutral RFQ API, Odoo JSON-2
+request and mapping behaviour, stable upstream error translation, frontend URL
+configuration, RFQ presentation mapping, empty results, unavailable or invalid
+responses, and the separate Reflex state-backend port. With the documented runtime
+services running and the ignored `.env` configured, integration tests can be
+selected explicitly:
 
 ```powershell
 pytest -m "integration and not e2e" -v
@@ -217,10 +230,10 @@ or persistent Google Cloud or AWS environment.
 For milestone verification, start FastAPI and Reflex using the commands above and
 confirm both states in a browser:
 
-1. With FastAPI running, Reflex displays the `ok` status and API service/version
-   detail returned over HTTP.
-2. After stopping FastAPI, reloading the page or pressing **Check backend** displays
-   `Unavailable` and a useful connection error.
+1. With Odoo and FastAPI running, Reflex displays the open RFQs returned through the
+   backend endpoint, including reference, vendor, order date, state, and total.
+2. After stopping FastAPI, reloading the page or pressing **Refresh data** displays
+   the Odoo-unavailable state and a useful recovery message.
 
 Keep this manual evidence separate from frontend compilation until a dedicated E2E
 workflow is implemented.
@@ -262,12 +275,14 @@ This CI increment does not modify Google Drive documents.
 
 ## Limitations
 
-T0 has no production persistence layer, no authentication or authorization, no
-Odoo adapter, no validated Odoo data mapping, and no procurement decision logic.
-The local Odoo database manager was reached, but no Odoo database, external API
-authentication, model, field, or licensing behaviour was validated. Image tags are
-explicit but are not digest-pinned. The frontend has browser smoke evidence but no
-automated browser end-to-end test suite.
+The integration is deliberately read-only and limited to the validated
+`purchase.order` summary fields required by the RFQ ledger. It has no pagination,
+retry policy, write operation, application authentication/authorization, production
+persistence, procurement decision logic, or validated purchase-line and inventory
+receipt mapping. The current discovery API key belongs to the local administrator;
+replace it with a dedicated least-privilege integration identity before treating
+the setup as more than a local PoC. Image tags are explicit but are not
+digest-pinned. The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
 facts, assumptions, and open questions.

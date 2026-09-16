@@ -41,7 +41,7 @@ jobs:
         run: ruff check .
 
       - name: Compile Python sources
-        run: python -m compileall backend frontend decision_core odoo_adapter
+        run: python -m compileall application backend frontend decision_core odoo_adapter
 
       - name: Run fast tests
         run: pytest -m "not integration and not e2e" -v
