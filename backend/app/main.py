@@ -3,10 +3,12 @@
 from fastapi import FastAPI
 
 from backend.app.config import settings
+from backend.app.routes.decisions import router as decisions_router
 from backend.app.routes.rfqs import router as rfqs_router
 from backend.app.schemas import HealthResponse
 
 app = FastAPI(title="Procurement Decision Support API", version="v1")
+app.include_router(decisions_router)
 app.include_router(rfqs_router)
 
 
