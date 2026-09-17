@@ -656,3 +656,43 @@ complete evidence matrix and `docs/T4_HANDOFF.md` for the review handoff.
 - Full fast suite: 80 passed, 14 integration/E2E tests deselected.
 - GitHub Actions: not executed because no pull request was created from this local
   handoff and branch pushes do not trigger the quality workflow.
+
+## T5 — Odoo comparison-case enablement, Phase A
+
+### Approval-checkpoint result on 2026-09-17
+
+Phase A completed read-only and made no Odoo mutation. The branch starts exactly at
+the T4 merge `e8eccf71f786e7a987fdbc47b0c3c88e8f40b5ef`.
+
+The existing T4 live contract passed 11/11 before T5 changes. Additional bounded
+JSON-2 discovery established that this exact Community database contains the
+standard LGPL-3 `purchase_requisition` module, displayed as **Purchase Agreements**,
+in `uninstalled` state. `res.config.settings` exposes
+`module_purchase_requisition`. Matching Odoo 19 source defines
+`purchase.order.group`, `purchase.order.purchase_group_id`, and related
+`alternative_po_ids` as the supported call-for-tender grouping mechanism. These
+expected post-install fields remain unvalidated in the database until installation
+is explicitly approved.
+
+The dedicated identity remains user ID 7, company ID 1 only, with direct groups
+`Procurement RFQ API Reader` and `Role / User`. `purchase.order.line` read remains
+denied. The minimal proposed access change is one read-only line ACL on the existing
+custom group. The installed Purchase global line record rule already restricts rows
+to `company_ids`; no broad Purchase or Inventory role and no duplicate rule is
+proposed.
+
+Runtime field metadata also sharpened two critical semantic gates:
+
+- `product.supplierinfo.min_qty` is the quantity required to benefit from a
+  vendor-price row, not a hard supplier order minimum. It is rejected as the current
+  Decision Core MOQ source.
+- `product.supplierinfo.delay` is configured time from PO confirmation to warehouse
+  receipt, while line `date_planned` is Expected Arrival and defaults from that
+  planning value. No supplier-offer promise or deterministic canonical lead-time
+  transformation is yet established.
+
+The adapter gate therefore remains `NO-GO`. Phase B may proceed only after explicit
+approval for the exact module, ACL, human group, and controlled fixture mutations in
+`docs/spikes/odoo-comparison-case-enablement.md`. No adapter, Decision Core change,
+Odoo write, module installation, permission change, role assignment, business-data
+mutation, PostgreSQL access, or Google Drive change occurred in Phase A.

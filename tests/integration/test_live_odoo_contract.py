@@ -258,3 +258,133 @@ def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> No
         ("purchase", "installed"),
         ("stock", "installed"),
     ]
+
+
+def test_live_odoo_t5_purchase_agreements_are_available_but_uninstalled() -> None:
+    """Phase A proves the standard Community capability exists without enabling it."""
+
+    modules = _post_json2(
+        "ir.module.module",
+        "search_read",
+        {
+            "domain": [["name", "=", "purchase_requisition"]],
+            "fields": [
+                "name",
+                "shortdesc",
+                "state",
+                "license",
+                "application",
+            ],
+            "limit": 2,
+        },
+    )
+    assert [
+        {key: module[key] for key in ("name", "shortdesc", "state", "license", "application")}
+        for module in modules
+    ] == [
+        {
+            "name": "purchase_requisition",
+            "shortdesc": "Purchase Agreements",
+            "state": "uninstalled",
+            "license": "LGPL-3",
+            "application": False,
+        }
+    ]
+
+    settings_fields = _post_json2(
+        "res.config.settings",
+        "fields_get",
+        {
+            "allfields": ["module_purchase_requisition"],
+            "attributes": ["string", "type"],
+        },
+    )
+    assert settings_fields == {
+        "module_purchase_requisition": {
+            "string": "Purchase Agreements",
+            "type": "boolean",
+        }
+    }
+
+
+def test_live_odoo_t5_line_schema_exposes_semantic_candidates_before_access_change() -> None:
+    """Phase A records exact line, pricing-tier, and date meanings without reading rows."""
+
+    line_fields = _post_json2(
+        "purchase.order.line",
+        "fields_get",
+        {
+            "allfields": [
+                "date_planned",
+                "discount",
+                "price_unit",
+                "price_unit_discounted",
+                "selected_seller_id",
+                "tax_ids",
+            ],
+            "attributes": ["string", "type", "relation", "store", "help"],
+        },
+    )
+    assert line_fields["selected_seller_id"] == {
+        "help": "Technical field to get the vendor pricelist used to generate this line",
+        "relation": "product.supplierinfo",
+        "store": False,
+        "string": "Selected Seller",
+        "type": "many2one",
+    }
+    assert line_fields["tax_ids"] == {
+        "relation": "account.tax",
+        "store": True,
+        "string": "Taxes",
+        "type": "many2many",
+    }
+    assert line_fields["price_unit"] == {
+        "store": True,
+        "string": "Unit Price",
+        "type": "float",
+    }
+    assert line_fields["price_unit_discounted"] == {
+        "store": False,
+        "string": "Unit Price (Discounted)",
+        "type": "float",
+    }
+    assert line_fields["date_planned"] == {
+        "help": (
+            "Delivery date expected from vendor. This date respectively defaults to "
+            "vendor pricelist lead time then today's date."
+        ),
+        "store": True,
+        "string": "Expected Arrival",
+        "type": "datetime",
+    }
+
+    supplier_fields = _post_json2(
+        "product.supplierinfo",
+        "fields_get",
+        {
+            "allfields": ["delay", "min_qty"],
+            "attributes": ["string", "type", "required", "store", "help"],
+        },
+    )
+    assert supplier_fields["min_qty"] == {
+        "help": (
+            "The quantity to purchase from this vendor to benefit from the unit price. "
+            "If a vendor unit is set, quantity should be specified in this unit, "
+            "otherwise it should be specified in the default unit of the product."
+        ),
+        "required": True,
+        "store": True,
+        "string": "Quantity",
+        "type": "float",
+    }
+    assert supplier_fields["delay"] == {
+        "help": (
+            "Lead time in days between the confirmation of the purchase order and the "
+            "receipt of the products in your warehouse. Used by the scheduler for "
+            "automatic computation of the purchase order planning."
+        ),
+        "required": True,
+        "store": True,
+        "string": "Lead Time",
+        "type": "integer",
+    }
