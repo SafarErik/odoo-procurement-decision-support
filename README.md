@@ -5,14 +5,14 @@ ERP-independent procurement decision-support system integrated with Odoo. The
 system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
-**Current status:** T0 is complete and the first read-only Odoo integration
-increment is implemented. The application can retrieve recent open RFQs from the
-local Odoo 19 database through JSON-2, expose an ERP-neutral FastAPI response, and
-display the result in a responsive Reflex procurement ledger using a validated
-dedicated read-only Odoo identity. It still contains no
-procurement decision algorithm, ranking, scoring, constraints, historical KPI
-calculation, write operation, or production persistence. See
-[the T1 handoff](docs/T1_HANDOFF.md) for the current verification matrix.
+**Current status:** T0, the read-only T1 Odoo RFQ slice, and the ERP-independent T2
+Decision Core are implemented. The application can retrieve open RFQ summaries
+through the existing read-only flow. Separately, the Decision Core can evaluate
+synthetic canonical supplier offers with an MOQ constraint, cost normalization,
+Weighted Sum Model scoring, deterministic ranking, and criterion-level explanations.
+The two flows are deliberately not connected yet. There is no Odoo-to-offer mapping,
+decision API or UI, historical KPI calculation, write operation, or production
+persistence. See [the T2 handoff](docs/T2_HANDOFF.md) for the current evidence.
 
 ## Architecture
 
@@ -21,7 +21,8 @@ Reflex frontend --HTTP--> FastAPI API --> application RFQ use case
                                                |
                                                +--> Odoo adapter --JSON-2--> Odoo
 
-                         future Decision Core (still independent and empty)
+synthetic canonical input --> Decision Core --> explained decision result
+                              (independent; not wired to the RFQ flow)
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -35,7 +36,7 @@ and database frameworks. Direct Odoo database access by this project is prohibit
 application/    ERP-neutral use cases and adapter ports
 backend/        FastAPI boundary and dependency composition
 frontend/       Separate Reflex procurement ledger
-decision_core/  Reserved ERP-independent decision logic boundary
+decision_core/  ERP-independent constraint, normalization, WSM, and ranking logic
 odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
 infra/odoo/     Local Odoo and PostgreSQL Compose configuration
 tests/          Fast contract tests and optional live integration checks
@@ -187,12 +188,12 @@ running application or infrastructure components use the `integration` marker;
 browser-level full-flow tests use the reserved `e2e` marker. Strict marker checking
 prevents misspelled categories from silently running in the wrong suite.
 
-The fast tests cover the health contract, the ERP-neutral RFQ API, Odoo JSON-2
-request and mapping behaviour, stable upstream error translation, frontend URL
-configuration, RFQ presentation mapping, empty results, unavailable or invalid
-responses, and the separate Reflex state-backend port. With the documented runtime
-services running and the ignored `.env` configured, integration tests can be
-selected explicitly:
+The fast tests cover Decision Core validation, constraints, normalization, WSM
+contributions and deterministic ranking, plus the health contract, ERP-neutral RFQ
+API, Odoo JSON-2 request and mapping behaviour, stable upstream error translation,
+frontend configuration and presentation states, and the separate Reflex
+state-backend port. With the documented runtime services running and the ignored
+`.env` configured, integration tests can be selected explicitly:
 
 ```powershell
 pytest -m "integration and not e2e" -v
@@ -284,15 +285,16 @@ This CI increment does not modify Google Drive documents.
 ## Limitations
 
 The integration is deliberately read-only and limited to the validated
-`purchase.order` summary fields required by the RFQ ledger. It has no pagination,
-retry policy, write operation, application authentication/authorization, production
-persistence, WSM, normalization, ranking, hard constraints, supplier recommendation,
-historical KPI logic, final canonical procurement model, or validated purchase-line
-and inventory receipt mapping. The local PoC uses a validated dedicated read-only
-integration identity; its key still requires rotation before its configured expiry,
-and the old administrator discovery key should be revoked. Image tags are explicit
-but are not
-digest-pinned. The frontend has no automated browser end-to-end test suite.
+`purchase.order` summary fields required by the RFQ ledger. The separate Decision
+Core currently supports only MOQ eligibility plus unit-price and lead-time criteria
+on synthetic canonical input. There is no mapping between those inputs and Odoo,
+pagination, retry policy, write operation, decision API or UI, application
+authentication/authorization, production persistence, historical KPI logic,
+currency conversion, or validated purchase-line and inventory receipt mapping. The
+local PoC uses a validated dedicated read-only integration identity; its key still
+requires rotation before its configured expiry, and the old administrator discovery
+key should be revoked. Image tags are explicit but are not digest-pinned. The
+frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
 facts, assumptions, and open questions.
