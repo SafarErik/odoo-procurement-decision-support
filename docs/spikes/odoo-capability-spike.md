@@ -161,3 +161,22 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 - Expose only ERP-independent DTOs to the later application/Decision Core boundary.
 - Treat reporting dashboards as validation aids, not the authority for the project's
   future performance calculations.
+
+## T4 decision-input follow-up — 2026-09-17
+
+The evidence-first decision-input spike attempted to revalidate the dedicated
+identity and inspect narrowly selected fields on purchase orders, purchase lines,
+products, supplier information, partners, currencies, and units. Odoo was reachable,
+and the database-specific `/doc` route was present, but it required an interactive
+web session. Every JSON-2 request made with the configured dedicated key returned
+HTTP 401, including the previously successful `res.users/context_get` and bounded
+`purchase.order/search_read` calls.
+
+No administrator fallback, permission broadening, direct database access, or Odoo
+write was used. The T1 facts above remain dated T1 evidence, not current T4
+revalidation. Alternative grouping, shared requirement quantity, product and UoM
+comparability, commercial supplier identity, unit price, currency consistency, lead
+time, MOQ, state eligibility, and multi-line handling are unresolved. The T4 gate
+therefore rejected an Odoo-to-canonical adapter. See
+`docs/spikes/odoo-decision-input-mapping-spike.md` for the complete matrix and
+smallest next validation step.

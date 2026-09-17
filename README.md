@@ -6,13 +6,18 @@ system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
 **Current status:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
-Decision Core, and the narrow T3 decision API are implemented. The application can
-retrieve open RFQ summaries through the existing read-only flow. Separately,
+Decision Core, and the narrow T3 decision API are implemented. T4 completed an
+evidence-first Odoo decision-input spike, but the configured dedicated credential
+returned HTTP 401, so critical mappings were not available and no adapter was
+implemented. The application can retrieve open RFQ summaries through the existing
+read-only flow when its Odoo credential is valid. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
 requirements, offers, and weights through the Decision Core. The two flows remain
 deliberately unconnected: there is no Odoo-to-offer mapping, automatic evaluation of
 the RFQ list, decision UI, historical KPI calculation, write operation, or
-production persistence. See [the T3 handoff](docs/T3_HANDOFF.md) for current evidence.
+production persistence. See [the T4 handoff](docs/T4_HANDOFF.md) and
+[mapping spike](docs/spikes/odoo-decision-input-mapping-spike.md) for the current
+evidence and exact recovery step.
 
 ## Architecture
 
@@ -335,9 +340,11 @@ criteria on caller-supplied canonical input. There is no mapping between those i
 and Odoo, automatic RFQ evaluation, pagination, retry policy, write operation,
 decision UI, API authentication/authorization, production persistence, historical
 KPI logic, currency conversion, or validated purchase-line and inventory receipt
-mapping. The local PoC uses a validated dedicated read-only integration identity; its
-key still requires rotation before its configured expiry, and the old administrator
-discovery key should be revoked. Image tags are explicit but are not digest-pinned.
+mapping. The local PoC uses a previously validated dedicated read-only integration
+identity, but its configured key returned HTTP 401 during T4 and must be reissued or
+replaced before live integration can be treated as available. The rejection cause
+was not proven; do not infer expiry rather than revocation or mismatch. The old
+administrator discovery key should be revoked. Image tags are explicit but are not digest-pinned.
 The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified

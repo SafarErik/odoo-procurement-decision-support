@@ -584,3 +584,60 @@ first through the offer-ID tie-break; urgent weights rank Offer B first.
 
 See `docs/T3_HANDOFF.md` for the complete contract, evidence, limitations, and review
 handoff.
+
+## T4 — Evidence-first Odoo decision-input mapping spike
+
+### Objective and gate
+
+Determine through supported, read-only Odoo 19 interfaces whether one procurement
+requirement and multiple genuinely comparable supplier offers can be mapped to the
+existing canonical `PurchaseRequirement` and `SupplierOffer` types. Production
+adapter work was conditional on validating every critical grouping, product, UoM,
+quantity, supplier, price, currency, lead-time, MOQ, state, and multi-line invariant.
+
+### Runtime result on 2026-09-17
+
+The branch was verified against fetched T3 merge commit
+`f123446dac7994d9ea4727225c5fe4a9d0a39cd5`; the T3 handoff and decision endpoint
+were present, and 62 focused Decision Core/application/API tests passed.
+
+Podman client/server 6.0.2 started the existing PostgreSQL and Odoo services.
+PostgreSQL became healthy and Odoo returned HTTP 200 through the documented
+localhost-only SSH tunnel. The database-specific `/doc?db=procurement_poc` route was
+present but redirected to interactive login; the JSON-2 bearer key did not establish
+a web session.
+
+The configured key was present but every JSON-2 request returned HTTP 401. This
+included `res.users/context_get`, the previously proven bounded
+`purchase.order/search_read`, narrowly scoped `fields_get` requests, access-rights
+introspection, and both existing live Odoo contract tests. The key value was not
+printed or logged. T4 did not infer whether the key was expired, revoked, or
+mismatched and did not switch to administrator access.
+
+### Mapping decision
+
+**SPIKE COMPLETE — CRITICAL MAPPING NOT AVAILABLE — ADAPTER DEFERRED**
+
+Only the dated T1 source-record identity and separate RFQ-summary contract remain
+accepted. The spike explicitly rejected heuristic grouping, display names as stable
+supplier identity, order total as unit price, line quantity as MOQ, silent
+currency/UoM conversion, default MOQ values, date-semantic conflation, and
+multi-line aggregation. Every critical decision-input mapping remains unresolved.
+The seven T1 demo RFQs are not treated as one comparison case.
+
+No adapter, synthetic mapping fixture, new endpoint, frontend change, Decision Core
+change, permission change, module install, direct database access, or Odoo business
+write was introduced. See `docs/spikes/odoo-decision-input-mapping-spike.md` for the
+complete evidence matrix and `docs/T4_HANDOFF.md` for the review handoff.
+
+### Verification performed
+
+- Focused T2/T3 baseline: 62 passed.
+- Ruff formatting: 48 Python files already formatted.
+- Ruff lint: passed.
+- Python compilation for all five source packages: passed.
+- Full fast selection: 80 passed, 5 integration tests deselected.
+- Dependency consistency, whitespace, and Compose configuration: passed.
+- Live Odoo selection: executed; both tests failed at the authentication boundary
+  with HTTP 401. This is recorded evidence, not a passing live contract.
+- GitHub Actions: not yet executed at the time of the local handoff.
