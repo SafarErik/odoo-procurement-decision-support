@@ -161,3 +161,22 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 - Expose only ERP-independent DTOs to the later application/Decision Core boundary.
 - Treat reporting dashboards as validation aids, not the authority for the project's
   future performance calculations.
+
+## T4 decision-input follow-up — 2026-09-17
+
+After the dedicated key was renewed, the evidence-first decision-input spike
+authenticated as the non-admin integration user and inspected narrowly selected
+fields on purchase orders, purchase lines, products, supplier information,
+partners, currencies, and units. It also verified installed Purchase and Inventory
+modules. The database-specific `/doc` route remained interactive-session protected,
+so exact schema evidence came from bounded JSON-2 `fields_get` and `search_read`.
+
+The candidate grouping fields `alternative_po_ids`, `source_po_id`, and
+`requisition_id` were absent, `purchase_requisition` was not installed, and all
+observed `origin` values were empty. The user can read the candidate product,
+supplier, currency, and UoM models but cannot read `purchase.order.line`; line
+`search_read` returned HTTP 403. No administrator fallback, permission broadening,
+direct database access, or Odoo write was used. The T4 gate therefore rejected an
+Odoo-to-canonical adapter. See
+`docs/spikes/odoo-decision-input-mapping-spike.md` for the complete matrix and
+smallest next validation step.

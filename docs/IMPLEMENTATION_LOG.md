@@ -584,3 +584,75 @@ first through the offer-ID tie-break; urgent weights rank Offer B first.
 
 See `docs/T3_HANDOFF.md` for the complete contract, evidence, limitations, and review
 handoff.
+
+## T4 — Evidence-first Odoo decision-input mapping spike
+
+### Objective and gate
+
+Determine through supported, read-only Odoo 19 interfaces whether one procurement
+requirement and multiple genuinely comparable supplier offers can be mapped to the
+existing canonical `PurchaseRequirement` and `SupplierOffer` types. Production
+adapter work was conditional on validating every critical grouping, product, UoM,
+quantity, supplier, price, currency, lead-time, MOQ, state, and multi-line invariant.
+
+### Runtime result on 2026-09-17
+
+The branch was verified against fetched T3 merge commit
+`f123446dac7994d9ea4727225c5fe4a9d0a39cd5`; the T3 handoff and decision endpoint
+were present, and 62 focused Decision Core/application/API tests passed.
+
+Podman client/server 6.0.2 started the existing PostgreSQL and Odoo services.
+PostgreSQL became healthy and Odoo returned HTTP 200 through the documented
+localhost-only SSH tunnel. The database-specific `/doc?db=procurement_poc` route was
+present but redirected to interactive login; the JSON-2 bearer key did not establish
+a web session.
+
+After the dedicated key was renewed, `res.users/context_get` authenticated as the
+non-admin `Procurement Integration` user, limited to company ID 1. The existing RFQ
+contract passed again. Narrow `fields_get`, `check_access_rights`, `search_read`, and
+module queries verified:
+
+- read-only access to `purchase.order`, `product.product`, `product.template`,
+  `product.supplierinfo`, `res.partner`, `res.currency`, and `uom.uom`;
+- denied create, write, and unlink access for every candidate model;
+- denied read access to `purchase.order.line`, with HTTP 403 from a bounded line
+  query and from traversing `purchase.order.order_line`;
+- installed Purchase and Inventory modules, but no installed
+  `purchase_requisition`; and
+- absence of the probed `alternative_po_ids`, `source_po_id`, and `requisition_id`
+  fields on `purchase.order`.
+
+Eleven bounded non-cancelled purchase documents were observed: seven open RFQs and
+four confirmed orders, all in company 1 and USD. Supplier information exposed
+configured `delay`, `min_qty`, price, currency, company, product template/variant,
+date, and UoM concepts. Those master-data values cannot replace inaccessible actual
+quotation-line values.
+
+### Mapping decision
+
+**SPIKE COMPLETE — CRITICAL MAPPING NOT AVAILABLE — ADAPTER DEFERRED**
+
+The spike accepted source offer identity, observed commercial-supplier identity,
+currency equality, and open-state mapping in isolation. It rejected heuristic
+grouping, display names as stable identity, order total or supplier master price as
+quoted unit price, line quantity as MOQ, silent conversions/defaults,
+date-semantic conflation, and multi-line aggregation. Explicit grouping is not
+available, and line-dependent mappings remain unresolved. The demo RFQs are not
+treated as one comparison case.
+
+No adapter, synthetic mapping fixture, new endpoint, frontend change, Decision Core
+change, permission change, module install, direct database access, or Odoo business
+write was introduced. See `docs/spikes/odoo-decision-input-mapping-spike.md` for the
+complete evidence matrix and `docs/T4_HANDOFF.md` for the review handoff.
+
+### Verification performed
+
+- Focused T2/T3 baseline: 62 passed.
+- Renewed-key existing live contract: 2 passed.
+- Focused T4 live contract: 11 passed, including exact access and schema/grouping
+  checks.
+- Ruff formatting and lint, Python compilation, dependency consistency, whitespace,
+  and Podman Compose configuration validation: passed.
+- Full fast suite: 80 passed, 14 integration/E2E tests deselected.
+- GitHub Actions: not executed because no pull request was created from this local
+  handoff and branch pushes do not trigger the quality workflow.

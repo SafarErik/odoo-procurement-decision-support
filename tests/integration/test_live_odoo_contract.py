@@ -107,3 +107,154 @@ def test_live_odoo_identity_has_read_only_purchase_order_access() -> None:
         "write": False,
         "unlink": False,
     }
+
+
+@pytest.mark.parametrize(
+    ("model", "expected_read"),
+    [
+        ("purchase.order", True),
+        ("purchase.order.line", False),
+        ("product.product", True),
+        ("product.template", True),
+        ("product.supplierinfo", True),
+        ("res.partner", True),
+        ("res.currency", True),
+        ("uom.uom", True),
+    ],
+)
+def test_live_odoo_decision_input_models_are_read_only(model: str, expected_read: bool) -> None:
+    """T4 records exact effective access without attempting a business-data write."""
+
+    access = {
+        operation: _post_json2(
+            model,
+            "check_access_rights",
+            {"operation": operation, "raise_exception": False},
+        )
+        for operation in ("read", "create", "write", "unlink")
+    }
+
+    assert access == {
+        "read": expected_read,
+        "create": False,
+        "write": False,
+        "unlink": False,
+    }
+
+
+def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> None:
+    """T4 candidate fields exist, but the probed explicit grouping fields do not."""
+
+    purchase_order_fields = _post_json2(
+        "purchase.order",
+        "fields_get",
+        {
+            "allfields": [
+                "id",
+                "partner_id",
+                "date_order",
+                "date_planned",
+                "state",
+                "currency_id",
+                "company_id",
+                "order_line",
+                "alternative_po_ids",
+                "source_po_id",
+                "requisition_id",
+                "origin",
+            ],
+            "attributes": ["type", "relation"],
+        },
+    )
+    assert purchase_order_fields["order_line"] == {
+        "type": "one2many",
+        "relation": "purchase.order.line",
+    }
+    assert purchase_order_fields["partner_id"] == {
+        "type": "many2one",
+        "relation": "res.partner",
+    }
+    assert {
+        "alternative_po_ids",
+        "source_po_id",
+        "requisition_id",
+    }.isdisjoint(purchase_order_fields)
+
+    line_fields = _post_json2(
+        "purchase.order.line",
+        "fields_get",
+        {
+            "allfields": [
+                "order_id",
+                "product_id",
+                "product_uom_id",
+                "product_qty",
+                "price_unit",
+                "discount",
+                "currency_id",
+                "date_planned",
+            ],
+            "attributes": ["type", "relation"],
+        },
+    )
+    assert line_fields["order_id"] == {
+        "type": "many2one",
+        "relation": "purchase.order",
+    }
+    assert line_fields["product_id"] == {
+        "type": "many2one",
+        "relation": "product.product",
+    }
+    assert line_fields["product_uom_id"] == {
+        "type": "many2one",
+        "relation": "uom.uom",
+    }
+    assert line_fields["product_qty"]["type"] == "float"
+    assert line_fields["price_unit"]["type"] == "float"
+    assert line_fields["date_planned"]["type"] == "datetime"
+
+    supplier_fields = _post_json2(
+        "product.supplierinfo",
+        "fields_get",
+        {
+            "allfields": [
+                "partner_id",
+                "product_id",
+                "product_tmpl_id",
+                "product_uom_id",
+                "min_qty",
+                "price",
+                "currency_id",
+                "delay",
+                "date_start",
+                "date_end",
+                "company_id",
+            ],
+            "attributes": ["type", "relation", "required"],
+        },
+    )
+    assert supplier_fields["min_qty"]["type"] == "float"
+    assert supplier_fields["delay"] == {"type": "integer", "required": True}
+    assert supplier_fields["product_uom_id"] == {
+        "type": "many2one",
+        "relation": "uom.uom",
+        "required": True,
+    }
+
+    modules = _post_json2(
+        "ir.module.module",
+        "search_read",
+        {
+            "domain": [
+                ["name", "in", ["purchase", "stock", "purchase_requisition"]],
+                ["state", "=", "installed"],
+            ],
+            "fields": ["name", "state"],
+            "limit": 3,
+            "order": "name asc",
+        },
+    )
+    assert [(module["name"], module["state"]) for module in modules] == [
+        ("purchase", "installed"),
+        ("stock", "installed"),
+    ]

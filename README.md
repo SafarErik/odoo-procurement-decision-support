@@ -6,13 +6,19 @@ system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
 **Current status:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
-Decision Core, and the narrow T3 decision API are implemented. The application can
-retrieve open RFQ summaries through the existing read-only flow. Separately,
+Decision Core, and the narrow T3 decision API are implemented. T4 completed live,
+read-only Odoo decision-input discovery. The dedicated identity can authenticate,
+but the local schema has no validated alternative-RFQ grouping and the identity
+cannot read `purchase.order.line`, so critical mappings are unavailable and no
+adapter was implemented. The application can retrieve open RFQ summaries through
+the existing read-only flow. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
 requirements, offers, and weights through the Decision Core. The two flows remain
 deliberately unconnected: there is no Odoo-to-offer mapping, automatic evaluation of
 the RFQ list, decision UI, historical KPI calculation, write operation, or
-production persistence. See [the T3 handoff](docs/T3_HANDOFF.md) for current evidence.
+production persistence. See [the T4 handoff](docs/T4_HANDOFF.md) and
+[mapping spike](docs/spikes/odoo-decision-input-mapping-spike.md) for the current
+evidence and exact recovery step.
 
 ## Architecture
 
@@ -335,9 +341,12 @@ criteria on caller-supplied canonical input. There is no mapping between those i
 and Odoo, automatic RFQ evaluation, pagination, retry policy, write operation,
 decision UI, API authentication/authorization, production persistence, historical
 KPI logic, currency conversion, or validated purchase-line and inventory receipt
-mapping. The local PoC uses a validated dedicated read-only integration identity; its
-key still requires rotation before its configured expiry, and the old administrator
-discovery key should be revoked. Image tags are explicit but are not digest-pinned.
+mapping. The local PoC uses a live-verified dedicated read-only integration identity.
+T4 proved read-only access to the candidate product, supplier, currency, and UoM
+models, but `purchase.order.line` read is denied and no explicit RFQ-alternative
+grouping field was available. Do not assign broad Purchase or Inventory roles as a
+shortcut. The old administrator discovery key should be revoked. Image tags are
+explicit but are not digest-pinned.
 The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
