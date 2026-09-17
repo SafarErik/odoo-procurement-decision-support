@@ -457,3 +457,59 @@ unavailable state and recovered after the correct process restarted.
 - A real Odoo business-persistence scenario must be designed after an actual write or
   state-transition use case exists; synthetic volume markers still prove only
   technical named-volume persistence.
+
+## T2 — ERP-independent Decision Core
+
+### Objective and boundary
+
+Implement the first deterministic procurement decision pipeline on canonical,
+synthetic domain input without extending the Odoo adapter, application RFQ use case,
+FastAPI routes, Reflex frontend, or persistence. The Decision Core imports none of
+those delivery or infrastructure layers, and the existing RFQ projection is not
+reused as a supplier offer.
+
+### Implemented decision model
+
+- Immutable `PurchaseRequirement`, `SupplierOffer`, `StrategicProfile`, exclusion,
+  contribution, ranked-offer, and decision-result objects.
+- Explicit validation for identifiers, quantities, price, lead time, MOQ, offer-ID
+  uniqueness, non-empty offer sets, finite values, non-negative weights, and the
+  supported weight total. All calculation values use `Decimal`.
+- MOQ eligibility is evaluated before normalization. An offer is eligible only when
+  requested quantity is at least its minimum order quantity; exclusions preserve the
+  constraint, relevant values, and a human-readable explanation.
+- Reusable cost and benefit min-max normalization. Unit price and lead time are both
+  cost criteria in this increment. Equal values normalize to `1`, and bounds use
+  eligible offers only.
+- Weighted Sum Model scoring preserves raw value, normalized value, applied weight,
+  and weighted contribution for each criterion. Total score is the exact sum of the
+  recorded Decimal contributions.
+- Ranking is score descending, then offer identifier ascending. Input ordering does
+  not affect the result. When every offer is excluded, the result contains the
+  exclusions and no recommendation.
+
+### Reference evidence
+
+For a quantity of 100, Offer A (price 10, lead time 10, MOQ 50) and Offer B
+(price 12, lead time 5, MOQ 100) are eligible; Offer C (price 9, lead time 8,
+MOQ 150) is excluded before bounds are calculated. Cost-focused weights rank A at
+0.7 above B at 0.3. Urgent weights rank B at 0.7 above A at 0.3. Balanced weights
+produce 0.5 each and the offer-ID tie-break ranks A first. The unit tests verify the
+full contribution trace and all specified validation and edge cases.
+
+### Verification performed on 2026-09-17
+
+- Ruff formatting and lint: passed.
+- Python compilation for all five source packages: passed.
+- Fast tests: 57 passed, 4 integration tests deselected. This includes 39 Decision
+  Core cases and the unchanged T0/T1 fast suite.
+- Dependency consistency and whitespace checks: passed.
+- Podman Compose configuration with the ignored local `.env`: passed using Podman
+  6.0.2 and project-local `podman-compose` 1.6.0.
+- Live integration tests: not executed in this T2 run. The existing containers were
+  stopped, and Podman's known Windows forwarding helper failed during machine start.
+  No T2 code touches the live integration path.
+- GitHub Actions: not yet executed for this branch at the time of local handoff.
+
+See `docs/T2_HANDOFF.md` for formulas, the complete manual calculation, scope limits,
+and the final review handoff.
