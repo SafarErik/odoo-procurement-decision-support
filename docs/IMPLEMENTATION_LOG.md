@@ -607,23 +607,38 @@ localhost-only SSH tunnel. The database-specific `/doc?db=procurement_poc` route
 present but redirected to interactive login; the JSON-2 bearer key did not establish
 a web session.
 
-The configured key was present but every JSON-2 request returned HTTP 401. This
-included `res.users/context_get`, the previously proven bounded
-`purchase.order/search_read`, narrowly scoped `fields_get` requests, access-rights
-introspection, and both existing live Odoo contract tests. The key value was not
-printed or logged. T4 did not infer whether the key was expired, revoked, or
-mismatched and did not switch to administrator access.
+After the dedicated key was renewed, `res.users/context_get` authenticated as the
+non-admin `Procurement Integration` user, limited to company ID 1. The existing RFQ
+contract passed again. Narrow `fields_get`, `check_access_rights`, `search_read`, and
+module queries verified:
+
+- read-only access to `purchase.order`, `product.product`, `product.template`,
+  `product.supplierinfo`, `res.partner`, `res.currency`, and `uom.uom`;
+- denied create, write, and unlink access for every candidate model;
+- denied read access to `purchase.order.line`, with HTTP 403 from a bounded line
+  query and from traversing `purchase.order.order_line`;
+- installed Purchase and Inventory modules, but no installed
+  `purchase_requisition`; and
+- absence of the probed `alternative_po_ids`, `source_po_id`, and `requisition_id`
+  fields on `purchase.order`.
+
+Eleven bounded non-cancelled purchase documents were observed: seven open RFQs and
+four confirmed orders, all in company 1 and USD. Supplier information exposed
+configured `delay`, `min_qty`, price, currency, company, product template/variant,
+date, and UoM concepts. Those master-data values cannot replace inaccessible actual
+quotation-line values.
 
 ### Mapping decision
 
 **SPIKE COMPLETE — CRITICAL MAPPING NOT AVAILABLE — ADAPTER DEFERRED**
 
-Only the dated T1 source-record identity and separate RFQ-summary contract remain
-accepted. The spike explicitly rejected heuristic grouping, display names as stable
-supplier identity, order total as unit price, line quantity as MOQ, silent
-currency/UoM conversion, default MOQ values, date-semantic conflation, and
-multi-line aggregation. Every critical decision-input mapping remains unresolved.
-The seven T1 demo RFQs are not treated as one comparison case.
+The spike accepted source offer identity, observed commercial-supplier identity,
+currency equality, and open-state mapping in isolation. It rejected heuristic
+grouping, display names as stable identity, order total or supplier master price as
+quoted unit price, line quantity as MOQ, silent conversions/defaults,
+date-semantic conflation, and multi-line aggregation. Explicit grouping is not
+available, and line-dependent mappings remain unresolved. The demo RFQs are not
+treated as one comparison case.
 
 No adapter, synthetic mapping fixture, new endpoint, frontend change, Decision Core
 change, permission change, module install, direct database access, or Odoo business
@@ -633,11 +648,11 @@ complete evidence matrix and `docs/T4_HANDOFF.md` for the review handoff.
 ### Verification performed
 
 - Focused T2/T3 baseline: 62 passed.
-- Ruff formatting: 48 Python files already formatted.
-- Ruff lint: passed.
-- Python compilation for all five source packages: passed.
-- Full fast selection: 80 passed, 5 integration tests deselected.
-- Dependency consistency, whitespace, and Compose configuration: passed.
-- Live Odoo selection: executed; both tests failed at the authentication boundary
-  with HTTP 401. This is recorded evidence, not a passing live contract.
-- GitHub Actions: not yet executed at the time of the local handoff.
+- Renewed-key existing live contract: 2 passed.
+- Focused T4 live contract: 11 passed, including exact access and schema/grouping
+  checks.
+- Ruff formatting and lint, Python compilation, dependency consistency, whitespace,
+  and Podman Compose configuration validation: passed.
+- Full fast suite: 80 passed, 14 integration/E2E tests deselected.
+- GitHub Actions: not executed because no pull request was created from this local
+  handoff and branch pushes do not trigger the quality workflow.

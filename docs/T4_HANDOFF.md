@@ -4,116 +4,137 @@
 
 **SPIKE COMPLETE — CRITICAL MAPPING NOT AVAILABLE — ADAPTER DEFERRED**
 
-T4 performed no Odoo business-data write and added no Odoo-to-Decision-Core adapter.
-The configured dedicated integration key returned HTTP 401 for every JSON-2 request,
-including the previously proven identity and RFQ calls. New schema, relationship,
-permission, and business-value evidence could therefore not be obtained safely.
+The renewed API key restored the dedicated integration identity and enabled live
+T4 discovery. The adapter gate still failed for two independently sufficient
+reasons:
 
-## Prerequisites and baseline
+1. no explicit alternative-RFQ or shared-requirement relationship was available in
+   the probed `purchase.order` schema; and
+2. `purchase.order.line` read access is denied for the integration user.
 
-- Fetched `origin`; the T4 branch, local `main`, and `origin/main` all resolved to
-  T3 merge commit `f123446dac7994d9ea4727225c5fe4a9d0a39cd5`.
+No adapter, automatic evaluation flow, Decision Core change, frontend change,
+public endpoint, mapping fixture, permission change, module install, or Odoo write
+was introduced.
+
+## Prerequisites and branch
+
+- Branch: `codex/t4-odoo-decision-input-spike`.
+- Base: fetched T3 merge commit
+  `f123446dac7994d9ea4727225c5fe4a9d0a39cd5`.
 - `docs/T3_HANDOFF.md` and
   `POST /api/v1/procurement/decisions/evaluate` were present.
-- The focused Decision Core, application, and decision-API baseline passed:
-  62 tests.
-- The branch remained `codex/t4-odoo-decision-input-spike`; it was not merged.
+- Focused Decision Core/application/API baseline: 62 passed.
 
-## Live evidence
+## Models inspected
 
-- Podman client/server 6.0.2 started the existing PostgreSQL and Odoo containers.
-- PostgreSQL reported healthy and Odoo's web route returned HTTP 200 through the
-  documented localhost-only SSH tunnel.
-- `/doc?db=procurement_poc` existed but required an interactive authenticated web
-  session; a JSON-2 bearer key did not establish that session.
-- The ignored `.env` contained a non-empty key; the key itself was not displayed.
-- `res.users/context_get`, `purchase.order/search_read`, all attempted
-  `fields_get` and `check_access_rights` calls, and both existing live Odoo contract
-  tests returned HTTP 401.
-- No administrator fallback, permission change, database query, or write occurred.
+Live JSON-2 `fields_get`, access introspection, and bounded reads covered
+`purchase.order`, `purchase.order.line`, `product.product`, `product.template`,
+`product.supplierinfo`, `res.partner`, `res.currency`, `uom.uom`, and
+`ir.module.module` for the narrow installed-module check.
 
-The rejection cause is unresolved: expiry, revocation, and credential mismatch are
-possible explanations, but none was proven.
+Purchase and Inventory were installed. `purchase_requisition` was not returned as
+installed. Candidate grouping fields `alternative_po_ids`, `source_po_id`, and
+`requisition_id` were not returned by `purchase.order/fields_get`.
+
+## Dedicated-user access
+
+The user authenticated as non-admin `Procurement Integration`, user ID 7, company
+ID 1 only. `purchase.order`, products, product templates, supplier information,
+partners, currencies, UoMs, and the bounded module metadata are readable but cannot
+be created, written, or unlinked. `purchase.order.line` returned read `False` and
+HTTP 403 for `search_read`; create, write, and unlink are also denied.
+
+The smallest permission requiring separate approval is read-only
+`purchase.order.line` access for the existing custom group, with company-scoped
+record behavior. No broader Purchase or Inventory role was assigned.
 
 ## Mapping decisions
 
-Accepted:
+Accepted in isolation:
 
-- T1's dated evidence that `purchase.order.id` can identify a source RFQ record.
-- The existing seven-field T1 RFQ summary mapping remains valid for its separate
-  ledger contract; it was not reused as `SupplierOffer`.
+- `purchase.order.id` as source offer identity;
+- `res.partner.commercial_partner_id[0]` as stable supplier identity for observed
+  company vendors;
+- stable `currency_id` equality as a same-currency guard;
+- the existing open-state mapping; and
+- exact schema meanings for supplier-information `delay` and `min_qty`, without a
+  canonical transformation.
 
 Rejected:
 
-- grouping unrelated RFQs by names, origin, dates, product coincidence, or inferred
-  supplier relationships;
-- vendor display names as stable supplier identity;
-- order totals as unit prices;
-- line quantities as MOQ;
-- silent UoM or currency conversion and silent MOQ defaults;
-- conflating expected, promised, configured, ordered, and actual dates;
-- aggregating multi-line RFQs into artificial offers.
+- grouping RFQs by reference, origin, timestamps, currency, product coincidence,
+  or inferred supplier relationships;
+- display names as stable identifiers;
+- order total or supplier master-data price as quoted unit price;
+- line quantity as MOQ;
+- conflating configured lead time, expected arrival, supplier promise, order date,
+  and actual receipt; and
+- silent defaults, conversion, or multi-line aggregation.
 
-Unresolved:
+Unresolved or unavailable:
 
-- explicit alternative-RFQ grouping;
-- shared requirement identity and quantity;
-- line, product/variant, UoM, and multi-line semantics;
-- stable commercial-supplier identity;
-- unit price, discount, tax, and currency consistency;
-- lead-time definition and calculation;
-- applicable MOQ source and deterministic selection;
-- comparable RFQ states;
-- access and record-rule/company behavior for every new candidate model.
+- procurement-case and requirement identity;
+- requested quantity and all live order-line values;
+- exact product variant, quotation UoM, quoted price, discount/tax result, and
+  multi-line cardinality;
+- supplier-information tier selection for MOQ; and
+- canonical lead-time transformation and promised-date semantics.
 
-## Data and adapter gate
+## Grouping, lead time, MOQ, and data sufficiency
 
-The seven demo RFQs observed during T1 are not evidence of a complete comparison
-case. T4 could not inspect current records and therefore could not establish three
-explicit alternatives for one requirement with the same product, UoM, quantity
-context, currency, usable lead time, and usable MOQ.
+Alternative grouping is **not available** in the probed schema. Empty `origin`
+values and similar timestamps do not replace an explicit relationship.
 
-The conditional adapter gate failed. No production adapter, application wrapper,
-fixture-only mapping, public API endpoint, frontend change, or Decision Core change
-was added. Adding any of those would falsely convert unvalidated hypotheses into a
-contract.
+Lead time is **unresolved**. Supplier information exposes configured integer
+`delay`; purchase orders expose `date_planned` as Expected Arrival and `date_order`
+as Order Deadline. No supplier-promise field was validated, and the inaccessible
+quotation line cannot be matched to a product-specific supplier row.
+
+MOQ is **unresolved**. Supplier information exposes required float `min_qty`, but
+multiple tiers can match and observed values include zero. Product, quantity, date,
+company, currency, and UoM selection cannot be completed without quotation lines.
+Zero cannot be passed to the current positive-MOQ domain model without inventing a
+repair rule.
+
+The data set is **insufficient and not fully inspectable**. Eleven non-cancelled
+purchase documents were observed—seven open RFQs and four confirmed orders—all in
+company 1 and USD. Supplier master data contains lead-time and MOQ values, but no
+valid grouping or readable comparable line set exists.
 
 ## Verification classification
 
 | Check | Result |
 | --- | --- |
-| Fetch and T3 ancestry | Passed; `HEAD == origin/main == f123446`. |
-| Focused T2/T3 tests | Passed; 62 tests. |
-| Ruff formatting and lint | Passed; 48 Python files already formatted and lint clean. |
-| Python compilation | Passed for `application`, `backend`, `frontend`, `decision_core`, and `odoo_adapter`. |
-| Full fast test selection | Passed; 80 tests, 5 integration tests deselected. |
+| Fetch and T3 ancestry | Passed. |
+| Focused T2/T3 baseline | 62 passed. |
+| Renewed-key existing live contract | 2 passed. |
+| Focused T4 live contract | 11 passed, including access and schema/grouping checks. |
+| Ruff format and lint | Passed. |
+| Python compilation | Passed for all five source packages. |
+| Fast tests | 80 passed, 14 integration/E2E tests deselected. |
 | Dependency consistency | Passed. |
 | Whitespace check | Passed. |
-| Compose configuration | Passed with the ignored local `.env`. |
-| Odoo/PostgreSQL runtime | Started; PostgreSQL healthy, Odoo HTTP 200 through localhost tunnel. |
-| Database-specific `/doc` route | Present; blocked by interactive login. |
-| Dedicated-user JSON-2 authentication | Failed; HTTP 401. |
-| Existing live Odoo tests | Executed; 2 failed at HTTP 401. |
-| New mapping evidence | Not available because authentication failed. |
-| Fixture-only mapping evidence | None; schema and semantics were not validated. |
+| Podman Compose configuration | Passed with the project-local `podman-compose` provider. |
+| Live Odoo authentication | Passed as the dedicated user. |
+| Live mapping evidence | Partial; grouping unavailable and lines blocked by permissions. |
+| Fixture-only mapping evidence | None; no speculative fixture was added. |
 | Odoo writes | None. |
 | Google Drive changes | None. |
 
-GitHub Actions had not run at the time of this local handoff; CI must be reported
-separately after the branch is pushed and the pull request is opened.
+GitHub Actions was not executed because no pull request was created from this local
+handoff and branch pushes do not trigger the repository's quality workflow.
 
 ## Security observations
 
-The credential remained in the ignored `.env` and was not exposed. T4 did not use
-administrator credentials, query PostgreSQL, install a module, broaden ACLs or
-record rules, change company access, or create/modify/confirm/cancel/delete any Odoo
-record. The temporary network workaround stayed on localhost.
+The renewed key remained only in the ignored `.env`. No administrator credential,
+database query, module install, ACL or record-rule change, or business-data write was
+used. All probed mutation rights were denied. The temporary tunnel stayed bound to
+localhost.
 
 ## Exact next step
 
-Issue a new API key for the unchanged `Procurement Integration` user, replace only
-the local ignored `ODOO_API_KEY`, and rerun identity plus the existing bounded RFQ
-query. If those succeed, inspect `/doc` in an authenticated browser session and run
-the exact read-only T4 probes listed in
-`docs/spikes/odoo-decision-input-mapping-spike.md`. Do not broaden permissions until
-a specific model denial is observed and reviewed. Do not begin T5.
+Under separate approval, grant only company-scoped read access to
+`purchase.order.line` for the existing custom group and choose an Odoo-supported
+explicit requirement/alternative grouping mechanism. Revalidate both through the
+database `/doc` page and bounded JSON-2 probes before creating controlled comparison
+data or implementing an adapter. Do not begin T5.

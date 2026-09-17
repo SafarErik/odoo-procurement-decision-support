@@ -164,19 +164,19 @@ Functional supporting sources: [lead times](https://www.odoo.com/documentation/1
 
 ## T4 decision-input follow-up — 2026-09-17
 
-The evidence-first decision-input spike attempted to revalidate the dedicated
-identity and inspect narrowly selected fields on purchase orders, purchase lines,
-products, supplier information, partners, currencies, and units. Odoo was reachable,
-and the database-specific `/doc` route was present, but it required an interactive
-web session. Every JSON-2 request made with the configured dedicated key returned
-HTTP 401, including the previously successful `res.users/context_get` and bounded
-`purchase.order/search_read` calls.
+After the dedicated key was renewed, the evidence-first decision-input spike
+authenticated as the non-admin integration user and inspected narrowly selected
+fields on purchase orders, purchase lines, products, supplier information,
+partners, currencies, and units. It also verified installed Purchase and Inventory
+modules. The database-specific `/doc` route remained interactive-session protected,
+so exact schema evidence came from bounded JSON-2 `fields_get` and `search_read`.
 
-No administrator fallback, permission broadening, direct database access, or Odoo
-write was used. The T1 facts above remain dated T1 evidence, not current T4
-revalidation. Alternative grouping, shared requirement quantity, product and UoM
-comparability, commercial supplier identity, unit price, currency consistency, lead
-time, MOQ, state eligibility, and multi-line handling are unresolved. The T4 gate
-therefore rejected an Odoo-to-canonical adapter. See
+The candidate grouping fields `alternative_po_ids`, `source_po_id`, and
+`requisition_id` were absent, `purchase_requisition` was not installed, and all
+observed `origin` values were empty. The user can read the candidate product,
+supplier, currency, and UoM models but cannot read `purchase.order.line`; line
+`search_read` returned HTTP 403. No administrator fallback, permission broadening,
+direct database access, or Odoo write was used. The T4 gate therefore rejected an
+Odoo-to-canonical adapter. See
 `docs/spikes/odoo-decision-input-mapping-spike.md` for the complete matrix and
 smallest next validation step.
