@@ -513,3 +513,74 @@ full contribution trace and all specified validation and edge cases.
 
 See `docs/T2_HANDOFF.md` for formulas, the complete manual calculation, scope limits,
 and the final review handoff.
+
+## T3 — Application and HTTP decision boundary
+
+### Objective and boundary
+
+Expose the existing Decision Core through one narrow synchronous application use
+case and `POST /api/v1/procurement/decisions/evaluate`. The endpoint evaluates only
+canonical input supplied in the request body. It does not call Odoo, reuse the RFQ
+projection as an offer, access a database or local file, persist a result, select a
+supplier automatically, or perform a write operation.
+
+The dependency direction is `backend -> application -> decision_core`.
+`application.decisions.evaluate_procurement_decision` accepts the existing immutable
+domain objects and delegates evaluation to the Decision Core. The FastAPI route owns
+request validation, request/domain mapping, response mapping, and translation of
+known domain validation failures; it contains no constraint, normalization, scoring,
+or ranking logic.
+
+### Public contract
+
+- The request contains one requirement, one or more canonical supplier offers, and
+  one strategic profile.
+- Decision-relevant numeric values use strict decimal strings in JSON and `Decimal`
+  internally. Exponent notation, non-finite values, non-strings, and malformed
+  decimal syntax are rejected by request-schema validation without repair or
+  coercion.
+- HTTP 200 returns the requirement and profile, the first-ranked offer or `null`,
+  every eligible ranked offer and its complete criterion contribution trace, and
+  every excluded offer with its failed constraint and relevant quantities.
+- Request-structure failures use FastAPI/Pydantic's standard HTTP 422 response.
+  `DomainValidationError` uses HTTP 422 with code `invalid_decision_input` and a safe
+  domain message.
+- An all-excluded outcome is HTTP 200 with an empty ranking and no recommendation.
+
+OpenAPI registers explicit request and response schemas, the reference request, the
+POST operation, HTTP 200, and HTTP 422. Its operation description states that scores
+are relative WSM results, excluded offers are not scored, and the endpoint provides
+human decision support without persistence or an Odoo write.
+
+### Reference evidence
+
+For requested quantity `100` and cost-focused weights `0.7`/`0.3`, Offer C is
+excluded by MOQ before normalization. Offer A ranks first at `0.7`; Offer B ranks
+second at `0.3`; the recommendation identifies Offer A. The returned contribution
+trace is deterministic and includes raw value, normalized value, weight, and weighted
+contribution for both criteria. Balanced weights tie at `0.5` and retain Offer A
+first through the offer-ID tie-break; urgent weights rank Offer B first.
+
+### Verification performed on 2026-09-17
+
+- Ruff formatting and lint: passed for all tracked Python sources.
+- Python compilation for all five source packages: passed.
+- Fast tests: 80 passed, 5 integration tests deselected. This includes 23 new
+  application/API cases and the unchanged T0, T1, and T2 behavior.
+- Dependency consistency and whitespace checks: passed.
+- Static boundary scans found no forbidden framework, HTTP, Odoo adapter, database,
+  or environment imports in `decision_core/` or the T3 application use case.
+- Podman Compose configuration: passed with Podman 6.0.2 and project-local
+  `podman-compose` 1.6.0.
+- Served FastAPI smoke tests: health HTTP 200, reference evaluation HTTP 200, and
+  invalid semantic input HTTP 422 with `invalid_decision_input`; both selected
+  runtime integration tests passed.
+- Odoo-dependent integration tests and the RFQ HTTP smoke call were not executed.
+  The containers became healthy, but the known Windows `win-sshproxy.exe` failure
+  prevented the localhost Odoo port from accepting connections. No T3 behavior
+  depends on Odoo.
+- GitHub Actions: pending branch push and pull-request creation at the time of this
+  local record.
+
+See `docs/T3_HANDOFF.md` for the complete contract, evidence, limitations, and review
+handoff.

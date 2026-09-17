@@ -5,14 +5,14 @@ ERP-independent procurement decision-support system integrated with Odoo. The
 system will evaluate known supplier offers and provide a recommendation while
 leaving the final selection to a human decision-maker.
 
-**Current status:** T0, the read-only T1 Odoo RFQ slice, and the ERP-independent T2
-Decision Core are implemented. The application can retrieve open RFQ summaries
-through the existing read-only flow. Separately, the Decision Core can evaluate
-synthetic canonical supplier offers with an MOQ constraint, cost normalization,
-Weighted Sum Model scoring, deterministic ranking, and criterion-level explanations.
-The two flows are deliberately not connected yet. There is no Odoo-to-offer mapping,
-decision API or UI, historical KPI calculation, write operation, or production
-persistence. See [the T2 handoff](docs/T2_HANDOFF.md) for the current evidence.
+**Current status:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
+Decision Core, and the narrow T3 decision API are implemented. The application can
+retrieve open RFQ summaries through the existing read-only flow. Separately,
+`POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
+requirements, offers, and weights through the Decision Core. The two flows remain
+deliberately unconnected: there is no Odoo-to-offer mapping, automatic evaluation of
+the RFQ list, decision UI, historical KPI calculation, write operation, or
+production persistence. See [the T3 handoff](docs/T3_HANDOFF.md) for current evidence.
 
 ## Architecture
 
@@ -21,8 +21,9 @@ Reflex frontend --HTTP--> FastAPI API --> application RFQ use case
                                                |
                                                +--> Odoo adapter --JSON-2--> Odoo
 
-synthetic canonical input --> Decision Core --> explained decision result
-                              (independent; not wired to the RFQ flow)
+caller JSON --> FastAPI decision schemas --> application decision use case
+                                             |
+                                             +--> Decision Core --> explained result
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -158,6 +159,7 @@ did not use that destructive option.
 
 - FastAPI health: <http://127.0.0.1:8000/api/v1/health>
 - Open RFQs: <http://127.0.0.1:8000/api/v1/procurement/rfqs>
+- Decision evaluation: <http://127.0.0.1:8000/api/v1/procurement/decisions/evaluate>
 - FastAPI OpenAPI UI: <http://127.0.0.1:8000/docs>
 - Reflex frontend: the URL printed by `reflex run` (normally `http://localhost:3000`)
 - Odoo: `http://127.0.0.1:<ODOO_HTTP_PORT>` (default `http://127.0.0.1:8069`)
@@ -167,6 +169,47 @@ The API health response is stable and infrastructure-free:
 ```json
 {"status":"ok","service":"procurement-decision-support-api","api_version":"v1"}
 ```
+
+## Decision evaluation API
+
+The synchronous decision endpoint accepts only canonical data in its request body.
+It does not query Odoo, read environment-specific business data, persist a result,
+or perform any write operation. All decision-relevant numeric values are JSON
+strings and are converted directly to `Decimal`; binary floating-point is not used.
+
+```http
+POST /api/v1/procurement/decisions/evaluate
+Content-Type: application/json
+```
+
+```json
+{
+  "requirement": {"requirement_id": "REQ-1", "requested_quantity": "100"},
+  "offers": [
+    {
+      "offer_id": "Offer A",
+      "supplier_id": "Supplier A",
+      "unit_price": "10",
+      "lead_time_days": "10",
+      "minimum_order_quantity": "50"
+    }
+  ],
+  "profile": {
+    "name": "balanced",
+    "unit_price_weight": "0.5",
+    "lead_time_weight": "0.5"
+  }
+}
+```
+
+HTTP 200 returns the requirement and profile, the first-ranked offer or `null`, all
+eligible offers with their relative WSM scores and criterion contributions, and all
+excluded offers with their failed constraints. Malformed request structure or
+decimal syntax returns FastAPI's normal HTTP 422 validation response. Valid syntax
+that violates a domain invariant returns HTTP 422 with code
+`invalid_decision_input`. An all-excluded evaluation is a valid HTTP 200 result with
+an empty ranking and no recommendation. The recommendation is decision support for a
+human; it is not an automated supplier selection or purchase decision.
 
 PostgreSQL has a container health check. Odoo's official image does not expose a
 documented, image-level health command in this setup, so verify it through the web
@@ -189,11 +232,12 @@ browser-level full-flow tests use the reserved `e2e` marker. Strict marker check
 prevents misspelled categories from silently running in the wrong suite.
 
 The fast tests cover Decision Core validation, constraints, normalization, WSM
-contributions and deterministic ranking, plus the health contract, ERP-neutral RFQ
-API, Odoo JSON-2 request and mapping behaviour, stable upstream error translation,
-frontend configuration and presentation states, and the separate Reflex
-state-backend port. With the documented runtime services running and the ignored
-`.env` configured, integration tests can be selected explicitly:
+contributions and deterministic ranking; the application decision use case and API
+contract; the health contract; the ERP-neutral RFQ API; Odoo JSON-2 request and
+mapping behaviour; stable upstream error translation; frontend configuration and
+presentation states; and the separate Reflex state-backend port. With the documented
+runtime services running and the ignored `.env` configured, integration tests can be
+selected explicitly:
 
 ```powershell
 pytest -m "integration and not e2e" -v
@@ -285,16 +329,16 @@ This CI increment does not modify Google Drive documents.
 ## Limitations
 
 The integration is deliberately read-only and limited to the validated
-`purchase.order` summary fields required by the RFQ ledger. The separate Decision
-Core currently supports only MOQ eligibility plus unit-price and lead-time criteria
-on synthetic canonical input. There is no mapping between those inputs and Odoo,
-pagination, retry policy, write operation, decision API or UI, application
-authentication/authorization, production persistence, historical KPI logic,
-currency conversion, or validated purchase-line and inventory receipt mapping. The
-local PoC uses a validated dedicated read-only integration identity; its key still
-requires rotation before its configured expiry, and the old administrator discovery
-key should be revoked. Image tags are explicit but are not digest-pinned. The
-frontend has no automated browser end-to-end test suite.
+`purchase.order` summary fields required by the RFQ ledger. The Decision Core and
+decision API currently support only MOQ eligibility plus unit-price and lead-time
+criteria on caller-supplied canonical input. There is no mapping between those inputs
+and Odoo, automatic RFQ evaluation, pagination, retry policy, write operation,
+decision UI, API authentication/authorization, production persistence, historical
+KPI logic, currency conversion, or validated purchase-line and inventory receipt
+mapping. The local PoC uses a validated dedicated read-only integration identity; its
+key still requires rotation before its configured expiry, and the old administrator
+discovery key should be revoked. Image tags are explicit but are not digest-pinned.
+The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
 facts, assumptions, and open questions.
