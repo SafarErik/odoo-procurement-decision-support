@@ -7,9 +7,12 @@ leaving the final selection to a human decision-maker.
 
 **Current status:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
 Decision Core, and the narrow T3 decision API are implemented. T4 completed live,
-read-only Odoo decision-input discovery. The dedicated identity can authenticate,
-but the local schema has no validated alternative-RFQ grouping and the identity
-cannot read `purchase.order.line`, so critical mappings are unavailable and no
+read-only Odoo decision-input discovery. T5 installed the standard Purchase
+Agreements capability and added least-privilege, company-scoped
+`purchase.order.line` reads for the dedicated integration identity. The standard
+`purchase_group_id` comparison key is now available, but Odoo's supplier quantity is
+a price-tier threshold rather than a hard MOQ and the available dates do not prove
+authoritative supplier-offer lead time. T5 therefore ended `NO-GO`; no production
 adapter was implemented. The application can retrieve open RFQ summaries through
 the existing read-only flow. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
@@ -80,7 +83,9 @@ setup used by this repository, see
 Create local configuration and fill both blank password values with separate,
 random local-development secrets. The validated local setup uses the internal
 `Procurement Integration` user, limited to the current company, with a custom
-`Procurement RFQ API Reader` group granting read access to `purchase.order` only.
+`Procurement RFQ API Reader` group granting the documented read-only order and
+decision-input model access, including `purchase.order.line`. Mutation rights remain
+denied.
 Do not assign the standard Purchase User/Administrator or Inventory roles: they
 grant broader capabilities than this adapter needs. Generate the API key from that
 dedicated user's preferences and set `ODOO_DATABASE` and `ODOO_API_KEY` in `.env`.
@@ -342,15 +347,19 @@ and Odoo, automatic RFQ evaluation, pagination, retry policy, write operation,
 decision UI, API authentication/authorization, production persistence, historical
 KPI logic, currency conversion, or validated purchase-line and inventory receipt
 mapping. The local PoC uses a live-verified dedicated read-only integration identity.
-T4 proved read-only access to the candidate product, supplier, currency, and UoM
-models, but `purchase.order.line` read is denied and no explicit RFQ-alternative
-grouping field was available. Do not assign broad Purchase or Inventory roles as a
-shortcut. The old administrator discovery key should be revoked. Image tags are
-explicit but are not digest-pinned.
+T5 proved company-scoped read access to `purchase.order.line` and the standard
+`purchase.order.purchase_group_id` comparison key without granting the integration
+identity the alternatives feature group or direct access to grouping/agreement
+models. A production Odoo-to-canonical adapter remains deferred because no validated
+hard-MOQ source or authoritative supplier-offer lead time is available, and the
+approved semantic stop gate prevented creation of a misleading synthetic comparison
+fixture. Do not assign broad Purchase or Inventory roles as a shortcut. The old
+administrator discovery key should be revoked. Image tags are explicit but are not
+digest-pinned.
 The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
-[the Odoo capability spike](docs/spikes/odoo-capability-spike.md) for verified
-facts, assumptions, and open questions.
+[the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md)
+for verified facts, rejected mappings, and recovery steps.
 
 The CI persistence check uses synthetic files to verify only that Docker named
 volumes survive stack recreation. It does not establish persistence of an actual
