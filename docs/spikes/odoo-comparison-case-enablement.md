@@ -1,19 +1,22 @@
-# T5 Odoo comparison-case enablement — Phase A evidence
+# T5 Odoo comparison-case enablement — final evidence
 
 ## 1. Status and boundary
 
-Assessment date: 2026-09-17.
+Assessment dates: 2026-09-17 through 2026-09-18.
 
-**PHASE A COMPLETE — READ-ONLY — EXPLICIT APPROVAL REQUIRED BEFORE PHASE B**
+**T5 COMPLETE — NO-GO — ADAPTER DEFERRED**
 
-This document records discovery and an exact proposed mutation set. Phase A did not
-install or enable a module, change an ACL or record rule, assign a role, create or
-modify Odoo business data, change the application adapter, or access PostgreSQL.
+Phase A recorded read-only discovery and the exact mutation proposal. On 2026-09-18,
+the user approved that proposal and confirmed a database backup. Phase B installed
+the standard module, added the one read-only line ACL, restricted the alternatives
+feature to the human administrator, and revalidated the dedicated identity through
+JSON-2. No direct PostgreSQL access or application Odoo write occurred.
 
-T5 is not complete and no final `GO` decision is claimed. The current adapter gate
-remains `NO-GO`: the standard grouping capability is not installed, order-line rows
-remain unreadable, supplier-offer lead time is unresolved, and the only discovered
-`min_qty` field does not have hard-MOQ business meaning.
+The final adapter decision is `NO-GO`. The standard grouping capability and
+least-privilege order-line reads are now available, but supplier-offer lead time
+remains unresolved and the only discovered `min_qty` field does not have hard-MOQ
+business meaning. The approved pre-fixture gate therefore stopped Phase B before
+creating synthetic business records.
 
 ## 2. Exact local runtime findings
 
@@ -44,11 +47,22 @@ denied, its bounded `search_read` remains unavailable, the module is not install
 and `purchase_group_id`, `alternative_po_ids`, and `requisition_id` are not yet in
 the runtime `purchase.order` schema.
 
-## 3. Standard capability expected after installation
+Those statements describe the Phase A checkpoint. After approval, Phase B changed
+the module state to `installed` and added one read-only line ACL. The final dedicated
+identity still has only company ID 1 and direct groups `Procurement RFQ API Reader`
+and `Role / User`.
 
-The matching Odoo 19 standard module source defines the following expected contract.
-These are source-backed expectations, not runtime-accepted mappings; Phase B must
-revalidate them through the database `/doc` page and JSON-2 after installation.
+The standard settings checkbox for Purchase Alternatives initially implied the
+feature group to all internal users. A live `has_group` assertion caught that
+`Procurement Integration` had inherited it. The checkbox was disabled, and
+`purchase_requisition.group_purchase_alternatives` was instead assigned directly to
+`Mitchell Admin`. Final `has_group` is false for the integration identity, while the
+group UI shows exactly one user: `Mitchell Admin`.
+
+## 3. Standard capability verified after installation
+
+The matching Odoo 19 standard module source and final JSON-2 `fields_get` agree on
+the following runtime contract.
 
 | Model | Field | Expected type and purpose |
 | --- | --- | --- |
@@ -58,19 +72,21 @@ revalidate them through the database `/doc` page and JSON-2 after installation.
 | `purchase.order` | `requisition_id` | Optional many2one to `purchase.requisition`; an agreement link, not the alternative group itself. |
 | `purchase.requisition` | `purchase_ids` | RFQs/orders generated from one blanket order or purchase template. |
 
-Creating alternatives through the standard wizard creates or extends one
+Standard source shows that creating alternatives through the wizard creates or
+extends one
 `purchase.order.group`. The stable candidate group key is therefore
 `purchase.order.purchase_group_id[0]`, not names, timestamps, `origin`, product
 coincidence, vendor coincidence, currency, quantity, or nearby record IDs.
 
-The module also creates `purchase_requisition.group_purchase_alternatives`, labelled
+The installed module also creates
+`purchase_requisition.group_purchase_alternatives`, labelled
 **Manage Purchase Alternatives**. That group controls the Alternatives tab and its
 Create Alternative and Compare Product Lines actions. It must be assigned only to
 the human fixture operator, never to the integration identity.
 
-## 4. Least-privilege access proposal
+## 4. Least-privilege access result
 
-The only proposed integration-identity permission change is one read-only model ACL
+The only integration-identity permission change is one read-only model ACL
 for `purchase.order.line` on the existing `Procurement RFQ API Reader` group:
 
 | Model | Read | Create | Write | Unlink |
@@ -80,64 +96,55 @@ for `purchase.order.line` on the existing `Procurement RFQ API Reader` group:
 Odoo's installed `purchase` module already has a global
 `purchase_order_line_comp_rule` with domain
 `[('company_id', 'in', company_ids)]`. Because the identity has only company ID 1,
-this existing global rule is the narrow company boundary. Phase A proposes no
-duplicate record rule and no Purchase/User, Purchase/Administrator, Inventory/User,
-Settings, or administrator role.
+this existing global rule is the narrow company boundary. No duplicate record rule
+or Purchase/User, Purchase/Administrator, Inventory/User, Settings, or administrator
+role was added.
 
-The proposed adapter-facing grouping read uses `purchase_group_id` on already
-permitted `purchase.order` records. No `purchase.order.group` ACL is proposed. If
-that field cannot be read through JSON-2 without direct group-model access, Phase B
-must stop and request a separately reviewed permission expansion rather than grant
-it silently.
+The adapter-facing grouping read can use `purchase_group_id` on already permitted
+`purchase.order` records. The integration identity can read that field while direct
+`purchase.order.group` and `purchase.requisition` model rights remain denied, so no
+additional ACL was needed.
 
-The custom group was created in the database and its external identifier is not
-readable by the integration identity. The ACL should therefore be added through the
-supported Technical / Security / Access Rights UI to that exact existing group.
+The ACL was added through the supported Technical / Security / Access Rights UI to
+the exact existing custom group. Bounded line `search_read` and order `order_line`
+traversal now succeed; create, write, and unlink remain denied. Every observed line
+belongs to company 1, and an explicit outside-company domain returns no rows.
 
-## 5. Controlled fixture proposal
+## 5. Controlled fixture stop result
 
-After approval, an authorized human Purchase operator would create only these clearly
-labelled company-1 PoC records through supported Odoo UI operations:
+No T5 business fixture was created. The approved operation order required module,
+schema, access, company-isolation, and semantic validation before creating data, and
+required Phase B to stop while any critical semantic mapping remained unresolved.
 
-- suppliers `T5 Supplier A`, `T5 Supplier B`, and `T5 Supplier C`, each a distinct
-  commercial company;
-- one purchasable product template and one exact variant with internal reference
-  `T5-COMP-001`, using `Units`;
-- one exact-variant supplier-information row per supplier, in USD and company 1,
-  with a positive quantity threshold and configured lead time;
-- one draft RFQ with exactly one product line, quantity `100`, `Units`, USD, zero
-  discount, no taxes, and an entered quotation unit price;
-- two alternatives created from the first RFQ with **Copy Products** enabled, then
-  adjusted only for their distinct suppliers, actual quoted unit prices, and any
-  explicitly evidenced expected-arrival values.
+The live fields retained the Phase A meanings: `product.supplierinfo.min_qty` is a
+price-tier threshold, `product.supplierinfo.delay` is configured planning time, and
+`purchase.order.line.date_planned` is Expected Arrival. Those values cannot satisfy
+the canonical hard-MOQ and supplier-offer lead-time contracts. Creating the proposed
+three suppliers, product, supplier rows, and alternative RFQs would therefore prove
+UI mechanics but not a valid canonical case.
 
-All three RFQs must remain in an open state and share the same non-empty
-`purchase_group_id`. The fixture must not be created with the integration identity,
-must not send real email, and must not reuse unrelated demo RFQs.
+No records with the proposed `T5 Supplier A/B/C` or `T5-COMP-001` identifiers were
+created. Existing demo RFQs were queried read-only and were not grouped heuristically.
 
-The supplier-information values are test inputs, not automatically accepted
-canonical MOQ or supplier-offer lead time. Phase B must test their exact selection
-and meaning independently.
-
-## 6. Phase A mapping matrix
+## 6. Final mapping matrix
 
 | Canonical concept | Candidate source | Runtime shape / meaning | Dedicated-user access | Transformation | Status | Caveat |
 | --- | --- | --- | --- | --- | --- | --- |
-| Procurement case ID | `purchase.order.purchase_group_id` | Expected many2one to persisted `purchase.order.group` | Field not installed | `odoo:purchase.order.group:<id>` candidate | `UNRESOLVED` | Exact field and access require installation and live validation. |
-| Requirement ID | Same alternative group, or an explicit agreement if used | No installed shared business-requirement record | Not available | None | `UNRESOLVED` | A technical comparison group may identify a case but does not by itself prove one authoritative business requirement. |
-| Requested quantity | `purchase.order.line.product_qty` | Stored float | Read denied | Exact decimal text only after invariant checks | `UNRESOLVED` | All alternatives must independently match; no line is authoritative by default. |
+| Procurement case ID | `purchase.order.purchase_group_id` | Stored many2one to persisted `purchase.order.group` | Field read allowed on permitted orders | `odoo:purchase.order.group:<id>` | `ACCEPTED` | Technical source identity is explicit; no controlled grouped record was created after the stop gate. |
+| Requirement ID | Same alternative group, or an explicit agreement if used | No authoritative shared business-requirement record established | Group field readable | None | `UNRESOLVED` | A technical comparison group does not itself prove one business requirement. |
+| Requested quantity | `purchase.order.line.product_qty` | Stored float | Read allowed | Exact decimal text only after invariant checks | `UNRESOLVED` | No controlled alternatives exist to prove equality and authority. |
 | Offer ID | `purchase.order.id` | Stable integer source record | Read allowed | `str(id)` | `ACCEPTED` | Conditional on membership in a valid group. |
 | Supplier ID | `partner_id -> commercial_partner_id` | Stable commercial partner ID | Read allowed | `str(commercial_partner_id[0])` | `ACCEPTED` | Revalidate child-contact behavior in the fixture. |
-| Product ID | `purchase.order.line.product_id` | Exact product variant | Read denied | `str(id)` | `UNRESOLVED` | Product templates must not substitute for variants. |
-| Unit of measure | `purchase.order.line.product_uom_id` | Quotation-line UoM | Read denied | Stable ID equality; no conversion | `UNRESOLVED` | Every alternative must use the exact same UoM. |
-| Unit price | `purchase.order.line.price_unit` | Stored actual quotation-line unit price | Read denied | Decimal text without using `amount_total` | `UNRESOLVED` | Discount and taxes require an explicit guard. |
+| Product ID | `purchase.order.line.product_id` | Exact product variant | Read allowed | `str(id)` | `UNRESOLVED` | Access is proven; cross-alternative equality is not. |
+| Unit of measure | `purchase.order.line.product_uom_id` | Quotation-line UoM | Read allowed | Stable ID equality; no conversion | `UNRESOLVED` | Access is proven; cross-alternative equality is not. |
+| Unit price | `purchase.order.line.price_unit` | Stored actual quotation-line unit price | Read allowed | Decimal text without using `amount_total` | `UNRESOLVED` | Line values are readable, but no controlled offer set exists. |
 | Currency | `purchase.order.currency_id` and line-related currency | Stable currency ID | Order read allowed | Stable ID equality | `ACCEPTED` | No conversion is authorized. |
-| Discount / tax | line `discount`, `tax_ids`, `price_unit_discounted` | Runtime-verified fields; `price_unit_discounted` is computed | Line read denied | Proposed fixture guard: discount must be zero and `tax_ids` empty | `UNRESOLVED` | A later adapter must reject, not silently normalize, unsupported values. |
+| Discount / tax | line `discount`, `tax_ids`, `price_unit_discounted` | Runtime-verified fields; `price_unit_discounted` is computed | Line read allowed | Proposed guard: discount must be zero and `tax_ids` empty | `UNRESOLVED` | No controlled case proves the guard; a later adapter must reject unsupported values. |
 | Lead time | line `date_planned`; supplier info `delay` | Expected arrival; configured planning delay | Metadata only / supplier info readable | None accepted | `UNRESOLVED` | No validated supplier-offer promise date or semantically valid duration start exists. |
 | MOQ | `product.supplierinfo.min_qty` | Quantity needed to benefit from a vendor-price tier | Read allowed | None | `REJECTED` | Runtime help does not define a hard minimum accepted order; it cannot drive the Decision Core's hard MOQ constraint. |
 | RFQ state | `purchase.order.state` | Explicit lifecycle selection | Read allowed | Existing open-state mapping | `ACCEPTED` | Fixture must exclude `purchase` and `cancel`. |
-| Company | order and line `company_id` | Stable company ID and global rule boundary | Order read allowed | Stable ID equality | `ACCEPTED` | Line enforcement remains to be tested after the ACL change. |
-| Source traceability | model, record ID, observation time | Source identity plus client observation timestamp | Partially available | Preserve without business defaulting | `UNRESOLVED` | A complete grouped line read is still unavailable. |
+| Company | order and line `company_id` | Stable company ID and global rule boundary | Order and line read allowed | Stable ID equality | `ACCEPTED` | Company 1 observed; outside-company domain returned no rows. |
+| Source traceability | model, record ID, observation time | Source identity plus client observation timestamp | Available for permitted orders and lines | Preserve without business defaulting | `UNRESOLVED` | No complete controlled grouped case exists. |
 
 ## 7. Lead-time and MOQ gate
 
@@ -152,7 +159,7 @@ supplier-information delay.
 
 This is configured operational planning data, not a recorded supplier quotation
 promise. `date_order` is **Order Deadline**, not an offer-observation or dispatch
-date. Phase A therefore has no deterministic, semantically valid transformation to
+date. T5 therefore has no deterministic, semantically valid transformation to
 the current canonical `lead_time_days`. A manually edited expected-arrival value in
 a controlled fixture would still need an explicit business rule and provenance that
 the schema does not encode.
@@ -164,8 +171,8 @@ to benefit from the supplier row's unit price. Odoo filters seller rows by partn
 date range, product variant/template applicability, quantity converted to the
 supplier UoM, and company; the selected row is then ordered by discounted price,
 sequence, and record ID. The quotation line exposes computed
-`selected_seller_id`, which can identify the price row chosen by Odoo once line access
-exists.
+`selected_seller_id`, which is now readable and can identify the price row selected
+by Odoo.
 
 That selection is deterministic pricing-tier behavior, but it does not establish a
 hard supplier order minimum. The Decision Core interprets MOQ as an eligibility
@@ -176,30 +183,22 @@ value. The current MOQ candidate is therefore `REJECTED`, not defaulted.
 This is an independently sufficient `NO-GO` condition for the current adapter scope
 unless a different authoritative hard-MOQ source is produced and validated.
 
-## 8. Proposed Phase B operations
+## 8. Phase B operations and stop gate
 
-The following mutations require one explicit approval and would be performed in this
-order:
+The user confirmed the database backup and explicitly approved Phase B on
+2026-09-18. The administrator then performed the supported UI changes described in
+sections 1 through 4. Read-only JSON-2 validation confirmed module state, exact
+fields, effective model rights, company scoping, line traversal, and unchanged
+denial of unrelated models and mutation operations.
 
-1. Back up the local PoC database using the supported Odoo/database administration
-   procedure; do not remove Compose volumes.
-2. As an administrator, enable Purchase Agreements, which installs the locally
-   available standard `purchase_requisition` module.
-3. Enable Purchase Alternatives for an authorized human Purchase operator; do not
-   assign that group to `Procurement Integration`.
-4. Add exactly one read-only `purchase.order.line` ACL to the existing
-   `Procurement RFQ API Reader` group. Do not add a new rule unless a measured gap is
-   reviewed separately.
-5. Revalidate module state, `/doc`, exact fields, effective model rights, company
-   isolation, and unrelated-model access before creating data.
-6. Create the controlled records in section 5 through the Odoo UI.
-7. Run bounded JSON-2 contract tests with the integration identity. Perform no
-   application Odoo write and implement no adapter.
+The global Purchase Alternatives checkbox briefly implied the feature group to the
+integration identity. Validation detected that overgrant immediately. The setting
+was disabled and the group was assigned directly to `Mitchell Admin`; the final
+identity contract proves the integration user does not have it.
 
-Phase B must stop if the standard module is unavailable at install time, the fields
-differ, the grouping field cannot be read without broader access, line access leaks
-another company, any mutation right becomes allowed, or a critical semantic mapping
-remains unresolved.
+The approved stop condition then applied: hard MOQ is still rejected and supplier-
+offer lead time is still unresolved. Phase B therefore did not create the section 5
+business fixture and did not implement an adapter.
 
 ## 9. Security, data impact, and rollback
 
@@ -209,23 +208,24 @@ Inventory, and administrator privileges remain denied. Module installation adds
 standard Purchase Agreements models and UI for authorized human users but must not
 change the integration identity's direct groups.
 
-Data impact consists of the installed module's schema/data records, one ACL, one
-human feature-group assignment, and the explicitly prefixed PoC fixture.
+Data impact consists of the installed module's schema/data records, one ACL, and one
+direct human feature-group assignment. No T5 supplier, product, supplier-information,
+RFQ, or purchase-order-line record was created.
 
 Rollback, in reverse order:
 
-1. cancel and remove only the three `T5` draft RFQs through supported Odoo UI;
-2. remove the three dedicated supplier-information rows, product, and suppliers once
-   no references remain;
-3. delete the read-only line ACL and remove the human Purchase Alternatives group;
-4. only after a database backup and removal of dependent fixture data, uninstall
-   Purchase Agreements through Apps if full schema rollback is required;
-5. rerun T4 contracts and verify line read is denied and grouping fields are absent.
+1. remove `Mitchell Admin` from **Manage Purchase Alternatives**;
+2. delete the read-only line ACL through supported Odoo UI;
+3. only after a fresh database backup, uninstall Purchase Agreements through Apps if
+   full schema rollback is required;
+4. rerun T4 contracts and verify line read is denied and grouping fields are absent.
 
 Module uninstall is a destructive database operation and is not an ordinary restart
 or first-line rollback. Never delete the named volumes for this validation.
 
-## 10. Phase A verification
+## 10. Verification
+
+### Phase A checkpoint
 
 | Check | Result |
 | --- | --- |
@@ -242,6 +242,32 @@ or first-line rollback. Never delete the named volumes for this validation.
 | Odoo mutation | None. |
 | Application adapter change | None. |
 | Google Drive change | None. |
+
+### Phase B final verification
+
+| Check | Result |
+| --- | --- |
+| User approval and backup | Explicitly confirmed on 2026-09-18. |
+| `purchase_requisition` state | `installed`. |
+| Standard grouping fields | Verified through JSON-2 `fields_get`. |
+| Line ACL | Read allowed; create, write, and unlink denied. |
+| Bounded line values | `search_read` passed with exact variant, UoM, quantity, price, discount, taxes, currency, company, expected arrival, and selected seller. |
+| Order-line traversal | Passed on permitted open RFQs. |
+| Company boundary | Company 1 only; outside-company domain returned no rows. |
+| Integration alternatives group | Denied after remediation. |
+| Direct integration groups | Unchanged: API reader plus Role / User. |
+| Unrelated group/agreement models | Read denied. |
+| Focused live Odoo tests | 16 passed. |
+| Full served integration selection | 19 passed, 80 deselected. |
+| Ruff format and lint | Passed. |
+| Python compilation | Passed for all five source packages. |
+| Fast tests | 80 passed, 19 integration/E2E tests deselected. |
+| Dependency consistency | Passed. |
+| Compose configuration | Passed with the project-local provider. |
+| Boundary and ignore checks | Decision Core framework-import scan, `.env` ignore check, and diff check passed. |
+| Controlled fixture | Not created; approved semantic stop gate reached. |
+| Application adapter and T6 | Not started. |
+| Google Drive | Unchanged. |
 
 ## 11. Primary sources
 

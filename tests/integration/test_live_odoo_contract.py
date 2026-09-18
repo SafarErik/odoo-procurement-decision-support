@@ -108,12 +108,97 @@ def test_live_odoo_identity_has_read_only_purchase_order_access() -> None:
         "unlink": False,
     }
 
+    can_manage_alternatives = _post_json2(
+        "res.users",
+        "has_group",
+        {
+            "ids": [user_id],
+            "group_ext_id": "purchase_requisition.group_purchase_alternatives",
+        },
+    )
+    assert can_manage_alternatives is False
+
+
+def test_live_odoo_t5_line_acl_allows_only_company_scoped_reads() -> None:
+    """The integration identity can traverse permitted RFQ lines without mutation."""
+
+    context = _post_json2("res.users", "context_get", {})
+    user_id = context["uid"]
+    user = _post_json2(
+        "res.users",
+        "read",
+        {"ids": [user_id], "fields": ["company_id", "company_ids"]},
+    )[0]
+    allowed_company_ids = user["company_ids"]
+    assert user["company_id"][0] == 1
+    assert allowed_company_ids == [1]
+
+    orders = _post_json2(
+        "purchase.order",
+        "search_read",
+        {
+            "domain": [["state", "in", ["draft", "sent", "to approve"]]],
+            "fields": [
+                "id",
+                "company_id",
+                "order_line",
+                "purchase_group_id",
+                "alternative_po_ids",
+            ],
+            "limit": 5,
+            "order": "id asc",
+        },
+    )
+    assert orders
+    assert all(order["company_id"][0] in allowed_company_ids for order in orders)
+
+    line_ids = [line_id for order in orders for line_id in order["order_line"]]
+    assert line_ids
+    lines = _post_json2(
+        "purchase.order.line",
+        "search_read",
+        {
+            "domain": [["id", "in", line_ids]],
+            "fields": [
+                "id",
+                "order_id",
+                "product_id",
+                "product_uom_id",
+                "product_qty",
+                "price_unit",
+                "discount",
+                "tax_ids",
+                "currency_id",
+                "company_id",
+                "date_planned",
+                "selected_seller_id",
+            ],
+            "limit": len(line_ids),
+            "order": "id asc",
+        },
+    )
+    assert {line["id"] for line in lines} == set(line_ids)
+    assert all(line["company_id"][0] in allowed_company_ids for line in lines)
+
+    outside_company_lines = _post_json2(
+        "purchase.order.line",
+        "search_read",
+        {
+            "domain": [["company_id", "not in", allowed_company_ids]],
+            "fields": ["id", "company_id"],
+            "limit": 1,
+        },
+    )
+    assert outside_company_lines == []
+
 
 @pytest.mark.parametrize(
     ("model", "expected_read"),
     [
         ("purchase.order", True),
-        ("purchase.order.line", False),
+        ("purchase.order.line", True),
+        ("purchase.order.group", False),
+        ("purchase.requisition", False),
         ("product.product", True),
         ("product.template", True),
         ("product.supplierinfo", True),
@@ -142,8 +227,8 @@ def test_live_odoo_decision_input_models_are_read_only(model: str, expected_read
     }
 
 
-def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> None:
-    """T4 candidate fields exist, but the probed explicit grouping fields do not."""
+def test_live_odoo_t5_schema_exposes_standard_alternative_grouping() -> None:
+    """The installed standard module exposes its persisted alternative-RFQ group."""
 
     purchase_order_fields = _post_json2(
         "purchase.order",
@@ -158,6 +243,7 @@ def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> No
                 "currency_id",
                 "company_id",
                 "order_line",
+                "purchase_group_id",
                 "alternative_po_ids",
                 "source_po_id",
                 "requisition_id",
@@ -174,11 +260,19 @@ def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> No
         "type": "many2one",
         "relation": "res.partner",
     }
-    assert {
-        "alternative_po_ids",
-        "source_po_id",
-        "requisition_id",
-    }.isdisjoint(purchase_order_fields)
+    assert purchase_order_fields["purchase_group_id"] == {
+        "type": "many2one",
+        "relation": "purchase.order.group",
+    }
+    assert purchase_order_fields["alternative_po_ids"] == {
+        "type": "one2many",
+        "relation": "purchase.order",
+    }
+    assert purchase_order_fields["requisition_id"] == {
+        "type": "many2one",
+        "relation": "purchase.requisition",
+    }
+    assert "source_po_id" not in purchase_order_fields
 
     line_fields = _post_json2(
         "purchase.order.line",
@@ -256,12 +350,13 @@ def test_live_odoo_decision_input_schema_has_no_validated_grouping_field() -> No
     )
     assert [(module["name"], module["state"]) for module in modules] == [
         ("purchase", "installed"),
+        ("purchase_requisition", "installed"),
         ("stock", "installed"),
     ]
 
 
-def test_live_odoo_t5_purchase_agreements_are_available_but_uninstalled() -> None:
-    """Phase A proves the standard Community capability exists without enabling it."""
+def test_live_odoo_t5_purchase_agreements_are_installed() -> None:
+    """Phase B enabled the standard Community Purchase Agreements capability."""
 
     modules = _post_json2(
         "ir.module.module",
@@ -285,7 +380,7 @@ def test_live_odoo_t5_purchase_agreements_are_available_but_uninstalled() -> Non
         {
             "name": "purchase_requisition",
             "shortdesc": "Purchase Agreements",
-            "state": "uninstalled",
+            "state": "installed",
             "license": "LGPL-3",
             "application": False,
         }
@@ -307,8 +402,8 @@ def test_live_odoo_t5_purchase_agreements_are_available_but_uninstalled() -> Non
     }
 
 
-def test_live_odoo_t5_line_schema_exposes_semantic_candidates_before_access_change() -> None:
-    """Phase A records exact line, pricing-tier, and date meanings without reading rows."""
+def test_live_odoo_t5_line_schema_preserves_semantic_blockers() -> None:
+    """Phase B confirms that line access does not repair MOQ or lead-time meaning."""
 
     line_fields = _post_json2(
         "purchase.order.line",
