@@ -736,3 +736,40 @@ the 80-test fast suite, Ruff format and lint, Python compilation, dependency
 consistency, Podman Compose configuration, the Decision Core framework-import
 boundary scan, the `.env` ignore check, and the final diff check. GitHub Actions
 status is recorded in the external task handoff after the branch is pushed.
+
+## T6 — provenance-aware hybrid decision-input assembly
+
+### Implementation on 2026-09-18
+
+T6 starts from `main` commit `c2c4b18`, which contains the required T5 commit
+`392e2482ce11aef9446722251b868d926f814a0a`. The unchanged baseline fast suite
+passed 80 tests with 19 integration/E2E tests deselected.
+
+The application now defines immutable typed Odoo comparison facts, supplemental
+offer terms, per-field source attribution, a canonical input aggregate, a separate
+provenance manifest, and `assemble_decision_input()`. The assembler accepts only the
+explicit single-product T6 subset and raises stable `DecisionInputAssemblyError`
+codes for incomplete, ambiguous, inconsistent, unsupported, or domain-invalid
+input. It joins supplemental terms only by stable Odoo offer identity and passes no
+provenance data into the unchanged Decision Core.
+
+`OdooComparisonCaseReader` reads one explicit `purchase_group_id`, bounds the group
+at 20 offers and 40 total lines, and retrieves orders, exact line identities, and
+commercial-partner identities
+through JSON-2. It requests quotation facts only. It does not request or map
+`supplierinfo.min_qty`, `supplierinfo.delay`, or `date_planned`, and it preserves
+unsupported states, discounts, and taxes so the application layer can reject the
+complete case rather than silently dropping offers.
+
+Fast tests cover the exact reference case, deterministic identity join, provenance,
+all material fail-closed invariants, canonical domain errors, adapter transport and
+mapping, and architectural boundaries. Two live contracts cover the controlled
+fixture and complete Odoo-to-evaluation chain, but require both configured read-only
+credentials and `RUN_T6_LIVE_CONTRACTS=true`.
+
+The controlled fixture uses the specification's documented UI fallback rather than
+an unvalidated administrator writer. Exact JSON-2 create/wizard defaults and safe
+teardown semantics are not established in this repository, so automating those
+writes would be a risky approximation. `docs/T6_FIXTURE_SETUP.md` defines exact
+markers, values, rerun checks, read-only verification, and cleanup. The fixture has
+not been created in this implementation pass; live T6 acceptance remains pending.

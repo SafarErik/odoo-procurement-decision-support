@@ -260,3 +260,24 @@ The smallest next approved validation increment has two prerequisites:
 Do not assign Purchase/User or Inventory/User merely to obtain line access. Do not
 install a module or create a custom grouping field without separate scope and
 approval. Do not begin T5 automatically.
+
+## 12. T6 mapping disposition
+
+T5 subsequently validated the standard `purchase_group_id` mechanism and
+company-scoped read access to `purchase.order.line`. T6 does not reverse the semantic
+rejections in this spike. Instead, its narrow hybrid assembler uses the following
+source split:
+
+| Decision input | T6 source | Disposition |
+| --- | --- | --- |
+| Case identity | `purchase.order.purchase_group_id` | Validated Odoo fact |
+| Offer, supplier, product, UoM, quantity, price, currency, company, state | Read-only order, line, and commercial-partner facts | Validated only inside the explicit supported subset |
+| Hard MOQ | Explicit supplemental value with field/source/reference/time attribution | Accepted as source-attributed, not automatically verified |
+| Supplier-promised lead time | Explicit supplemental value with field/source/reference/time attribution | Accepted as source-attributed, not automatically verified |
+| `product.supplierinfo.min_qty` | Never mapped | Rejected price-tier threshold |
+| `product.supplierinfo.delay` | Never mapped | Rejected planning lead time |
+| `purchase.order.line.date_planned` | Never mapped | Rejected expected-arrival date |
+
+See `docs/T6_DESIGN.md` for the complete invariant and provenance contract. This
+addendum does not convert T6 into a production adapter or make supplemental claims
+authoritative.
