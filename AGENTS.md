@@ -26,6 +26,23 @@ canonical procurement model.
 - Do not invent or rely on unvalidated Odoo models, fields, authentication details, or API capabilities.
 - Never commit secrets. Keep local values in the ignored `.env` file.
 
+## Manual Odoo UI operations
+
+- Do not control the user's Odoo browser session or perform Odoo UI actions through
+  computer-use, browser-automation, or similar GUI tools.
+- When Odoo configuration or business-data entry is required, stop before the UI
+  mutation and give the user clear numbered instructions. Include the exact Odoo
+  application and menu path, field or setting labels, values to enter, buttons to
+  press, expected effect, and any relevant rollback or safety note.
+- Wait for the user to confirm that the instructions were completed before relying
+  on the changed state or continuing with dependent validation.
+- Do not claim that an Odoo UI change succeeded based only on the instructions.
+  Confirm the postcondition with an authorized read-only probe or test when possible;
+  otherwise record it explicitly as user-confirmed and not independently verified.
+- This manual handoff rule applies even when a task plan or handoff document suggests
+  that the agent perform the Odoo UI steps. Continue to prohibit application Odoo
+  writes and direct database access unless the repository scope is explicitly changed.
+
 ## Language and documentation
 
 Use English for all repository software-engineering artifacts, including source,
