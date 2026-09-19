@@ -24,8 +24,16 @@ remain deliberately unconnected. T6 provides only an internal, explicitly invoke
 hybrid assembly path for the validated comparison-case subset; it does not provide
 automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
 no decision UI, historical KPI calculation, write operation, or production
-persistence. See [the T6 design](docs/T6_DESIGN.md),
-[fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
+persistence. T7 completed read-only historical-performance discovery and identified
+one candidate, `delivery_schedule_adherence`, but ended
+`PENDING CONTROLLED LIVE ACCEPTANCE`: `stock.move` and `stock.picking` reads are
+denied, the internal integration identity inherits mutation rights on
+`stock.move.line`, and no completed controlled receipt history exists. No historical
+KPI runtime code was added and AC-07 remains unsatisfied. See
+[the T7 spike](docs/spikes/odoo-historical-supplier-performance.md),
+[fixture procedure](docs/T7_FIXTURE_SETUP.md), and [T7 handoff](docs/T7_HANDOFF.md),
+alongside [the T6 design](docs/T6_DESIGN.md),
+[T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the current boundary and evidence.
 
 ## Architecture
@@ -269,6 +277,12 @@ The controlled T6 live contracts additionally require the exact fixture in
 `docs/T6_FIXTURE_SETUP.md` and `RUN_T6_LIVE_CONTRACTS=true`. They skip otherwise and
 must never be enabled against an arbitrary external database.
 
+The T7 live contracts separately require the approved inventory-history security
+remediation, the exact fixture in `docs/T7_FIXTURE_SETUP.md`, and
+`RUN_T7_LIVE_CONTRACTS=true`. They skip by default. Do not enable the gate merely to
+probe arbitrary business records: first run the documented security stop gate, then
+create the four exact Source Document markers through the administrator UI.
+
 No browser E2E suite or static type checker is currently configured.
 
 ## Continuous integration
@@ -374,14 +388,26 @@ terms. The controlled three-RFQ T6 fixture and full read-only hybrid chain passe
 their opt-in live contracts on 2026-09-19. This evidence validates only the bounded
 local proof-of-concept subset and does not turn the internal assembler into an
 automatic or production Odoo-to-decision pipeline. Do not assign broad Purchase or
-Inventory roles as a shortcut. The old
+Inventory roles as a shortcut.
+
+T7 found a candidate purchase-line-to-receipt chain and defined
+`delivery_schedule_adherence` against Odoo Expected Arrival with a separate
+completed-line sample size. It is not implemented. The configured identity cannot
+read `stock.move` or `stock.picking`, and standard Odoo 19 grants every internal user
+create/write/unlink access to `stock.move.line`; therefore the inventory-history
+boundary is not currently read-only. A separately approved security design and the
+controlled fixture must pass before any production historical-performance adapter
+is considered. `product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
+receipt `effective_date`, and heuristic joins remain rejected project KPI sources.
+The old
 administrator discovery key should be revoked. Image tags are explicit but are not
 digest-pinned.
 The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md),
-and [the T6 design](docs/T6_DESIGN.md) for verified facts, rejected mappings, and
-recovery steps.
+[the T6 design](docs/T6_DESIGN.md), and
+[the T7 historical-performance evidence](docs/spikes/odoo-historical-supplier-performance.md)
+for verified facts, rejected mappings, and recovery steps.
 
 The CI persistence check uses synthetic files to verify only that Docker named
 volumes survive stack recreation. It does not establish persistence of an actual

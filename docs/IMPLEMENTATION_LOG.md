@@ -806,3 +806,73 @@ remain deliberately disconnected; the hybrid assembly path is internal and must 
 explicitly invoked. No automatic or production Odoo-to-evaluation integration is
 claimed. Supplemental provenance establishes attribution, not objective truth, and
 the documented single-product, safety-bound, no-conversion limitations remain.
+
+## T7 — historical supplier-performance capability spike
+
+### Read-only discovery on 2026-09-19
+
+T7 starts exactly from the T6 merge commit
+`01b9ff16d77934c2164d75ae6f4d938d98eedee3`. It performed bounded live discovery
+through the configured `Procurement Integration` JSON-2 credential and made no Odoo
+write, administrator-key fallback, permission change, direct database access, or
+browser-automated UI action.
+
+Runtime metadata and official Odoo 19 source establish an explicit candidate path
+from `purchase.order.line.move_ids` to `stock.move.purchase_line_id`, then
+`stock.move.picking_id` to `stock.picking`. Line `date_planned` is **Expected
+Arrival**, an editable operational schedule value rather than a supplier-confirmed
+promise. For a done stock move, `date` changes from scheduled date to actual move
+processing date. A defensible actual receipt still requires done state, positive
+actual quantity, supplier-to-internal direction, exact line relationship, matching
+product/UoM/company, no return relationship, and a done picking.
+
+The identity can read purchase orders, purchase-order lines, stock move lines,
+picking types, and locations. It cannot read `stock.move` or `stock.picking`;
+bounded record queries return HTTP 403. Five confirmed orders contained eight lines,
+all with zero received quantity and no completed receipt. No existing record was
+joined heuristically.
+
+The security probe also found that standard Odoo 19 grants `base.group_user` full
+create/write/unlink rights on `stock.move.line`. The dedicated identity inherits
+those rights through `Role / User`. No mutation was attempted, but the identity is
+not read-only for inventory operation lines. Adding an ordinary read ACL cannot
+revoke additive Odoo ACL rights, and broad Inventory roles remain prohibited.
+
+Exactly one controlled candidate is retained:
+`delivery_schedule_adherence`, the percentage of eligible completed PO-line receipt
+obligations whose full current ordered quantity reaches the internal warehouse by
+Expected Arrival. It groups by the T6 commercial-partner identity, uses one line as
+the measurement grain, reports a separate completed-line sample size, uses a
+trailing half-open 365-day window, rounds only presentation to two decimal places,
+and withholds the value below sample size 3. Partial, backorder, multi-receipt,
+return, cancellation, quantity-change, replacement, missing-date, timezone,
+over-receipt, company, and ambiguous-relationship policies are explicit and
+fail-closed where evidence is insufficient.
+
+Odoo's computed `on_time_rate` is rejected because it has no separately exposed
+sample size, groups by direct partner rather than the T6 commercial entity, applies
+a quantity-weighted policy, and is unreadable through the integration identity.
+`product.supplierinfo.delay`, first-receipt `effective_date`, aggregate
+`qty_received`, coarse `receipt_status`, and `stock.move.line.date` are also rejected
+as sole project KPI sources.
+
+The result is **PENDING CONTROLLED LIVE ACCEPTANCE**. The new opt-in T7 contracts
+default to skipped behind `RUN_T7_LIVE_CONTRACTS=false`. They require a separately
+approved company-scoped read-only inventory-history boundary and four exact manual
+fixture markers covering on-time, late, backorder, and return behaviour. Expected
+controlled evidence is `33.33%` with sample size 3 and the return-affected line
+excluded with a warning. No production KPI code, adapter, API, frontend, persistence,
+Decision Core, `SupplierOffer`, `StrategicProfile`, T6 contract, or provenance change
+was introduced. AC-07 remains unsatisfied.
+
+See `docs/spikes/odoo-historical-supplier-performance.md` for the evidence matrix,
+`docs/T7_FIXTURE_SETUP.md` for the mandatory security stop and human UI procedure,
+and `docs/T7_HANDOFF.md` for the acceptance decision and T8 consequences.
+
+Final local verification passed Ruff format and lint, Python compilation, dependency
+consistency, Podman Compose configuration, whitespace checks, 121 fast tests, and
+the complete available integration selection with 21 passed and the two gated T7
+contracts skipped. Those contracts were not enabled because their documented
+security and controlled-fixture prerequisites do not exist. Existing warnings were
+limited to dependency deprecations, a local pytest-cache permission warning, and Git
+line-ending conversion notices.
