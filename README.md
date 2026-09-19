@@ -13,15 +13,20 @@ Agreements capability and added least-privilege, company-scoped
 `purchase_group_id` comparison key is now available, but Odoo's supplier quantity is
 a price-tier threshold rather than a hard MOQ and the available dates do not prove
 authoritative supplier-offer lead time. T5 therefore ended `NO-GO`; no production
-adapter was implemented. The application can retrieve open RFQ summaries through
-the existing read-only flow. Separately,
+adapter was implemented. T6 provides a narrow, fail-closed hybrid assembler:
+validated Odoo comparison facts can be combined with explicitly supplied,
+source-attributed hard MOQ and supplier-promised lead time while provenance stays
+outside the Decision Core. The application can retrieve open RFQ summaries through
+the existing public read-only ledger. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
-requirements, offers, and weights through the Decision Core. The two flows remain
-deliberately unconnected: there is no Odoo-to-offer mapping, automatic evaluation of
-the RFQ list, decision UI, historical KPI calculation, write operation, or
-production persistence. See [the T4 handoff](docs/T4_HANDOFF.md) and
-[mapping spike](docs/spikes/odoo-decision-input-mapping-spike.md) for the current
-evidence and exact recovery step.
+requirements, offers, and weights through the Decision Core. These public flows
+remain deliberately unconnected. T6 provides only an internal, explicitly invoked
+hybrid assembly path for the validated comparison-case subset; it does not provide
+automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
+no decision UI, historical KPI calculation, write operation, or production
+persistence. See [the T6 design](docs/T6_DESIGN.md),
+[fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
+for the current boundary and evidence.
 
 ## Architecture
 
@@ -33,6 +38,11 @@ Reflex frontend --HTTP--> FastAPI API --> application RFQ use case
 caller JSON --> FastAPI decision schemas --> application decision use case
                                              |
                                              +--> Decision Core --> explained result
+
+Odoo facts + attributed supplemental terms --> application T6 assembler
+                                                        |
+                                                        +--> canonical input
+                                                        +--> provenance manifest
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -246,13 +256,18 @@ The fast tests cover Decision Core validation, constraints, normalization, WSM
 contributions and deterministic ranking; the application decision use case and API
 contract; the health contract; the ERP-neutral RFQ API; Odoo JSON-2 request and
 mapping behaviour; stable upstream error translation; frontend configuration and
-presentation states; and the separate Reflex state-backend port. With the documented
-runtime services running and the ignored `.env` configured, integration tests can be
-selected explicitly:
+presentation states; the T6 supported-subset invariants, provenance, architectural
+boundaries, and read-only comparison-case mapping; and the separate Reflex
+state-backend port. With the documented runtime services running and the ignored
+`.env` configured, integration tests can be selected explicitly:
 
 ```powershell
 pytest -m "integration and not e2e" -v
 ```
+
+The controlled T6 live contracts additionally require the exact fixture in
+`docs/T6_FIXTURE_SETUP.md` and `RUN_T6_LIVE_CONTRACTS=true`. They skip otherwise and
+must never be enabled against an arbitrary external database.
 
 No browser E2E suite or static type checker is currently configured.
 
@@ -342,8 +357,10 @@ This CI increment does not modify Google Drive documents.
 The integration is deliberately read-only and limited to the validated
 `purchase.order` summary fields required by the RFQ ledger. The Decision Core and
 decision API currently support only MOQ eligibility plus unit-price and lead-time
-criteria on caller-supplied canonical input. There is no mapping between those inputs
-and Odoo, automatic RFQ evaluation, pagination, retry policy, write operation,
+criteria on caller-supplied canonical input. T6 adds only a narrow hybrid assembly
+path for a validated single-product comparison subset; it is not a generic or public
+Odoo-to-canonical API. There is no automatic RFQ evaluation, pagination, retry
+policy, write operation,
 decision UI, API authentication/authorization, production persistence, historical
 KPI logic, currency conversion, or validated purchase-line and inventory receipt
 mapping. The local PoC uses a live-verified dedicated read-only integration identity.
@@ -352,14 +369,19 @@ T5 proved company-scoped read access to `purchase.order.line` and the standard
 identity the alternatives feature group or direct access to grouping/agreement
 models. A production Odoo-to-canonical adapter remains deferred because no validated
 hard-MOQ source or authoritative supplier-offer lead time is available, and the
-approved semantic stop gate prevented creation of a misleading synthetic comparison
-fixture. Do not assign broad Purchase or Inventory roles as a shortcut. The old
+approved T6 solution therefore requires explicit, source-attributed supplemental
+terms. The controlled three-RFQ T6 fixture and full read-only hybrid chain passed
+their opt-in live contracts on 2026-09-19. This evidence validates only the bounded
+local proof-of-concept subset and does not turn the internal assembler into an
+automatic or production Odoo-to-decision pipeline. Do not assign broad Purchase or
+Inventory roles as a shortcut. The old
 administrator discovery key should be revoked. Image tags are explicit but are not
 digest-pinned.
 The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
-[the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md)
-for verified facts, rejected mappings, and recovery steps.
+[the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md),
+and [the T6 design](docs/T6_DESIGN.md) for verified facts, rejected mappings, and
+recovery steps.
 
 The CI persistence check uses synthetic files to verify only that Docker named
 volumes survive stack recreation. It does not establish persistence of an actual

@@ -736,3 +736,73 @@ the 80-test fast suite, Ruff format and lint, Python compilation, dependency
 consistency, Podman Compose configuration, the Decision Core framework-import
 boundary scan, the `.env` ignore check, and the final diff check. GitHub Actions
 status is recorded in the external task handoff after the branch is pushed.
+
+## T6 — provenance-aware hybrid decision-input assembly
+
+### Implementation on 2026-09-18
+
+T6 starts from `main` commit `c2c4b18`, which contains the required T5 commit
+`392e2482ce11aef9446722251b868d926f814a0a`. The unchanged baseline fast suite
+passed 80 tests with 19 integration/E2E tests deselected.
+
+The application now defines immutable typed Odoo comparison facts, supplemental
+offer terms, per-field source attribution, a canonical input aggregate, a separate
+provenance manifest, and `assemble_decision_input()`. The assembler accepts only the
+explicit single-product T6 subset and raises stable `DecisionInputAssemblyError`
+codes for incomplete, ambiguous, inconsistent, unsupported, or domain-invalid
+input. It joins supplemental terms only by stable Odoo offer identity and passes no
+provenance data into the unchanged Decision Core.
+
+`OdooComparisonCaseReader` reads one explicit `purchase_group_id`, bounds the group
+at 20 offers and 40 total lines, and retrieves orders, exact line identities, and
+commercial-partner identities
+through JSON-2. It requests quotation facts only. It does not request or map
+`supplierinfo.min_qty`, `supplierinfo.delay`, or `date_planned`, and it preserves
+unsupported states, discounts, and taxes so the application layer can reject the
+complete case rather than silently dropping offers.
+
+Fast tests cover the exact reference case, deterministic identity join, provenance,
+all material fail-closed invariants, canonical domain errors, adapter transport and
+mapping, and architectural boundaries. Two live contracts cover the controlled
+fixture and complete Odoo-to-evaluation chain, but require both configured read-only
+credentials and `RUN_T6_LIVE_CONTRACTS=true`.
+
+The controlled fixture uses the specification's documented UI fallback rather than
+an unvalidated administrator writer. Exact JSON-2 create/wizard defaults and safe
+teardown semantics are not established in this repository, so automating those
+writes would be a risky approximation. `docs/T6_FIXTURE_SETUP.md` defines exact
+markers, values, rerun checks, read-only verification, and cleanup.
+
+### Live acceptance closure on 2026-09-19
+
+A human administrator created the controlled fixture through the Odoo UI with exact
+source markers `T6-COMP-001-A`, `T6-COMP-001-B`, and `T6-COMP-001-C`. Automated
+tests did not trust that manual claim: using only the configured dedicated
+integration identity, they found exactly those three RFQs, proved that they share
+one persisted `purchase_group_id`, read the complete orders, lines, and commercial
+partners, and validated every supported-subset invariant. The same identity's live
+security contracts confirmed denied mutations, absence of the alternatives feature
+group, and company-scoped line visibility.
+
+The live full-chain contract assembled the exact reference case, passed the
+canonical input unchanged to the existing evaluation use case, ranked eligible
+offers A then B, and excluded C with an explanation. Its provenance assertion was
+strengthened during closure to require the exact path set for the requirement ID,
+requested quantity, all three profile fields, and all five canonical fields for
+each actual live offer ID. Requested-quantity provenance is required once per offer.
+
+Closure verification on the local Windows stack produced:
+
+- focused T6 live contracts: 2 passed, 16 deselected;
+- Ruff format and lint: passed, with 58 files already formatted;
+- Python compilation and dependency consistency: passed;
+- fast selection: 120 passed, 21 deselected;
+- full integration selection: 21 passed, 120 deselected;
+- Podman Compose configuration and final diff check: passed.
+
+All 15 T6 acceptance criteria are therefore satisfied for the controlled local
+proof-of-concept scope. The public RFQ ledger and caller-supplied decision endpoint
+remain deliberately disconnected; the hybrid assembly path is internal and must be
+explicitly invoked. No automatic or production Odoo-to-evaluation integration is
+claimed. Supplemental provenance establishes attribution, not objective truth, and
+the documented single-product, safety-bound, no-conversion limitations remain.

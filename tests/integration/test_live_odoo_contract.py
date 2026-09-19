@@ -1,15 +1,27 @@
 """Optional live contract verification for an initialized local Odoo database."""
 
 import asyncio
+from decimal import Decimal
 from typing import Any
 
 import httpx
 import pytest
 
+from application.decision_input_assembly import (
+    SourceAttribution,
+    SupplementalOfferTerms,
+    SupplementalValue,
+    assemble_decision_input,
+)
+from application.decisions import evaluate_procurement_decision
 from backend.app.config import settings
+from decision_core import StrategicProfile
+from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.rfq_reader import OdooRfqReader
 
 pytestmark = pytest.mark.integration
+
+_T6_ORIGINS = ("T6-COMP-001-A", "T6-COMP-001-B", "T6-COMP-001-C")
 
 
 def _live_credentials() -> tuple[str, str, str] | None:
@@ -38,6 +50,34 @@ def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
         f"Odoo {model}/{method} returned HTTP {response.status_code}"
     )
     return response.json()
+
+
+def _t6_fixture_records() -> list[dict[str, Any]]:
+    if not settings.run_t6_live_contracts:
+        pytest.skip("Set RUN_T6_LIVE_CONTRACTS=true after creating the controlled T6 fixture")
+    orders = _post_json2(
+        "purchase.order",
+        "search_read",
+        {
+            "domain": [["origin", "in", list(_T6_ORIGINS)]],
+            "fields": ["id", "name", "origin", "purchase_group_id"],
+            "limit": 4,
+            "order": "origin asc",
+        },
+    )
+    assert [order["origin"] for order in orders] == list(_T6_ORIGINS)
+    return orders
+
+
+def _t6_group_id() -> int:
+    orders = _t6_fixture_records()
+    group_ids = {
+        order["purchase_group_id"][0]
+        for order in orders
+        if isinstance(order.get("purchase_group_id"), list)
+    }
+    assert len(group_ids) == 1
+    return group_ids.pop()
 
 
 def test_live_odoo_lists_open_rfqs_when_credentials_are_available() -> None:
@@ -483,3 +523,138 @@ def test_live_odoo_t5_line_schema_preserves_semantic_blockers() -> None:
         "string": "Lead Time",
         "type": "integer",
     }
+
+
+def test_live_odoo_t6_reads_controlled_group_with_read_only_identity() -> None:
+    """The opt-in fixture exposes exactly the supported three-offer fact set."""
+
+    credentials = _live_credentials()
+    if credentials is None:
+        pytest.skip("Live Odoo credentials are not configured")
+    base_url, database, api_key = credentials
+    reader = OdooComparisonCaseReader(
+        base_url=base_url,
+        database=database,
+        api_key=api_key,
+        timeout_seconds=settings.odoo_request_timeout_seconds,
+    )
+
+    facts = asyncio.run(reader.read_comparison_case(_t6_group_id()))
+
+    origin_by_offer_id = {
+        f"odoo:purchase.order:{order['id']}": order["origin"] for order in _t6_fixture_records()
+    }
+    assert {offer.offer_id for offer in facts.offers} == set(origin_by_offer_id)
+    assert len({offer.comparison_case_id for offer in facts.offers}) == 1
+    assert len({offer.supplier_id for offer in facts.offers}) == 3
+    assert len({offer.company_id for offer in facts.offers}) == 1
+    assert len({offer.currency_id for offer in facts.offers}) == 1
+    assert all(len(offer.lines) == 1 for offer in facts.offers)
+    assert {offer.lines[0].quantity for offer in facts.offers} == {Decimal("100")}
+    assert len({offer.lines[0].product_id for offer in facts.offers}) == 1
+    assert len({offer.lines[0].uom_id for offer in facts.offers}) == 1
+    assert all(offer.lines[0].discount == 0 for offer in facts.offers)
+    assert all(not offer.lines[0].tax_ids for offer in facts.offers)
+    assert {
+        origin_by_offer_id[offer.offer_id]: offer.lines[0].unit_price for offer in facts.offers
+    } == {
+        "T6-COMP-001-A": Decimal("10"),
+        "T6-COMP-001-B": Decimal("12"),
+        "T6-COMP-001-C": Decimal("9"),
+    }
+
+
+def test_live_odoo_t6_full_hybrid_chain_is_deterministic() -> None:
+    """Odoo facts plus attributed terms evaluate through the unchanged use case."""
+
+    credentials = _live_credentials()
+    if credentials is None:
+        pytest.skip("Live Odoo credentials are not configured")
+    base_url, database, api_key = credentials
+    reader = OdooComparisonCaseReader(
+        base_url=base_url,
+        database=database,
+        api_key=api_key,
+        timeout_seconds=settings.odoo_request_timeout_seconds,
+    )
+    facts = asyncio.run(reader.read_comparison_case(_t6_group_id()))
+    origin_by_offer_id = {
+        f"odoo:purchase.order:{order['id']}": order["origin"] for order in _t6_fixture_records()
+    }
+    values = {
+        "T6-COMP-001-A": (Decimal("50"), Decimal("10")),
+        "T6-COMP-001-B": (Decimal("100"), Decimal("5")),
+        "T6-COMP-001-C": (Decimal("150"), Decimal("8")),
+    }
+    terms = tuple(
+        SupplementalOfferTerms(
+            offer_id=offer.offer_id,
+            hard_minimum_order_quantity=SupplementalValue(
+                values[origin_by_offer_id[offer.offer_id]][0],
+                SourceAttribution(
+                    "minimum_order_quantity",
+                    "controlled_fixture_statement",
+                    f"{origin_by_offer_id[offer.offer_id]}:hard-moq",
+                    offer.observed_at,
+                ),
+            ),
+            supplier_promised_lead_time_days=SupplementalValue(
+                values[origin_by_offer_id[offer.offer_id]][1],
+                SourceAttribution(
+                    "lead_time_days",
+                    "controlled_fixture_statement",
+                    f"{origin_by_offer_id[offer.offer_id]}:promised-lead-time",
+                    offer.observed_at,
+                ),
+            ),
+        )
+        for offer in facts.offers
+    )
+    assembled = assemble_decision_input(
+        facts,
+        terms,
+        StrategicProfile.cost_focused(),
+        SourceAttribution(
+            "strategic_profile",
+            "application_configuration",
+            "profile:cost-focused:v1",
+            facts.observed_at,
+        ),
+    )
+
+    result = evaluate_procurement_decision(
+        assembled.canonical.requirement,
+        assembled.canonical.offers,
+        assembled.canonical.profile,
+    )
+    assert [origin_by_offer_id[item.offer.offer_id] for item in result.ranked_offers] == [
+        "T6-COMP-001-A",
+        "T6-COMP-001-B",
+    ]
+    assert [origin_by_offer_id[item.offer.offer_id] for item in result.excluded_offers] == [
+        "T6-COMP-001-C"
+    ]
+    assert result.excluded_offers[0].explanation
+    expected_provenance_paths = {
+        "requirement.requirement_id",
+        "requirement.requested_quantity",
+        "profile.name",
+        "profile.unit_price_weight",
+        "profile.lead_time_weight",
+    }
+    for offer in facts.offers:
+        expected_provenance_paths.update(
+            {
+                f"offers[{offer.offer_id}].offer_id",
+                f"offers[{offer.offer_id}].supplier_id",
+                f"offers[{offer.offer_id}].unit_price",
+                f"offers[{offer.offer_id}].lead_time_days",
+                f"offers[{offer.offer_id}].minimum_order_quantity",
+            }
+        )
+    provenance_paths = {entry.canonical_path for entry in assembled.provenance.entries}
+    assert provenance_paths == expected_provenance_paths
+    assert sum(
+        entry.canonical_path == "requirement.requested_quantity"
+        for entry in assembled.provenance.entries
+    ) == len(facts.offers)
