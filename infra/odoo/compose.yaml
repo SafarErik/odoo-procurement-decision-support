@@ -37,12 +37,13 @@ services:
       - -ceu
       - |
         umask 077
-        printf '[options]\nadmin_passwd = %s\ndata_dir = /var/lib/odoo\n' "$$ODOO_MASTER_PASSWORD" > "$$ODOO_RC"
+        printf '[options]\nadmin_passwd = %s\ndata_dir = /var/lib/odoo\naddons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons\n' "$$ODOO_MASTER_PASSWORD" > "$$ODOO_RC"
         exec /entrypoint.sh odoo
     ports:
       - "127.0.0.1:${ODOO_HTTP_PORT:-8069}:8069"
     volumes:
       - odoo_data:/var/lib/odoo
+      - ./addons:/mnt/extra-addons:ro
     networks:
       - odoo_internal
     restart: unless-stopped

@@ -255,6 +255,16 @@ intentionally dormant until that remediation and the exact fixture exist; it bou
 all reads by the four exact markers and proves the relationship/timestamp scenarios
 without adding production calculation code.
 
+### Separate T7-S follow-up
+
+T7-S subsequently selected a guarded method-only projection rather than the direct
+stock-model option described by the original T7 contract. This is a separate
+security prerequisite, not a retroactive expansion of T7. The dedicated non-internal
+projection caller must remain denied generic reads on all three stock models. Its
+focused contract is gated by `RUN_T7S_LIVE_CONTRACTS=true`; only after that passes
+may the four-record fixture be created and the original T7 gate enabled. See
+`docs/T7S_DESIGN_SECURITY.md` and `docs/T7S_HANDOFF.md`.
+
 ## 11. Rejected interpretations
 
 - `product.supplierinfo.delay` is configured planning data, not history.

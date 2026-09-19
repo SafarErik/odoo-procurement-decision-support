@@ -32,7 +32,11 @@ denied, the internal integration identity inherits mutation rights on
 KPI runtime code was added and AC-07 remains unsatisfied. See
 [the T7 spike](docs/spikes/odoo-historical-supplier-performance.md),
 [fixture procedure](docs/T7_FIXTURE_SETUP.md), and [T7 handoff](docs/T7_HANDOFF.md),
-alongside [the T6 design](docs/T6_DESIGN.md),
+plus the separate T7-S [design](docs/T7S_DESIGN_SECURITY.md),
+[manual setup](docs/T7S_MANUAL_SETUP.md), and [handoff](docs/T7S_HANDOFF.md).
+T7-S implements a bounded method-only projection but remains
+`PENDING MANUAL ODOO SETUP`; it does not change T7's pending outcome. See also
+[the T6 design](docs/T6_DESIGN.md),
 [T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the current boundary and evidence.
 
@@ -51,6 +55,10 @@ Odoo facts + attributed supplemental terms --> application T6 assembler
                                                         |
                                                         +--> canonical input
                                                         +--> provenance manifest
+
+dedicated non-internal T7-S caller --JSON-2--> guarded Odoo projection method
+                                                    |
+                                                    +--> bounded ORM evidence only
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -66,7 +74,7 @@ backend/        FastAPI boundary and dependency composition
 frontend/       Separate Reflex procurement ledger
 decision_core/  ERP-independent constraint, normalization, WSM, and ranking logic
 odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
-infra/odoo/     Local Odoo and PostgreSQL Compose configuration
+infra/odoo/     Local Odoo/PostgreSQL Compose and isolated T7-S addon
 tests/          Fast contract tests and optional live integration checks
 docs/           Implementation log and capability evidence
 ```
@@ -249,7 +257,7 @@ UI and container logs after startup.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter
+python -m compileall application backend frontend decision_core odoo_adapter infra/odoo/addons/t7s_inventory_history_projection
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
@@ -265,7 +273,8 @@ contributions and deterministic ranking; the application decision use case and A
 contract; the health contract; the ERP-neutral RFQ API; Odoo JSON-2 request and
 mapping behaviour; stable upstream error translation; frontend configuration and
 presentation states; the T6 supported-subset invariants, provenance, architectural
-boundaries, and read-only comparison-case mapping; and the separate Reflex
+boundaries, read-only comparison-case mapping, and T7-S bounded projection security
+policy; and the separate Reflex
 state-backend port. With the documented runtime services running and the ignored
 `.env` configured, integration tests can be selected explicitly:
 
@@ -277,11 +286,11 @@ The controlled T6 live contracts additionally require the exact fixture in
 `docs/T6_FIXTURE_SETUP.md` and `RUN_T6_LIVE_CONTRACTS=true`. They skip otherwise and
 must never be enabled against an arbitrary external database.
 
-The T7 live contracts separately require the approved inventory-history security
-remediation, the exact fixture in `docs/T7_FIXTURE_SETUP.md`, and
-`RUN_T7_LIVE_CONTRACTS=true`. They skip by default. Do not enable the gate merely to
-probe arbitrary business records: first run the documented security stop gate, then
-create the four exact Source Document markers through the administrator UI.
+The T7-S security contract requires the manual addon, dedicated non-internal caller,
+and key setup in `docs/T7S_MANUAL_SETUP.md`, plus
+`RUN_T7S_LIVE_CONTRACTS=true`. Only after that focused contract passes may the T7
+fixture be created. Final T7 validation requires both live gates and the exact
+fixture in `docs/T7_FIXTURE_SETUP.md`. Both gates skip by default.
 
 No browser E2E suite or static type checker is currently configured.
 
@@ -395,9 +404,13 @@ T7 found a candidate purchase-line-to-receipt chain and defined
 completed-line sample size. It is not implemented. The configured identity cannot
 read `stock.move` or `stock.picking`, and standard Odoo 19 grants every internal user
 create/write/unlink access to `stock.move.line`; therefore the inventory-history
-boundary is not currently read-only. A separately approved security design and the
-controlled fixture must pass before any production historical-performance adapter
-is considered. `product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
+boundary is not currently read-only. T7-S now provides the separately scoped
+security design: a method-only, non-stored projection with mandatory company,
+exact-line, date, and count bounds, called by a separate non-internal identity. Its
+addon installation, group assignment, key creation, and focused live contract are
+still pending manual setup. The controlled fixture must also pass before any
+production historical-performance adapter is considered.
+`product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
 receipt `effective_date`, and heuristic joins remain rejected project KPI sources.
 The old
 administrator discovery key should be revoked. Image tags are explicit but are not
@@ -406,7 +419,8 @@ The frontend has no automated browser end-to-end test suite.
 See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md),
 [the T6 design](docs/T6_DESIGN.md), and
-[the T7 historical-performance evidence](docs/spikes/odoo-historical-supplier-performance.md)
+[the T7 historical-performance evidence](docs/spikes/odoo-historical-supplier-performance.md),
+plus [the T7-S security design](docs/T7S_DESIGN_SECURITY.md)
 for verified facts, rejected mappings, and recovery steps.
 
 The CI persistence check uses synthetic files to verify only that Docker named

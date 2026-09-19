@@ -4,6 +4,11 @@
 
 **PENDING CONTROLLED LIVE ACCEPTANCE**
 
+Subsequent work is tracked separately as T7-S. It implements the pending security
+prerequisite as a guarded projection without altering this spike's original outcome
+or adding KPI runtime code. T7-S is currently `PENDING MANUAL ODOO SETUP`; see
+`docs/T7S_HANDOFF.md`.
+
 T7 identified exactly one semantically defensible candidate:
 `delivery_schedule_adherence`, a line-count-weighted measure of whether a completed
 purchase-order-line receipt obligation reached the internal warehouse by Odoo's
@@ -111,6 +116,11 @@ T7 made no security change. `docs/T7_FIXTURE_SETUP.md` stops before business-dat
 creation and requires a separate approved security decision. Adding a broad
 Inventory role is explicitly prohibited.
 
+T7-S later selected a separate non-internal caller and method-only projection, so
+the direct-model target in the table remains historical design evidence rather than
+the setup to apply. The T7-S caller must keep direct access to all three models
+denied.
+
 ## Fixture and executable evidence
 
 The opt-in setting `RUN_T7_LIVE_CONTRACTS` defaults to false. The dormant contracts:
@@ -122,6 +132,7 @@ The opt-in setting `RUN_T7_LIVE_CONTRACTS` defaults to false. The dormant contra
 
 The administrator-only fixture procedure is in `docs/T7_FIXTURE_SETUP.md`. It was
 not executed during T7, and no claim is made that its postconditions exist.
+The current procedure first requires the separately gated T7-S live contract.
 
 ## Acceptance criteria
 

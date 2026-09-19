@@ -876,3 +876,55 @@ contracts skipped. Those contracts were not enabled because their documented
 security and controlled-fixture prerequisites do not exist. Existing warnings were
 limited to dependency deprecations, a local pytest-cache permission warning, and Git
 line-ending conversion notices.
+
+## T7-S — company-scoped read-only inventory-history projection
+
+### Separate prerequisite implementation on 2026-09-19
+
+T7-S is intentionally separate from the original T7 capability spike. It starts
+from T7 commit `a47b035d48b89b604442a900b5f08a103bdd48a3` on branch
+`codex/t7s-company-scoped-read-only-inventory-history-projection` and does not
+retroactively expand T7's committed scope.
+
+The implementation compares a generic `_auto = False` projection, a custom model
+method, stored/transient projections, a custom controller, and direct stock-model
+ACLs. It selects a public method on an Odoo `AbstractModel`. The addon creates no
+table, stored copy, menu, view, or generic model ACL. Its custom group implies no
+internal, Purchase, or Inventory role.
+
+The existing internal `Procurement Integration` user remains unchanged for T6.
+Because its standard internal-user role already carries additive
+`stock.move.line` rights, T7-S instead defines a dedicated non-internal projection
+caller and separate `ODOO_T7S_API_KEY`. The caller can invoke only the guarded
+method and must remain denied generic access to the projection and to
+`stock.picking`, `stock.move`, and `stock.move.line`.
+
+`read_bounded_history` requires the active authorized company, a strict half-open
+historical window no longer than 366 days, 1–50 exact purchase-order-line IDs, and a
+result limit no greater than 200. The fixed response contains only stable company,
+commercial supplier, PO/line, product/UoM, Expected Arrival, move/picking, done
+processing timestamp, quantity, direction, backorder, and return evidence. Expected
+Arrival remains an operational schedule and is not represented as a supplier
+promise.
+
+The dedicated caller deliberately lacks the underlying ACLs, so five private ORM
+readers use elevated access. Every `sudo()` call is immediately followed by a fixed
+`search_fetch` whose model, fields, company, exact relationships, date window, and
+row bound were established before the read. No raw SQL or sudoed recordset leaves
+the addon. Truncation, cross-company relations, unsupported states/directions,
+missing or mismatched product/UoM/picking links, timestamp disagreement, and
+backorder/return relationships outside the bounded result reject the entire call.
+
+Fast policy tests cover bounds, exact output fields, company isolation, unsupported
+states and directions, ambiguous returns and backorders, absence of raw SQL and
+generic ACLs, and absence of implied broad roles. The opt-in live contract adds
+same-company success, direct-model denials, projection CRUD denials, cross-company
+rejection, and invalid-query rejection. The original T7 controlled test now reads
+stock evidence only through the projection; it still computes no production KPI.
+
+The Compose configuration now mounts `infra/odoo/addons` read-only. The addon has
+not been installed, no dedicated caller/group/key has been configured, and no Odoo
+UI action was automated. `docs/T7S_MANUAL_SETUP.md` supplies the exact human setup
+and rollback procedure. The current state is **PENDING MANUAL ODOO SETUP**. T7 live
+validation and the receipt fixture remain blocked until the focused T7-S contract
+passes.

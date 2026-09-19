@@ -1,7 +1,7 @@
 """Optional live contract verification for an initialized local Odoo database."""
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -29,6 +29,26 @@ _T7_ORIGINS = (
     "T7-HIST-003-BACKORDER",
     "T7-HIST-004-RETURN",
 )
+_T7S_RECORD_FIELDS = {
+    "company_id",
+    "commercial_partner_id",
+    "purchase_order_id",
+    "purchase_order_line_id",
+    "product_id",
+    "product_uom_id",
+    "expected_arrival_at",
+    "stock_move_id",
+    "stock_picking_id",
+    "move_processed_at",
+    "ordered_quantity",
+    "completed_quantity",
+    "state",
+    "source_location_usage",
+    "destination_location_usage",
+    "backorder_of_picking_id",
+    "return_of_move_id",
+    "return_of_picking_id",
+}
 
 
 def _live_credentials() -> tuple[str, str, str] | None:
@@ -38,13 +58,12 @@ def _live_credentials() -> tuple[str, str, str] | None:
     return settings.odoo_base_url.rstrip("/"), settings.odoo_database, api_key
 
 
-def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+def _post_json2_response(model: str, method: str, payload: dict[str, Any]) -> httpx.Response:
     credentials = _live_credentials()
     if credentials is None:
         pytest.skip("Live Odoo credentials are not configured")
     base_url, database, api_key = credentials
-
-    response = httpx.post(
+    return httpx.post(
         f"{base_url}/json/2/{model}/{method}",
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -53,8 +72,43 @@ def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
         json=payload,
         timeout=settings.odoo_request_timeout_seconds,
     )
+
+
+def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+    response = _post_json2_response(model, method, payload)
     assert response.status_code == 200, (
         f"Odoo {model}/{method} returned HTTP {response.status_code}"
+    )
+    return response.json()
+
+
+def _t7s_credentials() -> tuple[str, str, str] | None:
+    api_key = settings.odoo_t7s_api_key.get_secret_value()
+    if not settings.odoo_base_url or not settings.odoo_database or not api_key:
+        return None
+    return settings.odoo_base_url.rstrip("/"), settings.odoo_database, api_key
+
+
+def _post_t7s_json2_response(model: str, method: str, payload: dict[str, Any]) -> httpx.Response:
+    credentials = _t7s_credentials()
+    if credentials is None:
+        pytest.skip("Dedicated T7-S Odoo credentials are not configured")
+    base_url, database, api_key = credentials
+    return httpx.post(
+        f"{base_url}/json/2/{model}/{method}",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "X-Odoo-Database": database,
+        },
+        json=payload,
+        timeout=settings.odoo_request_timeout_seconds,
+    )
+
+
+def _post_t7s_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+    response = _post_t7s_json2_response(model, method, payload)
+    assert response.status_code == 200, (
+        f"T7-S Odoo {model}/{method} returned HTTP {response.status_code}"
     )
     return response.json()
 
@@ -90,6 +144,23 @@ def _t6_group_id() -> int:
 def _require_t7_live_contracts() -> None:
     if not settings.run_t7_live_contracts:
         pytest.skip("Set RUN_T7_LIVE_CONTRACTS=true only after completing docs/T7_FIXTURE_SETUP.md")
+
+
+def _require_t7s_live_contracts() -> None:
+    if not settings.run_t7s_live_contracts:
+        pytest.skip("Set RUN_T7S_LIVE_CONTRACTS=true only after docs/T7S_MANUAL_SETUP.md")
+
+
+def _t7s_window_payload(*, company_id: int, line_ids: list[int], limit: int = 40) -> dict[str, Any]:
+    date_to = datetime.now(UTC).replace(tzinfo=None, microsecond=0) - timedelta(seconds=5)
+    date_from = date_to - timedelta(days=365)
+    return {
+        "company_id": company_id,
+        "date_from": date_from.strftime("%Y-%m-%d %H:%M:%S"),
+        "date_to": date_to.strftime("%Y-%m-%d %H:%M:%S"),
+        "purchase_order_line_ids": line_ids,
+        "limit": limit,
+    }
 
 
 def _t7_fixture_orders() -> list[dict[str, Any]]:
@@ -695,291 +766,190 @@ def test_live_odoo_t6_full_hybrid_chain_is_deterministic() -> None:
     ) == len(facts.offers)
 
 
-def test_live_odoo_t7_inventory_history_is_read_only() -> None:
-    """Require the approved post-remediation inventory-history access boundary."""
+def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> None:
+    """Prove the dedicated caller can use only the guarded projection method."""
 
-    _require_t7_live_contracts()
+    _require_t7s_live_contracts()
+    lines = _post_json2(
+        "purchase.order.line",
+        "search_read",
+        {
+            "domain": [["state", "in", ["purchase", "done"]]],
+            "fields": ["id", "company_id"],
+            "limit": 1,
+            "order": "id asc",
+        },
+    )
+    assert len(lines) == 1
+    payload = _t7s_window_payload(
+        company_id=lines[0]["company_id"][0], line_ids=[lines[0]["id"]], limit=10
+    )
+
+    result = _post_t7s_json2(
+        "procurement.inventory.history.projection", "read_bounded_history", payload
+    )
+
+    assert set(result) == {
+        "schema_version",
+        "company_id",
+        "date_from",
+        "date_to",
+        "result_count",
+        "records",
+    }
+    assert result["schema_version"] == "t7s.inventory_history.v1"
+    assert result["company_id"] == payload["company_id"]
+    assert result["result_count"] == len(result["records"])
+    assert all(set(record) == _T7S_RECORD_FIELDS for record in result["records"])
+
+    unauthorized = _post_json2_response(
+        "procurement.inventory.history.projection", "read_bounded_history", payload
+    )
+    assert unauthorized.status_code == 403
 
     access = {
         model: {
-            operation: _post_json2(
+            operation: _post_t7s_json2(
                 model,
                 "check_access_rights",
                 {"operation": operation, "raise_exception": False},
             )
             for operation in ("read", "create", "write", "unlink")
         }
-        for model in ("stock.picking", "stock.move", "stock.move.line")
+        for model in (
+            "procurement.inventory.history.projection",
+            "stock.picking",
+            "stock.move",
+            "stock.move.line",
+        )
     }
     assert access == {
-        "stock.picking": {
-            "read": True,
-            "create": False,
-            "write": False,
-            "unlink": False,
-        },
-        "stock.move": {
-            "read": True,
-            "create": False,
-            "write": False,
-            "unlink": False,
-        },
-        "stock.move.line": {
-            "read": True,
-            "create": False,
-            "write": False,
-            "unlink": False,
-        },
+        model: {operation: False for operation in ("read", "create", "write", "unlink")}
+        for model in (
+            "procurement.inventory.history.projection",
+            "stock.picking",
+            "stock.move",
+            "stock.move.line",
+        )
     }
+    for model in ("stock.picking", "stock.move", "stock.move.line"):
+        response = _post_t7s_json2_response(
+            model,
+            "search_read",
+            {"domain": [], "fields": ["id"], "limit": 1},
+        )
+        assert response.status_code == 403
 
-    line_fields = _post_json2(
-        "purchase.order.line",
-        "fields_get",
+    cross_company_payload = {**payload, "company_id": payload["company_id"] + 1}
+    assert (
+        _post_t7s_json2_response(
+            "procurement.inventory.history.projection",
+            "read_bounded_history",
+            cross_company_payload,
+        ).status_code
+        == 403
+    )
+    invalid_payloads = (
+        {key: value for key, value in payload.items() if key != "date_from"},
+        {**payload, "purchase_order_line_ids": []},
+        {**payload, "limit": 201},
+        {**payload, "domain": []},
         {
-            "allfields": [
-                "date_planned",
-                "move_ids",
-                "qty_received",
-                "qty_received_method",
-            ],
-            "attributes": ["string", "type", "relation", "store", "help"],
+            **payload,
+            "date_from": (
+                datetime.strptime(payload["date_to"], "%Y-%m-%d %H:%M:%S") - timedelta(days=367)
+            ).strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
-    assert line_fields["date_planned"] == {
-        "help": (
-            "Delivery date expected from vendor. This date respectively defaults to "
-            "vendor pricelist lead time then today's date."
-        ),
-        "store": True,
-        "string": "Expected Arrival",
-        "type": "datetime",
-    }
-    assert line_fields["move_ids"] == {
-        "relation": "stock.move",
-        "store": True,
-        "string": "Reservation",
-        "type": "one2many",
-    }
-    assert line_fields["qty_received"]["type"] == "float"
-    assert line_fields["qty_received_method"]["type"] == "selection"
-
-    move_fields = _post_json2(
-        "stock.move",
-        "fields_get",
-        {
-            "allfields": [
-                "purchase_line_id",
-                "picking_id",
-                "state",
-                "quantity",
-                "date",
-                "location_usage",
-                "location_dest_usage",
-                "origin_returned_move_id",
-                "company_id",
-            ],
-            "attributes": ["string", "type", "relation", "store", "help"],
-        },
-    )
-    assert move_fields["purchase_line_id"]["relation"] == "purchase.order.line"
-    assert move_fields["picking_id"]["relation"] == "stock.picking"
-    assert move_fields["date"]["help"] == (
-        "Scheduled date until move is done, then date of actual move processing"
-    )
-    assert move_fields["origin_returned_move_id"]["relation"] == "stock.move"
-
-    picking_fields = _post_json2(
-        "stock.picking",
-        "fields_get",
-        {
-            "allfields": [
-                "state",
-                "date_done",
-                "picking_type_code",
-                "backorder_id",
-                "return_id",
-                "company_id",
-            ],
-            "attributes": ["string", "type", "relation", "store", "help"],
-        },
-    )
-    assert picking_fields["date_done"]["help"] == (
-        "Date at which the transfer has been processed or cancelled."
-    )
-    assert picking_fields["backorder_id"]["relation"] == "stock.picking"
-    assert picking_fields["return_id"]["relation"] == "stock.picking"
-
-    outside_company_lines = _post_json2(
-        "stock.move.line",
-        "search_read",
-        {
-            "domain": [["company_id", "not in", [1]]],
-            "fields": ["id", "company_id"],
-            "limit": 1,
-        },
-    )
-    assert outside_company_lines == []
+    for invalid_payload in invalid_payloads:
+        response = _post_t7s_json2_response(
+            "procurement.inventory.history.projection",
+            "read_bounded_history",
+            invalid_payload,
+        )
+        assert response.status_code == 400
 
 
 def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
     """Validate the exact controlled receipt history before any production adapter exists."""
 
+    _require_t7s_live_contracts()
     orders = _t7_fixture_orders()
     assert len({order["company_id"][0] for order in orders}) == 1
     assert all(len(order["order_line"]) == 1 for order in orders)
-
-    partner_ids = [order["partner_id"][0] for order in orders]
-    partners = _post_json2(
-        "res.partner",
-        "search_read",
-        {
-            "domain": [["id", "in", partner_ids]],
-            "fields": ["id", "commercial_partner_id"],
-            "limit": len(partner_ids),
-            "order": "id asc",
-        },
-    )
-    commercial_by_partner = {
-        partner["id"]: partner["commercial_partner_id"][0] for partner in partners
-    }
-    assert len({commercial_by_partner[partner_id] for partner_id in partner_ids}) == 1
-
     line_ids = [order["order_line"][0] for order in orders]
-    lines = _post_json2(
-        "purchase.order.line",
-        "search_read",
-        {
-            "domain": [["id", "in", line_ids]],
-            "fields": [
-                "id",
-                "order_id",
-                "product_id",
-                "product_uom_id",
-                "product_qty",
-                "qty_received",
-                "qty_received_method",
-                "date_planned",
-                "company_id",
-            ],
-            "limit": len(line_ids),
-            "order": "id asc",
-        },
+    company_id = orders[0]["company_id"][0]
+    projection = _post_t7s_json2(
+        "procurement.inventory.history.projection",
+        "read_bounded_history",
+        _t7s_window_payload(company_id=company_id, line_ids=line_ids, limit=40),
     )
-    assert {line["id"] for line in lines} == set(line_ids)
-    assert all(line["product_qty"] == 100 for line in lines)
-    assert all(line["qty_received_method"] == "stock_moves" for line in lines)
-    assert len({line["product_id"][0] for line in lines}) == 1
-    assert len({line["product_uom_id"][0] for line in lines}) == 1
+    records = projection["records"]
+    assert records
+    assert projection["result_count"] == len(records)
+    assert all(set(record) == _T7S_RECORD_FIELDS for record in records)
+    assert {record["company_id"] for record in records} == {company_id}
+    assert len({record["commercial_partner_id"] for record in records}) == 1
+    assert len({record["product_id"] for record in records}) == 1
+    assert len({record["product_uom_id"] for record in records}) == 1
+    assert all(record["state"] == "done" for record in records)
 
-    moves = _post_json2(
-        "stock.move",
-        "search_read",
-        {
-            "domain": [["purchase_line_id", "in", line_ids]],
-            "fields": [
-                "id",
-                "purchase_line_id",
-                "picking_id",
-                "product_id",
-                "product_uom",
-                "product_uom_qty",
-                "quantity",
-                "state",
-                "date",
-                "company_id",
-                "location_usage",
-                "location_dest_usage",
-                "origin_returned_move_id",
-                "returned_move_ids",
-            ],
-            "limit": 40,
-            "order": "date asc, id asc",
-        },
-    )
-    assert moves
-    picking_ids = sorted({move["picking_id"][0] for move in moves if move["picking_id"]})
-    pickings = _post_json2(
-        "stock.picking",
-        "search_read",
-        {
-            "domain": [["id", "in", picking_ids]],
-            "fields": [
-                "id",
-                "state",
-                "date_done",
-                "picking_type_code",
-                "backorder_id",
-                "return_id",
-                "company_id",
-            ],
-            "limit": 20,
-            "order": "id asc",
-        },
-    )
-    assert {picking["id"] for picking in pickings} == set(picking_ids)
-    picking_by_id = {picking["id"]: picking for picking in pickings}
-    assert all(move["state"] == "done" for move in moves)
-    assert all(picking["state"] == "done" for picking in pickings)
-    assert all(
-        _odoo_datetime(move["date"])
-        == _odoo_datetime(picking_by_id[move["picking_id"][0]]["date_done"])
-        for move in moves
-    )
-
-    order_by_id = {order["id"]: order for order in orders}
-    line_by_id = {line["id"]: line for line in lines}
-    marker_by_line_id = {line["id"]: order_by_id[line["order_id"][0]]["origin"] for line in lines}
-    moves_by_marker = {
-        marker: [move for move in moves if marker_by_line_id[move["purchase_line_id"][0]] == marker]
+    marker_by_order_id = {order["id"]: order["origin"] for order in orders}
+    records_by_marker = {
+        marker: [
+            record
+            for record in records
+            if marker_by_order_id[record["purchase_order_id"]] == marker
+        ]
         for marker in _T7_ORIGINS
     }
     inbound_by_marker = {
         marker: [
-            move
-            for move in marker_moves
-            if move["location_usage"] == "supplier"
-            and move["location_dest_usage"] == "internal"
-            and not move["origin_returned_move_id"]
+            record
+            for record in marker_records
+            if record["source_location_usage"] == "supplier"
+            and record["destination_location_usage"] == "internal"
+            and not record["return_of_move_id"]
         ]
-        for marker, marker_moves in moves_by_marker.items()
+        for marker, marker_records in records_by_marker.items()
     }
-    for marker, inbound_moves in inbound_by_marker.items():
-        line = line_by_id[
-            next(
-                line_id
-                for line_id, line_marker in marker_by_line_id.items()
-                if line_marker == marker
-            )
-        ]
-        assert sum(move["quantity"] for move in inbound_moves) >= line["product_qty"]
+    for inbound_records in inbound_by_marker.values():
+        assert inbound_records
+        assert sum(Decimal(record["completed_quantity"]) for record in inbound_records) >= Decimal(
+            inbound_records[0]["ordered_quantity"]
+        )
 
     def completion(marker: str) -> datetime:
-        return max(_odoo_datetime(move["date"]) for move in inbound_by_marker[marker])
+        return max(
+            _odoo_datetime(record["move_processed_at"]) for record in inbound_by_marker[marker]
+        )
 
     def expected(marker: str) -> datetime:
-        line_id = next(
-            line_id for line_id, line_marker in marker_by_line_id.items() if line_marker == marker
-        )
-        return _odoo_datetime(line_by_id[line_id]["date_planned"])
+        return _odoo_datetime(inbound_by_marker[marker][0]["expected_arrival_at"])
 
     assert completion("T7-HIST-001-ONTIME") <= expected("T7-HIST-001-ONTIME")
     assert completion("T7-HIST-002-LATE") > expected("T7-HIST-002-LATE")
     assert completion("T7-HIST-003-BACKORDER") > expected("T7-HIST-003-BACKORDER")
     backorder_pickings = {
-        move["picking_id"][0] for move in inbound_by_marker["T7-HIST-003-BACKORDER"]
+        record["stock_picking_id"] for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
     }
     assert len(backorder_pickings) == 2
     assert (
-        sum(bool(picking_by_id[picking_id]["backorder_id"]) for picking_id in backorder_pickings)
+        sum(
+            bool(record["backorder_of_picking_id"])
+            for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
+        )
         == 1
     )
 
-    return_moves = [
-        move
-        for move in moves_by_marker["T7-HIST-004-RETURN"]
-        if move["origin_returned_move_id"] and move["location_dest_usage"] == "supplier"
+    return_records = [
+        record
+        for record in records_by_marker["T7-HIST-004-RETURN"]
+        if record["return_of_move_id"]
+        and record["return_of_picking_id"]
+        and record["destination_location_usage"] == "supplier"
     ]
-    assert return_moves
+    assert return_records
 
     eligible_markers = _T7_ORIGINS[:3]
     adhered = sum(completion(marker) <= expected(marker) for marker in eligible_markers)

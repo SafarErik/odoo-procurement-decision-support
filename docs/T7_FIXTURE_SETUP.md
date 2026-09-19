@@ -8,35 +8,31 @@ This procedure creates the smallest local-only history needed to test the propos
 Never use the `Procurement Integration` identity to create, confirm, receive, return,
 edit, cancel, or delete business records.
 
-**Do not start the business-data steps yet.** The 2026-09-19 T7 discovery found:
+The 2026-09-19 T7 discovery found:
 
 - `stock.move` read denied;
 - `stock.picking` read denied; and
 - `stock.move.line` create, write, and unlink allowed through the standard internal
   `Role / User` ACL.
 
-Odoo ACLs are additive, so merely adding a read-only ACL cannot revoke the inherited
-move-line mutation rights. A separate, explicitly approved security decision must
-first produce an effective company-scoped read-only history identity or read
-projection. Do not grant **Inventory / User**, **Inventory / Administrator**,
-**Purchase / User**, or **Purchase / Administrator** as a shortcut.
+Odoo ACLs are additive, so T7-S does not change that user or stack broader ACLs on
+it. The separately implemented T7-S prerequisite uses a dedicated non-internal
+identity and a guarded, method-only projection. Do not grant **Inventory / User**,
+**Inventory / Administrator**, **Purchase / User**, **Purchase / Administrator**, or
+**Role / User** as a shortcut.
 
-The checked-in live contract represents the direct-model option: one identity must
-report read-only model rights for all three stock models. If the approved design
-instead uses a dedicated read projection, revise and review that contract as part of
-the separate security decision before creating this fixture; do not force the
-projection through the direct-model assertions.
-
-After the approved security change, set `RUN_T7_LIVE_CONTRACTS=true` only long enough
-to run:
+**Do not start the business-data steps until T7-S live acceptance passes.** Complete
+`docs/T7S_MANUAL_SETUP.md`, set `RUN_T7S_LIVE_CONTRACTS=true` only long enough to
+run:
 
 ```powershell
-pytest tests/integration/test_live_odoo_contract.py -m integration -k t7_inventory_history -v
+pytest tests/integration/test_live_odoo_contract.py -m integration -k t7s -v
 ```
 
-Continue only if that contract passes, proving read-only access to `stock.move`,
-`stock.picking`, and `stock.move.line`, denied create/write/unlink on all three, and
-the company boundary. If it fails, set the gate back to `false` and stop.
+Continue only if it passes, proving bounded same-company projection reads while
+generic projection CRUD and all direct `stock.move`, `stock.picking`, and
+`stock.move.line` reads remain denied. Set the gate back to `false` after the run.
+If it fails, stop and preserve the evidence.
 
 ## Preflight duplicate check
 
@@ -172,6 +168,7 @@ unsupported and fail-closed in T7.
 2. In the repository's ignored local `.env`, set:
 
    ```text
+   RUN_T7S_LIVE_CONTRACTS=true
    RUN_T7_LIVE_CONTRACTS=true
    ```
 
@@ -194,7 +191,7 @@ unsupported and fail-closed in T7.
    - `delivery_schedule_adherence = 33.33%`;
    - `sample_size = 3`.
 
-6. Immediately set `RUN_T7_LIVE_CONTRACTS=false` after the run. If either test
+6. Immediately set both live gates back to `false` after the run. If either test
    fails, do not reinterpret or manually patch the records to force a pass. Preserve
    the exact failure for review.
 
@@ -209,12 +206,13 @@ database backup made immediately before the fixture.
 
 If the fixture is retained:
 
-1. keep `RUN_T7_LIVE_CONTRACTS=false` during ordinary development;
+1. keep both `RUN_T7S_LIVE_CONTRACTS=false` and `RUN_T7_LIVE_CONTRACTS=false`
+   during ordinary development;
 2. do not delete or edit the four completed purchase orders or transfers;
 3. archive `T7 Historical Supplier` and `T7 Historical Product` only after verifying
    that no non-fixture record uses them; and
-4. reverse the separately approved security change only through its own documented
-   rollback after confirming that no application path depends on it.
+4. reverse T7-S only through `docs/T7S_MANUAL_SETUP.md` rollback after confirming
+   that no validation path depends on it.
 
 Never use `podman compose down -v` or delete the named volumes as routine fixture
 cleanup.
