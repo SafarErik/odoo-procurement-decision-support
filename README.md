@@ -13,18 +13,18 @@ Agreements capability and added least-privilege, company-scoped
 `purchase_group_id` comparison key is now available, but Odoo's supplier quantity is
 a price-tier threshold rather than a hard MOQ and the available dates do not prove
 authoritative supplier-offer lead time. T5 therefore ended `NO-GO`; no production
-adapter was implemented. T6 now provides a narrow, fail-closed hybrid assembler:
+adapter was implemented. T6 provides a narrow, fail-closed hybrid assembler:
 validated Odoo comparison facts can be combined with explicitly supplied,
 source-attributed hard MOQ and supplier-promised lead time while provenance stays
-outside the Decision Core. Its controlled live fixture still requires the documented
-administrator UI setup and explicit live-test opt-in, so live T6 acceptance is not
-yet claimed. The application can retrieve open RFQ summaries through the existing
-read-only flow. Separately,
+outside the Decision Core. The application can retrieve open RFQ summaries through
+the existing public read-only ledger. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
-requirements, offers, and weights through the Decision Core. The two flows remain
-deliberately unconnected: there is no Odoo-to-offer mapping, automatic evaluation of
-the RFQ list, decision UI, historical KPI calculation, write operation, or
-production persistence. See [the T6 design](docs/T6_DESIGN.md),
+requirements, offers, and weights through the Decision Core. These public flows
+remain deliberately unconnected. T6 provides only an internal, explicitly invoked
+hybrid assembly path for the validated comparison-case subset; it does not provide
+automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
+no decision UI, historical KPI calculation, write operation, or production
+persistence. See [the T6 design](docs/T6_DESIGN.md),
 [fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the current boundary and evidence.
 
@@ -370,9 +370,11 @@ identity the alternatives feature group or direct access to grouping/agreement
 models. A production Odoo-to-canonical adapter remains deferred because no validated
 hard-MOQ source or authoritative supplier-offer lead time is available, and the
 approved T6 solution therefore requires explicit, source-attributed supplemental
-terms. The controlled T6 fixture and live chain remain unverified until the manual
-administrator procedure is completed. Do not assign broad Purchase or Inventory
-roles as a shortcut. The old
+terms. The controlled three-RFQ T6 fixture and full read-only hybrid chain passed
+their opt-in live contracts on 2026-09-19. This evidence validates only the bounded
+local proof-of-concept subset and does not turn the internal assembler into an
+automatic or production Odoo-to-decision pipeline. Do not assign broad Purchase or
+Inventory roles as a shortcut. The old
 administrator discovery key should be revoked. Image tags are explicit but are not
 digest-pinned.
 The frontend has no automated browser end-to-end test suite.

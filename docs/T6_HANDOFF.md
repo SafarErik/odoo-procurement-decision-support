@@ -2,15 +2,19 @@
 
 ## Outcome
 
-**T6 IMPLEMENTATION COMPLETE — LIVE ACCEPTANCE INCOMPLETE**
+**T6 COMPLETE — CONTROLLED LIVE ACCEPTANCE PASSED**
 
-The code, fast contracts, architecture checks, read-only adapter, opt-in live tests,
-and repository documentation are implemented. The controlled Odoo comparison
-fixture was not created because the repository requires manual Odoo UI changes and
-the available evidence does not support a safe automated administrator writer. As a
-result, the two fixture-dependent live contracts were skipped and the full T6
-acceptance claim remains blocked on the documented human setup and subsequent
-read-only validation.
+T6 is complete for its explicitly bounded proof-of-concept scope. A human
+administrator created the controlled three-RFQ fixture through the Odoo UI, and the
+configured dedicated integration identity independently verified it through
+read-only JSON-2 calls. Both focused T6 live contracts and the complete integration
+selection passed on 2026-09-19.
+
+This result does not establish a production Odoo-to-decision pipeline. The public
+read-only RFQ ledger and public caller-supplied decision API remain deliberately
+disconnected. T6 exposes only an internal, explicitly invoked hybrid assembly path
+for the validated subset; there is no automatic RFQ evaluation or public
+Odoo-to-canonical endpoint.
 
 The branch starts from `main` commit `c2c4b18`; required T5 commit
 `392e2482ce11aef9446722251b868d926f814a0a` is in its history.
@@ -19,9 +23,9 @@ The branch starts from `main` commit `c2c4b18`; required T5 commit
 
 `application/decision_input_assembly.py` defines immutable application-layer
 contracts for Odoo facts, supplemental values, source attribution, canonical input,
-and provenance. `assemble_decision_input()` validates the full supported subset,
-joins only by stable offer identity, constructs the existing Decision Core models,
-and returns:
+and provenance. `assemble_decision_input()` validates the supported subset, joins
+only by stable offer identity, constructs the existing Decision Core models, and
+returns:
 
 ```text
 AssembledDecisionInput
@@ -42,20 +46,27 @@ and public `POST /api/v1/procurement/decisions/evaluate` contract were not chang
 partners. It uses only the existing JSON-2 credential and does not filter away
 unsupported records before application validation.
 
-## Fixture mechanism and isolation
+## Controlled fixture and read-only evidence
 
-`docs/T6_FIXTURE_SETUP.md` is the specification-approved manual UI fallback. A
-development-only administrator writer was rejected as disproportionate because this
-repository has no validated JSON-2 write contract for the alternative wizard,
-product/tax defaults, idempotent relationship creation, or safe teardown. Inventing
-those calls would risk ambiguous or destructive fixture data.
+The administrator followed `docs/T6_FIXTURE_SETUP.md` and manually created the
+three RFQs with exact `Source Document` markers:
 
-The procedure requires the human administrator only to create the controlled
-records. The integration identity remains read-only, does not receive **Manage
-Purchase Alternatives**, and performs all automated validation. Runtime packages do
-not import fixture tooling; no fixture code or production route exists. Live T6
-tests require `RUN_T6_LIVE_CONTRACTS=true` and exact `Source Document` markers, so
-they cannot silently run against arbitrary RFQs.
+- `T6-COMP-001-A`
+- `T6-COMP-001-B`
+- `T6-COMP-001-C`
+
+The live contracts, running as the dedicated integration identity, established that
+exactly those three marked RFQs exist, share one persisted `purchase_group_id`, and
+can be read with their lines and commercial-partner identities. They also validated
+the single-product, one-line-per-RFQ, quantity, UoM, currency, company, state,
+discount, tax, and price invariants. Existing live security contracts confirmed
+that create, write, and unlink remain denied on decision-input models, the
+alternatives feature group is not granted, and line reads remain company-scoped.
+
+The fixture was created only through the human-admin UI procedure. No fixture
+writer or teardown utility was introduced, and runtime packages do not import
+fixture tooling. Live T6 tests require `RUN_T6_LIVE_CONTRACTS=true` and exact source
+markers, preventing silent execution against arbitrary RFQs.
 
 ## Supported subset
 
@@ -86,22 +97,6 @@ No malformed offer is dropped and no partial case is evaluated.
 `purchase.order.line.date_planned` remain prohibited. The comparison reader does not
 request them and the assembler has no fallback path for them.
 
-## Changed files
-
-- `.env.example` — explicit live-T6 opt-in.
-- `application/decision_input_assembly.py` — typed contracts, assembler, errors,
-  and provenance.
-- `backend/app/config.py` — opt-in setting only; no route change.
-- `odoo_adapter/comparison_case_reader.py` — bounded read-only JSON-2 fact reader.
-- `tests/test_decision_input_assembly.py` — reference, provenance, join, and negative
-  contracts.
-- `tests/test_odoo_comparison_case_adapter.py` — adapter request/mapping contracts.
-- `tests/test_architecture.py` — dependency and fixture-isolation checks.
-- `tests/integration/test_live_odoo_contract.py` — two opt-in T6 live contracts.
-- `README.md`, `docs/IMPLEMENTATION_LOG.md`,
-  `docs/spikes/odoo-decision-input-mapping-spike.md`, `docs/T6_DESIGN.md`, and
-  `docs/T6_FIXTURE_SETUP.md` — status, mapping, design, setup, and evidence.
-
 ## Verification evidence
 
 Executed on Windows with project `.venv` Python 3.14.7; Python 3.11 remains the CI
@@ -109,60 +104,60 @@ baseline.
 
 | Command/check | Result |
 | --- | --- |
-| Unchanged pre-branch fast baseline | 80 passed, 19 deselected |
-| `ruff format .` and `ruff check .` | Passed |
-| Focused T6 fast tests | 40 passed |
-| `pytest -m "not integration and not e2e" -v` | 120 passed, 21 deselected |
+| `pytest tests/integration/test_live_odoo_contract.py -m integration -k t6 -v` | 2 passed, 16 deselected |
+| `ruff format --check .` | 58 files already formatted |
+| `ruff check .` | Passed |
 | `python -m compileall application backend frontend decision_core odoo_adapter` | Passed |
-| `python -m pip check` | Passed; no broken requirements |
+| `pytest -m "not integration and not e2e" -v` | 120 passed, 21 deselected |
+| `python -m pip check` | No broken requirements |
 | `podman compose --env-file .env -f infra/odoo/compose.yaml config --quiet` | Passed |
-| `pytest -m "integration and not e2e" -v` with local stack and tunnel | 19 passed, 2 skipped, 118 deselected |
-| `git diff --check` | Passed; line-ending conversion warnings only |
-| `.env` ignore check | Passed |
-| Tracked credential-pattern review | No committed credential value found; workflow variable assignments were the only pattern matches |
+| `pytest -m "integration and not e2e" -v` | 21 passed, 120 deselected |
+| `git diff --check` | Passed; line-ending conversion warning only |
 
-The first integration attempt was unavailable because Podman, Odoo, and FastAPI
-were stopped. After starting the existing Podman machine and Compose services,
-establishing the documented localhost-only tunnel, and starting FastAPI, all 19
-non-fixture live/served tests passed. The two T6 tests skipped because
-`RUN_T6_LIVE_CONTRACTS` remained false and no controlled fixture was claimed.
+The focused full-chain test proves the canonical values, deterministic eligible
+ranking A then B, exclusion of C with an explanation, and exact provenance-path
+coverage for the requirement identifier, requested quantity, all three strategic
+profile fields, and all five canonical fields for every actual live offer identity.
+Repeated requested-quantity provenance is also checked once per live offer.
 
-GitHub Actions and browser E2E were not run. No browser E2E suite exists, and no
-pull request has been created at this handoff.
+The test run emitted only existing dependency deprecation warnings and a local
+`.pytest_cache` permission warning. They did not affect test results. Browser E2E
+was not run because no browser E2E suite exists. GitHub Actions evidence is added to
+the pull request after the branch is pushed.
 
 ## Acceptance criteria
 
-| # | Criterion | Status |
+| # | Criterion | Status and evidence |
 | ---: | --- | --- |
-| 1 | Controlled Odoo case with three grouped RFQs | **Not satisfied** — manual fixture pending |
-| 2 | Dedicated user reads controlled case without writes | **Partial** — general order/line read-only contract passed; controlled case pending |
-| 3 | Supported invariants validated | Satisfied in code and fast tests; live fixture pending |
-| 4 | Every offer requires attributed MOQ and lead time | Satisfied |
-| 5 | Missing or ambiguous supplemental input fails closed | Satisfied |
-| 6 | Forbidden Odoo fallback fields never used | Satisfied |
-| 7 | Exact predefined canonical case | Satisfied in fast tests; live fixture pending |
-| 8 | Canonical input passes unchanged to existing use case | Satisfied |
-| 9 | Deterministic ranking and explanations | Satisfied in fast tests; live fixture pending |
-| 10 | Every canonical field traceable | Satisfied in fast tests; live fixture pending |
-| 11 | Provenance excluded from Decision Core | Satisfied |
-| 12 | Line create/write/unlink denied | Satisfied by live T5 contract |
-| 13 | Company boundary enforced | Satisfied by live T5 contract; fixture pending |
-| 14 | Existing T2/T3 tests unchanged and green | Satisfied |
-| 15 | Runtime does not import fixture tooling | Satisfied |
+| 1 | Controlled Odoo case with three grouped RFQs | **Satisfied** — exact A/B/C markers exist and one live group ID contains all three |
+| 2 | Dedicated user reads controlled case without writes | **Satisfied** — orders, lines, and partner identities were read through the integration credential; no admin credential was used by tests |
+| 3 | Supported invariants validated | **Satisfied** — both controlled-case and full-chain live contracts passed |
+| 4 | Every offer requires attributed MOQ and lead time | **Satisfied** — assembler requires both values and source attribution per stable offer identity |
+| 5 | Missing or ambiguous supplemental input fails closed | **Satisfied** — fast negative contracts passed |
+| 6 | Forbidden Odoo fallback fields never used | **Satisfied** — reader/assembler contracts prohibit supplier-info MOQ/delay and planned-date fallback |
+| 7 | Exact predefined canonical case | **Satisfied** — live quantities, prices, supplemented terms, and profile matched the reference case |
+| 8 | Canonical input passes unchanged to existing use case | **Satisfied** — application contract and architecture tests passed |
+| 9 | Deterministic ranking and explanations | **Satisfied** — live result ranked A then B and excluded C with an explanation |
+| 10 | Every canonical field traceable | **Satisfied** — exact live provenance-path set is asserted using actual offer IDs |
+| 11 | Provenance excluded from Decision Core | **Satisfied** — architecture and assembly tests passed |
+| 12 | Line create/write/unlink denied | **Satisfied** — live read-only mutation contracts passed |
+| 13 | Company boundary enforced | **Satisfied** — live company-scoped order/line contract passed for the same identity |
+| 14 | Existing T2/T3 tests unchanged and green | **Satisfied** — complete 120-test fast selection passed |
+| 15 | Runtime does not import fixture tooling | **Satisfied** — architecture isolation test passed; no fixture writer exists |
 
-Because criteria 1 and 2 are not fully satisfied and the live portions of 3, 7, 9,
-10, and 13 remain unexecuted, T6 must be reported as incomplete rather than
-production-ready.
+All 15 T6 acceptance criteria are satisfied for the controlled local proof-of-concept
+scope.
 
-## Remaining risks and next action
+## Production limitations
 
-The UI labels and defaults in `docs/T6_FIXTURE_SETUP.md` must be followed against the
-validated local Odoo 19 build. Default purchase taxes are the most likely fixture
-pitfall and must be cleared. Supplemental terms prove source attribution, not
-objective truth. The reader intentionally supports only a 20-offer and 40-line
-safety bound and the single-product, no-tax, no-discount subset.
+Supplemental provenance records who supplied a value, the named source, its
+reference, and observation time; it does **not** prove the value is objectively true
+or historically accurate. Historical supplier-performance KPIs, actual-delivery,
+quality, and reliability evidence remain later work.
 
-Next, the user should complete the administrator procedure, confirm it, set the
-local opt-in, and rerun the focused live contract. Only a passing read-only result
-can close T6 acceptance. Historical supplier-performance KPIs, actual delivery,
-quality, and reliability evidence remain a later increment.
+The reader intentionally supports only a 20-offer and 40-line safety bound and the
+single-product, single-UoM, single-currency, no-tax, no-discount subset. The system
+still has no automatic Odoo-to-evaluation orchestration, production Odoo-to-canonical
+API, write workflow, decision persistence, decision UI, currency/UoM conversion, or
+authoritative Odoo source for hard MOQ and supplier-promised lead time. Broad
+Purchase or Inventory roles must not be assigned as a shortcut.

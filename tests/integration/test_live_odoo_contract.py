@@ -635,4 +635,26 @@ def test_live_odoo_t6_full_hybrid_chain_is_deterministic() -> None:
         "T6-COMP-001-C"
     ]
     assert result.excluded_offers[0].explanation
-    assert assembled.provenance.entries
+    expected_provenance_paths = {
+        "requirement.requirement_id",
+        "requirement.requested_quantity",
+        "profile.name",
+        "profile.unit_price_weight",
+        "profile.lead_time_weight",
+    }
+    for offer in facts.offers:
+        expected_provenance_paths.update(
+            {
+                f"offers[{offer.offer_id}].offer_id",
+                f"offers[{offer.offer_id}].supplier_id",
+                f"offers[{offer.offer_id}].unit_price",
+                f"offers[{offer.offer_id}].lead_time_days",
+                f"offers[{offer.offer_id}].minimum_order_quantity",
+            }
+        )
+    provenance_paths = {entry.canonical_path for entry in assembled.provenance.entries}
+    assert provenance_paths == expected_provenance_paths
+    assert sum(
+        entry.canonical_path == "requirement.requested_quantity"
+        for entry in assembled.provenance.entries
+    ) == len(facts.offers)

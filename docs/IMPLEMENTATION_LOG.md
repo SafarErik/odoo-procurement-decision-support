@@ -771,5 +771,38 @@ The controlled fixture uses the specification's documented UI fallback rather th
 an unvalidated administrator writer. Exact JSON-2 create/wizard defaults and safe
 teardown semantics are not established in this repository, so automating those
 writes would be a risky approximation. `docs/T6_FIXTURE_SETUP.md` defines exact
-markers, values, rerun checks, read-only verification, and cleanup. The fixture has
-not been created in this implementation pass; live T6 acceptance remains pending.
+markers, values, rerun checks, read-only verification, and cleanup.
+
+### Live acceptance closure on 2026-09-19
+
+A human administrator created the controlled fixture through the Odoo UI with exact
+source markers `T6-COMP-001-A`, `T6-COMP-001-B`, and `T6-COMP-001-C`. Automated
+tests did not trust that manual claim: using only the configured dedicated
+integration identity, they found exactly those three RFQs, proved that they share
+one persisted `purchase_group_id`, read the complete orders, lines, and commercial
+partners, and validated every supported-subset invariant. The same identity's live
+security contracts confirmed denied mutations, absence of the alternatives feature
+group, and company-scoped line visibility.
+
+The live full-chain contract assembled the exact reference case, passed the
+canonical input unchanged to the existing evaluation use case, ranked eligible
+offers A then B, and excluded C with an explanation. Its provenance assertion was
+strengthened during closure to require the exact path set for the requirement ID,
+requested quantity, all three profile fields, and all five canonical fields for
+each actual live offer ID. Requested-quantity provenance is required once per offer.
+
+Closure verification on the local Windows stack produced:
+
+- focused T6 live contracts: 2 passed, 16 deselected;
+- Ruff format and lint: passed, with 58 files already formatted;
+- Python compilation and dependency consistency: passed;
+- fast selection: 120 passed, 21 deselected;
+- full integration selection: 21 passed, 120 deselected;
+- Podman Compose configuration and final diff check: passed.
+
+All 15 T6 acceptance criteria are therefore satisfied for the controlled local
+proof-of-concept scope. The public RFQ ledger and caller-supplied decision endpoint
+remain deliberately disconnected; the hybrid assembly path is internal and must be
+explicitly invoked. No automatic or production Odoo-to-evaluation integration is
+claimed. Supplemental provenance establishes attribution, not objective truth, and
+the documented single-product, safety-bound, no-conversion limitations remain.
