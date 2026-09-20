@@ -1,7 +1,7 @@
 """Fast tests for provenance-aware hybrid decision-input assembly."""
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -18,6 +18,14 @@ from application.decision_input_assembly import (
     assemble_decision_input,
 )
 from application.decisions import evaluate_procurement_decision
+from application.historical_performance import (
+    HistoricalDataWarning,
+    HistoricalMetric,
+    HistoricalPerformanceAvailability,
+    HistoricalWarningCode,
+    SourcedSupplierHistoricalPerformance,
+    SupplierHistoricalPerformance,
+)
 from decision_core import PurchaseRequirement, StrategicProfile, SupplierOffer
 
 OBSERVED_AT = datetime(2026, 9, 18, 8, 0, tzinfo=UTC)
@@ -110,13 +118,60 @@ def _profile_attribution() -> SourceAttribution:
 def _assemble(
     case: OdooComparisonCaseFacts | None = None,
     terms: tuple[SupplementalOfferTerms, ...] | None = None,
+    history: tuple[SourcedSupplierHistoricalPerformance, ...] | None = None,
 ) -> AssembledDecisionInput:
     return assemble_decision_input(
         case or _case(),
         terms if terms is not None else _supplements(),
         StrategicProfile.cost_focused(),
         _profile_attribution(),
+        history,
     )
+
+
+def _history(
+    suffix: str,
+    *,
+    value: Decimal | None = Decimal("66.67"),
+    sample_size: int = 3,
+) -> SourcedSupplierHistoricalPerformance:
+    availability = (
+        HistoricalPerformanceAvailability.USABLE
+        if value is not None
+        else HistoricalPerformanceAvailability.WITHHELD_INSUFFICIENT_SAMPLE
+    )
+    warnings = (
+        ()
+        if value is not None
+        else (
+            HistoricalDataWarning(
+                HistoricalWarningCode.INSUFFICIENT_HISTORY,
+                "The metric is withheld because the historical sample size is below 3.",
+            ),
+        )
+    )
+    return SourcedSupplierHistoricalPerformance(
+        performance=SupplierHistoricalPerformance(
+            metric_id=HistoricalMetric.DELIVERY_SCHEDULE_ADHERENCE,
+            value=value,
+            sample_size=sample_size,
+            observation_window_start=OBSERVED_AT - timedelta(days=365),
+            observation_window_end=OBSERVED_AT,
+            observed_at=OBSERVED_AT,
+            supplier_id=f"odoo:res.partner:30{suffix}",
+            availability=availability,
+            warnings=warnings,
+        ),
+        source_type="odoo_projection",
+        source_reference=(
+            "procurement.inventory.history.projection.read_bounded_history|"
+            f"supplier=odoo:res.partner:30{suffix}"
+        ),
+    )
+
+
+def _histories() -> tuple[SourcedSupplierHistoricalPerformance, ...]:
+    return (_history("C"), _history("A"), _history("B", value=None, sample_size=2))
 
 
 def test_assembles_exact_canonical_reference_case_and_evaluates_unchanged() -> None:
@@ -188,6 +243,84 @@ def test_supplemental_join_is_by_stable_offer_identity_not_input_order() -> None
     reverse = _assemble(reversed_case, tuple(reversed(_supplements())))
 
     assert reverse.canonical == forward.canonical
+
+
+def test_historical_performance_joins_by_stable_supplier_and_stays_contextual() -> None:
+    baseline = _assemble()
+    assembled = _assemble(history=_histories())
+
+    assert [item.supplier_id for item in assembled.canonical.historical_performance] == [
+        "odoo:res.partner:30A",
+        "odoo:res.partner:30B",
+        "odoo:res.partner:30C",
+    ]
+    insufficient = assembled.canonical.historical_performance[1]
+    assert insufficient.value is None
+    assert insufficient.sample_size == 2
+    assert insufficient.availability is (
+        HistoricalPerformanceAvailability.WITHHELD_INSUFFICIENT_SAMPLE
+    )
+
+    baseline_result = evaluate_procurement_decision(
+        baseline.canonical.requirement,
+        baseline.canonical.offers,
+        baseline.canonical.profile,
+    )
+    history_result = evaluate_procurement_decision(
+        assembled.canonical.requirement,
+        assembled.canonical.offers,
+        assembled.canonical.profile,
+    )
+    assert history_result == baseline_result
+    assert [item.offer.offer_id for item in history_result.ranked_offers] == [
+        "odoo:purchase.order:10A",
+        "odoo:purchase.order:10B",
+    ]
+    assert [item.offer.offer_id for item in history_result.excluded_offers] == [
+        "odoo:purchase.order:10C"
+    ]
+
+
+def test_historical_field_provenance_is_complete_and_separate() -> None:
+    assembled = _assemble(history=_histories())
+    history_entries = [
+        entry
+        for entry in assembled.provenance.entries
+        if entry.canonical_path.startswith("historical_performance[")
+    ]
+
+    assert len(history_entries) == 12
+    for supplier_id in ("30A", "30B", "30C"):
+        prefix = f"historical_performance[odoo:res.partner:{supplier_id}]"
+        assert {
+            entry.canonical_path for entry in history_entries if prefix in entry.canonical_path
+        } == {
+            f"{prefix}.value",
+            f"{prefix}.sample_size",
+            f"{prefix}.observation_window_start",
+            f"{prefix}.observation_window_end",
+        }
+    assert all(entry.source_type == "odoo_projection" for entry in history_entries)
+    assert not hasattr(assembled.canonical, "provenance")
+    assert not hasattr(assembled.canonical.historical_performance[0], "source_reference")
+
+
+def test_missing_duplicate_and_unknown_historical_supplier_mapping_fail_closed() -> None:
+    with pytest.raises(DecisionInputAssemblyError) as missing:
+        _assemble(history=_histories()[:2])
+    assert missing.value.code == "missing_historical_supplier_mapping"
+
+    with pytest.raises(DecisionInputAssemblyError) as duplicate:
+        _assemble(history=(*_histories(), _history("A")))
+    assert duplicate.value.code == "duplicate_historical_supplier_identity"
+
+    unknown_history = replace(
+        _history("A"),
+        performance=replace(_history("A").performance, supplier_id="odoo:res.partner:999"),
+    )
+    with pytest.raises(DecisionInputAssemblyError) as unknown:
+        _assemble(history=(unknown_history, _history("B"), _history("C")))
+    assert unknown.value.code == "unknown_historical_supplier_identity"
 
 
 @pytest.mark.parametrize(

@@ -75,3 +75,10 @@ The remaining warning was the existing local pytest-cache permission warning.
 The human-created fixture and both live selections passed. Both gates are now
 `false`. T7 is `GO` for the controlled subset, but neither T7-S nor T7 implements a
 production historical adapter or satisfies AC-07.
+
+## Subsequent T8 reuse
+
+T8 later implemented the bounded application vertical slice over this exact method
+without changing the addon, group, ACLs, caller, request bounds, response schema, or
+generic stock-model denials. The historical statement above remains the T7-S
+handoff state; current implementation and AC-07 evidence are in `docs/T8_HANDOFF.md`.

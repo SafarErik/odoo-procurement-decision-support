@@ -206,5 +206,7 @@ chain, T7-S security, and the controlled T7 semantics. Both live gates were retu
 to `false` immediately afterward.
 
 The runs emitted existing dependency deprecation warnings and a local
-`.pytest_cache` permission warning; neither affected results. GitHub Actions was not
-run because no pull request was opened.
+`.pytest_cache` permission warning; neither affected results. The original sentence
+that GitHub Actions had not run described the pre-PR handoff only. PR #8 was later
+created and merged into `main` as
+`af8297c09a4043e2fa7f0a80e9b6ea795cc7ab85`; T8 starts from that merged state.
