@@ -1,0 +1,1 @@
+from . import inventory_history_projection as inventory_history_projection

@@ -1,4 +1,4 @@
-"""Executable import-boundary checks for the T6 increment."""
+"""Executable architecture-boundary checks for implemented and spike increments."""
 
 import ast
 from pathlib import Path
@@ -47,3 +47,24 @@ def test_assembler_does_not_implement_scoring_or_constraints() -> None:
 def test_odoo_infrastructure_does_not_call_decision_core() -> None:
     for path in (PROJECT_ROOT / "odoo_adapter").glob("*.py"):
         assert all(not name.startswith("decision_core") for name in _imports(path)), path
+
+
+def test_t7_spike_does_not_add_historical_kpi_runtime_code() -> None:
+    for package in ("application", "backend", "decision_core", "frontend", "odoo_adapter"):
+        for path in (PROJECT_ROOT / package).rglob("*.py"):
+            source = path.read_text(encoding="utf-8")
+            assert "delivery_schedule_adherence" not in source, path
+            assert "on_time_rate" not in source, path
+
+
+def test_t7s_addon_is_projection_only() -> None:
+    addon = PROJECT_ROOT / "infra" / "odoo" / "addons" / "t7s_inventory_history_projection"
+    for path in addon.rglob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        assert "delivery_schedule_adherence" not in source, path
+        assert "on_time_rate" not in source, path
+        assert all(
+            not name.startswith(("application", "backend", "decision_core", "frontend"))
+            for name in _imports(path)
+        ), path
+        assert "env.cr" not in source, path

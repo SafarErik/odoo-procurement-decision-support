@@ -806,3 +806,170 @@ remain deliberately disconnected; the hybrid assembly path is internal and must 
 explicitly invoked. No automatic or production Odoo-to-evaluation integration is
 claimed. Supplemental provenance establishes attribution, not objective truth, and
 the documented single-product, safety-bound, no-conversion limitations remain.
+
+## T7 — historical supplier-performance capability spike
+
+### Read-only discovery on 2026-09-19
+
+T7 starts exactly from the T6 merge commit
+`01b9ff16d77934c2164d75ae6f4d938d98eedee3`. It performed bounded live discovery
+through the configured `Procurement Integration` JSON-2 credential and made no Odoo
+write, administrator-key fallback, permission change, direct database access, or
+browser-automated UI action.
+
+Runtime metadata and official Odoo 19 source establish an explicit candidate path
+from `purchase.order.line.move_ids` to `stock.move.purchase_line_id`, then
+`stock.move.picking_id` to `stock.picking`. Line `date_planned` is **Expected
+Arrival**, an editable operational schedule value rather than a supplier-confirmed
+promise. For a done stock move, `date` changes from scheduled date to actual move
+processing date. A defensible actual receipt still requires done state, positive
+actual quantity, supplier-to-internal direction, exact line relationship, matching
+product/UoM/company, no return relationship, and a done picking.
+
+The identity can read purchase orders, purchase-order lines, stock move lines,
+picking types, and locations. It cannot read `stock.move` or `stock.picking`;
+bounded record queries return HTTP 403. Five confirmed orders contained eight lines,
+all with zero received quantity and no completed receipt. No existing record was
+joined heuristically.
+
+The security probe also found that standard Odoo 19 grants `base.group_user` full
+create/write/unlink rights on `stock.move.line`. The dedicated identity inherits
+those rights through `Role / User`. No mutation was attempted, but the identity is
+not read-only for inventory operation lines. Adding an ordinary read ACL cannot
+revoke additive Odoo ACL rights, and broad Inventory roles remain prohibited.
+
+Exactly one controlled candidate is retained:
+`delivery_schedule_adherence`, the percentage of eligible completed PO-line receipt
+obligations whose full current ordered quantity reaches the internal warehouse by
+Expected Arrival. It groups by the T6 commercial-partner identity, uses one line as
+the measurement grain, reports a separate completed-line sample size, uses a
+trailing half-open 365-day window, rounds only presentation to two decimal places,
+and withholds the value below sample size 3. Partial, backorder, multi-receipt,
+return, cancellation, quantity-change, replacement, missing-date, timezone,
+over-receipt, company, and ambiguous-relationship policies are explicit and
+fail-closed where evidence is insufficient.
+
+Odoo's computed `on_time_rate` is rejected because it has no separately exposed
+sample size, groups by direct partner rather than the T6 commercial entity, applies
+a quantity-weighted policy, and is unreadable through the integration identity.
+`product.supplierinfo.delay`, first-receipt `effective_date`, aggregate
+`qty_received`, coarse `receipt_status`, and `stock.move.line.date` are also rejected
+as sole project KPI sources.
+
+The result is **PENDING CONTROLLED LIVE ACCEPTANCE**. The new opt-in T7 contracts
+default to skipped behind `RUN_T7_LIVE_CONTRACTS=false`. They require a separately
+approved company-scoped read-only inventory-history boundary and four exact manual
+fixture markers covering on-time, late, backorder, and return behaviour. Expected
+controlled evidence is `33.33%` with sample size 3 and the return-affected line
+excluded with a warning. No production KPI code, adapter, API, frontend, persistence,
+Decision Core, `SupplierOffer`, `StrategicProfile`, T6 contract, or provenance change
+was introduced. AC-07 remains unsatisfied.
+
+See `docs/spikes/odoo-historical-supplier-performance.md` for the evidence matrix,
+`docs/T7_FIXTURE_SETUP.md` for the mandatory security stop and human UI procedure,
+and `docs/T7_HANDOFF.md` for the acceptance decision and T8 consequences.
+
+Final local verification passed Ruff format and lint, Python compilation, dependency
+consistency, Podman Compose configuration, whitespace checks, 121 fast tests, and
+the complete available integration selection with 21 passed and the two gated T7
+contracts skipped. Those contracts were not enabled because their documented
+security and controlled-fixture prerequisites do not exist. Existing warnings were
+limited to dependency deprecations, a local pytest-cache permission warning, and Git
+line-ending conversion notices.
+
+## T7-S — company-scoped read-only inventory-history projection
+
+### Separate prerequisite implementation on 2026-09-19
+
+T7-S is intentionally separate from the original T7 capability spike. It starts
+from T7 commit `a47b035d48b89b604442a900b5f08a103bdd48a3` on branch
+`codex/t7s-company-scoped-read-only-inventory-history-projection` and does not
+retroactively expand T7's committed scope.
+
+The implementation compares a generic `_auto = False` projection, a custom model
+method, stored/transient projections, a custom controller, and direct stock-model
+ACLs. It selects a public method on an Odoo `AbstractModel`. The addon creates no
+table, stored copy, menu, view, or generic model ACL. Its custom group implies no
+internal, Purchase, or Inventory role.
+
+The existing internal `Procurement Integration` user remains unchanged for T6.
+Because its standard internal-user role already carries additive
+`stock.move.line` rights, T7-S instead defines a dedicated non-internal projection
+caller and separate `ODOO_T7S_API_KEY`. The caller can invoke only the guarded
+method and must remain denied generic access to the projection and to
+`stock.picking`, `stock.move`, and `stock.move.line`.
+
+`read_bounded_history` requires the active authorized company, a strict half-open
+historical window no longer than 366 days, 1–50 exact purchase-order-line IDs, and a
+result limit no greater than 200. The fixed response contains only stable company,
+commercial supplier, PO/line, product/UoM, Expected Arrival, move/picking, done
+processing timestamp, quantity, direction, backorder, and return evidence. Expected
+Arrival remains an operational schedule and is not represented as a supplier
+promise.
+
+The dedicated caller deliberately lacks the underlying ACLs, so five private ORM
+readers use elevated access. Every `sudo()` call is immediately followed by a fixed
+`search_fetch` whose model, fields, company, exact relationships, date window, and
+row bound were established before the read. No raw SQL or sudoed recordset leaves
+the addon. Truncation, cross-company relations, unsupported states/directions,
+missing or mismatched product/UoM/picking links, timestamp disagreement, and
+backorder/return relationships outside the bounded result reject the entire call.
+
+Fast policy tests cover bounds, exact output fields, company isolation, unsupported
+states and directions, ambiguous returns and backorders, absence of raw SQL and
+generic ACLs, and absence of implied broad roles. The opt-in live contract adds
+same-company success, direct-model denials, projection CRUD denials, cross-company
+rejection, and invalid-query rejection. The original T7 controlled test now reads
+stock evidence only through the projection; it still computes no production KPI.
+
+The Compose configuration mounts `infra/odoo/addons` read-only. A human
+administrator installed the addon and configured the dedicated portal caller,
+projection group, and short-lived API key; no Odoo UI action was automated.
+`docs/T7S_MANUAL_SETUP.md` now documents both why the separate identity is required
+and Odoo 19's temporary **Customers can generate API Keys** portal setting.
+
+### Focused live security acceptance on 2026-09-20
+
+The first focused run exposed a test-fixture selection error rather than a security
+failure: the test chose an arbitrary purchased line whose `qty_received_method` was
+`manual`, and the projection correctly failed closed with HTTP 422. The positive
+security probe now selects a `stock_moves` line and uses a bounded known-empty
+pre-fixture window, keeping semantic receipt evidence reserved for the controlled T7
+fixture. The negative request assertions now expect Odoo 19's observed HTTP 422 for
+model validation and unexpected method arguments.
+
+The corrected focused command passed with **1 passed, 19 deselected**. It proved
+same-company bounded access, a fixed response envelope, false generic CRUD rights on
+the projection and all three stock models, HTTP 403 direct stock reads, HTTP 403
+cross-company access, and HTTP 422 rejection of missing bounds, empty line IDs,
+excessive limits, arbitrary arguments, and a 367-day window. The live gate was
+immediately returned to `false`; the API key remains only in the ignored `.env`.
+
+T7-S is now **COMPLETE — T7 LIVE VALIDATION MAY RESUME**. This permits the manual
+controlled receipt fixture and original T7 live validation; it does not implement a
+historical KPI or change T7 to `GO`.
+
+### T7 controlled live acceptance on 2026-09-20
+
+A human administrator created the four exact T7 receipt scenarios. The first live
+run found a projection-policy contradiction rather than a fixture error: Odoo 19
+represents the explicit internal-to-supplier return with an `outgoing` picking, while
+the policy allowed the return move direction but required every picking to be
+`incoming`. The correction permits `outgoing` only when every move in that picking
+has the validated internal-to-supplier direction; the existing move and picking
+return-link checks still require the exact original move and picking inside the
+bounded result. New fast tests cover a complete accepted return and rejection of an
+outgoing ordinary receipt.
+
+After reloading only the Odoo service, the focused T7-S/T7 selection passed **2 of
+2** and the complete integration selection passed **23 of 23**. Live evidence proved
+one shared company, commercial supplier, product, and UoM; done move/picking
+timestamp agreement; one on-time line; one late line; one late two-picking
+backorder; and one explicit supplier return excluded from the candidate sample. The
+controlled result is `delivery_schedule_adherence = 33.33%`, sample size `3`. Both
+live gates were returned to `false`.
+
+T7 is now **GO — CONTROLLED LIVE SUBSET ACCEPTED**. This authorizes only a later
+narrow implementation over the accepted projection and edge-case policy. No KPI was
+added to the Decision Core, application layer, API, frontend, or persistence, and
+AC-07 remains unsatisfied.

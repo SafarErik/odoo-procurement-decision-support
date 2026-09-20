@@ -15,8 +15,11 @@ class Settings(BaseSettings):
     odoo_base_url: str = ""
     odoo_database: str = ""
     odoo_api_key: SecretStr = SecretStr("")
+    odoo_t7s_api_key: SecretStr = SecretStr("")
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     run_t6_live_contracts: bool = False
+    run_t7s_live_contracts: bool = False
+    run_t7_live_contracts: bool = False
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",

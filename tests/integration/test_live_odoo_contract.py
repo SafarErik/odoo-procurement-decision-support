@@ -1,6 +1,7 @@
 """Optional live contract verification for an initialized local Odoo database."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -22,6 +23,32 @@ from odoo_adapter.rfq_reader import OdooRfqReader
 pytestmark = pytest.mark.integration
 
 _T6_ORIGINS = ("T6-COMP-001-A", "T6-COMP-001-B", "T6-COMP-001-C")
+_T7_ORIGINS = (
+    "T7-HIST-001-ONTIME",
+    "T7-HIST-002-LATE",
+    "T7-HIST-003-BACKORDER",
+    "T7-HIST-004-RETURN",
+)
+_T7S_RECORD_FIELDS = {
+    "company_id",
+    "commercial_partner_id",
+    "purchase_order_id",
+    "purchase_order_line_id",
+    "product_id",
+    "product_uom_id",
+    "expected_arrival_at",
+    "stock_move_id",
+    "stock_picking_id",
+    "move_processed_at",
+    "ordered_quantity",
+    "completed_quantity",
+    "state",
+    "source_location_usage",
+    "destination_location_usage",
+    "backorder_of_picking_id",
+    "return_of_move_id",
+    "return_of_picking_id",
+}
 
 
 def _live_credentials() -> tuple[str, str, str] | None:
@@ -31,13 +58,12 @@ def _live_credentials() -> tuple[str, str, str] | None:
     return settings.odoo_base_url.rstrip("/"), settings.odoo_database, api_key
 
 
-def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+def _post_json2_response(model: str, method: str, payload: dict[str, Any]) -> httpx.Response:
     credentials = _live_credentials()
     if credentials is None:
         pytest.skip("Live Odoo credentials are not configured")
     base_url, database, api_key = credentials
-
-    response = httpx.post(
+    return httpx.post(
         f"{base_url}/json/2/{model}/{method}",
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -46,8 +72,43 @@ def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
         json=payload,
         timeout=settings.odoo_request_timeout_seconds,
     )
+
+
+def _post_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+    response = _post_json2_response(model, method, payload)
     assert response.status_code == 200, (
         f"Odoo {model}/{method} returned HTTP {response.status_code}"
+    )
+    return response.json()
+
+
+def _t7s_credentials() -> tuple[str, str, str] | None:
+    api_key = settings.odoo_t7s_api_key.get_secret_value()
+    if not settings.odoo_base_url or not settings.odoo_database or not api_key:
+        return None
+    return settings.odoo_base_url.rstrip("/"), settings.odoo_database, api_key
+
+
+def _post_t7s_json2_response(model: str, method: str, payload: dict[str, Any]) -> httpx.Response:
+    credentials = _t7s_credentials()
+    if credentials is None:
+        pytest.skip("Dedicated T7-S Odoo credentials are not configured")
+    base_url, database, api_key = credentials
+    return httpx.post(
+        f"{base_url}/json/2/{model}/{method}",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "X-Odoo-Database": database,
+        },
+        json=payload,
+        timeout=settings.odoo_request_timeout_seconds,
+    )
+
+
+def _post_t7s_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
+    response = _post_t7s_json2_response(model, method, payload)
+    assert response.status_code == 200, (
+        f"T7-S Odoo {model}/{method} returned HTTP {response.status_code}"
     )
     return response.json()
 
@@ -78,6 +139,51 @@ def _t6_group_id() -> int:
     }
     assert len(group_ids) == 1
     return group_ids.pop()
+
+
+def _require_t7_live_contracts() -> None:
+    if not settings.run_t7_live_contracts:
+        pytest.skip("Set RUN_T7_LIVE_CONTRACTS=true only after completing docs/T7_FIXTURE_SETUP.md")
+
+
+def _require_t7s_live_contracts() -> None:
+    if not settings.run_t7s_live_contracts:
+        pytest.skip("Set RUN_T7S_LIVE_CONTRACTS=true only after docs/T7S_MANUAL_SETUP.md")
+
+
+def _t7s_window_payload(*, company_id: int, line_ids: list[int], limit: int = 40) -> dict[str, Any]:
+    date_to = datetime.now(UTC).replace(tzinfo=None, microsecond=0) - timedelta(seconds=5)
+    date_from = date_to - timedelta(days=365)
+    return {
+        "company_id": company_id,
+        "date_from": date_from.strftime("%Y-%m-%d %H:%M:%S"),
+        "date_to": date_to.strftime("%Y-%m-%d %H:%M:%S"),
+        "purchase_order_line_ids": line_ids,
+        "limit": limit,
+    }
+
+
+def _t7_fixture_orders() -> list[dict[str, Any]]:
+    _require_t7_live_contracts()
+    orders = _post_json2(
+        "purchase.order",
+        "search_read",
+        {
+            "domain": [["origin", "in", list(_T7_ORIGINS)]],
+            "fields": ["id", "origin", "partner_id", "company_id", "order_line"],
+            "limit": len(_T7_ORIGINS) + 1,
+            "order": "origin asc",
+        },
+    )
+    assert [order["origin"] for order in orders] == list(_T7_ORIGINS)
+    return orders
+
+
+def _odoo_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace(" ", "T").replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def test_live_odoo_lists_open_rfqs_when_credentials_are_available() -> None:
@@ -658,3 +764,206 @@ def test_live_odoo_t6_full_hybrid_chain_is_deterministic() -> None:
         entry.canonical_path == "requirement.requested_quantity"
         for entry in assembled.provenance.entries
     ) == len(facts.offers)
+
+
+def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> None:
+    """Prove the dedicated caller can use only the guarded projection method."""
+
+    _require_t7s_live_contracts()
+    lines = _post_json2(
+        "purchase.order.line",
+        "search_read",
+        {
+            "domain": [
+                ["state", "in", ["purchase", "done"]],
+                ["qty_received_method", "=", "stock_moves"],
+            ],
+            "fields": ["id", "company_id"],
+            "limit": 1,
+            "order": "id asc",
+        },
+    )
+    assert len(lines) == 1
+    payload = _t7s_window_payload(
+        company_id=lines[0]["company_id"][0], line_ids=[lines[0]["id"]], limit=10
+    )
+    # This security contract runs before the controlled T7 receipt fixture exists.
+    # Use a bounded, known-empty historical window so arbitrary pre-existing moves
+    # cannot turn the positive authorization check into an unsupported-data check.
+    payload.update(
+        date_from="2000-01-01 00:00:00",
+        date_to="2000-01-02 00:00:00",
+    )
+
+    result = _post_t7s_json2(
+        "procurement.inventory.history.projection", "read_bounded_history", payload
+    )
+
+    assert set(result) == {
+        "schema_version",
+        "company_id",
+        "date_from",
+        "date_to",
+        "result_count",
+        "records",
+    }
+    assert result["schema_version"] == "t7s.inventory_history.v1"
+    assert result["company_id"] == payload["company_id"]
+    assert result["result_count"] == len(result["records"])
+    assert all(set(record) == _T7S_RECORD_FIELDS for record in result["records"])
+
+    unauthorized = _post_json2_response(
+        "procurement.inventory.history.projection", "read_bounded_history", payload
+    )
+    assert unauthorized.status_code == 403
+
+    access = {
+        model: {
+            operation: _post_t7s_json2(
+                model,
+                "check_access_rights",
+                {"operation": operation, "raise_exception": False},
+            )
+            for operation in ("read", "create", "write", "unlink")
+        }
+        for model in (
+            "procurement.inventory.history.projection",
+            "stock.picking",
+            "stock.move",
+            "stock.move.line",
+        )
+    }
+    assert access == {
+        model: {operation: False for operation in ("read", "create", "write", "unlink")}
+        for model in (
+            "procurement.inventory.history.projection",
+            "stock.picking",
+            "stock.move",
+            "stock.move.line",
+        )
+    }
+    for model in ("stock.picking", "stock.move", "stock.move.line"):
+        response = _post_t7s_json2_response(
+            model,
+            "search_read",
+            {"domain": [], "fields": ["id"], "limit": 1},
+        )
+        assert response.status_code == 403
+
+    cross_company_payload = {**payload, "company_id": payload["company_id"] + 1}
+    assert (
+        _post_t7s_json2_response(
+            "procurement.inventory.history.projection",
+            "read_bounded_history",
+            cross_company_payload,
+        ).status_code
+        == 403
+    )
+    invalid_payloads = (
+        {key: value for key, value in payload.items() if key != "date_from"},
+        {**payload, "purchase_order_line_ids": []},
+        {**payload, "limit": 201},
+        {**payload, "domain": []},
+        {
+            **payload,
+            "date_from": (
+                datetime.strptime(payload["date_to"], "%Y-%m-%d %H:%M:%S") - timedelta(days=367)
+            ).strftime("%Y-%m-%d %H:%M:%S"),
+        },
+    )
+    for invalid_payload in invalid_payloads:
+        response = _post_t7s_json2_response(
+            "procurement.inventory.history.projection",
+            "read_bounded_history",
+            invalid_payload,
+        )
+        assert response.status_code == 422
+
+
+def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
+    """Validate the exact controlled receipt history before any production adapter exists."""
+
+    _require_t7s_live_contracts()
+    orders = _t7_fixture_orders()
+    assert len({order["company_id"][0] for order in orders}) == 1
+    assert all(len(order["order_line"]) == 1 for order in orders)
+    line_ids = [order["order_line"][0] for order in orders]
+    company_id = orders[0]["company_id"][0]
+    projection = _post_t7s_json2(
+        "procurement.inventory.history.projection",
+        "read_bounded_history",
+        _t7s_window_payload(company_id=company_id, line_ids=line_ids, limit=40),
+    )
+    records = projection["records"]
+    assert records
+    assert projection["result_count"] == len(records)
+    assert all(set(record) == _T7S_RECORD_FIELDS for record in records)
+    assert {record["company_id"] for record in records} == {company_id}
+    assert len({record["commercial_partner_id"] for record in records}) == 1
+    assert len({record["product_id"] for record in records}) == 1
+    assert len({record["product_uom_id"] for record in records}) == 1
+    assert all(record["state"] == "done" for record in records)
+
+    marker_by_order_id = {order["id"]: order["origin"] for order in orders}
+    records_by_marker = {
+        marker: [
+            record
+            for record in records
+            if marker_by_order_id[record["purchase_order_id"]] == marker
+        ]
+        for marker in _T7_ORIGINS
+    }
+    inbound_by_marker = {
+        marker: [
+            record
+            for record in marker_records
+            if record["source_location_usage"] == "supplier"
+            and record["destination_location_usage"] == "internal"
+            and not record["return_of_move_id"]
+        ]
+        for marker, marker_records in records_by_marker.items()
+    }
+    for inbound_records in inbound_by_marker.values():
+        assert inbound_records
+        assert sum(Decimal(record["completed_quantity"]) for record in inbound_records) >= Decimal(
+            inbound_records[0]["ordered_quantity"]
+        )
+
+    def completion(marker: str) -> datetime:
+        return max(
+            _odoo_datetime(record["move_processed_at"]) for record in inbound_by_marker[marker]
+        )
+
+    def expected(marker: str) -> datetime:
+        return _odoo_datetime(inbound_by_marker[marker][0]["expected_arrival_at"])
+
+    assert completion("T7-HIST-001-ONTIME") <= expected("T7-HIST-001-ONTIME")
+    assert completion("T7-HIST-002-LATE") > expected("T7-HIST-002-LATE")
+    assert completion("T7-HIST-003-BACKORDER") > expected("T7-HIST-003-BACKORDER")
+    backorder_pickings = {
+        record["stock_picking_id"] for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
+    }
+    assert len(backorder_pickings) == 2
+    assert (
+        sum(
+            bool(record["backorder_of_picking_id"])
+            for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
+        )
+        == 1
+    )
+
+    return_records = [
+        record
+        for record in records_by_marker["T7-HIST-004-RETURN"]
+        if record["return_of_move_id"]
+        and record["return_of_picking_id"]
+        and record["destination_location_usage"] == "supplier"
+    ]
+    assert return_records
+
+    eligible_markers = _T7_ORIGINS[:3]
+    adhered = sum(completion(marker) <= expected(marker) for marker in eligible_markers)
+    assert (adhered, len(eligible_markers)) == (1, 3)
+    assert (Decimal(adhered) / Decimal(len(eligible_markers)) * 100).quantize(
+        Decimal("0.01")
+    ) == Decimal("33.33")
