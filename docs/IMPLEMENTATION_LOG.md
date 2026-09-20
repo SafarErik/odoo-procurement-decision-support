@@ -1032,3 +1032,46 @@ satisfied for the bounded internal slice. Public API/UI exposure, persistence,
 arbitrary history discovery, and weighted scoring remain out of scope. Any future
 scoring change requires explicit normalization, weights, missing-history policy,
 sensitivity analysis, regression evidence, and an ADR or approved amendment.
+
+## T9 — historical KPI scoring design and evaluation
+
+### Implemented on 2026-09-20
+
+T9 started from fetched, merged T8 `main` commit
+`948c0928f74f6ec824a2185094164c1e59caf2eb` on branch
+`codex/t9-historical-scoring-design-evaluation`. Before branching, the fast suite
+passed with 180 tests and 23 deselected, `CanonicalDecisionInput` was confirmed to
+contain contextual history, and the T8 AC-07 evidence was confirmed.
+
+The increment adds an isolated Decimal-based evaluator under `tools/`, focused tests,
+an ADR-style design/amendment proposal, and a handoff. It compares direct percentage,
+comparison-set min–max, and illustrative band normalization; complete-case,
+per-offer renormalization, neutral imputation, conservative imputation, and exclusion
+policies; candidate weights for cost-focused, urgent, and risk-averse profiles; and
+all 15 required deterministic scenarios. It also emits complete contribution traces,
+baseline/candidate rankings, exact pairwise flip thresholds, missing-policy
+sensitivity, and an add/remove-alternative experiment.
+
+The evaluation recommends direct `value / 100` normalization and activation only
+when every MOQ-eligible offer has usable history. Incomplete history falls back to
+the exact current two-criterion scoring. Sample size remains an availability and
+explanation field with the accepted minimum of three; T9 adds no confidence weighting
+or bands because no defensible calibration exists. Candidate price/lead/history
+weights are `.60/.25/.15` for cost-focused, `.25/.60/.15` for urgent, and
+`.30/.30/.40` for a proposed risk-averse profile. They are PoC policy candidates,
+not empirical optima.
+
+Direct normalization remained stable in the controlled add/remove experiment,
+whereas min–max reversed A and B after a third supplier changed only the historical
+bound. The close-value case showed min–max expanding `79.99/80.00/80.01` to
+`0/.5/1`. Missing-data alternatives changed rankings or removed an offer, supporting
+the complete-case recommendation. The proposed profile matrix produced intentional
+ranking changes in S04, S10, S11, and S15 while preserving MOQ-first exclusion and
+deterministic tie-breaking.
+
+T9 is **GO — BOUNDED POC SCORING IMPLEMENTATION AUTHORIZED** under the exact contract
+in `docs/T9_SCORING_DESIGN.md`. This is not production validation. The minimum sample
+size of three is not proof of statistical reliability, Expected Arrival remains an
+operational schedule, and the weights are not learned. No Decision Core, runtime
+profile, API, application/Odoo adapter, persistence, frontend, infrastructure, or
+live fixture behaviour changed in T9.
