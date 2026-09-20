@@ -9,6 +9,8 @@ No recommendation is implemented in runtime by T9.
 
 Branch: `codex/t9-historical-scoring-design-evaluation`
 
+Pull request: [#10](https://github.com/SafarErik/odoo-procurement-decision-support/pull/10)
+
 Starting point: merged T8 `main` at `948c0928f74f6ec824a2185094164c1e59caf2eb`
 
 ## Preconditions
@@ -114,7 +116,9 @@ project and CI baseline.
 | `podman compose --env-file .env -f infra/odoo/compose.yaml config --quiet` | Passed with project-local provider |
 | `git diff --check` | Passed; only Git line-ending conversion warnings |
 | Odoo live tests | Not required or run; T9 changes no Odoo/runtime path |
-| GitHub Actions | Not run: branch publication passed, but no authenticated GitHub CLI/API or browser session was available to dispatch workflows for this private repository |
+| Hosted Quality workflow | Passed on PR #10 |
+| Hosted Container and API integration workflow | Passed on PR #10 |
+| CodeRabbit | Passed with a successful status on PR #10 |
 
 The fast suite reported the two existing FastAPI/Starlette dependency deprecation
 warnings and a local pytest cache warning. No test failed.
@@ -136,7 +140,7 @@ warnings and a local pytest cache warning. No test failed.
 | 11 | Explicit recommendation | PASS | GO at top of design and handoff |
 | 12 | Exact implementation contract | PASS | ten bounded rules in design document |
 | 13 | Repository documentation | PASS | design, handoff, README, implementation log |
-| 14 | CI | ENVIRONMENT-BLOCKED | Branch published; local workflow-equivalent checks pass, but hosted workflow dispatch requires GitHub authentication unavailable in this environment |
+| 14 | CI | PASS | Hosted Quality and Container/API integration workflows completed successfully; CodeRabbit reported a successful status on PR #10 |
 
 ## Limitations and next increment
 
