@@ -922,9 +922,54 @@ same-company success, direct-model denials, projection CRUD denials, cross-compa
 rejection, and invalid-query rejection. The original T7 controlled test now reads
 stock evidence only through the projection; it still computes no production KPI.
 
-The Compose configuration now mounts `infra/odoo/addons` read-only. The addon has
-not been installed, no dedicated caller/group/key has been configured, and no Odoo
-UI action was automated. `docs/T7S_MANUAL_SETUP.md` supplies the exact human setup
-and rollback procedure. The current state is **PENDING MANUAL ODOO SETUP**. T7 live
-validation and the receipt fixture remain blocked until the focused T7-S contract
-passes.
+The Compose configuration mounts `infra/odoo/addons` read-only. A human
+administrator installed the addon and configured the dedicated portal caller,
+projection group, and short-lived API key; no Odoo UI action was automated.
+`docs/T7S_MANUAL_SETUP.md` now documents both why the separate identity is required
+and Odoo 19's temporary **Customers can generate API Keys** portal setting.
+
+### Focused live security acceptance on 2026-09-20
+
+The first focused run exposed a test-fixture selection error rather than a security
+failure: the test chose an arbitrary purchased line whose `qty_received_method` was
+`manual`, and the projection correctly failed closed with HTTP 422. The positive
+security probe now selects a `stock_moves` line and uses a bounded known-empty
+pre-fixture window, keeping semantic receipt evidence reserved for the controlled T7
+fixture. The negative request assertions now expect Odoo 19's observed HTTP 422 for
+model validation and unexpected method arguments.
+
+The corrected focused command passed with **1 passed, 19 deselected**. It proved
+same-company bounded access, a fixed response envelope, false generic CRUD rights on
+the projection and all three stock models, HTTP 403 direct stock reads, HTTP 403
+cross-company access, and HTTP 422 rejection of missing bounds, empty line IDs,
+excessive limits, arbitrary arguments, and a 367-day window. The live gate was
+immediately returned to `false`; the API key remains only in the ignored `.env`.
+
+T7-S is now **COMPLETE — T7 LIVE VALIDATION MAY RESUME**. This permits the manual
+controlled receipt fixture and original T7 live validation; it does not implement a
+historical KPI or change T7 to `GO`.
+
+### T7 controlled live acceptance on 2026-09-20
+
+A human administrator created the four exact T7 receipt scenarios. The first live
+run found a projection-policy contradiction rather than a fixture error: Odoo 19
+represents the explicit internal-to-supplier return with an `outgoing` picking, while
+the policy allowed the return move direction but required every picking to be
+`incoming`. The correction permits `outgoing` only when every move in that picking
+has the validated internal-to-supplier direction; the existing move and picking
+return-link checks still require the exact original move and picking inside the
+bounded result. New fast tests cover a complete accepted return and rejection of an
+outgoing ordinary receipt.
+
+After reloading only the Odoo service, the focused T7-S/T7 selection passed **2 of
+2** and the complete integration selection passed **23 of 23**. Live evidence proved
+one shared company, commercial supplier, product, and UoM; done move/picking
+timestamp agreement; one on-time line; one late line; one late two-picking
+backorder; and one explicit supplier return excluded from the candidate sample. The
+controlled result is `delivery_schedule_adherence = 33.33%`, sample size `3`. Both
+live gates were returned to `false`.
+
+T7 is now **GO — CONTROLLED LIVE SUBSET ACCEPTED**. This authorizes only a later
+narrow implementation over the accepted projection and edge-case policy. No KPI was
+added to the Decision Core, application layer, API, frontend, or persistence, and
+AC-07 remains unsatisfied.

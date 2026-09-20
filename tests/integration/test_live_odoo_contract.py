@@ -774,7 +774,10 @@ def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> 
         "purchase.order.line",
         "search_read",
         {
-            "domain": [["state", "in", ["purchase", "done"]]],
+            "domain": [
+                ["state", "in", ["purchase", "done"]],
+                ["qty_received_method", "=", "stock_moves"],
+            ],
             "fields": ["id", "company_id"],
             "limit": 1,
             "order": "id asc",
@@ -783,6 +786,13 @@ def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> 
     assert len(lines) == 1
     payload = _t7s_window_payload(
         company_id=lines[0]["company_id"][0], line_ids=[lines[0]["id"]], limit=10
+    )
+    # This security contract runs before the controlled T7 receipt fixture exists.
+    # Use a bounded, known-empty historical window so arbitrary pre-existing moves
+    # cannot turn the positive authorization check into an unsupported-data check.
+    payload.update(
+        date_from="2000-01-01 00:00:00",
+        date_to="2000-01-02 00:00:00",
     )
 
     result = _post_t7s_json2(
@@ -867,7 +877,7 @@ def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> 
             "read_bounded_history",
             invalid_payload,
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
 
 
 def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:

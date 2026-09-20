@@ -105,8 +105,10 @@ change the ordered quantity or Expected Arrival after confirmation.
 1. Create the common order with Source Document `T7-HIST-001-ONTIME` and future
    Expected Arrival `D + 1 day 23:00`.
 2. Select **Confirm Order**.
-3. Select the **Receipt** smart button. Confirm the receipt is for the exact PO,
-   product, supplier, company, and quantity `100`.
+3. Select **Receive**. In this Odoo 19 form, **Receive** opens the generated receipt
+   transfer; installations that expose the same action as a smart button may label
+   it **Receipt**. Confirm the transfer is for the exact PO, product, supplier,
+   company, and demand `100`.
 4. Set the processed **Quantity** to `100` and select **Validate**.
 5. Confirm the receipt state is **Done** and its completion occurs before the future
    Expected Arrival.
@@ -117,8 +119,8 @@ Expected postcondition: one done supplier-to-internal receipt move for quantity 
 
 1. Create the common order with Source Document `T7-HIST-002-LATE` and past
    Expected Arrival `D - 1 day 00:00`.
-2. Select **Confirm Order**, open **Receipt**, process quantity `100`, and select
-   **Validate**.
+2. Select **Confirm Order**, select **Receive** to open the receipt transfer, process
+   quantity `100`, and select **Validate** on the transfer.
 3. Confirm the receipt state is **Done**.
 
 Expected postcondition: one done supplier-to-internal receipt move for quantity 100,
@@ -128,7 +130,7 @@ completed after Expected Arrival.
 
 1. Create the common order with Source Document `T7-HIST-003-BACKORDER` and past
    Expected Arrival `D - 1 day 00:00`.
-2. Select **Confirm Order** and open **Receipt**.
+2. Select **Confirm Order** and select **Receive** to open the receipt transfer.
 3. Set processed **Quantity** to `40` and select **Validate**.
 4. In the partial-transfer dialog, select **Create Backorder**. Do not choose the
    option that cancels the remaining quantity.
@@ -144,8 +146,8 @@ backorder chain, quantities 40 and 60, both completed after Expected Arrival.
 
 1. Create the common order with Source Document `T7-HIST-004-RETURN` and future
    Expected Arrival `D + 1 day 23:00`.
-2. Select **Confirm Order**, open **Receipt**, process quantity `100`, and select
-   **Validate**.
+2. Select **Confirm Order**, select **Receive** to open the receipt transfer, process
+   quantity `100`, and select **Validate** on the transfer.
 3. From the done receipt select **Return**.
 4. In the return dialog, set quantity `20`, keep the exact product and source
    receipt, and select the button that creates the return transfer.

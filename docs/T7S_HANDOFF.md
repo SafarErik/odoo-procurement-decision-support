@@ -2,13 +2,13 @@
 
 ## Outcome
 
-**PENDING MANUAL ODOO SETUP**
+**T7-S COMPLETE — T7 LIVE VALIDATION MAY RESUME**
 
 T7-S is implemented as a separate prerequisite on branch
 `codex/t7s-company-scoped-read-only-inventory-history-projection`, stacked on the
-completed T7 spike commit. The code and fast security policy tests are complete,
-but the addon has not been installed and no dedicated projection caller or API key
-has been created. Live security claims are therefore not yet accepted.
+completed T7 spike commit. A human administrator installed the addon and configured
+the dedicated portal caller and projection group. The focused live security
+contract passed on 2026-09-20; the T7-S live gate was returned to `false` afterward.
 
 ## Delivered boundary
 
@@ -31,21 +31,21 @@ T6 identity and its contracts remain unchanged.
 | ---: | --- | --- |
 | 1 | Separate T7-S scope and branch | **Satisfied** |
 | 2 | Odoo-native alternatives compared | **Satisfied** — design records six mechanisms |
-| 3 | No broad Inventory/Purchase/internal role granted | **Satisfied in code; pending manual confirmation** |
-| 4 | No generic stock-model ACL granted | **Satisfied in addon; pending live denial proof** |
+| 3 | No broad Inventory/Purchase/internal role granted | **Satisfied** — dedicated portal caller; live rights matrix remained false |
+| 4 | No generic stock-model ACL granted | **Satisfied** — live generic rights and direct reads were denied |
 | 5 | On-demand non-writable projection | **Satisfied** — `AbstractModel`, no table or ACL |
 | 6 | Odoo ORM/JSON-2 only; no direct PostgreSQL/raw SQL | **Satisfied** |
-| 7 | Active authorized company enforced | **Satisfied in code/tests; pending live proof** |
-| 8 | Mandatory bounded range, line IDs, and result limit | **Satisfied in code/tests; pending live proof** |
-| 9 | Projection create/write/unlink denied | **Satisfied structurally; pending live rights matrix** |
-| 10 | Direct stock reads remain denied | **Pending live proof with dedicated identity** |
+| 7 | Active authorized company enforced | **Satisfied** — live cross-company request returned 403 |
+| 8 | Mandatory bounded range, line IDs, and result limit | **Satisfied** — invalid and unbounded calls returned 422 |
+| 9 | Projection create/write/unlink denied | **Satisfied** — live rights matrix returned false |
+| 10 | Direct stock reads remain denied | **Satisfied** — all three generic stock-model reads returned 403 |
 | 11 | Elevated reads justified and constrained | **Satisfied** — five fixed bounded readers only |
 | 12 | Only validated semantics exposed | **Satisfied** — Expected Arrival is not a promise |
-| 13 | Unsupported states/relationships fail closed | **Satisfied by fast policy tests; pending fixture evidence** |
-| 14 | No secrets or unrestricted payloads exposed | **Satisfied by exact schema tests; pending live proof** |
-| 15 | T6 security and architecture preserved | **Satisfied by code boundary; full regression pending** |
+| 13 | Unsupported states/relationships fail closed | **Satisfied** — fast policy tests plus observed live rejection of an unsupported line |
+| 14 | No secrets or unrestricted payloads exposed | **Satisfied** — exact live envelope/schema and denied direct reads |
+| 15 | T6 security and architecture preserved | **Satisfied** — implementation boundary and regression checks |
 | 16 | Manual install/group/key instructions supplied | **Satisfied** |
-| 17 | T7 semantic and controlled-live acceptance | **Not started** — requires T7-S live pass and fixture |
+| 17 | T7 semantic and controlled-live acceptance | **Satisfied** — four-scenario controlled contract passed |
 
 ## Verification record
 
@@ -54,26 +54,24 @@ T6 identity and its contracts remain unchanged.
 | `ruff format --check .` | Passed; 70 files formatted |
 | `ruff check .` | Passed |
 | Python compilation including the addon | Passed |
-| Fast selection | 139 passed, 23 deselected |
+| Fast selection | 141 passed, 23 deselected |
 | Disposable pinned-image addon import | Passed against `odoo:19.0-20260908`; no database used |
 | Podman Compose configuration | Passed with the read-only addon mount |
 | Existing live integration selection | 21 passed, 2 gated tests skipped, 139 deselected |
 | `python -m pip check` | No broken requirements |
+| Focused T7-S live security contract (2026-09-20) | **1 passed**, 19 deselected |
+| Focused T7-S plus T7 live selection (2026-09-20) | **2 passed**, 18 deselected |
+| Full live integration selection (2026-09-20) | **23 passed**, 141 deselected |
 
-The T7-S and T7 gates skipped by design. No addon installation, group assignment,
-portal-user creation, API-key creation, or receipt fixture mutation was performed.
-Existing warnings were dependency deprecations, the local pytest-cache permission
-warning, and Git line-ending conversion notices; none changed a result.
+The focused live run used the human-configured dedicated portal identity and proved
+same-company bounded success, the false CRUD rights matrix, direct stock-model
+denial, cross-company rejection, and rejection of arbitrary or unbounded input. The
+first diagnostic call also confirmed that a non-stock-move-backed line fails closed
+with HTTP 422. No receipt fixture mutation was performed. The live gate is disabled.
+The remaining warning was the existing local pytest-cache permission warning.
 
-## Resume sequence
+## Completed resume sequence
 
-1. Complete `docs/T7S_MANUAL_SETUP.md` as a human administrator.
-2. Run the focused T7-S live contract and return `RUN_T7S_LIVE_CONTRACTS` to false.
-3. Review the live evidence; if any direct stock right is true, close T7-S as
-   `NO-GO` rather than broadening access.
-4. If T7-S passes, create the four T7 fixtures manually.
-5. Enable both live gates, run the focused T7 test and full integration selection,
-   and then decide whether T7 can become `GO`.
-
-Passing T7-S only permits original T7 live validation to resume. It does not approve
-a production historical adapter or satisfy AC-07.
+The human-created fixture and both live selections passed. Both gates are now
+`false`. T7 is `GO` for the controlled subset, but neither T7-S nor T7 implements a
+production historical adapter or satisfies AC-07.

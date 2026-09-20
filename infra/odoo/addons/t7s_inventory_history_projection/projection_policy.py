@@ -145,9 +145,9 @@ def build_projection_records(
         moves_by_picking.setdefault(picking_id, []).append(move)
 
     for picking in picking_by_id.values():
-        _validate_picking(request, picking)
         if picking["id"] not in moves_by_picking:
             raise ProjectionPolicyError("unrelated stock picking was included")
+        _validate_picking(request, picking, moves_by_picking[picking["id"]])
         backorder_id = picking.get("backorder_of_picking_id")
         if backorder_id:
             if backorder_id == picking["id"] or backorder_id not in picking_by_id:
@@ -236,11 +236,26 @@ def _validate_move(
         raise ProjectionPolicyError("stock move direction is outside the supported subset")
 
 
-def _validate_picking(request: ProjectionRequest, picking: dict[str, Any]) -> None:
+def _validate_picking(
+    request: ProjectionRequest,
+    picking: dict[str, Any],
+    picking_moves: list[dict[str, Any]],
+) -> None:
     _require_company(picking, request.company_id, "stock picking")
     if picking.get("state") != "done":
         raise ProjectionPolicyError("stock picking state is unsupported")
-    if picking.get("picking_type_code") != "incoming":
+
+    directions = {
+        (move.get("source_location_usage"), move.get("destination_location_usage"))
+        for move in picking_moves
+    }
+    if directions == {("supplier", "internal")}:
+        expected_picking_type = "incoming"
+    elif directions == {("internal", "supplier")}:
+        expected_picking_type = "outgoing"
+    else:
+        raise ProjectionPolicyError("stock picking mixes unsupported movement directions")
+    if picking.get("picking_type_code") != expected_picking_type:
         raise ProjectionPolicyError("stock picking type is outside the supported subset")
     processed_at = _required_datetime(picking.get("transfer_processed_at"), "transfer_processed_at")
     if not request.date_from <= processed_at < request.date_to:

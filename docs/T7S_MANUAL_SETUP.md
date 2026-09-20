@@ -9,6 +9,24 @@ change its T6 groups.
 
 Do not create the T7 receipt fixture until the focused T7-S live contract passes.
 
+## Why the dedicated user is mandatory
+
+T7-S needs an Odoo identity so the side-by-side application can call the guarded
+projection through JSON-2. The identity is deliberately separate from the existing
+`Procurement Integration` user because Odoo ACLs are additive: adding T7-S access to
+an identity that already has broader Purchase or Inventory permissions would make it
+impossible to prove that the projection itself is the only readable inventory-history
+surface.
+
+The dedicated portal user is therefore a least-privilege security principal used only
+for T7-S validation and, if retained, later read-only projection calls. Its API key
+authenticates that principal; it does not create additional permissions. The custom
+`T7-S Inventory-History Projection Reader` group permits only the guarded method call
+and deliberately supplies no generic model ACL. This separation lets the acceptance
+test prove both sides of the boundary: bounded same-company projection reads succeed,
+while direct reads of `stock.picking`, `stock.move`, and `stock.move.line` remain
+denied.
+
 ## 1. Make the local addon visible
 
 The Compose file mounts `infra/odoo/addons` read-only and adds it to `addons_path`.
@@ -72,14 +90,30 @@ receives no generic model ACL from this addon.
 
 ## 5. Generate the dedicated API key
 
-1. Sign out of the administrator account.
-2. Sign in as `T7-S Inventory History Integration`.
-3. Open the user menu and select **Preferences** or **My Profile**.
-4. Open **Account Security** and select **New API Key**.
-5. Use description `T7-S local projection validation`, choose the shortest practical
-   duration, and select **Generate Key**.
-6. Copy the value immediately; Odoo displays it only once.
-7. In the repository's ignored `.env`, set only:
+Odoo 19 hides portal-user API-key creation unless an administrator enables its
+dedicated portal setting, and the portal security page shows the section only in
+developer mode. Enable this setting only long enough to create the key because it is
+database-wide for portal users.
+
+1. While signed in as an administrator with developer mode active, open
+   **Settings > General Settings > Permissions > API Keys**.
+2. Enable **Customers can generate API Keys** and select **Save**. Do not change the
+   T7-S identity to an internal user and do not grant an Inventory or Purchase role.
+3. Sign out of the administrator account.
+4. Sign in as `T7-S Inventory History Integration`.
+5. Open `/my/security?debug=1` on the local Odoo host. For the default local URL,
+   use `http://localhost:8069/my/security?debug=1`.
+6. Under **Developer API Keys**, select **New API Key**.
+7. Use description `T7-S local projection validation`, choose **1 Day**, and confirm
+   with the portal user's current password. A passkey and two-factor authentication
+   are not required for this local validation step.
+8. Copy the value immediately; Odoo displays it only once. Never paste it into a
+   tracked file, terminal output, issue, or chat.
+9. Sign back in as the administrator, return to
+   **Settings > General Settings > Permissions > API Keys**, disable
+   **Customers can generate API Keys**, and select **Save**. Disabling key generation
+   does not revoke the key that was just created.
+10. In the repository's ignored `.env`, set only:
 
    ```text
    ODOO_T7S_API_KEY=<the new key>
@@ -87,9 +121,9 @@ receives no generic model ACL from this addon.
    ```
 
 Keep the existing `ODOO_API_KEY` unchanged. Never paste either key into a tracked
-file, terminal output, issue, or chat. If a portal user cannot reach **Account
-Security**, stop and report that exact UI limitation; do not promote the user to an
-internal role as a workaround.
+file, terminal output, issue, or chat. If **Developer API Keys** does not appear after
+the setting is saved and `/my/security?debug=1` is loaded, stop and report that exact
+UI limitation; do not promote the user to an internal role as a workaround.
 
 ## 6. Run the focused security acceptance
 

@@ -24,18 +24,18 @@ remain deliberately unconnected. T6 provides only an internal, explicitly invoke
 hybrid assembly path for the validated comparison-case subset; it does not provide
 automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
 no decision UI, historical KPI calculation, write operation, or production
-persistence. T7 completed read-only historical-performance discovery and identified
-one candidate, `delivery_schedule_adherence`, but ended
-`PENDING CONTROLLED LIVE ACCEPTANCE`: `stock.move` and `stock.picking` reads are
-denied, the internal integration identity inherits mutation rights on
-`stock.move.line`, and no completed controlled receipt history exists. No historical
-KPI runtime code was added and AC-07 remains unsatisfied. See
+persistence. T7 completed historical-performance discovery and controlled live
+acceptance for one candidate, `delivery_schedule_adherence`. T7-S preserves a
+separate, bounded, read-only projection identity while direct stock-model reads
+remain denied. The four-scenario fixture passed with `33.33%` and sample size `3`, so
+T7 is `GO — CONTROLLED LIVE SUBSET ACCEPTED`. No historical KPI runtime code was
+added and AC-07 remains unsatisfied. See
 [the T7 spike](docs/spikes/odoo-historical-supplier-performance.md),
 [fixture procedure](docs/T7_FIXTURE_SETUP.md), and [T7 handoff](docs/T7_HANDOFF.md),
 plus the separate T7-S [design](docs/T7S_DESIGN_SECURITY.md),
 [manual setup](docs/T7S_MANUAL_SETUP.md), and [handoff](docs/T7S_HANDOFF.md).
-T7-S implements a bounded method-only projection but remains
-`PENDING MANUAL ODOO SETUP`; it does not change T7's pending outcome. See also
+T7-S implements a bounded method-only projection, and both its focused security
+contract and the controlled T7 semantic contract passed. See also
 [the T6 design](docs/T6_DESIGN.md),
 [T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the current boundary and evidence.
@@ -288,9 +288,9 @@ must never be enabled against an arbitrary external database.
 
 The T7-S security contract requires the manual addon, dedicated non-internal caller,
 and key setup in `docs/T7S_MANUAL_SETUP.md`, plus
-`RUN_T7S_LIVE_CONTRACTS=true`. Only after that focused contract passes may the T7
-fixture be created. Final T7 validation requires both live gates and the exact
-fixture in `docs/T7_FIXTURE_SETUP.md`. Both gates skip by default.
+`RUN_T7S_LIVE_CONTRACTS=true`. Its focused live contract passed on 2026-09-20 and
+the gate was returned to `false`. Final T7 validation requires both live gates and
+the exact fixture in `docs/T7_FIXTURE_SETUP.md`; the gates skip by default.
 
 No browser E2E suite or static type checker is currently configured.
 
@@ -399,17 +399,15 @@ local proof-of-concept subset and does not turn the internal assembler into an
 automatic or production Odoo-to-decision pipeline. Do not assign broad Purchase or
 Inventory roles as a shortcut.
 
-T7 found a candidate purchase-line-to-receipt chain and defined
+T7 validated a candidate purchase-line-to-receipt chain and defined
 `delivery_schedule_adherence` against Odoo Expected Arrival with a separate
-completed-line sample size. It is not implemented. The configured identity cannot
-read `stock.move` or `stock.picking`, and standard Odoo 19 grants every internal user
-create/write/unlink access to `stock.move.line`; therefore the inventory-history
-boundary is not currently read-only. T7-S now provides the separately scoped
-security design: a method-only, non-stored projection with mandatory company,
-exact-line, date, and count bounds, called by a separate non-internal identity. Its
-addon installation, group assignment, key creation, and focused live contract are
-still pending manual setup. The controlled fixture must also pass before any
-production historical-performance adapter is considered.
+completed-line sample size. It is not implemented. The original internal identity
+remains unsuitable because it cannot read `stock.move` or `stock.picking` and
+inherits `stock.move.line` mutations. T7-S instead provides a method-only,
+non-stored projection with mandatory company, exact-line, date, and count bounds,
+called by a separate non-internal identity. The security and controlled semantic
+contracts passed on 2026-09-20. Any later historical-performance adapter must remain
+inside this accepted boundary.
 `product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
 receipt `effective_date`, and heuristic joins remain rejected project KPI sources.
 The old

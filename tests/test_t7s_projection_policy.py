@@ -184,9 +184,53 @@ def test_projection_rejects_return_whose_origin_is_outside_the_bounded_result() 
             "return_of_move_id": 999,
         }
     )
+    evidence["pickings"][0]["picking_type_code"] = "outgoing"
     evidence["pickings"][0]["return_of_picking_id"] = 998
 
     with pytest.raises(policy.ProjectionPolicyError, match="return relationship leaves"):
+        policy.build_projection_records(_request(), **evidence)
+
+
+def test_projection_accepts_complete_supplier_return_relationship() -> None:
+    evidence = _evidence()
+    return_move = deepcopy(evidence["moves"][0])
+    return_move.update(
+        {
+            "id": 51,
+            "stock_picking_id": 61,
+            "completed_quantity": "20.0",
+            "move_processed_at": "2026-01-01 11:00:00",
+            "source_location_usage": "internal",
+            "destination_location_usage": "supplier",
+            "return_of_move_id": 50,
+        }
+    )
+    return_picking = deepcopy(evidence["pickings"][0])
+    return_picking.update(
+        {
+            "id": 61,
+            "transfer_processed_at": "2026-01-01 11:00:00",
+            "picking_type_code": "outgoing",
+            "return_of_picking_id": 60,
+        }
+    )
+    evidence["moves"].append(return_move)
+    evidence["pickings"].append(return_picking)
+
+    records = policy.build_projection_records(_request(), **evidence)
+
+    assert len(records) == 2
+    assert records[1]["source_location_usage"] == "internal"
+    assert records[1]["destination_location_usage"] == "supplier"
+    assert records[1]["return_of_move_id"] == 50
+    assert records[1]["return_of_picking_id"] == 60
+
+
+def test_projection_rejects_outgoing_picking_without_supplier_return_direction() -> None:
+    evidence = _evidence()
+    evidence["pickings"][0]["picking_type_code"] = "outgoing"
+
+    with pytest.raises(policy.ProjectionPolicyError, match="picking type"):
         policy.build_projection_records(_request(), **evidence)
 
 

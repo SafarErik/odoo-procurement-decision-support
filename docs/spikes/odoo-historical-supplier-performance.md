@@ -4,22 +4,22 @@
 
 Assessment date: 2026-09-19.
 
-**PENDING CONTROLLED LIVE ACCEPTANCE**
+**GO — CONTROLLED LIVE SUBSET ACCEPTED**
 
 Standard Odoo 19 Community exposes a technically coherent candidate chain from a
 purchase-order line to stock moves and receipt pickings, and its source documents
-the actual-processing meaning of a completed stock move's `date`. The currently
-configured integration identity cannot read either `stock.move` or `stock.picking`,
-however, and no existing confirmed purchase line has a completed receipt. The
-mandatory relationship, completion, partial/backorder, return, and timestamp
-behaviour therefore has not been observed end to end.
+the actual-processing meaning of a completed stock move's `date`. T7-S subsequently
+provided a guarded method-only projection for a separate non-internal identity. On
+2026-09-20, its security contract and the controlled on-time, late, backorder, and
+supplier-return histories passed end to end.
 
-There is an additional security blocker: the standard Odoo 19 ACL for every internal
+The original security blocker was that the standard Odoo 19 ACL for every internal
 user grants read, create, write, and unlink on `stock.move.line`. The live identity
 inherits those rights through `Role / User`. T7 performed no mutation, but this means
 the identity cannot currently be described as read-only for inventory-operation
 lines. A `GO` is prohibited until this is remediated without granting a broad
-Inventory role and the controlled fixture passes.
+Inventory role and the controlled fixture passes. T7-S resolved that blocker without
+altering the original identity or granting generic inventory-history access.
 
 T7 adds no production KPI calculator, Odoo adapter, public endpoint, Decision Core
 criterion, `SupplierOffer` field, `StrategicProfile` field, persistence schema, or
@@ -201,7 +201,7 @@ result and is not comparable without a separately validated normalization policy
 | Replacement receipt | Unsupported and fail-closed | Exclude any line with return/replacement activity until the exact replacement relationship and counting rule are separately proven. |
 | Missing `date_planned` | Excluded with documented reason | No comparison reference; report `missing_expected_arrival`. |
 | Missing completion timestamp | Unsupported and fail-closed | A done move/picking without the required actual timestamps is inconsistent evidence. |
-| Timezone boundary | Unresolved and blocking `GO` | Interpret JSON-2 values as UTC, but require controlled evidence around a Budapest calendar boundary before production use. |
+| Timezone boundary | Accepted for controlled subset | Interpret JSON-2 values as UTC; the Budapest-entered boundary fixture preserved the expected ordering. A production adapter must keep this explicit conversion policy. |
 | Other company | Excluded by security boundary | Query only the integration user's allowed company and require equality across order, line, move, and picking. Outside-company reads must return no records. |
 | Ambiguous relationship | Unsupported and fail-closed | Never join by product, reference text, partner name, or timing proximity. |
 | Over-receipt | Included with warning | Use the timestamp when cumulative quantity first reaches ordered quantity; report `over_receipt` and do not improve the KPI for excess units. |
@@ -249,11 +249,10 @@ a receipt followed by a supplier return. The first three are the proposed KPI sa
 the return case must be excluded with a warning. Expected controlled result:
 `33.33%`, sample size `3`.
 
-Live T7 tests require `RUN_T7_LIVE_CONTRACTS=true`. The first contract requires the
-post-remediation read-only security boundary and validates the schema. The second is
-intentionally dormant until that remediation and the exact fixture exist; it bounds
-all reads by the four exact markers and proves the relationship/timestamp scenarios
-without adding production calculation code.
+Live T7 tests require `RUN_T7_LIVE_CONTRACTS=true`. On 2026-09-20, both focused
+contracts passed. They bounded reads by the four exact markers and proved the
+relationship/timestamp scenarios without adding production calculation code. The
+observed result was `33.33%`, sample size `3`, with the return-affected line excluded.
 
 ### Separate T7-S follow-up
 
@@ -261,8 +260,8 @@ T7-S subsequently selected a guarded method-only projection rather than the dire
 stock-model option described by the original T7 contract. This is a separate
 security prerequisite, not a retroactive expansion of T7. The dedicated non-internal
 projection caller must remain denied generic reads on all three stock models. Its
-focused contract is gated by `RUN_T7S_LIVE_CONTRACTS=true`; only after that passes
-may the four-record fixture be created and the original T7 gate enabled. See
+focused contract is gated by `RUN_T7S_LIVE_CONTRACTS=true`; it passed before the
+four-record fixture was created and the original T7 gate enabled. See
 `docs/T7S_DESIGN_SECURITY.md` and `docs/T7S_HANDOFF.md`.
 
 ## 11. Rejected interpretations

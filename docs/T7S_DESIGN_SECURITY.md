@@ -127,12 +127,14 @@ dictionaries leave the elevated recordsets.
 
 ## Fail-closed semantics
 
-The whole call fails if it observes a non-done move or picking, non-incoming picking
-type, non-positive quantity, missing date, cross-company relationship, mismatched
-product or UoM, missing PO/supplier/picking relationship, unsupported movement
-direction, timestamp disagreement, backorder leaving the bounded result, or a return
-whose move and picking relationships disagree. The method does not silently omit an
-unsupported row and does not calculate eligibility, a percentage, or sample size.
+The whole call fails if it observes a non-done move or picking, a picking type that
+does not match its validated direction (`incoming` for supplier-to-internal receipts
+or `outgoing` for explicit internal-to-supplier returns), non-positive quantity,
+missing date, cross-company relationship, mismatched product or UoM, missing
+PO/supplier/picking relationship, unsupported or mixed movement direction, timestamp
+disagreement, backorder leaving the bounded result, or a return whose move and
+picking relationships disagree. The method does not silently omit an unsupported row
+and does not calculate eligibility, a percentage, or sample size.
 
 ## Verification layers
 

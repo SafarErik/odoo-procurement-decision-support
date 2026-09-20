@@ -2,11 +2,11 @@
 
 ## Outcome
 
-**PENDING CONTROLLED LIVE ACCEPTANCE**
+**GO — CONTROLLED LIVE SUBSET ACCEPTED**
 
-Subsequent work is tracked separately as T7-S. It implements the pending security
-prerequisite as a guarded projection without altering this spike's original outcome
-or adding KPI runtime code. T7-S is currently `PENDING MANUAL ODOO SETUP`; see
+The separately scoped T7-S prerequisite established a guarded projection and a
+dedicated non-internal caller without adding KPI runtime code. Its security contract
+and the four-scenario controlled T7 contract passed on 2026-09-20; see
 `docs/T7S_HANDOFF.md`.
 
 T7 identified exactly one semantically defensible candidate:
@@ -21,17 +21,18 @@ adapter or calculator was implemented. The Decision Core, `SupplierOffer`,
 `StrategicProfile`, public API, frontend, persistence, T6 input contract, and T6
 provenance separation are unchanged. AC-07 is not claimed.
 
-`GO` is blocked by three current facts:
+The original T7 discovery was blocked by three facts:
 
 1. the integration identity cannot read `stock.move`;
 2. it cannot read `stock.picking`; and
 3. as an internal user, it has inherited create/write/unlink rights on
    `stock.move.line`, so it is not read-only for that model.
 
-The five existing confirmed purchase orders provide no substitute for controlled
-history: their eight lines all have zero received quantity, every order has
-`effective_date = false`, and the only receipts are pending. No heuristic join or
-administrator fallback was used.
+T7-S resolved this without changing the original internal integration identity:
+the portal caller retains no generic stock-model rights and can invoke only the
+bounded projection. The controlled fixture now provides four exact one-line orders,
+including on-time, late, backorder, and supplier-return histories. No heuristic join
+or administrator data-read fallback was used.
 
 ## Verified schema and candidate chain
 
@@ -58,8 +59,7 @@ moves, runtime metadata defines `stock.move.date` as the actual move-processing
 date. `stock.picking.date_done` is corroboration only because it can also be set for
 a cancellation.
 
-The chain is proven at schema/source level but not through readable live records.
-That distinction is why the outcome is pending rather than `GO`.
+The chain is now proven through controlled live records as well as schema and source.
 
 ## Candidate KPI
 
@@ -104,7 +104,8 @@ valid, and the identity remains limited to company ID 1 without broad Purchase,
 Inventory, alternatives, or Settings roles. An outside-company
 `stock.move.line` query returned no rows.
 
-The inventory-history models are not yet acceptable:
+The original internal integration identity remains intentionally unsuitable for
+inventory history:
 
 | Model | Current effective access | Required before fixture acceptance |
 | --- | --- | --- |
@@ -112,27 +113,25 @@ The inventory-history models are not yet acceptable:
 | `stock.move` | no read and no mutation | company-scoped read only |
 | `stock.move.line` | read plus create/write/unlink | company-scoped read only, all mutations denied |
 
-T7 made no security change. `docs/T7_FIXTURE_SETUP.md` stops before business-data
-creation and requires a separate approved security decision. Adding a broad
-Inventory role is explicitly prohibited.
-
-T7-S later selected a separate non-internal caller and method-only projection, so
-the direct-model target in the table remains historical design evidence rather than
-the setup to apply. The T7-S caller must keep direct access to all three models
-denied.
+T7-S selected a separate non-internal caller and method-only projection, so the
+direct-model target in the table remains historical design evidence rather than the
+implemented setup. Live checks prove the T7-S caller remains denied direct access to
+all three stock models and has false generic create/write/unlink rights.
 
 ## Fixture and executable evidence
 
-The opt-in setting `RUN_T7_LIVE_CONTRACTS` defaults to false. The dormant contracts:
+The opt-in setting `RUN_T7_LIVE_CONTRACTS` defaults to false. The contracts:
 
 - require the desired read-only rights and exact field semantics; and
 - locate only four exact fixture markers before checking supplier identity,
   purchase-line/move/picking relationships, direction, company, quantity, completion
   timestamps, backorders, returns, candidate value, and sample size.
 
-The administrator-only fixture procedure is in `docs/T7_FIXTURE_SETUP.md`. It was
-not executed during T7, and no claim is made that its postconditions exist.
-The current procedure first requires the separately gated T7-S live contract.
+The human administrator completed the fixture in `docs/T7_FIXTURE_SETUP.md`. Live
+validation found exactly the four markers, one shared commercial partner,
+product/UoM/company consistency, one on-time completion, one late completion, one
+late two-picking backorder, and an explicit supplier return. The observed candidate
+result is `33.33%` with sample size `3`; the return-affected line is excluded.
 
 ## Acceptance criteria
 
@@ -142,55 +141,46 @@ The current procedure first requires the separately gated T7-S live contract.
 | 2 | Architecture/security boundaries intact | **Satisfied** — no runtime KPI/API/UI/core/persistence/write path added |
 | 3 | Models, fields, relationships, permissions empirically inspected | **Satisfied** — bounded live metadata, rights, value, and denial probes documented |
 | 4 | Supplier identity stable and T6-compatible | **Satisfied** — commercial-partner identity retained; names rejected |
-| 5 | Purchase-line-to-receipt relationship proven or rejected | **Pending live behaviour** — schema path proven; move/picking reads denied |
+| 5 | Purchase-line-to-receipt relationship proven or rejected | **Satisfied** — controlled live PO-line/move/picking paths passed |
 | 6 | Reference timestamp meaning documented | **Satisfied** — Expected Arrival operational schedule, not supplier promise |
-| 7 | Actual event/timestamp semantics documented | **Satisfied at metadata/source level; pending live behaviour** |
-| 8 | Partial, backorder, cancellation, return, multi-receipt addressed | **Satisfied as explicit policy; controlled behaviour pending** |
+| 7 | Actual event/timestamp semantics documented | **Satisfied** — done move timestamp matched done picking and controlled comparisons |
+| 8 | Partial, backorder, cancellation, return, multi-receipt addressed | **Satisfied for controlled subset** — backorder and supplier return passed; unsupported cases remain fail-closed |
 | 9 | Exactly one KPI candidate or all rejected | **Satisfied** — only `delivery_schedule_adherence` retained |
 | 10 | Sample, window, denominator, exclusions, insufficiency defined | **Satisfied** |
 | 11 | No unsupported business meaning assigned | **Satisfied** |
-| 12 | Read-only, mutation denial, company boundary validated | **Blocked** — stock move-line mutations are currently allowed |
+| 12 | Read-only, mutation denial, company boundary validated | **Satisfied** — separate T7-S caller passed rights, direct-read, and cross-company checks |
 | 13 | No Decision Core/API/frontend/persistence/Odoo-write scope | **Satisfied** |
 | 14 | Fast/static checks | **See final verification section below** |
-| 15 | Live evidence complete or pending with exact setup | **Satisfied as pending** — exact manual procedure provided |
-| 16 | Final decision and T8 consequences | **Satisfied** — pending; T8 must not implement the KPI yet |
+| 15 | Live evidence complete or pending with exact setup | **Satisfied** — focused and full live selections passed |
+| 16 | Final decision and T8 consequences | **Satisfied** — controlled-subset `GO`; T8 may implement only the accepted boundary |
 
-Because criteria 5, 7, 8, and 12 lack controlled live acceptance, a `GO` would be
-false. The correct final state is **PENDING CONTROLLED LIVE ACCEPTANCE**.
+All mandatory controlled-live criteria now pass. The final T7 state is
+**GO — CONTROLLED LIVE SUBSET ACCEPTED**. This is not approval for unrestricted
+production history or a claim that AC-07 is already implemented.
 
 ## T8 recommendation
 
-Do not begin a production historical-performance vertical slice yet. The exact next
-increment should be a narrowly scoped security-and-fixture acceptance step:
-
-1. make a separate, reviewed decision for a company-scoped read-only inventory
-   history identity or projection that can read `stock.move` and `stock.picking` and
-   cannot mutate `stock.move.line`;
-2. re-run the T7 read/mutation/company contract;
-3. have a human administrator create the exact four-record fixture;
-4. run the focused and full live integration selections; and
-5. only if both contracts pass, close T7 as `GO` and scope T8 to a small
-   ERP-neutral historical-KPI port plus a read-only Odoo implementation.
-
-If an effective read-only boundary cannot be achieved without broad Inventory
-privileges or a speculative relationship, close T7 as `NO-GO` and omit historical
-performance from T8.
+T8 may now be scoped to a small ERP-neutral historical-KPI port plus a read-only Odoo
+implementation over the accepted T7-S projection. It must preserve the exact
+reference event, actual event, completed-line grain, commercial-partner identity,
+sample size, exclusions, insufficient-history result, company boundary, and
+fail-closed edge policies documented here. It must not add a Decision Core criterion
+or reinterpret Expected Arrival as a supplier promise.
 
 ## Google Drive synchronization facts
 
 No Google Drive document was modified. The Hungarian living documentation should
 later record:
 
-- T7 outcome: `PENDING CONTROLLED LIVE ACCEPTANCE`;
+- T7 outcome: `GO — CONTROLLED LIVE SUBSET ACCEPTED`;
 - candidate: `delivery_schedule_adherence`, not supplier on-time delivery;
 - Expected Arrival is an operational schedule, not a supplier promise;
 - proposed grain is completed PO line, with separate sample size and trailing
   365-day window;
 - commercial-partner identity remains aligned with T6;
-- `stock.move` and `stock.picking` reads are currently denied;
-- internal-user `stock.move.line` mutations are currently allowed and block the
-  read-only requirement;
-- controlled fixture and security approval are required before T8; and
+- the separate T7-S identity remains denied generic stock-model reads and mutations;
+- the four-scenario controlled fixture produced `33.33%` with sample size `3`;
+- T8 may implement only the accepted bounded projection and edge-case policy; and
 - AC-07 remains unsatisfied.
 
 ## Verification record
@@ -200,22 +190,20 @@ baseline.
 
 | Command/check | Result |
 | --- | --- |
-| `ruff format --check .` | Passed; 61 files already formatted |
+| `ruff format --check .` | Passed; 70 files already formatted |
 | `ruff check .` | Passed |
 | `python -m compileall application backend frontend decision_core odoo_adapter` | Passed |
-| `pytest -m "not integration and not e2e" -v` | 121 passed, 23 deselected |
+| `pytest -m "not integration and not e2e" -v` | 141 passed, 23 deselected |
 | `python -m pip check` | No broken requirements |
 | `podman compose --env-file .env -f infra/odoo/compose.yaml config --quiet` | Passed with project-local `podman-compose` provider |
-| `pytest -m "integration and not e2e" -v` | 21 passed, 2 T7 tests skipped, 121 deselected |
+| Focused T7/T7-S live selection | 2 passed, 18 deselected |
+| `pytest -m "integration and not e2e" -v` | 23 passed, 141 deselected |
 | `git diff --check` | Passed; line-ending conversion warnings only |
 
 The full live selection revalidated purchase-order and purchase-line mutation
-denial, company scoping, installed modules, T6 fixture reads, and the full T6 hybrid
-chain. The two T7 contracts skipped because `RUN_T7_LIVE_CONTRACTS` remains false.
-They were not enabled: the documented security boundary and controlled business
-fixture do not exist yet. Separate bounded read-only discovery calls established the
-T7 metadata, access matrices, exact HTTP 403 denials, existing-data shape, and
-outside-company empty result recorded in the spike.
+denial, company scoping, installed modules, T6 fixture reads, the full T6 hybrid
+chain, T7-S security, and the controlled T7 semantics. Both live gates were returned
+to `false` immediately afterward.
 
 The runs emitted existing dependency deprecation warnings and a local
 `.pytest_cache` permission warning; neither affected results. GitHub Actions was not
