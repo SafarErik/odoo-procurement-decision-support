@@ -44,7 +44,13 @@ contract and the controlled T8 vertical slice passed. See also
 [the T6 design](docs/T6_DESIGN.md),
 [T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the prior boundary and evidence, and [the T8 handoff](docs/T8_HANDOFF.md) for the
-current contract and verification record.
+current runtime contract and verification record. T9 has now completed an isolated,
+reproducible design evaluation without changing runtime behaviour. It recommends a
+bounded PoC `GO`: direct percentage normalization, complete-case activation across
+MOQ-eligible offers, sample size as an availability/explanation field only, and
+explicit non-empirical profile candidates. See the [T9 design](docs/T9_SCORING_DESIGN.md)
+and [T9 handoff](docs/T9_HANDOFF.md). The recommendation is not implemented in the
+Decision Core, API, Odoo integration, persistence, or frontend.
 
 ## Architecture
 
@@ -88,6 +94,7 @@ odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
 infra/odoo/     Local Odoo/PostgreSQL Compose and isolated T7-S addon
 tests/          Fast contract tests and optional live integration checks
 docs/           Implementation log and capability evidence
+tools/          Isolated, non-runtime design and evaluation tooling
 ```
 
 ## Prerequisites
