@@ -973,3 +973,62 @@ T7 is now **GO — CONTROLLED LIVE SUBSET ACCEPTED**. This authorizes only a lat
 narrow implementation over the accepted projection and edge-case policy. No KPI was
 added to the Decision Core, application layer, API, frontend, or persistence, and
 AC-07 remains unsatisfied.
+
+## T8 — historical supplier-performance vertical slice
+
+### Implemented on 2026-09-20
+
+T8 starts from merged T7/T7-S `main` commit
+`af8297c09a4043e2fa7f0a80e9b6ea795cc7ab85` on branch
+`codex/t8-historical-kpi-vertical-slice`. The pre-change fast baseline was 141
+passed and 23 deselected.
+
+The increment adds an ERP-neutral `HistoricalPerformancePort`, bounded query,
+receipt observation, snapshot, historical metric, availability, warning, and sourced
+result contracts in `application/historical_performance.py`. The application
+calculator implements the accepted line-count-weighted
+`delivery_schedule_adherence` policy over an exact half-open 365-day window. It uses
+the first cumulative full-receipt timestamp per line, keeps sample size separate,
+rounds the percentage half up to two decimal places, excludes return-affected lines
+with a structured warning, and withholds rather than substitutes a value below the
+minimum sample size of three.
+
+`OdooHistoricalPerformanceReader` implements the port using only
+`procurement.inventory.history.projection.read_bounded_history`. It maps the fixed
+T7-S response into neutral models after validating the full envelope/schema,
+version, echoed company/window, count, requested line set, commercial supplier,
+timestamps, state, direction, quantities, and stable identities. It adds no generic
+stock-model read, Odoo mutation, direct database access, administrator credential,
+or runtime fixture path. The T7-S addon and permissions are unchanged.
+
+`CanonicalDecisionInput` now contains a tuple of contextual
+`SupplierHistoricalPerformance` values. `attach_historical_performance()` joins by
+stable supplier identity and requires a complete, unique mapping for the offer set.
+It appends value, sample-size, and window provenance to the separate application
+manifest. Source references identify the bounded projection context without secrets
+or truth claims. Existing T6 callers remain compatible with an empty history tuple.
+
+No Decision Core model, WSM formula, criterion, normalization, profile weight, MOQ
+constraint, contribution, ranking, or explanation changed. Unit and controlled live
+regressions compare the full result before and after history attachment.
+
+Fast tests cover all-on-time, all-late, mixed, exact-deadline, immediately-late,
+partial/multiple receipt, backorder, return, cancellation, zero denominator, sample
+sizes 0/1/2/3, half-open boundaries, stable identities, warning order, rounding,
+adapter request/response bounds, provenance, complete joins, and architecture.
+Focused tests passed 72 of 72; the full fast selection passed 180 with 23
+deselected. The focused live T7-S/T8 selection passed 2 of 2, and the complete live
+integration selection passed 23 with 180 deselected.
+
+The controlled production adapter/calculator result is
+`delivery_schedule_adherence = 33.33`, sample size `3`: one on-time line, one late
+line, one late two-picking backorder, and one return-affected line excluded with
+`supplier_return_observed`. The same run revalidated company rejection, generic
+stock access and mutation denials, canonical attachment, bounded provenance, and
+unchanged ranking.
+
+T8 is **GO — CONTROLLED VERTICAL SLICE IMPLEMENTED AND LIVE-VERIFIED**. AC-07 is
+satisfied for the bounded internal slice. Public API/UI exposure, persistence,
+arbitrary history discovery, and weighted scoring remain out of scope. Any future
+scoring change requires explicit normalization, weights, missing-history policy,
+sensitivity analysis, regression evidence, and an ADR or approved amendment.

@@ -21,6 +21,25 @@ The current field contract is evidence for the local Odoo 19 Community PoC datab
 not a universal Odoo schema guarantee. Revalidate `/doc`, permissions, record rules,
 and field behaviour for every materially different target environment.
 
+## T8 bounded historical-performance adapter
+
+`OdooHistoricalPerformanceReader` implements the ERP-neutral
+`HistoricalPerformancePort` exclusively through
+`procurement.inventory.history.projection.read_bounded_history`. It accepts exact
+stable company and purchase-line identities, an exact 365-day half-open window, and
+a bounded result limit. It validates the projection version, complete envelope,
+fixed record schema, echoed company/window, result count, stable supplier identity,
+requested line set, event window, quantities, states, and directions before mapping
+anything into neutral receipt observations.
+
+The adapter never reads `stock.move`, `stock.move.line`, or `stock.picking`
+directly. It exposes no create, write, unlink, fixture, administrator, or database
+path. Its source reference contains only the projection method and bounded
+observation context; it never contains the base URL, database name, API key, or a
+claim that the observed value is objectively true. Metric eligibility, calculation,
+warnings, sample withholding, and stable supplier attachment remain application
+responsibilities.
+
 ## T4 decision-input gate
 
 T4 did not extend this adapter. On 2026-09-17, the renewed key authenticated as the

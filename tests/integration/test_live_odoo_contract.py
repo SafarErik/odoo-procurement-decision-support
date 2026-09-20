@@ -9,15 +9,26 @@ import httpx
 import pytest
 
 from application.decision_input_assembly import (
+    AssembledDecisionInput,
+    CanonicalDecisionInput,
+    ProvenanceManifest,
     SourceAttribution,
     SupplementalOfferTerms,
     SupplementalValue,
     assemble_decision_input,
+    attach_historical_performance,
 )
 from application.decisions import evaluate_procurement_decision
+from application.historical_performance import (
+    HistoricalPerformanceQuery,
+    HistoricalWarningCode,
+    SourcedSupplierHistoricalPerformance,
+    calculate_delivery_schedule_adherence,
+)
 from backend.app.config import settings
-from decision_core import StrategicProfile
+from decision_core import PurchaseRequirement, StrategicProfile, SupplierOffer
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
+from odoo_adapter.historical_performance_reader import OdooHistoricalPerformanceReader
 from odoo_adapter.rfq_reader import OdooRfqReader
 
 pytestmark = pytest.mark.integration
@@ -880,8 +891,8 @@ def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> 
         assert response.status_code == 422
 
 
-def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
-    """Validate the exact controlled receipt history before any production adapter exists."""
+def test_live_odoo_t8_historical_performance_vertical_slice() -> None:
+    """Prove the controlled history flows through the production T8 contracts."""
 
     _require_t7s_live_contracts()
     orders = _t7_fixture_orders()
@@ -889,27 +900,47 @@ def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
     assert all(len(order["order_line"]) == 1 for order in orders)
     line_ids = [order["order_line"][0] for order in orders]
     company_id = orders[0]["company_id"][0]
-    projection = _post_t7s_json2(
-        "procurement.inventory.history.projection",
-        "read_bounded_history",
-        _t7s_window_payload(company_id=company_id, line_ids=line_ids, limit=40),
+    partner_ids = {order["partner_id"][0] for order in orders}
+    assert len(partner_ids) == 1
+    partner = _post_json2(
+        "res.partner",
+        "read",
+        {"ids": list(partner_ids), "fields": ["commercial_partner_id"]},
+    )[0]
+    supplier_id = f"odoo:res.partner:{partner['commercial_partner_id'][0]}"
+    payload = _t7s_window_payload(company_id=company_id, line_ids=line_ids, limit=40)
+    query = HistoricalPerformanceQuery(
+        supplier_id=supplier_id,
+        company_id=f"odoo:res.company:{company_id}",
+        purchase_line_ids=tuple(f"odoo:purchase.order.line:{line_id}" for line_id in line_ids),
+        observation_window_start=_odoo_datetime(payload["date_from"]),
+        observation_window_end=_odoo_datetime(payload["date_to"]),
+        result_limit=40,
     )
-    records = projection["records"]
+    credentials = _t7s_credentials()
+    assert credentials is not None
+    base_url, database, api_key = credentials
+    reader = OdooHistoricalPerformanceReader(
+        base_url=base_url,
+        database=database,
+        api_key=api_key,
+        timeout_seconds=settings.odoo_request_timeout_seconds,
+    )
+    snapshot = asyncio.run(reader.read_inventory_history(query))
+    performance = calculate_delivery_schedule_adherence(snapshot)
+    records = snapshot.observations
     assert records
-    assert projection["result_count"] == len(records)
-    assert all(set(record) == _T7S_RECORD_FIELDS for record in records)
-    assert {record["company_id"] for record in records} == {company_id}
-    assert len({record["commercial_partner_id"] for record in records}) == 1
-    assert len({record["product_id"] for record in records}) == 1
-    assert len({record["product_uom_id"] for record in records}) == 1
-    assert all(record["state"] == "done" for record in records)
+    assert {record.company_id for record in records} == {query.company_id}
+    assert {record.supplier_id for record in records} == {query.supplier_id}
+    assert len({record.product_id for record in records}) == 1
+    assert len({record.uom_id for record in records}) == 1
 
     marker_by_order_id = {order["id"]: order["origin"] for order in orders}
     records_by_marker = {
         marker: [
             record
             for record in records
-            if marker_by_order_id[record["purchase_order_id"]] == marker
+            if marker_by_order_id[int(record.purchase_document_id.rsplit(":", 1)[1])] == marker
         ]
         for marker in _T7_ORIGINS
     }
@@ -917,36 +948,35 @@ def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
         marker: [
             record
             for record in marker_records
-            if record["source_location_usage"] == "supplier"
-            and record["destination_location_usage"] == "internal"
-            and not record["return_of_move_id"]
+            if record.direction.value == "supplier_to_internal"
+            and record.return_of_event_id is None
         ]
         for marker, marker_records in records_by_marker.items()
     }
     for inbound_records in inbound_by_marker.values():
         assert inbound_records
-        assert sum(Decimal(record["completed_quantity"]) for record in inbound_records) >= Decimal(
-            inbound_records[0]["ordered_quantity"]
+        assert sum(record.completed_quantity for record in inbound_records) >= (
+            inbound_records[0].ordered_quantity
         )
 
     def completion(marker: str) -> datetime:
-        return max(
-            _odoo_datetime(record["move_processed_at"]) for record in inbound_by_marker[marker]
-        )
+        return max(record.completed_at for record in inbound_by_marker[marker])
 
     def expected(marker: str) -> datetime:
-        return _odoo_datetime(inbound_by_marker[marker][0]["expected_arrival_at"])
+        expected_arrival = inbound_by_marker[marker][0].scheduled_arrival_at
+        assert expected_arrival is not None
+        return expected_arrival
 
     assert completion("T7-HIST-001-ONTIME") <= expected("T7-HIST-001-ONTIME")
     assert completion("T7-HIST-002-LATE") > expected("T7-HIST-002-LATE")
     assert completion("T7-HIST-003-BACKORDER") > expected("T7-HIST-003-BACKORDER")
     backorder_pickings = {
-        record["stock_picking_id"] for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
+        record.transfer_id for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
     }
     assert len(backorder_pickings) == 2
     assert (
         sum(
-            bool(record["backorder_of_picking_id"])
+            bool(record.backorder_of_transfer_id)
             for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
         )
         == 1
@@ -955,15 +985,57 @@ def test_live_odoo_t7_controlled_history_supports_candidate_kpi() -> None:
     return_records = [
         record
         for record in records_by_marker["T7-HIST-004-RETURN"]
-        if record["return_of_move_id"]
-        and record["return_of_picking_id"]
-        and record["destination_location_usage"] == "supplier"
+        if record.return_of_event_id
+        and record.return_of_transfer_id
+        and record.direction.value == "internal_to_supplier"
     ]
     assert return_records
 
-    eligible_markers = _T7_ORIGINS[:3]
-    adhered = sum(completion(marker) <= expected(marker) for marker in eligible_markers)
-    assert (adhered, len(eligible_markers)) == (1, 3)
-    assert (Decimal(adhered) / Decimal(len(eligible_markers)) * 100).quantize(
-        Decimal("0.01")
-    ) == Decimal("33.33")
+    assert performance.value == Decimal("33.33")
+    assert performance.sample_size == 3
+    assert [warning.code for warning in performance.warnings] == [
+        HistoricalWarningCode.SUPPLIER_RETURN_OBSERVED
+    ]
+
+    sourced = SourcedSupplierHistoricalPerformance(
+        performance=performance,
+        source_type=snapshot.source_type,
+        source_reference=snapshot.source_reference,
+    )
+    offers = (
+        SupplierOffer("T8-LIVE-A", supplier_id, Decimal("10"), Decimal("10"), Decimal("50")),
+        SupplierOffer("T8-LIVE-B", supplier_id, Decimal("12"), Decimal("5"), Decimal("100")),
+        SupplierOffer("T8-LIVE-C", supplier_id, Decimal("9"), Decimal("8"), Decimal("150")),
+    )
+    baseline = AssembledDecisionInput(
+        canonical=CanonicalDecisionInput(
+            requirement=PurchaseRequirement("T8-LIVE", Decimal("100")),
+            offers=offers,
+            profile=StrategicProfile.cost_focused(),
+        ),
+        provenance=ProvenanceManifest(entries=()),
+    )
+    assembled = attach_historical_performance(baseline, (sourced,))
+    assert assembled.canonical.historical_performance == (performance,)
+    assert {entry.field_name for entry in assembled.provenance.entries} == {
+        "delivery_schedule_adherence",
+        "historical_sample_size",
+        "observation_window_start",
+        "observation_window_end",
+    }
+    assert all(
+        "procurement.inventory.history.projection.read_bounded_history" in entry.source_reference
+        for entry in assembled.provenance.entries
+    )
+
+    baseline_result = evaluate_procurement_decision(
+        baseline.canonical.requirement,
+        baseline.canonical.offers,
+        baseline.canonical.profile,
+    )
+    assembled_result = evaluate_procurement_decision(
+        assembled.canonical.requirement,
+        assembled.canonical.offers,
+        assembled.canonical.profile,
+    )
+    assert assembled_result == baseline_result

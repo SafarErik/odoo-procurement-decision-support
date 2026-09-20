@@ -23,22 +23,28 @@ requirements, offers, and weights through the Decision Core. These public flows
 remain deliberately unconnected. T6 provides only an internal, explicitly invoked
 hybrid assembly path for the validated comparison-case subset; it does not provide
 automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
-no decision UI, historical KPI calculation, write operation, or production
-persistence. T7 completed historical-performance discovery and controlled live
+no decision UI, write operation, or production persistence. T7 completed
+historical-performance discovery and controlled live
 acceptance for one candidate, `delivery_schedule_adherence`. T7-S preserves a
 separate, bounded, read-only projection identity while direct stock-model reads
 remain denied. The four-scenario fixture passed with `33.33%` and sample size `3`, so
-T7 is `GO — CONTROLLED LIVE SUBSET ACCEPTED`. No historical KPI runtime code was
-added and AC-07 remains unsatisfied. See
+T7 is `GO — CONTROLLED LIVE SUBSET ACCEPTED`. T8 now implements the accepted metric
+as contextual canonical decision data: an ERP-neutral history port and typed model,
+a read-only Odoo adapter over the T7-S projection, deterministic application-layer
+calculation, stable supplier attachment, and separate field provenance. Values are
+withheld below sample size `3`; no zero or neutral value is substituted. AC-07 is
+satisfied for this bounded vertical slice. The WSM formula, strategic weights, MOQ
+constraint, ranking, and contribution semantics are unchanged. See
 [the T7 spike](docs/spikes/odoo-historical-supplier-performance.md),
 [fixture procedure](docs/T7_FIXTURE_SETUP.md), and [T7 handoff](docs/T7_HANDOFF.md),
 plus the separate T7-S [design](docs/T7S_DESIGN_SECURITY.md),
 [manual setup](docs/T7S_MANUAL_SETUP.md), and [handoff](docs/T7S_HANDOFF.md).
 T7-S implements a bounded method-only projection, and both its focused security
-contract and the controlled T7 semantic contract passed. See also
+contract and the controlled T8 vertical slice passed. See also
 [the T6 design](docs/T6_DESIGN.md),
 [T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
-for the current boundary and evidence.
+for the prior boundary and evidence, and [the T8 handoff](docs/T8_HANDOFF.md) for the
+current contract and verification record.
 
 ## Architecture
 
@@ -58,7 +64,12 @@ Odoo facts + attributed supplemental terms --> application T6 assembler
 
 dedicated non-internal T7-S caller --JSON-2--> guarded Odoo projection method
                                                     |
-                                                    +--> bounded ORM evidence only
+                                                    +--> bounded ORM evidence
+                                                              |
+                                                              v
+ERP-neutral history port --> application KPI policy --> contextual canonical history
+                                                       +--> separate provenance
+                                                       +--> unchanged Decision Core
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -273,8 +284,9 @@ contributions and deterministic ranking; the application decision use case and A
 contract; the health contract; the ERP-neutral RFQ API; Odoo JSON-2 request and
 mapping behaviour; stable upstream error translation; frontend configuration and
 presentation states; the T6 supported-subset invariants, provenance, architectural
-boundaries, read-only comparison-case mapping, and T7-S bounded projection security
-policy; and the separate Reflex
+boundaries, read-only comparison-case mapping, the T7-S bounded projection security
+policy, and T8 history calculation, adapter, stable joins, withholding, provenance,
+and scoring regressions; and the separate Reflex
 state-backend port. With the documented runtime services running and the ignored
 `.env` configured, integration tests can be selected explicitly:
 
@@ -288,9 +300,11 @@ must never be enabled against an arbitrary external database.
 
 The T7-S security contract requires the manual addon, dedicated non-internal caller,
 and key setup in `docs/T7S_MANUAL_SETUP.md`, plus
-`RUN_T7S_LIVE_CONTRACTS=true`. Its focused live contract passed on 2026-09-20 and
-the gate was returned to `false`. Final T7 validation requires both live gates and
-the exact fixture in `docs/T7_FIXTURE_SETUP.md`; the gates skip by default.
+`RUN_T7S_LIVE_CONTRACTS=true`. The controlled T8 contract additionally requires
+`RUN_T7_LIVE_CONTRACTS=true` and the exact fixture in
+`docs/T7_FIXTURE_SETUP.md`. The gates skip by default and must be enabled only for
+that local controlled database. The focused security/T8 selection and the complete
+integration selection passed on 2026-09-20.
 
 No browser E2E suite or static type checker is currently configured.
 
@@ -377,16 +391,17 @@ This CI increment does not modify Google Drive documents.
 
 ## Limitations
 
-The integration is deliberately read-only and limited to the validated
-`purchase.order` summary fields required by the RFQ ledger. The Decision Core and
+All Odoo integration remains deliberately read-only. The public RFQ ledger is
+limited to validated `purchase.order` summary fields; the internal T8 history path
+uses only the separate bounded T7-S projection. The Decision Core and
 decision API currently support only MOQ eligibility plus unit-price and lead-time
 criteria on caller-supplied canonical input. T6 adds only a narrow hybrid assembly
 path for a validated single-product comparison subset; it is not a generic or public
 Odoo-to-canonical API. There is no automatic RFQ evaluation, pagination, retry
 policy, write operation,
-decision UI, API authentication/authorization, production persistence, historical
-KPI logic, currency conversion, or validated purchase-line and inventory receipt
-mapping. The local PoC uses a live-verified dedicated read-only integration identity.
+decision UI, API authentication/authorization, production persistence, public
+historical-performance endpoint, currency conversion, or unrestricted historical
+inventory mapping. The local PoC uses live-verified dedicated read-only identities.
 T5 proved company-scoped read access to `purchase.order.line` and the standard
 `purchase.order.purchase_group_id` comparison key without granting the integration
 identity the alternatives feature group or direct access to grouping/agreement
@@ -401,13 +416,16 @@ Inventory roles as a shortcut.
 
 T7 validated a candidate purchase-line-to-receipt chain and defined
 `delivery_schedule_adherence` against Odoo Expected Arrival with a separate
-completed-line sample size. It is not implemented. The original internal identity
+completed-line sample size. T8 implements that exact controlled policy as contextual
+canonical data, not a scoring criterion. The original internal identity
 remains unsuitable because it cannot read `stock.move` or `stock.picking` and
 inherits `stock.move.line` mutations. T7-S instead provides a method-only,
 non-stored projection with mandatory company, exact-line, date, and count bounds,
-called by a separate non-internal identity. The security and controlled semantic
-contracts passed on 2026-09-20. Any later historical-performance adapter must remain
-inside this accepted boundary.
+called by a separate non-internal identity. The T8 adapter uses only this method,
+maps its fixed schema to ERP-neutral observations, and fails closed on inconsistent
+responses. The security and controlled semantic contracts passed on 2026-09-20.
+The metric is withheld rather than set to zero when fewer than three eligible lines
+exist. Normalization and weighting remain a future ADR-level design decision.
 `product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
 receipt `effective_date`, and heuristic joins remain rejected project KPI sources.
 The old
@@ -418,7 +436,8 @@ See [the implementation log](docs/IMPLEMENTATION_LOG.md) and
 [the T5 comparison-case evidence](docs/spikes/odoo-comparison-case-enablement.md),
 [the T6 design](docs/T6_DESIGN.md), and
 [the T7 historical-performance evidence](docs/spikes/odoo-historical-supplier-performance.md),
-plus [the T7-S security design](docs/T7S_DESIGN_SECURITY.md)
+plus [the T7-S security design](docs/T7S_DESIGN_SECURITY.md) and
+[the T8 handoff](docs/T8_HANDOFF.md)
 for verified facts, rejected mappings, and recovery steps.
 
 The CI persistence check uses synthetic files to verify only that Docker named

@@ -49,12 +49,32 @@ def test_odoo_infrastructure_does_not_call_decision_core() -> None:
         assert all(not name.startswith("decision_core") for name in _imports(path)), path
 
 
-def test_t7_spike_does_not_add_historical_kpi_runtime_code() -> None:
-    for package in ("application", "backend", "decision_core", "frontend", "odoo_adapter"):
-        for path in (PROJECT_ROOT / package).rglob("*.py"):
-            source = path.read_text(encoding="utf-8")
-            assert "delivery_schedule_adherence" not in source, path
-            assert "on_time_rate" not in source, path
+def test_historical_models_and_port_are_erp_neutral() -> None:
+    path = PROJECT_ROOT / "application" / "historical_performance.py"
+    imports = _imports(path)
+    source = path.read_text(encoding="utf-8")
+
+    assert all(not name.startswith("odoo_adapter") for name in imports)
+    for odoo_name in (
+        "commercial_partner_id",
+        "expected_arrival_at",
+        "stock_move_id",
+        "stock_picking_id",
+        "purchase_order_line_id",
+    ):
+        assert odoo_name not in source
+
+
+def test_application_history_flow_depends_on_port_not_concrete_odoo_reader() -> None:
+    application_imports = set()
+    for path in (PROJECT_ROOT / "application").glob("*.py"):
+        application_imports.update(_imports(path))
+
+    assert all(not name.startswith("odoo_adapter") for name in application_imports)
+    source = (PROJECT_ROOT / "application" / "historical_performance.py").read_text(
+        encoding="utf-8"
+    )
+    assert "class HistoricalPerformancePort(Protocol)" in source
 
 
 def test_t7s_addon_is_projection_only() -> None:
@@ -68,3 +88,40 @@ def test_t7s_addon_is_projection_only() -> None:
             for name in _imports(path)
         ), path
         assert "env.cr" not in source, path
+
+
+def test_bounded_projection_is_the_only_inventory_history_transport_route() -> None:
+    path = PROJECT_ROOT / "odoo_adapter" / "historical_performance_reader.py"
+    source = path.read_text(encoding="utf-8")
+
+    assert '"procurement.inventory.history.projection"' in source
+    assert '"read_bounded_history"' in source
+    for forbidden_model in ('"stock.move"', '"stock.move.line"', '"stock.picking"'):
+        assert forbidden_model not in source
+    for forbidden_method in ('"create"', '"write"', '"unlink"'):
+        assert forbidden_method not in source
+
+
+def test_runtime_history_path_has_no_admin_secret_or_write_call() -> None:
+    runtime_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for package in ("application", "odoo_adapter")
+        for path in (PROJECT_ROOT / package).glob("*.py")
+    )
+
+    assert "ODOO_MASTER_PASSWORD" not in runtime_sources
+    history_source = (PROJECT_ROOT / "odoo_adapter" / "historical_performance_reader.py").read_text(
+        encoding="utf-8"
+    )
+    assert all(
+        f"/json/2/{{_MODEL}}/{method}" not in history_source
+        for method in ("create", "write", "unlink")
+    )
+
+
+def test_contextual_history_and_provenance_do_not_change_decision_core() -> None:
+    for path in (PROJECT_ROOT / "decision_core").glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        assert "HistoricalPerformance" not in source, path
+        assert "delivery_schedule_adherence" not in source, path
+        assert "provenance" not in source.lower(), path

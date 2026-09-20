@@ -1,9 +1,14 @@
 """Assemble canonical decision input from validated facts and supplemental terms."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 
+from application.historical_performance import (
+    HistoricalMetric,
+    SourcedSupplierHistoricalPerformance,
+    SupplierHistoricalPerformance,
+)
 from decision_core import (
     DomainValidationError,
     PurchaseRequirement,
@@ -91,11 +96,12 @@ class OdooComparisonCaseFacts:
 
 @dataclass(frozen=True, slots=True)
 class CanonicalDecisionInput:
-    """The existing Decision Core inputs, grouped without changing their models."""
+    """Decision inputs, including contextual data not yet used by scoring."""
 
     requirement: PurchaseRequirement
     offers: tuple[SupplierOffer, ...]
     profile: StrategicProfile
+    historical_performance: tuple[SupplierHistoricalPerformance, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,8 +135,9 @@ def assemble_decision_input(
     supplemental_terms: tuple[SupplementalOfferTerms, ...],
     profile: StrategicProfile,
     profile_attribution: SourceAttribution,
+    historical_performance: tuple[SourcedSupplierHistoricalPerformance, ...] | None = None,
 ) -> AssembledDecisionInput:
-    """Validate the T6 subset and assemble canonical input without scoring it."""
+    """Validate and assemble canonical input without scoring contextual history."""
 
     _require_identifier(odoo_case.comparison_case_id, "missing_comparison_case_identity")
     _require_aware_time(odoo_case.observed_at, "invalid_odoo_observation_time")
@@ -263,7 +270,7 @@ def assemble_decision_input(
             )
         )
 
-    return AssembledDecisionInput(
+    assembled = AssembledDecisionInput(
         canonical=CanonicalDecisionInput(
             requirement=requirement,
             offers=tuple(canonical_offers),
@@ -271,6 +278,91 @@ def assemble_decision_input(
         ),
         provenance=ProvenanceManifest(entries=tuple(provenance_entries)),
     )
+    if historical_performance is None:
+        return assembled
+    return attach_historical_performance(assembled, historical_performance)
+
+
+def attach_historical_performance(
+    assembled: AssembledDecisionInput,
+    sourced_history: tuple[SourcedSupplierHistoricalPerformance, ...],
+) -> AssembledDecisionInput:
+    """Attach contextual history by supplier without changing Decision Core inputs."""
+
+    if assembled.canonical.historical_performance:
+        _fail(
+            "historical_performance_already_attached",
+            "Historical performance may be attached only once.",
+        )
+    canonical_history, history_provenance = _historical_performance(
+        sourced_history,
+        {offer.supplier_id for offer in assembled.canonical.offers},
+    )
+    return AssembledDecisionInput(
+        canonical=replace(
+            assembled.canonical,
+            historical_performance=canonical_history,
+        ),
+        provenance=ProvenanceManifest(entries=(*assembled.provenance.entries, *history_provenance)),
+    )
+
+
+def _historical_performance(
+    sourced_history: tuple[SourcedSupplierHistoricalPerformance, ...],
+    expected_supplier_ids: set[str],
+) -> tuple[tuple[SupplierHistoricalPerformance, ...], tuple[FieldProvenance, ...]]:
+    history_by_supplier: dict[str, SourcedSupplierHistoricalPerformance] = {}
+    for sourced in sourced_history:
+        if not isinstance(sourced, SourcedSupplierHistoricalPerformance):
+            _fail("invalid_historical_performance", "Historical performance must be typed.")
+        performance = sourced.performance
+        if not isinstance(performance, SupplierHistoricalPerformance):
+            _fail("invalid_historical_performance", "Historical performance must be typed.")
+        _require_identifier(performance.supplier_id, "missing_historical_supplier_identity")
+        if performance.supplier_id in history_by_supplier:
+            _fail(
+                "duplicate_historical_supplier_identity",
+                f"Duplicate historical supplier: {performance.supplier_id}.",
+            )
+        if performance.metric_id is not HistoricalMetric.DELIVERY_SCHEDULE_ADHERENCE:
+            _fail("unsupported_historical_metric", "The historical metric is unsupported.")
+        if not isinstance(sourced.source_type, str) or not sourced.source_type.strip():
+            _fail("invalid_historical_source", "Historical source type is required.")
+        if not isinstance(sourced.source_reference, str) or not sourced.source_reference.strip():
+            _fail("invalid_historical_source", "Historical source reference is required.")
+        _require_aware_time(performance.observed_at, "invalid_historical_observation_time")
+        history_by_supplier[performance.supplier_id] = sourced
+
+    unknown = sorted(history_by_supplier.keys() - expected_supplier_ids)
+    if unknown:
+        _fail("unknown_historical_supplier_identity", f"Unknown historical suppliers: {unknown}.")
+    missing = sorted(expected_supplier_ids - history_by_supplier.keys())
+    if missing:
+        _fail("missing_historical_supplier_mapping", f"Missing historical suppliers: {missing}.")
+
+    canonical_history: list[SupplierHistoricalPerformance] = []
+    provenance: list[FieldProvenance] = []
+    for supplier_id in sorted(history_by_supplier):
+        sourced = history_by_supplier[supplier_id]
+        performance = sourced.performance
+        canonical_history.append(performance)
+        prefix = f"historical_performance[{supplier_id}]"
+        for path_suffix, field_name in (
+            ("value", performance.metric_id.value),
+            ("sample_size", "historical_sample_size"),
+            ("observation_window_start", "observation_window_start"),
+            ("observation_window_end", "observation_window_end"),
+        ):
+            provenance.append(
+                _provenance(
+                    f"{prefix}.{path_suffix}",
+                    field_name,
+                    sourced.source_type,
+                    sourced.source_reference,
+                    performance.observed_at,
+                )
+            )
+    return tuple(canonical_history), tuple(provenance)
 
 
 def _validate_odoo_line(line: OdooOrderLineFacts) -> None:

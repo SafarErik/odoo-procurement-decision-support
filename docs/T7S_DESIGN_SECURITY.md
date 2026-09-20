@@ -150,3 +150,12 @@ and does not calculate eligibility, a percentage, or sample size.
 
 Live contracts remain disabled until the administrator completes
 `docs/T7S_MANUAL_SETUP.md`.
+
+## T8 application reuse
+
+T8 reuses this method unchanged through `OdooHistoricalPerformanceReader`. The
+adapter validates the fixed schema and maps it into ERP-neutral observations; the
+application layer owns KPI calculation, sample withholding, warnings, supplier
+attachment, and separate provenance. No addon permission or projection-schema
+change was required. See `docs/T8_HANDOFF.md` for the implemented boundary and live
+evidence.
