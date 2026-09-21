@@ -33,8 +33,8 @@ as contextual canonical decision data: an ERP-neutral history port and typed mod
 a read-only Odoo adapter over the T7-S projection, deterministic application-layer
 calculation, stable supplier attachment, and separate field provenance. Values are
 withheld below sample size `3`; no zero or neutral value is substituted. AC-07 is
-satisfied for this bounded vertical slice. The WSM formula, strategic weights, MOQ
-constraint, ranking, and contribution semantics are unchanged. See
+satisfied for this bounded vertical slice. T10 leaves the legacy WSM path unchanged
+and adds only the separately selected policy described below. See
 [the T7 spike](docs/spikes/odoo-historical-supplier-performance.md),
 [fixture procedure](docs/T7_FIXTURE_SETUP.md), and [T7 handoff](docs/T7_HANDOFF.md),
 plus the separate T7-S [design](docs/T7S_DESIGN_SECURITY.md),
@@ -44,13 +44,17 @@ contract and the controlled T8 vertical slice passed. See also
 [the T6 design](docs/T6_DESIGN.md),
 [T6 fixture procedure](docs/T6_FIXTURE_SETUP.md), and [T6 handoff](docs/T6_HANDOFF.md)
 for the prior boundary and evidence, and [the T8 handoff](docs/T8_HANDOFF.md) for the
-current runtime contract and verification record. T9 has now completed an isolated,
-reproducible design evaluation without changing runtime behaviour. It recommends a
-bounded PoC `GO`: direct percentage normalization, complete-case activation across
-MOQ-eligible offers, sample size as an availability/explanation field only, and
-explicit non-empirical profile candidates. See the [T9 design](docs/T9_SCORING_DESIGN.md)
-and [T9 handoff](docs/T9_HANDOFF.md). The recommendation is not implemented in the
-Decision Core, API, Odoo integration, persistence, or frontend.
+current runtime contract and verification record. T9 completed the isolated policy
+evaluation in the [T9 design](docs/T9_SCORING_DESIGN.md) and
+[T9 handoff](docs/T9_HANDOFF.md). T10 implements that accepted policy as a bounded,
+internal, explicitly invoked Decision Core capability. History is normalized directly
+as `value / 100` and activates only after MOQ filtering when every eligible offer has
+usable history (`n >= 3`). Otherwise the wrapper returns the exact existing
+two-criterion `DecisionResult` plus a deterministic inactive explanation. The three
+versioned PoC profiles are `cost_focused_history_v1` (`0.60 / 0.25 / 0.15`),
+`urgent_history_v1` (`0.25 / 0.60 / 0.15`), and `risk_averse_history_v1`
+(`0.30 / 0.30 / 0.40`). Existing profiles and the public HTTP API remain unchanged.
+See the [T10 handoff](docs/T10_HANDOFF.md).
 
 ## Architecture
 
@@ -75,7 +79,10 @@ dedicated non-internal T7-S caller --JSON-2--> guarded Odoo projection method
                                                               v
 ERP-neutral history port --> application KPI policy --> contextual canonical history
                                                        +--> separate provenance
-                                                       +--> unchanged Decision Core
+                                                       +--> explicit T10 mapper
+                                                               |
+                                                               +--> opt-in historical scoring
+                                                               +--> exact legacy fallback
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -292,8 +299,9 @@ contract; the health contract; the ERP-neutral RFQ API; Odoo JSON-2 request and
 mapping behaviour; stable upstream error translation; frontend configuration and
 presentation states; the T6 supported-subset invariants, provenance, architectural
 boundaries, read-only comparison-case mapping, the T7-S bounded projection security
-policy, and T8 history calculation, adapter, stable joins, withholding, provenance,
-and scoring regressions; and the separate Reflex
+policy; T8 history calculation, adapter, stable joins, withholding, and provenance;
+T10 opt-in activation, fallback, profiles, explanations, T9 scenario parity, and
+legacy/API regressions; and the separate Reflex
 state-backend port. With the documented runtime services running and the ignored
 `.env` configured, integration tests can be selected explicitly:
 
@@ -400,9 +408,11 @@ This CI increment does not modify Google Drive documents.
 
 All Odoo integration remains deliberately read-only. The public RFQ ledger is
 limited to validated `purchase.order` summary fields; the internal T8 history path
-uses only the separate bounded T7-S projection. The Decision Core and
-decision API currently support only MOQ eligibility plus unit-price and lead-time
-criteria on caller-supplied canonical input. T6 adds only a narrow hybrid assembly
+uses only the separate bounded T7-S projection. The public decision API supports only
+MOQ eligibility plus unit-price and lead-time criteria on caller-supplied canonical
+input. T10 adds a separate internal opt-in Decision Core path for
+`delivery_schedule_adherence`; it is not exposed through HTTP schemas or routes. T6
+adds only a narrow hybrid assembly
 path for a validated single-product comparison subset; it is not a generic or public
 Odoo-to-canonical API. There is no automatic RFQ evaluation, pagination, retry
 policy, write operation,
@@ -424,7 +434,8 @@ Inventory roles as a shortcut.
 T7 validated a candidate purchase-line-to-receipt chain and defined
 `delivery_schedule_adherence` against Odoo Expected Arrival with a separate
 completed-line sample size. T8 implements that exact controlled policy as contextual
-canonical data, not a scoring criterion. The original internal identity
+canonical data, and T10 maps only its scoring-relevant fields into the opt-in core
+contract. The original internal identity
 remains unsuitable because it cannot read `stock.move` or `stock.picking` and
 inherits `stock.move.line` mutations. T7-S instead provides a method-only,
 non-stored projection with mandatory company, exact-line, date, and count bounds,
@@ -432,7 +443,11 @@ called by a separate non-internal identity. The T8 adapter uses only this method
 maps its fixed schema to ERP-neutral observations, and fails closed on inconsistent
 responses. The security and controlled semantic contracts passed on 2026-09-20.
 The metric is withheld rather than set to zero when fewer than three eligible lines
-exist. Normalization and weighting remain a future ADR-level design decision.
+exist. T10's direct normalization and three profile weights are transparent PoC
+policy choices, not empirical optimization or production validation. Missing or
+withheld history for any MOQ-eligible offer deactivates history for the whole set; it
+neither becomes zero nor excludes the offer. Odoo reads, KPI calculation, provenance
+placement, persistence, and frontend behaviour remain unchanged.
 `product.supplierinfo.delay`, Odoo's computed `on_time_rate`, first
 receipt `effective_date`, and heuristic joins remain rejected project KPI sources.
 The old
