@@ -119,9 +119,15 @@ def test_runtime_history_path_has_no_admin_secret_or_write_call() -> None:
     )
 
 
-def test_contextual_history_and_provenance_do_not_change_decision_core() -> None:
+def test_historical_scoring_core_contract_stays_erp_neutral_and_provenance_free() -> None:
     for path in (PROJECT_ROOT / "decision_core").glob("*.py"):
         source = path.read_text(encoding="utf-8")
-        assert "HistoricalPerformance" not in source, path
-        assert "delivery_schedule_adherence" not in source, path
         assert "provenance" not in source.lower(), path
+        assert "source_reference" not in source, path
+        assert "source_type" not in source, path
+
+
+def test_t10_runtime_does_not_import_t9_analysis_tooling() -> None:
+    for package in ("application", "backend", "decision_core", "odoo_adapter"):
+        for path in (PROJECT_ROOT / package).rglob("*.py"):
+            assert "tools.t9_scoring_evaluation" not in _imports(path), path

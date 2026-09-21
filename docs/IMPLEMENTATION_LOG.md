@@ -1075,3 +1075,52 @@ size of three is not proof of statistical reliability, Expected Arrival remains 
 operational schedule, and the weights are not learned. No Decision Core, runtime
 profile, API, application/Odoo adapter, persistence, frontend, infrastructure, or
 live fixture behaviour changed in T9.
+
+## T10 — bounded, opt-in historical performance scoring
+
+### Implemented on 2026-09-21
+
+T10 started from fetched, merged T9 `main` commit
+`58e3cfe92c8766093274571b87ad81af8b1bc8a1` on branch
+`codex/t10-bounded-historical-scoring`. Before branching, local `main` equalled
+`origin/main`, the accepted T9 design and handoff were present, and the fast baseline
+passed with 197 tests and 23 deselected.
+
+The Decision Core now has a small ERP-neutral historical input carrying stable
+supplier identity, metric, value, sample size, and availability. A separate
+`HistoricalScoringProfile` exposes the three accepted versioned policies, and
+`evaluate_historical_decision()` is the only opt-in core entry point. The existing
+`evaluate_decision()` and `StrategicProfile.cost_focused()`, `.urgent()`, and
+`.balanced()` remain the default and preserve their weights and behaviour.
+
+Both paths use one shared WSM scoring implementation. MOQ eligibility is partitioned
+first. History activates only for a non-empty eligible set in which every offer's
+supplier has one usable `delivery_schedule_adherence` value with `n >= 3`. Active
+history is normalized only as `value / 100`; its contribution includes raw value,
+sample size, normalized value, weight, weighted value, and deterministic text. If an
+eligible offer lacks usable history, the wrapper returns the exact legacy
+`DecisionResult` plus deterministic inactive context and sorted affected identities.
+No value is imputed, no weight is redistributed, and no offer is penalized or
+excluded for missing history.
+
+The application adds an explicit mapper from T8 `SupplierHistoricalPerformance` to
+the smaller core contract. It passes no source, warning, window, or provenance data
+and rejects a selected historical policy whose fixed legacy fallback does not match
+the canonical profile. Supplier joins use only stable IDs; duplicate and unknown
+history fail closed, while multiple offers from one supplier share one history
+result deterministically.
+
+`tests/test_historical_scoring.py` converts the complete T9 S01–S15 matrix into
+runtime parity regressions and adds validation for fallback equality, contribution
+reconstruction, endpoints, the controlled `33.33`/`n=3` value, sample sizes 0–3,
+invalid/non-finite values, duplicate and unknown suppliers, shared suppliers,
+MOQ-ineligible history, all-excluded input, deterministic ordering, application
+mapping, and unchanged legacy behaviour. Architecture tests prove the core remains
+ERP/provenance independent and runtime packages do not import T9 tooling. Public API
+schemas and routes, Odoo projection/adapter behaviour, persistence, and frontend are
+unchanged.
+
+The profile weights and `n >= 3` threshold remain PoC policy choices, not empirical
+optimization or statistical reliability evidence. See `docs/T10_HANDOFF.md` for the
+full command evidence, acceptance matrix, hosted CI status, limitations, and final
+decision.

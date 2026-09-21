@@ -96,7 +96,7 @@ class OdooComparisonCaseFacts:
 
 @dataclass(frozen=True, slots=True)
 class CanonicalDecisionInput:
-    """Decision inputs, including contextual data not yet used by scoring."""
+    """Decision inputs plus history available only to an explicit opt-in use case."""
 
     requirement: PurchaseRequirement
     offers: tuple[SupplierOffer, ...]
@@ -287,7 +287,7 @@ def attach_historical_performance(
     assembled: AssembledDecisionInput,
     sourced_history: tuple[SourcedSupplierHistoricalPerformance, ...],
 ) -> AssembledDecisionInput:
-    """Attach contextual history by supplier without changing Decision Core inputs."""
+    """Attach application history by supplier while keeping provenance separate."""
 
     if assembled.canonical.historical_performance:
         _fail(
