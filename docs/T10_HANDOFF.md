@@ -2,7 +2,7 @@
 
 ## Decision
 
-**CONDITIONAL — implementation and local fast evidence complete; hosted CI pending.**
+**GO — implementation and verification complete; PR #11 is merge-ready.**
 
 T10 implements the fixed T9 policy as an internal, explicitly invoked capability.
 It does not expose history through the public HTTP API and does not change Odoo,
@@ -12,8 +12,11 @@ Branch: `codex/t10-bounded-historical-scoring`
 
 Base `main`: `58e3cfe92c8766093274571b87ad81af8b1bc8a1`
 
-The final branch commit and hosted CI status are reported in the delivery handoff;
-this document cannot self-reference its own commit SHA.
+Hosted verification passed for implementation head
+`bada66e434596947d27737fae5eae30601f3961b`: the Quality workflow, Container and
+API integration workflow, and CodeRabbit all passed. PR #11 is open and mergeable
+with no unresolved review threads. The final documentation-only commit is reported
+in the delivery handoff because this document cannot self-reference its own SHA.
 
 ## Preconditions and baseline
 
@@ -171,9 +174,10 @@ The integration selection was rerun after restoring the existing local services 
 a localhost-only tunnel for the known `win-sshproxy` forwarding fault. The two
 controlled T7-S/T8 live gates skipped because their opt-in flags remained disabled;
 T10 changes no Odoo path, so this is not new Odoo live evidence. The temporary API,
-tunnel, services, and Podman machine were stopped after validation. Hosted CI cannot
-be reported as passing until the branch is pushed and the actual GitHub checks
-finish.
+tunnel, services, and Podman machine were stopped after validation. Hosted checks
+passed on implementation head `bada66e434596947d27737fae5eae30601f3961b`:
+Quality, Container and API integration, and CodeRabbit. PR #11 is open, mergeable,
+and has no unresolved review threads.
 
 ## Acceptance criteria
 
@@ -201,7 +205,7 @@ finish.
 | 20 | Provenance remains outside core | PASS | architecture scan and mapper test |
 | 21 | Odoo, persistence, frontend unchanged | PASS | source scope/diff review |
 | 22 | Local checks pass | PASS | full command matrix above |
-| 23 | Hosted CI passes | PENDING | requires push and completed checks |
+| 23 | Hosted CI passes | PASS | Quality, Container and API integration, and CodeRabbit passed on `bada66e` |
 | 24 | Documentation reflects scope | PASS | README, core docs, log, handoff |
 
 ## Limitations
