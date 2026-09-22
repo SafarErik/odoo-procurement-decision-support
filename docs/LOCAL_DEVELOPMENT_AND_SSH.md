@@ -38,6 +38,13 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 Never commit `.env`.
 
+T11 decision-case persistence uses a database separate from Odoo. Set
+`T11_POSTGRES_PASSWORD` to another random local value only when running the isolated
+test stack. Leave `DECISION_DATABASE_URL` and `T11_TEST_DATABASE_URL` blank until
+you deliberately configure the persistence adapter or integration tests. See
+`docs/PERSISTENCE_DEVELOPMENT.md`; never point the T11 integration suite at the Odoo
+database or a production-like database.
+
 After initializing Odoo, create the dedicated internal `Procurement Integration`
 user with access to only the current company. Assign a custom
 `Procurement RFQ API Reader` group whose sole model access is read-only access to
@@ -152,10 +159,11 @@ should be intentionally deleted.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall backend frontend decision_core odoo_adapter
+python -m compileall application backend frontend decision_core odoo_adapter persistence migrations
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
+podman compose --env-file .env -f infra/persistence/compose.test.yaml config
 ```
 
 GitHub Actions repeats these checks in a clean environment after a push or pull

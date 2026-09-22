@@ -23,7 +23,7 @@ requirements, offers, and weights through the Decision Core. These public flows
 remain deliberately unconnected. T6 provides only an internal, explicitly invoked
 hybrid assembly path for the validated comparison-case subset; it does not provide
 automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
-no decision UI, write operation, or production persistence. T7 completed
+no decision UI or Odoo write operation. T7 completed
 historical-performance discovery and controlled live
 acceptance for one candidate, `delivery_schedule_adherence`. T7-S preserves a
 separate, bounded, read-only projection identity while direct stock-model reads
@@ -56,6 +56,17 @@ versioned PoC profiles are `cost_focused_history_v1` (`0.60 / 0.25 / 0.15`),
 (`0.30 / 0.30 / 0.40`). Existing profiles and the public HTTP API remain unchanged.
 See the [T10 handoff](docs/T10_HANDOFF.md).
 
+T11 adds internal decision-case persistence without exposing a new HTTP route. It
+stores immutable, versioned canonical-input, selected-policy, evaluation-result,
+and provenance JSONB snapshots in PostgreSQL, then permits one atomic transition
+from `evaluated` to a human final decision: accept the recommendation, override it
+with an eligible offer and rationale, or record no award with a rationale. Exact
+idempotent retries return the recorded decision; conflicting reuse fails closed.
+Retrieval reconstructs the stored snapshot and never reruns scoring. The buyer
+reference is caller-supplied attribution, not authenticated identity or
+non-repudiation evidence. See the [T11 handoff](docs/T11_HANDOFF.md) and
+[persistence development guide](docs/PERSISTENCE_DEVELOPMENT.md).
+
 ## Architecture
 
 ```text
@@ -83,6 +94,11 @@ ERP-neutral history port --> application KPI policy --> contextual canonical his
                                                                |
                                                                +--> opt-in historical scoring
                                                                +--> exact legacy fallback
+
+Decision Core snapshots --> application persistence ports --> PostgreSQL adapter
+                                      |                              |
+                                      +--> human decision rules      +--> Alembic schema
+                                      +--> no recalculation          +--> immutable JSONB
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -99,6 +115,9 @@ frontend/       Separate Reflex procurement ledger
 decision_core/  ERP-independent constraint, normalization, WSM, and ranking logic
 odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
 infra/odoo/     Local Odoo/PostgreSQL Compose and isolated T7-S addon
+infra/persistence/  Disposable, isolated T11 PostgreSQL test service
+persistence/    PostgreSQL implementation of application persistence ports
+migrations/     Explicit Alembic schema migrations; never run implicitly at startup
 tests/          Fast contract tests and optional live integration checks
 docs/           Implementation log and capability evidence
 tools/          Isolated, non-runtime design and evaluation tooling
@@ -282,10 +301,11 @@ UI and container logs after startup.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter infra/odoo/addons/t7s_inventory_history_projection
+python -m compileall application backend frontend decision_core odoo_adapter persistence migrations infra/odoo/addons/t7s_inventory_history_projection
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
+podman compose --env-file .env -f infra/persistence/compose.test.yaml config
 ```
 
 Run these after every material change. Unmarked tests are fast. Tests requiring
@@ -301,13 +321,21 @@ presentation states; the T6 supported-subset invariants, provenance, architectur
 boundaries, read-only comparison-case mapping, the T7-S bounded projection security
 policy; T8 history calculation, adapter, stable joins, withholding, and provenance;
 T10 opt-in activation, fallback, profiles, explanations, T9 scenario parity, and
-legacy/API regressions; and the separate Reflex
+legacy/API regressions; T11 versioned serialization, persistence ports, final-decision
+validation, idempotency, PostgreSQL migration/transaction/immutability behavior; and
+the separate Reflex
 state-backend port. With the documented runtime services running and the ignored
 `.env` configured, integration tests can be selected explicitly:
 
 ```powershell
 pytest -m "integration and not e2e" -v
 ```
+
+T11 PostgreSQL tests require only the isolated test service and
+`T11_TEST_DATABASE_URL`; they do not require or mutate Odoo. Follow
+`docs/PERSISTENCE_DEVELOPMENT.md`. Never point the migration-cleanliness fixture at a
+production-like database because it deliberately migrates its isolated database
+down to `base` and back to `head`.
 
 The controlled T6 live contracts additionally require the exact fixture in
 `docs/T6_FIXTURE_SETUP.md` and `RUN_T6_LIVE_CONTRACTS=true`. They skip otherwise and
@@ -331,10 +359,11 @@ GitHub Actions runs two independent workflows on ephemeral Ubuntu runners:
   Its stable `quality` job performs the fast checks and validates the Compose model
   with temporary synthetic credentials.
 - **Container and API integration:** runs only for relevant runtime paths on pull
-  requests and `main`, plus manual dispatch. It starts PostgreSQL, Odoo, and FastAPI;
-  runs only integration-marked tests; verifies frontend compilation; and checks
-  technical named-volume persistence. It provisions Node.js 22.22 for the locked
-  frontend build dependencies. Superseded runs are cancelled.
+  requests and `main`, plus manual dispatch. It starts Odoo's PostgreSQL, a separate
+  disposable T11 PostgreSQL service, Odoo, and FastAPI; runs only integration-marked
+  tests; verifies frontend compilation; and checks technical named-volume
+  persistence. It provisions Node.js 22.22 for the locked frontend build
+  dependencies. Superseded runs are cancelled.
 
 The integration workflow is not browser-level E2E coverage. In particular,
 `reflex export --frontend-only --no-zip` proves that the frontend compiles, not that

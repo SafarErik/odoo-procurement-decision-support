@@ -18,7 +18,7 @@ def _imports(path: Path) -> set[str]:
 
 
 def test_decision_core_remains_erp_and_provenance_independent() -> None:
-    forbidden_roots = {"application", "backend", "odoo_adapter", "tools"}
+    forbidden_roots = {"application", "backend", "odoo_adapter", "persistence", "tools"}
     for path in (PROJECT_ROOT / "decision_core").glob("*.py"):
         imported_roots = {name.split(".", 1)[0] for name in _imports(path)}
         assert imported_roots.isdisjoint(forbidden_roots), path
@@ -131,3 +131,26 @@ def test_t10_runtime_does_not_import_t9_analysis_tooling() -> None:
     for package in ("application", "backend", "decision_core", "odoo_adapter"):
         for path in (PROJECT_ROOT / package).rglob("*.py"):
             assert "tools.t9_scoring_evaluation" not in _imports(path), path
+
+
+def test_t11_application_depends_only_on_persistence_ports() -> None:
+    for path in (PROJECT_ROOT / "application").glob("*.py"):
+        imports = _imports(path)
+        assert all(not name.startswith("persistence") for name in imports), path
+        assert all(not name.startswith(("sqlalchemy", "psycopg", "alembic")) for name in imports), (
+            path
+        )
+
+
+def test_t11_postgres_adapter_points_inward_and_domain_objects_are_not_orm_models() -> None:
+    for path in (PROJECT_ROOT / "persistence").glob("*.py"):
+        imports = _imports(path)
+        assert all(not name.startswith(("backend", "frontend", "odoo_adapter")) for name in imports)
+
+    domain_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for package in ("application", "decision_core")
+        for path in (PROJECT_ROOT / package).glob("*.py")
+    )
+    assert "DeclarativeBase" not in domain_sources
+    assert "mapped_column" not in domain_sources

@@ -1124,3 +1124,51 @@ The profile weights and `n >= 3` threshold remain PoC policy choices, not empiri
 optimization or statistical reliability evidence. See `docs/T10_HANDOFF.md` for the
 full command evidence, acceptance matrix, hosted CI status, limitations, and final
 decision.
+
+## T11 — decision-case persistence and human final-decision recording
+
+### Implemented on 2026-09-22
+
+T11 started from fetched, merged T10 `main` commit
+`6f691ec31e64ad2763d477475b581c8c41bf2c3a`, the merge commit for PR #11. Local
+`main` and `origin/main` matched after `git fetch --prune`; `docs/T10_HANDOFF.md`
+contained the final merge-ready GO and passed hosted Quality, container/API, and
+CodeRabbit evidence. The pre-change fast baseline passed with 222 tests and 23
+deselected on Python 3.14.7.
+
+The application now defines immutable `DecisionCase`, `HumanDecision`, and command
+contracts, plus narrow repository/unit-of-work ports and three use cases: store an
+evaluated case, retrieve it without recalculation, and record one human final
+decision. Acceptance requires the stored recommendation; override requires a
+different eligible offer and a non-empty rationale; no award forbids a selected
+offer and requires a rationale. Unknown or excluded offers fail closed. Actor
+references are caller-supplied attribution only.
+
+Snapshot schema version `1` explicitly serializes canonical inputs, selected scoring
+policy, legacy or T10 historical evaluation results, and provenance as separate JSON
+documents. Decimal values use plain exact strings and times use UTC `Z` notation.
+The historical form preserves activation/fallback context, affected identities,
+sample sizes, deterministic explanations, rankings, exclusions, and ordered
+criterion contributions. Unknown versions fail instead of being interpreted.
+
+The concrete adapter uses SQLAlchemy 2.x and psycopg with PostgreSQL JSONB. Alembic
+migration `20260922_01` creates the `decision_cases` table, relational lifecycle and
+identity columns, checks, a unique idempotency key, and a trigger that rejects any
+snapshot mutation and every post-finalization change. Final-decision fields and the
+state transition commit in one transaction. Identical retries with the same key and
+payload return the prior record; conflicting reuse or later decisions fail closed.
+Application startup does not create schema objects.
+
+Local focused unit/architecture checks passed with 35 tests. The full fast suite
+passed with 246 tests and 32 deselected. The isolated PostgreSQL suite passed with 9
+tests, including clean migration, three snapshot variants across separate sessions,
+rollback, database immutability, uniqueness, sequential double-finalization, and
+idempotency. Hosted CI remains pending until the branch is pushed and reviewed, so
+T11 must not yet be described as final GO. See `docs/T11_HANDOFF.md` for the complete
+acceptance status and excluded scope.
+
+The complete integration selection also passed with 28 tests, 4 controlled live
+fixture gates skipped because their opt-in flags were explicitly disabled, and 246
+fast tests deselected. Both Compose models validated. The run used temporary
+localhost-only tunnels for the known Podman Windows forwarding fault, then stopped
+the backend, containers, tunnels, and Podman machine while preserving Odoo volumes.
