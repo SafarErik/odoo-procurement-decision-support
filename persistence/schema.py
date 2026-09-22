@@ -1,0 +1,71 @@
+"""SQLAlchemy mapping for the T11 PostgreSQL decision-case table."""
+
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Integer,
+    PrimaryKeyConstraint,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class Base(DeclarativeBase):
+    """Declarative metadata consumed by Alembic only."""
+
+
+class DecisionCaseRecord(Base):
+    """Persistence representation; domain objects deliberately remain non-ORM."""
+
+    __tablename__ = "decision_cases"
+    __table_args__ = (
+        PrimaryKeyConstraint("decision_case_id", name="pk_decision_cases"),
+        UniqueConstraint("idempotency_key", name="uq_decision_cases_idempotency_key"),
+        CheckConstraint("snapshot_version = 1", name="ck_decision_cases_snapshot_version"),
+        CheckConstraint("state IN ('evaluated', 'finalized')", name="ck_decision_cases_state"),
+        CheckConstraint(
+            "human_outcome IS NULL OR human_outcome IN "
+            "('accept_recommendation', 'override_recommendation', 'no_award')",
+            name="ck_decision_cases_human_outcome",
+        ),
+        CheckConstraint(
+            "human_outcome IS NULL OR "
+            "(human_outcome = 'accept_recommendation' AND selected_offer_id IS NOT NULL) OR "
+            "(human_outcome = 'override_recommendation' AND selected_offer_id IS NOT NULL "
+            "AND length(btrim(rationale)) > 0) OR "
+            "(human_outcome = 'no_award' AND selected_offer_id IS NULL "
+            "AND length(btrim(rationale)) > 0)",
+            name="ck_decision_cases_outcome_fields",
+        ),
+        CheckConstraint(
+            "(state = 'evaluated' AND human_outcome IS NULL AND selected_offer_id IS NULL "
+            "AND rationale IS NULL AND decided_at IS NULL AND actor_reference IS NULL "
+            "AND idempotency_key IS NULL) OR "
+            "(state = 'finalized' AND human_outcome IS NOT NULL AND decided_at IS NOT NULL "
+            "AND actor_reference IS NOT NULL AND idempotency_key IS NOT NULL)",
+            name="ck_decision_cases_lifecycle_fields",
+        ),
+    )
+
+    decision_case_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    snapshot_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    policy_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    recommended_offer_id: Mapped[str | None] = mapped_column(String(255))
+    canonical_input_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    scoring_policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    evaluation_result_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    provenance_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    human_outcome: Mapped[str | None] = mapped_column(String(32))
+    selected_offer_id: Mapped[str | None] = mapped_column(String(255))
+    rationale: Mapped[str | None] = mapped_column(Text)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    actor_reference: Mapped[str | None] = mapped_column(String(255))
+    idempotency_key: Mapped[str | None] = mapped_column(String(36))
