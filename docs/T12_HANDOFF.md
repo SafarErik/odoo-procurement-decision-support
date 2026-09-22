@@ -57,10 +57,10 @@ All counts below are local, not hosted CI claims. The project `.venv` uses Pytho
 | Check | Observed result |
 | --- | --- |
 | Pre-change `pytest -m "not integration and not e2e" -q` | 246 passed, 32 deselected |
-| Focused T12 unit/API/architecture selection | 34 passed |
+| Focused T12 unit/API/architecture selection | 38 passed; includes explicit zero-scorer replay/read/finalization and safe repository-error response |
 | T11/T12 PostgreSQL selection | 14 passed, including migration, durable replay, concurrency, atomic rollback, and actual HTTP lifecycle |
-| Full `pytest -m "integration and not e2e" -q` with controlled live gates disabled | 33 passed, 4 skipped, 267 deselected; existing live RFQ/security/service regressions passed |
-| Final fast `pytest -m "not integration and not e2e" -q` | 267 passed, 37 deselected |
+| Full `pytest -m "integration and not e2e" -q` with controlled live gates disabled | 33 passed, 4 skipped, 271 deselected; existing live RFQ/security/service regressions passed |
+| Final fast `pytest -m "not integration and not e2e" -q` | 271 passed, 37 deselected |
 | `ruff format --check .`, `ruff check .`, compileall, pip check | Passed after the final source formatting pass |
 | Odoo and isolated persistence Podman Compose `config --quiet` | Both passed |
 | `git diff --check` | Passed; Windows line-ending conversion notices only |

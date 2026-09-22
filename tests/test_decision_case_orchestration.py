@@ -19,7 +19,7 @@ from application.decision_case_orchestration import (
 )
 from application.decision_cases import DecisionCaseState
 from application.decision_input_assembly import DecisionInputAssemblyError
-from application.rfqs import ProcurementDataUnavailable
+from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
 from decision_core import HistoricalScoringProfile, HistoricalScoringResult
 from tests.test_decision_input_assembly import OBSERVED_AT, _case, _history, _supplements
 
@@ -346,3 +346,70 @@ def test_duplicate_or_invalid_history_selection_fails_before_upstream():
             _create(_command(history=selection), FakeUnitOfWork(), reader, FakeHistoryReader())
         assert error.value.code == "invalid_history_selection"
         assert reader.calls == 0
+
+
+def test_invalid_comparison_selection_and_response_fail_closed():
+    reader = FakeComparisonReader()
+    with pytest.raises(OrchestrationError) as invalid:
+        _create(
+            replace(_command(), purchase_group_id=0), FakeUnitOfWork(), reader, FakeHistoryReader()
+        )
+    assert invalid.value.code == "invalid_comparison_selection"
+    assert reader.calls == 0
+
+    bad_facts = replace(_case(), comparison_case_id="odoo:purchase.order.group:999")
+    with pytest.raises(OrchestrationError) as mismatched:
+        _create(_command(), FakeUnitOfWork(), FakeComparisonReader(bad_facts), FakeHistoryReader())
+    assert mismatched.value.code == "invalid_comparison_response"
+
+
+def test_history_source_failure_is_safe_and_does_not_commit(monkeypatch):
+    facts = replace(
+        _case(),
+        offers=tuple(
+            replace(offer, supplier_id=f"odoo:res.partner:{301 + index}")
+            for index, offer in enumerate(_case().offers)
+        ),
+    )
+    selected = HistorySelection(
+        OBSERVED_AT,
+        tuple(
+            SupplierHistorySelection(
+                offer.supplier_id, (f"odoo:purchase.order.line:{201 + index}",)
+            )
+            for index, offer in enumerate(facts.offers)
+        ),
+    )
+
+    async def broken_acquire(reader, queries):
+        raise ProcurementDataResponseError("upstream-secret-detail")
+
+    monkeypatch.setattr(
+        "application.decision_case_orchestration.acquire_historical_performance",
+        broken_acquire,
+    )
+    uow = FakeUnitOfWork()
+    with pytest.raises(OrchestrationError) as error:
+        _create(_command(history=selected), uow, FakeComparisonReader(facts), FakeHistoryReader())
+    assert error.value.code == "odoo_response_error"
+    assert "upstream-secret-detail" not in str(error.value)
+    assert not uow.cases.items and not uow.creations.items
+
+
+def test_evaluation_runs_once_then_replay_runs_no_scorer(monkeypatch):
+    import application.decision_case_orchestration as orchestration
+
+    actual_evaluate = orchestration.evaluate_procurement_decision
+    calls = []
+
+    def counted_evaluate(*args):
+        calls.append(args)
+        return actual_evaluate(*args)
+
+    monkeypatch.setattr(orchestration, "evaluate_procurement_decision", counted_evaluate)
+    uow = FakeUnitOfWork()
+    command = _command()
+    created = _create(command, uow, FakeComparisonReader(), FakeHistoryReader())
+    replayed = _create(command, uow, FakeComparisonReader(), FakeHistoryReader())
+    assert len(calls) == 1
+    assert replayed.replayed and replayed.decision_case == created.decision_case

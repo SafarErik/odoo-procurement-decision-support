@@ -75,7 +75,8 @@ modify machine snapshots or write to Odoo.
 Stable code-bearing errors map to `401` trusted-caller failure, `404` missing case,
 `409` creation/finalization conflict, `422` malformed input or domain rule, `502`
 invalid Odoo response, and `503` unavailable Odoo/database or unconfigured gate.
-Upstream and database exception text is replaced with safe messages. Normal FastAPI
+Upstream and database exception text is replaced with safe messages, including
+repository setup failures raised directly at the HTTP composition boundary. Normal FastAPI
 schema validation also returns `422`.
 
 Alembic revision `20260922_02` adds `decision_case_creations` after T11's

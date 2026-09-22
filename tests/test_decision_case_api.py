@@ -63,7 +63,7 @@ def _payload():
     }
 
 
-def test_create_replay_get_finalize_and_stored_snapshots(configured):
+def test_create_replay_get_finalize_and_stored_snapshots(configured, monkeypatch):
     _, comparison, history = configured
     key = str(uuid4())
     headers = _headers(key)
@@ -72,6 +72,14 @@ def test_create_replay_get_finalize_and_stored_snapshots(configured):
     created = first.json()
     assert created["idempotent_replay"] is False
     assert created["recommended_offer_id"] is not None
+
+    def forbidden_score(*args, **kwargs):
+        raise AssertionError("Stored-case flows must not invoke a scorer")
+
+    monkeypatch.setattr(
+        "application.decision_case_orchestration.evaluate_procurement_decision",
+        forbidden_score,
+    )
     replay = client.post(BASE, json=_payload(), headers=headers)
     assert replay.status_code == 200
     assert replay.json()["decision_case_id"] == created["decision_case_id"]
@@ -154,6 +162,11 @@ def test_conflict_auth_and_input_errors(configured, monkeypatch):
         ).status_code
         == 422
     )
+    non_utc = _payload()
+    non_utc["supplemental_terms"][0]["hard_minimum_order_quantity"]["observed_at"] = (
+        "2026-09-22T09:00:00+01:00"
+    )
+    assert client.post(BASE, json=non_utc, headers=_headers()).status_code == 422
     monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(""))
     assert client.get(f"{BASE}/{uuid4()}", headers=_headers()).status_code == 503
 
@@ -215,3 +228,34 @@ def test_upstream_errors_are_safe(configured, monkeypatch, failure, expected):
     response = client.post(BASE, json=_payload(), headers=_headers())
     assert response.status_code == expected
     assert "secret-upstream-detail" not in response.text
+    assert "test-only-shared-secret" not in response.text
+
+
+def test_persistence_error_and_non_utc_finalization_are_safe(configured, monkeypatch):
+    import backend.app.routes.decision_cases as routes
+    from application.decision_cases import RepositoryError
+
+    created = client.post(BASE, json=_payload(), headers=_headers()).json()
+    case_id = created["decision_case_id"]
+    invalid = {
+        "outcome": "no_award",
+        "selected_offer_id": None,
+        "rationale": "Documented reason",
+        "decided_at": "2026-09-22T09:30:00+01:00",
+        "actor_reference": "caller-label",
+    }
+    assert (
+        client.post(
+            f"{BASE}/{case_id}/final-decision", json=invalid, headers=_headers()
+        ).status_code
+        == 422
+    )
+
+    def unavailable():
+        raise RepositoryError("repository_failure", "secret database detail")
+
+    monkeypatch.setattr(routes, "get_decision_unit_of_work", unavailable)
+    response = client.get(f"{BASE}/{case_id}", headers=_headers())
+    assert response.status_code == 503
+    assert "secret database detail" not in response.text
+    assert "test-only-shared-secret" not in response.text

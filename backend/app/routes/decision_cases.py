@@ -138,7 +138,10 @@ def _http_error(error: OrchestrationError | DecisionCaseError | RepositoryError)
         status_code = 502
     else:
         status_code = 422
-    return HTTPException(status_code, detail={"code": code, "message": str(error)})
+    message = (
+        "Decision persistence is unavailable." if isinstance(error, RepositoryError) else str(error)
+    )
+    return HTTPException(status_code, detail={"code": code, "message": message})
 
 
 def _unit_of_work():
