@@ -2,8 +2,8 @@
 
 ## Decision
 
-**PENDING — implementation and local persistence verification pass; hosted CI is
-required before GO.**
+**GO — implementation, local persistence verification, hosted CI, and review pass;
+PR #12 is merge-ready.**
 
 Branch: `codex/t11-decision-case-persistence-human-decision`
 
@@ -11,10 +11,12 @@ Base `main`: `6f691ec31e64ad2763d477475b581c8c41bf2c3a`
 
 Implementation commit: `5e058cd0bbff711c8441c2f62e804ca21415a0e8`
 
-The PR link and final documentation-only commit remain pending. This handoff cannot
-self-reference its eventual final commit; that SHA will be reported in the delivery
-response. The decision must not change to GO until the hosted Quality and
-container/API integration workflows pass.
+PR: [#12](https://github.com/SafarErik/odoo-procurement-decision-support/pull/12)
+
+Hosted Quality, Container and API integration, and CodeRabbit checks pass. PR #12
+is open, non-draft, mergeable, and has no unresolved review threads. The final
+cleanup commit cannot self-reference its own SHA; that SHA is reported in the
+delivery response.
 
 ## Preconditions and baseline
 
@@ -135,6 +137,10 @@ acceptance/override and selection of an excluded offer are rejected.
   backup/restore, retention, regulatory compliance, or production deployment.
 - Database URLs and passwords stay in ignored environment configuration. Tests use
   a separate localhost-only disposable PostgreSQL service.
+- The test Compose file supplies `POSTGRES_PASSWORD` only through the env-only
+  `${T11_POSTGRES_PASSWORD}` interpolation sourced from the externally required
+  variable. It contains no password default or fixed test credential. CI supplies
+  a fresh synthetic value per run.
 - The persistence path does not use or log Odoo credentials, supplier snapshots,
   provenance documents, or rationales.
 
@@ -154,7 +160,8 @@ acceptance/override and selection of an excluded offer are rejected.
 | `git diff --check` | PASS |
 | Odoo and T11 Compose configuration | PASS |
 | `pytest -m "integration and not e2e" -v` | PASS — 28 passed, 4 skipped, 246 deselected |
-| hosted GitHub Actions | PENDING — branch not yet pushed |
+| hosted GitHub Actions | PASS — Quality and Container and API integration |
+| hosted review/security checks | PASS — CodeRabbit; GitGuardian ambiguity removed |
 
 Local PostgreSQL validation used the isolated T11 service. Podman's Windows forwarding
 helper failed at machine startup, so the test connected through a temporary
@@ -191,7 +198,7 @@ were stopped afterward without deleting the existing Odoo named volumes.
 | 21 | No frontend changes | PASS |
 | 22 | No automatic procurement action | PASS |
 | 23 | Existing T0-T10 regressions remain green | PASS — fast suite |
-| 24 | Hosted CI passes | PENDING |
+| 24 | Hosted CI passes | PASS |
 | 25 | Documentation reflects scope | PASS locally |
 
 ## Explicitly out of scope
