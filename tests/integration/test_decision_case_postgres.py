@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 import pytest
@@ -12,6 +14,7 @@ from alembic.config import Config
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import DBAPIError
 
+from application.decision_case_orchestration import OrchestrationError, create_decision_case
 from application.decision_cases import (
     DecisionCaseError,
     DecisionCaseState,
@@ -23,6 +26,13 @@ from application.decision_cases import (
 )
 from persistence import SqlAlchemyUnitOfWork, create_session_factory
 from tests.t11_helpers import NOW, variant
+from tests.test_decision_case_orchestration import (
+    FakeComparisonReader,
+    FakeHistoryReader,
+)
+from tests.test_decision_case_orchestration import (
+    _command as _create_command,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -46,7 +56,7 @@ def postgres_runtime() -> Iterator[tuple[object, object]]:
 def empty_decision_cases(postgres_runtime) -> Iterator[None]:
     engine, _ = postgres_runtime
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE TABLE decision_cases"))
+        connection.execute(text("TRUNCATE TABLE decision_case_creations, decision_cases"))
     yield
 
 
@@ -88,7 +98,7 @@ def test_clean_database_migration_creates_versioned_immutable_schema(postgres_ru
     }
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "20260922_01"
+            "20260922_02"
         )
 
 
@@ -212,3 +222,172 @@ def test_idempotency_key_is_unique_across_cases(postgres_runtime) -> None:
         get_decision_case(SqlAlchemyUnitOfWork(session_factory), second_id).state
         is DecisionCaseState.EVALUATED
     )
+
+
+def _t12_create(session_factory, command, comparison=None):
+    return asyncio.run(
+        create_decision_case(
+            command,
+            comparison_reader=comparison or FakeComparisonReader(),
+            history_reader=FakeHistoryReader(),
+            unit_of_work=SqlAlchemyUnitOfWork(session_factory),
+            clock=lambda: NOW,
+        )
+    )
+
+
+def test_t12_creation_mapping_survives_sessions_and_finalization(postgres_runtime) -> None:
+    engine, session_factory = postgres_runtime
+    inspector = inspect(engine)
+    assert "decision_case_creations" in inspector.get_table_names()
+    assert {column["name"] for column in inspector.get_columns("decision_case_creations")} == {
+        "idempotency_key",
+        "request_fingerprint",
+        "decision_case_id",
+    }
+    command = _create_command()
+    reader = FakeComparisonReader()
+    created = _t12_create(session_factory, command, reader)
+    replayed = _t12_create(session_factory, command, reader)
+    assert replayed.replayed and replayed.decision_case == created.decision_case
+    assert reader.calls == 1
+    stored = get_decision_case(
+        SqlAlchemyUnitOfWork(session_factory), created.decision_case.decision_case_id
+    )
+    assert stored == created.decision_case
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT count(*) FROM decision_case_creations")).scalar_one()
+            == 1
+        )
+        assert connection.execute(text("SELECT count(*) FROM decision_cases")).scalar_one() == 1
+
+    human = _command(
+        HumanDecisionOutcome.ACCEPT_RECOMMENDATION,
+        stored.recommended_offer_id,
+        None,
+        str(uuid4()),
+    )
+    finalized = record_human_decision(
+        SqlAlchemyUnitOfWork(session_factory), stored.decision_case_id, human
+    )
+    assert finalized.assembled_input == stored.assembled_input
+    assert finalized.evaluation == stored.evaluation
+    assert finalized.scoring_policy == stored.scoring_policy
+
+
+def test_t12_concurrent_identical_requests_store_one_case(postgres_runtime) -> None:
+    engine, session_factory = postgres_runtime
+    command = _create_command()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(_t12_create, session_factory, command) for _ in range(2)]
+        results = [future.result(timeout=20) for future in futures]
+    assert results[0].decision_case.decision_case_id == results[1].decision_case.decision_case_id
+    assert sorted(item.replayed for item in results) == [False, True]
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT count(*) FROM decision_case_creations")).scalar_one()
+            == 1
+        )
+        assert connection.execute(text("SELECT count(*) FROM decision_cases")).scalar_one() == 1
+
+
+def test_t12_concurrent_conflicting_requests_store_one_case(postgres_runtime) -> None:
+    engine, session_factory = postgres_runtime
+    command = _create_command()
+    from dataclasses import replace
+
+    changed = replace(command, scoring_policy_id="urgent")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(_t12_create, session_factory, item) for item in (command, changed)]
+        outcomes = []
+        for future in futures:
+            try:
+                outcomes.append(future.result(timeout=20))
+            except OrchestrationError as error:
+                outcomes.append(error)
+    assert sum(isinstance(item, OrchestrationError) for item in outcomes) == 1
+    assert (
+        next(item for item in outcomes if isinstance(item, OrchestrationError)).code
+        == "creation_idempotency_conflict"
+    )
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT count(*) FROM decision_case_creations")).scalar_one()
+            == 1
+        )
+        assert connection.execute(text("SELECT count(*) FROM decision_cases")).scalar_one() == 1
+
+
+def test_t12_failed_case_insert_leaves_no_create_key(postgres_runtime) -> None:
+    engine, session_factory = postgres_runtime
+    command = _create_command()
+    first = _t12_create(session_factory, command)
+    second_command = _create_command()
+    with pytest.raises(OrchestrationError) as captured:
+        asyncio.run(
+            create_decision_case(
+                second_command,
+                comparison_reader=FakeComparisonReader(),
+                history_reader=FakeHistoryReader(),
+                unit_of_work=SqlAlchemyUnitOfWork(session_factory),
+                clock=lambda: NOW,
+                new_id=lambda: first.decision_case.decision_case_id,
+            )
+        )
+    assert captured.value.code == "decision_case_persistence_failed"
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT count(*) FROM decision_case_creations")).scalar_one()
+            == 1
+        )
+        assert connection.execute(text("SELECT count(*) FROM decision_cases")).scalar_one() == 1
+
+
+def test_t12_actual_http_flow_uses_postgres_and_no_recomputation(
+    postgres_runtime, monkeypatch
+) -> None:
+    from fastapi.testclient import TestClient
+    from pydantic import SecretStr
+
+    import backend.app.routes.decision_cases as routes
+    from backend.app.config import settings
+    from backend.app.main import app
+    from tests.test_decision_case_api import _payload
+
+    _, session_factory = postgres_runtime
+    reader = FakeComparisonReader()
+    history = FakeHistoryReader()
+    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("isolated-test-token"))
+    monkeypatch.setattr(routes, "get_comparison_case_reader", lambda: reader)
+    monkeypatch.setattr(routes, "get_historical_performance_reader", lambda: history)
+    monkeypatch.setattr(
+        routes, "get_decision_unit_of_work", lambda: SqlAlchemyUnitOfWork(session_factory)
+    )
+    http = TestClient(app)
+    base = "/api/v1/procurement/decision-cases"
+    headers = {"Authorization": "Bearer isolated-test-token", "Idempotency-Key": str(uuid4())}
+    created_response = http.post(base, json=_payload(), headers=headers)
+    assert created_response.status_code == 201, created_response.text
+    created = created_response.json()
+    case_id = created["decision_case_id"]
+    assert http.post(base, json=_payload(), headers=headers).status_code == 200
+    stored = http.get(f"{base}/{case_id}", headers=headers)
+    assert stored.status_code == 200
+    assert stored.json()["canonical_input"] == created["canonical_input"]
+    assert stored.json()["evaluation"] == created["evaluation"]
+    decision = {
+        "outcome": "accept_recommendation",
+        "selected_offer_id": created["recommended_offer_id"],
+        "rationale": None,
+        "decided_at": "2026-09-22T08:30:00Z",
+        "actor_reference": "human-provided-audit-label",
+    }
+    final_headers = {**headers, "Idempotency-Key": str(uuid4())}
+    finalized = http.post(f"{base}/{case_id}/final-decision", json=decision, headers=final_headers)
+    assert finalized.status_code == 200, finalized.text
+    again = http.get(f"{base}/{case_id}", headers=headers)
+    assert again.json()["state"] == "finalized"
+    for field in ("canonical_input", "scoring_policy", "evaluation", "provenance"):
+        assert again.json()[field] == created[field]
+    assert reader.calls == 1 and history.calls == 0

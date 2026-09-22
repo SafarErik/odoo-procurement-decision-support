@@ -1172,3 +1172,30 @@ fixture gates skipped because their opt-in flags were explicitly disabled, and 2
 fast tests deselected. Both Compose models validated. The run used temporary
 localhost-only tunnels for the known Podman Windows forwarding fault, then stopped
 the backend, containers, tunnels, and Podman machine while preserving Odoo volumes.
+
+## T12 — controlled end-to-end orchestration API (2026-09-22)
+
+Starting `origin/main`: `0a1eee8a323f6cfe68a5cc30319d1f8c058d5c26`
+(merged T11 / PR #12). Branch: `codex/t12-controlled-e2e-orchestration-api`.
+Pre-change fast baseline: 246 passed, 32 deselected. Ruff format, Ruff check,
+compileall, and pip check passed before implementation.
+
+Added an application coordinator using the existing bounded comparison-case reader,
+T6 supplemental assembler, optional T8/T7-S history path, accepted T10 policy
+selection/evaluation, and T11 case repository. The three versioned decision-case
+routes require a shared PoC bearer token; it does not authenticate the buyer or
+`actor_reference`. GET reconstructs stored snapshots and never refreshes live data.
+The original T3 evaluate route is unchanged. No Odoo write or frontend path was
+added.
+
+Alembic `20260922_02` adds durable creation idempotency with a canonical UUID key,
+normalized SHA-256 request fingerprint, transaction advisory lock, and a unique
+foreign key to the decision case. The key mapping and case commit atomically; exact
+replay skips all upstream reads and scoring. T11's human-finalization idempotency and
+immutable trigger remain separate and unchanged.
+
+Verification and limitations are recorded in `docs/T12_HANDOFF.md`. This increment
+does not discover arbitrary supplier history, verify supplemental values as facts,
+provide production identity management, create a decision frontend, or write to
+Odoo. The controlled T6 and T7 history fixtures are separate; no three-supplier
+live historical-scoring claim is made.

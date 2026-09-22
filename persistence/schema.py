@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Integer,
     PrimaryKeyConstraint,
     String,
@@ -69,3 +70,16 @@ class DecisionCaseRecord(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     actor_reference: Mapped[str | None] = mapped_column(String(255))
     idempotency_key: Mapped[str | None] = mapped_column(String(36))
+
+
+class DecisionCaseCreationRecord(Base):
+    """Durable create-key mapping, committed with its immutable case."""
+
+    __tablename__ = "decision_case_creations"
+    __table_args__ = (PrimaryKeyConstraint("idempotency_key", name="pk_decision_case_creations"),)
+
+    idempotency_key: Mapped[str] = mapped_column(String(36), nullable=False)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    decision_case_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("decision_cases.decision_case_id"), nullable=False, unique=True
+    )

@@ -19,11 +19,10 @@ source-attributed hard MOQ and supplier-promised lead time while provenance stay
 outside the Decision Core. The application can retrieve open RFQ summaries through
 the existing public read-only ledger. Separately,
 `POST /api/v1/procurement/decisions/evaluate` evaluates caller-supplied canonical
-requirements, offers, and weights through the Decision Core. These public flows
-remain deliberately unconnected. T6 provides only an internal, explicitly invoked
-hybrid assembly path for the validated comparison-case subset; it does not provide
-automatic RFQ evaluation or a production Odoo-to-decision pipeline. There is still
-no decision UI or Odoo write operation. T7 completed
+requirements, offers, and weights through the Decision Core. T12 now connects the
+controlled comparison-case path to immutable case persistence through a separate
+trusted-caller API. The original RFQ ledger and caller-supplied evaluation endpoint
+remain available. There is still no decision UI or Odoo write operation. T7 completed
 historical-performance discovery and controlled live
 acceptance for one candidate, `delivery_schedule_adherence`. T7-S preserves a
 separate, bounded, read-only projection identity while direct stock-model reads
@@ -495,3 +494,36 @@ The CI persistence check uses synthetic files to verify only that Docker named
 volumes survive stack recreation. It does not establish persistence of an actual
 Odoo business scenario. That evidence must come later from the implemented Odoo
 integration flow.
+
+## T12 controlled decision-case API
+
+The T12 application coordinator creates one immutable decision case from an explicit
+Odoo `purchase_group_id`, source-attributed supplemental MOQ and supplier-promised
+lead-time terms, an optional exact supplier purchase-line history selection, and one
+named scoring policy. It reuses the T6 assembler, T8 bounded history acquisition,
+T10 scoring paths, and T11 PostgreSQL UnitOfWork. It never writes to Odoo.
+
+All three routes require `Authorization: Bearer <T12_TRUSTED_CALLER_TOKEN>`. This
+shared PoC secret proves only possession by a caller; `actor_reference` is
+caller-supplied audit text, **not an authenticated buyer identity**. An unset token
+fails closed. Set `DECISION_DATABASE_URL` and apply Alembic migrations explicitly
+before use; startup never creates the schema.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/v1/procurement/decision-cases` | Assemble, evaluate, and atomically persist one case; canonical UUID `Idempotency-Key` required; first success `201`, exact replay `200`, conflicting reuse `409` |
+| `GET /api/v1/procurement/decision-cases/{decision_case_id}` | Return stored snapshots only; no Odoo/history read or rescoring |
+| `POST /api/v1/procurement/decision-cases/{decision_case_id}/final-decision` | Reuse the one-time T11 accept, override, or no-award rules; a separate canonical UUID `Idempotency-Key` is required |
+
+Create requests accept only the named policies `cost-focused`, `urgent`, `balanced`,
+`cost_focused_history_v1`, `urgent_history_v1`, and `risk_averse_history_v1`; there
+are no HTTP-supplied weights. History is optional and requires explicit exact
+purchase-line IDs for each comparison supplier plus an explicit UTC `window_end`.
+The application derives the accepted 365-day window. Arbitrary supplier history
+discovery is not implemented. Without history, a selected historical policy follows
+the accepted exact legacy fallback. Decimal values are HTTP strings, and source
+attribution records origin and observation time without certifying truth.
+
+See [T12 design](docs/T12_DESIGN.md) and [T12 handoff](docs/T12_HANDOFF.md) for the
+request shape, migration, limitations, and verification evidence. The existing
+`POST /api/v1/procurement/decisions/evaluate` remains unchanged.
