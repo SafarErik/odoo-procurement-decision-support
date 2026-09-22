@@ -1,9 +1,26 @@
 # T11 Persistence Development and Migration Guide
 
+T12 extends the same isolated database with Alembic revision `20260922_02`.
+Run `python -m alembic upgrade head` explicitly before calling the new T12 routes.
+The new `decision_case_creations` table stores one canonical create key, semantic
+SHA-256 request fingerprint, and foreign key to its immutable `decision_cases` row.
+Both inserts commit in the same UnitOfWork transaction. A transaction advisory lock
+serializes requests using the same key. The T11 snapshot-immutability trigger and
+separate final-decision idempotency remain unchanged. `DECISION_DATABASE_URL` must
+be configured for the backend; `T12_TRUSTED_CALLER_TOKEN` must also be configured
+to open any T12 route. Neither setting belongs in source control.
+
+The isolated integration suite now validates the T12 schema, durable replay,
+same-key concurrency, and FastAPI create/retrieve/finalize/retrieve against the
+disposable PostgreSQL service. The clean migration fixture resets only that
+explicitly named test database; never point `T11_TEST_DATABASE_URL` at Odoo or a
+shared database.
+
 T11 uses PostgreSQL only through the `persistence/` adapter. Application use cases
 depend on `DecisionCaseRepository` and `UnitOfWork` contracts, and the Decision Core
 has no persistence dependency. Application startup never creates or changes the
-schema; Alembic migration `20260922_01` is the only supported schema setup path.
+schema; explicit Alembic migrations `20260922_01` and `20260922_02` are the only
+supported schema setup path.
 
 ## Safety boundary
 

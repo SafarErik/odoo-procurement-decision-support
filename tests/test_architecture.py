@@ -154,3 +154,26 @@ def test_t11_postgres_adapter_points_inward_and_domain_objects_are_not_orm_model
     )
     assert "DeclarativeBase" not in domain_sources
     assert "mapped_column" not in domain_sources
+
+
+def test_t12_orchestration_and_http_boundaries_are_narrow() -> None:
+    application_imports = set()
+    for path in (PROJECT_ROOT / "application").glob("*.py"):
+        application_imports.update(_imports(path))
+    assert all(
+        not name.startswith(("odoo_adapter", "sqlalchemy", "psycopg", "alembic", "backend"))
+        for name in application_imports
+    )
+    route = PROJECT_ROOT / "backend" / "app" / "routes" / "decision_cases.py"
+    route_imports = _imports(route)
+    assert all(not name.startswith(("odoo_adapter", "decision_core")) for name in route_imports)
+    route_source = route.read_text(encoding="utf-8")
+    assert "evaluate_procurement_decision" not in route_source
+    assert "read_comparison_case" not in route_source
+    assert "read_inventory_history" not in route_source
+    assert "require_trusted_caller" in route_source
+    assert "actor_reference" in route_source
+    for path in (PROJECT_ROOT / "persistence").glob("*.py"):
+        assert all(
+            not name.startswith(("backend", "frontend", "odoo_adapter")) for name in _imports(path)
+        )

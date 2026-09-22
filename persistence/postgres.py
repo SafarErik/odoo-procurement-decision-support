@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import UTC
 from typing import Self
 
-from sqlalchemy import Engine, create_engine, select, update
+from sqlalchemy import Engine, create_engine, select, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -28,7 +28,7 @@ from application.decision_cases import (
     RepositoryError,
 )
 from application.decision_input_assembly import AssembledDecisionInput
-from persistence.schema import DecisionCaseRecord
+from persistence.schema import DecisionCaseCreationRecord, DecisionCaseRecord
 
 SessionFactory = Callable[[], Session]
 
@@ -138,6 +138,49 @@ class SqlAlchemyDecisionCaseRepository:
             ) from error
 
 
+class SqlAlchemyCreationRepository:
+    """Create-key mapping under the caller's transaction and advisory lock."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def lock(self, key: str) -> None:
+        try:
+            self._session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": key}
+            )
+        except SQLAlchemyError as error:
+            raise RepositoryError(
+                "repository_failure", "The create key could not be locked."
+            ) from error
+
+    def get(self, key: str) -> tuple[str, str] | None:
+        try:
+            record = self._session.get(DecisionCaseCreationRecord, key)
+        except SQLAlchemyError as error:
+            raise RepositoryError(
+                "repository_failure", "The create key could not be read."
+            ) from error
+        return (record.request_fingerprint, record.decision_case_id) if record else None
+
+    def add(self, key: str, fingerprint: str, case_id: str) -> None:
+        self._session.add(
+            DecisionCaseCreationRecord(
+                idempotency_key=key,
+                request_fingerprint=fingerprint,
+                decision_case_id=case_id,
+            )
+        )
+        try:
+            self._session.flush()
+        except IntegrityError as error:
+            raise _integrity_error(error) from error
+        except SQLAlchemyError as error:
+            raise RepositoryError(
+                "repository_failure", "The create key could not be stored."
+            ) from error
+
+
 class SqlAlchemyUnitOfWork:
     """One SQLAlchemy session and transaction per application use-case call."""
 
@@ -145,11 +188,13 @@ class SqlAlchemyUnitOfWork:
         self._session_factory = session_factory
         self._session: Session | None = None
         self.cases: SqlAlchemyDecisionCaseRepository
+        self.creations: SqlAlchemyCreationRepository
         self._committed = False
 
     def __enter__(self) -> Self:
         self._session = self._session_factory()
         self.cases = SqlAlchemyDecisionCaseRepository(self._session)
+        self.creations = SqlAlchemyCreationRepository(self._session)
         self._committed = False
         return self
 

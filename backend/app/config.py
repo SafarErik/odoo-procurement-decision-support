@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     odoo_database: str = ""
     odoo_api_key: SecretStr = SecretStr("")
     odoo_t7s_api_key: SecretStr = SecretStr("")
+    decision_database_url: SecretStr = SecretStr("")
+    t12_trusted_caller_token: SecretStr = SecretStr("")
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     run_t6_live_contracts: bool = False
     run_t7s_live_contracts: bool = False
