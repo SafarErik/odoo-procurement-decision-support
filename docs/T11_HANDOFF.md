@@ -9,9 +9,12 @@ Branch: `codex/t11-decision-case-persistence-human-decision`
 
 Base `main`: `6f691ec31e64ad2763d477475b581c8c41bf2c3a`
 
-Final implementation commit and PR link will be recorded after the branch is pushed.
-This handoff must not be changed to GO until the hosted Quality and container/API
-integration workflows pass.
+Implementation commit: `5e058cd0bbff711c8441c2f62e804ca21415a0e8`
+
+The PR link and final documentation-only commit remain pending. This handoff cannot
+self-reference its eventual final commit; that SHA will be reported in the delivery
+response. The decision must not change to GO until the hosted Quality and
+container/API integration workflows pass.
 
 ## Preconditions and baseline
 
