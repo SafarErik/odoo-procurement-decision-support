@@ -1,0 +1,690 @@
+{
+  "python": "3.14.7",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "pulp": "3.3.0",
+  "cbc_version": "Version: 2.10.3 ",
+  "solver_settings": {
+    "threads": 1,
+    "randomSeed": 1,
+    "randomCbcSeed": 1,
+    "gapRel": 0,
+    "gapAbs": 0,
+    "per_phase_seconds": 10
+  },
+  "input": {
+    "required_quantity": 100,
+    "suppliers": [
+      {
+        "supplier_id": "A",
+        "unit_cost": "10",
+        "capacity": 60,
+        "minimum_quantity": 0,
+        "available": true,
+        "deadline_eligible": true,
+        "historical_adherence": "0.60",
+        "sample_size": 20,
+        "price_tiers": []
+      },
+      {
+        "supplier_id": "B",
+        "unit_cost": "10.50",
+        "capacity": 80,
+        "minimum_quantity": 0,
+        "available": true,
+        "deadline_eligible": true,
+        "historical_adherence": "0.95",
+        "sample_size": 20,
+        "price_tiers": []
+      },
+      {
+        "supplier_id": "C",
+        "unit_cost": "11",
+        "capacity": 100,
+        "minimum_quantity": 0,
+        "available": true,
+        "deadline_eligible": true,
+        "historical_adherence": "0.99",
+        "sample_size": 20,
+        "price_tiers": []
+      }
+    ],
+    "max_suppliers": 2,
+    "concentration_limit": "0.80"
+  },
+  "minimum_cost": {
+    "status": "optimal",
+    "plan": {
+      "allocations": [
+        [
+          "A",
+          60
+        ],
+        [
+          "B",
+          40
+        ],
+        [
+          "C",
+          0
+        ]
+      ],
+      "total_quantity": 100,
+      "total_cost": "1020",
+      "selected_suppliers": [
+        "A",
+        "B"
+      ],
+      "risk_proxy": "0.26",
+      "concentration": "0.6",
+      "selected_supplier_count": 2,
+      "cost_premium": null,
+      "explanations": [
+        {
+          "supplier_id": "A",
+          "code": "capacity_binding",
+          "detail": "Capacity reached: 60."
+        },
+        {
+          "supplier_id": "C",
+          "code": "zero_in_optimal_plan",
+          "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+        }
+      ]
+    },
+    "reasons": []
+  },
+  "epsilon_plans": {
+    "0": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            60
+          ],
+          [
+            "B",
+            40
+          ],
+          [
+            "C",
+            0
+          ]
+        ],
+        "total_quantity": 100,
+        "total_cost": "1020",
+        "selected_suppliers": [
+          "A",
+          "B"
+        ],
+        "risk_proxy": "0.26",
+        "concentration": "0.6",
+        "selected_supplier_count": 2,
+        "cost_premium": "0",
+        "explanations": [
+          {
+            "supplier_id": "A",
+            "code": "capacity_binding",
+            "detail": "Capacity reached: 60."
+          },
+          {
+            "supplier_id": "C",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          },
+          {
+            "supplier_id": null,
+            "code": "cost_premium",
+            "detail": "Extra cost 0; relative premium 0 over the minimum-cost plan."
+          }
+        ]
+      },
+      "reasons": []
+    },
+    "0.02": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            20
+          ],
+          [
+            "B",
+            80
+          ],
+          [
+            "C",
+            0
+          ]
+        ],
+        "total_quantity": 100,
+        "total_cost": "1040",
+        "selected_suppliers": [
+          "A",
+          "B"
+        ],
+        "risk_proxy": "0.12",
+        "concentration": "0.8",
+        "selected_supplier_count": 2,
+        "cost_premium": "0.01960784313725490196078431372549019607843",
+        "explanations": [
+          {
+            "supplier_id": "B",
+            "code": "capacity_binding",
+            "detail": "Capacity reached: 80."
+          },
+          {
+            "supplier_id": "B",
+            "code": "concentration_binding",
+            "detail": "Concentration bound reached."
+          },
+          {
+            "supplier_id": "C",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          },
+          {
+            "supplier_id": null,
+            "code": "cost_premium",
+            "detail": "Extra cost 20; relative premium 0.01960784313725490196078431372549019607843 over the minimum-cost plan."
+          }
+        ]
+      },
+      "reasons": []
+    },
+    "0.05": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            0
+          ],
+          [
+            "B",
+            58
+          ],
+          [
+            "C",
+            42
+          ]
+        ],
+        "total_quantity": 100,
+        "total_cost": "1071",
+        "selected_suppliers": [
+          "B",
+          "C"
+        ],
+        "risk_proxy": "0.0332",
+        "concentration": "0.58",
+        "selected_supplier_count": 2,
+        "cost_premium": "0.05",
+        "explanations": [
+          {
+            "supplier_id": "A",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          },
+          {
+            "supplier_id": null,
+            "code": "cost_premium",
+            "detail": "Extra cost 51; relative premium 0.05 over the minimum-cost plan."
+          }
+        ]
+      },
+      "reasons": []
+    },
+    "0.10": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            0
+          ],
+          [
+            "B",
+            20
+          ],
+          [
+            "C",
+            80
+          ]
+        ],
+        "total_quantity": 100,
+        "total_cost": "1090",
+        "selected_suppliers": [
+          "B",
+          "C"
+        ],
+        "risk_proxy": "0.018",
+        "concentration": "0.8",
+        "selected_supplier_count": 2,
+        "cost_premium": "0.06862745098039215686274509803921568627451",
+        "explanations": [
+          {
+            "supplier_id": "A",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          },
+          {
+            "supplier_id": "C",
+            "code": "concentration_binding",
+            "detail": "Concentration bound reached."
+          },
+          {
+            "supplier_id": null,
+            "code": "cost_premium",
+            "detail": "Extra cost 70; relative premium 0.06862745098039215686274509803921568627451 over the minimum-cost plan."
+          }
+        ]
+      },
+      "reasons": []
+    }
+  },
+  "unique_epsilon_allocations": 4,
+  "what_if": {
+    "supplier_A_unavailable": {
+      "result": {
+        "status": "optimal",
+        "plan": {
+          "allocations": [
+            [
+              "A",
+              0
+            ],
+            [
+              "B",
+              80
+            ],
+            [
+              "C",
+              20
+            ]
+          ],
+          "total_quantity": 100,
+          "total_cost": "1060",
+          "selected_suppliers": [
+            "B",
+            "C"
+          ],
+          "risk_proxy": "0.042",
+          "concentration": "0.8",
+          "selected_supplier_count": 2,
+          "cost_premium": null,
+          "explanations": [
+            {
+              "supplier_id": "A",
+              "code": "unavailable",
+              "detail": "Availability forbids use."
+            },
+            {
+              "supplier_id": "B",
+              "code": "capacity_binding",
+              "detail": "Capacity reached: 80."
+            },
+            {
+              "supplier_id": "B",
+              "code": "concentration_binding",
+              "detail": "Concentration bound reached."
+            }
+          ]
+        },
+        "reasons": []
+      },
+      "feasibility_changed": false,
+      "cost_difference": "40",
+      "allocation_difference": {
+        "A": -60,
+        "B": 40,
+        "C": 20
+      },
+      "risk_proxy_difference": "-0.218"
+    },
+    "supplier_A_capacity_30": {
+      "result": {
+        "status": "optimal",
+        "plan": {
+          "allocations": [
+            [
+              "A",
+              30
+            ],
+            [
+              "B",
+              70
+            ],
+            [
+              "C",
+              0
+            ]
+          ],
+          "total_quantity": 100,
+          "total_cost": "1035",
+          "selected_suppliers": [
+            "A",
+            "B"
+          ],
+          "risk_proxy": "0.155",
+          "concentration": "0.7",
+          "selected_supplier_count": 2,
+          "cost_premium": null,
+          "explanations": [
+            {
+              "supplier_id": "A",
+              "code": "capacity_binding",
+              "detail": "Capacity reached: 30."
+            },
+            {
+              "supplier_id": "C",
+              "code": "zero_in_optimal_plan",
+              "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+            }
+          ]
+        },
+        "reasons": []
+      },
+      "feasibility_changed": false,
+      "cost_difference": "15",
+      "allocation_difference": {
+        "A": -30,
+        "B": 30,
+        "C": 0
+      },
+      "risk_proxy_difference": "-0.105"
+    },
+    "demand_120": {
+      "result": {
+        "status": "optimal",
+        "plan": {
+          "allocations": [
+            [
+              "A",
+              60
+            ],
+            [
+              "B",
+              60
+            ],
+            [
+              "C",
+              0
+            ]
+          ],
+          "total_quantity": 120,
+          "total_cost": "1230",
+          "selected_suppliers": [
+            "A",
+            "B"
+          ],
+          "risk_proxy": "0.225",
+          "concentration": "0.5",
+          "selected_supplier_count": 2,
+          "cost_premium": null,
+          "explanations": [
+            {
+              "supplier_id": "A",
+              "code": "capacity_binding",
+              "detail": "Capacity reached: 60."
+            },
+            {
+              "supplier_id": "C",
+              "code": "zero_in_optimal_plan",
+              "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+            }
+          ]
+        },
+        "reasons": []
+      },
+      "feasibility_changed": false,
+      "cost_difference": "210",
+      "allocation_difference": {
+        "A": 0,
+        "B": 20,
+        "C": 0
+      },
+      "risk_proxy_difference": "-0.035"
+    },
+    "supplier_A_price_11_50": {
+      "result": {
+        "status": "optimal",
+        "plan": {
+          "allocations": [
+            [
+              "A",
+              0
+            ],
+            [
+              "B",
+              80
+            ],
+            [
+              "C",
+              20
+            ]
+          ],
+          "total_quantity": 100,
+          "total_cost": "1060",
+          "selected_suppliers": [
+            "B",
+            "C"
+          ],
+          "risk_proxy": "0.042",
+          "concentration": "0.8",
+          "selected_supplier_count": 2,
+          "cost_premium": null,
+          "explanations": [
+            {
+              "supplier_id": "A",
+              "code": "zero_in_optimal_plan",
+              "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+            },
+            {
+              "supplier_id": "B",
+              "code": "capacity_binding",
+              "detail": "Capacity reached: 80."
+            },
+            {
+              "supplier_id": "B",
+              "code": "concentration_binding",
+              "detail": "Concentration bound reached."
+            }
+          ]
+        },
+        "reasons": []
+      },
+      "feasibility_changed": false,
+      "cost_difference": "40",
+      "allocation_difference": {
+        "A": -60,
+        "B": 40,
+        "C": 20
+      },
+      "risk_proxy_difference": "-0.218"
+    }
+  },
+  "infeasible": {
+    "status": "infeasible",
+    "plan": null,
+    "reasons": [
+      {
+        "supplier_id": null,
+        "code": "insufficient_effective_capacity",
+        "detail": "Effective ceilings sum to 240 < demand 300."
+      }
+    ]
+  },
+  "all_units_tiers": {
+    "499": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            0
+          ],
+          [
+            "B",
+            499
+          ]
+        ],
+        "total_quantity": 499,
+        "total_cost": "474050",
+        "selected_suppliers": [
+          "B"
+        ],
+        "risk_proxy": null,
+        "concentration": "1",
+        "selected_supplier_count": 1,
+        "cost_premium": null,
+        "explanations": [
+          {
+            "supplier_id": "A",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          }
+        ]
+      },
+      "reasons": []
+    },
+    "500": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            500
+          ],
+          [
+            "B",
+            0
+          ]
+        ],
+        "total_quantity": 500,
+        "total_cost": "460000",
+        "selected_suppliers": [
+          "A"
+        ],
+        "risk_proxy": null,
+        "concentration": "1",
+        "selected_supplier_count": 1,
+        "cost_premium": null,
+        "explanations": [
+          {
+            "supplier_id": "B",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          }
+        ]
+      },
+      "reasons": []
+    },
+    "600": {
+      "status": "optimal",
+      "plan": {
+        "allocations": [
+          [
+            "A",
+            600
+          ],
+          [
+            "B",
+            0
+          ]
+        ],
+        "total_quantity": 600,
+        "total_cost": "552000",
+        "selected_suppliers": [
+          "A"
+        ],
+        "risk_proxy": null,
+        "concentration": "1",
+        "selected_supplier_count": 1,
+        "cost_premium": null,
+        "explanations": [
+          {
+            "supplier_id": "B",
+            "code": "zero_in_optimal_plan",
+            "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+          }
+        ]
+      },
+      "reasons": []
+    }
+  },
+  "performance": [
+    {
+      "supplier_count": 3,
+      "solve_ms": [
+        401.44669997971505,
+        446.14070001989603,
+        458.48660002229735
+      ],
+      "median_ms": 446.14070001989603,
+      "minimum_cost_phase_ms": [
+        91.24669997254387,
+        113.69149998063222,
+        118.54560003848746
+      ],
+      "minimum_cost_phase_median_ms": 113.69149998063222,
+      "identical_allocations": true,
+      "total_cost": "10085",
+      "solve_phases": 4
+    },
+    {
+      "supplier_count": 10,
+      "solve_ms": [
+        1268.659800000023,
+        1395.224500040058,
+        1371.1163999978453
+      ],
+      "median_ms": 1371.1163999978453,
+      "minimum_cost_phase_ms": [
+        116.19200004497543,
+        126.02620001416653,
+        126.59940001321957
+      ],
+      "minimum_cost_phase_median_ms": 126.02620001416653,
+      "identical_allocations": true,
+      "total_cost": "10484.5",
+      "solve_phases": 11
+    },
+    {
+      "supplier_count": 25,
+      "solve_ms": [
+        2802.1516000153497,
+        2945.14840003103,
+        3387.334799976088
+      ],
+      "median_ms": 2945.14840003103,
+      "minimum_cost_phase_ms": [
+        117.4487000098452,
+        106.9922000169754,
+        124.80849999701604
+      ],
+      "minimum_cost_phase_median_ms": 117.4487000098452,
+      "identical_allocations": true,
+      "total_cost": "11332.8",
+      "solve_phases": 26
+    },
+    {
+      "supplier_count": 50,
+      "solve_ms": [
+        7932.34240001766,
+        7553.670099994633,
+        8821.66859996505
+      ],
+      "median_ms": 7932.34240001766,
+      "minimum_cost_phase_ms": [
+        158.3237000158988,
+        148.7479999777861,
+        194.0916000166908
+      ],
+      "minimum_cost_phase_median_ms": 158.3237000158988,
+      "identical_allocations": true,
+      "total_cost": "12748.9",
+      "solve_phases": 51
+    }
+  ]
+}

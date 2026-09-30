@@ -20,6 +20,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+optimization-spike = [
+    "pulp==3.3.0",
+]
 frontend = [
     "reflex>=0.8,<1.0",
 ]

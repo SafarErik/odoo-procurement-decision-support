@@ -527,3 +527,18 @@ attribution records origin and observation time without certifying truth.
 See [T12 design](docs/T12_DESIGN.md) and [T12 handoff](docs/T12_HANDOFF.md) for the
 request shape, migration, limitations, and verification evidence. The existing
 `POST /api/v1/procurement/decisions/evaluate` remains unchanged.
+
+## Experimental V2 allocation feasibility spike
+
+The isolated `tools/v2_optimization/` experiment evaluates single-product MILP
+supplier selection and quantity allocation, cost-risk caps, all-units quantity
+pricing, and deterministic explanations using synthetic ERP-neutral inputs.
+It is not connected to WSM, the API, persistence, Odoo, or the frontend.
+
+Install the optional solver with `python -m pip install -e ".[optimization-spike]"`
+and run `python -m tools.v2_optimization.experiments` from the repository root.
+Solver tests require that extra; boundary tests run without it.
+See the [feasibility report](docs/spikes/v2-procurement-optimization-feasibility.md)
+and [recorded experiments](docs/spikes/v2-procurement-optimization-results.json).
+The conclusion is **GO WITH CONDITIONS** for further research; V2 is not an
+accepted thesis baseline or a replacement for the existing WSM implementation.

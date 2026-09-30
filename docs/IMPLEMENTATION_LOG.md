@@ -1199,3 +1199,35 @@ does not discover arbitrary supplier history, verify supplemental values as fact
 provide production identity management, create a decision frontend, or write to
 Odoo. The controlled T6 and T7 history fixtures are separate; no three-supplier
 live historical-scoring claim is made.
+
+## Experimental V2 procurement allocation feasibility (2026-09-30)
+
+Branch `spike/v2-procurement-optimization` starts from clean local `main`
+`71396e8924f6a1f60daf8b45f02861adf21a25e5` (merged T12). The pre-change fast suite
+passed with 271 tests and 37 deselected. An optional pinned PuLP 3.3.0/CBC experiment
+in `tools/v2_optimization/` demonstrates integer single-product allocation,
+supplier-use binaries, demand/capacity/MOQ/count/concentration/deadline constraints,
+minimum cost, epsilon-constrained historical proxy minimization, all-units tiers,
+infeasibility, deterministic explanations and four what-if changes.
+
+Canonical ties use sequential objective locks, and exact post-solve checks reject
+invalid integer constraints. A zero-risk constant-objective edge case was found,
+fixed and retained as a regression. Manual references and an independent exhaustive
+oracle support the model. No production source, WSM/API behavior, Odoo mapping,
+database schema, frontend or Google Drive document changed.
+
+Final local fast verification: 314 passed, 37 deselected, including 41 optimization
+and two architecture tests. Ruff, compileall, pip consistency and Git whitespace
+checks passed. Python 3.14.7 was used; Python 3.11 runtime and hosted CI are
+unverified. Compose validation could not run because Podman was unavailable.
+Integration/live/E2E checks were not run for this synthetic, service-free spike.
+Optional solver tests skip if the extra is not installed; existing CI does not
+install it.
+
+Measured median complete canonical solve times were approximately 0.45, 1.37,
+2.95 and 7.93 seconds for 3/10/25/50 suppliers; the initial minimum-cost phases were
+about 114–158 ms. Process-based tie resolution dominates at 50 suppliers. The
+recommendation is GO WITH CONDITIONS for further V2 research, with data-source,
+policy, portability and latency conditions before thesis-baseline acceptance.
+See `docs/spikes/v2-procurement-optimization-feasibility.md` and its recorded JSON.
+The work remains uncommitted and unmerged; no production continuation was made.
