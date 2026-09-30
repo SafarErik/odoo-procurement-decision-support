@@ -542,3 +542,10 @@ See the [feasibility report](docs/spikes/v2-procurement-optimization-feasibility
 and [recorded experiments](docs/spikes/v2-procurement-optimization-results.json).
 The conclusion is **GO WITH CONDITIONS** for further research; V2 is not an
 accepted thesis baseline or a replacement for the existing WSM implementation.
+
+The follow-up [V2 Odoo input capability audit](docs/spikes/v2-odoo-input-capability.md)
+classifies the required inputs, proposes a fail-closed hybrid assembly boundary,
+and gives implementation-independent thesis readiness advice. Capacity, approved
+demand and quantity-specific promises remain explicitly supplied; native pricing
+tiers and Python 3.11 portability remain unverified. No production V2 adapter is
+implemented.

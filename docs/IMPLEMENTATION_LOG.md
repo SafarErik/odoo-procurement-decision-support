@@ -1231,3 +1231,41 @@ recommendation is GO WITH CONDITIONS for further V2 research, with data-source,
 policy, portability and latency conditions before thesis-baseline acceptance.
 See `docs/spikes/v2-procurement-optimization-feasibility.md` and its recorded JSON.
 The work remains uncommitted and unmerged; no production continuation was made.
+
+## V2 Odoo business-input capability audit (2026-09-30)
+
+Preserved the previous experimental spike in local commit
+`0a316f8cbbe18ced5bce8eeffcd8af4eb1a5bc3a` on
+`spike/v2-procurement-optimization`, then created
+`spike/v2-odoo-input-capability` from it. Earlier uncommitted-handoff statements
+remain historical records. No changes were discarded and no push, PR or merge
+was performed.
+
+Added `docs/spikes/v2-odoo-input-capability.md` and a sanitized evidence JSON.
+Reviewed accepted T5/T6/T7/T8 contracts, current tests and official Odoo 19.0
+documentation/source. The classification distinguishes controlled Odoo quotation
+facts from approved demand, capacity, price-range applicability and delivery
+commitments that require explicit attribution. Standard vendor-pricelist thresholds
+remain pricing conditions, not hard MOQ. Source review identified effective
+discounted-price selection and an agreement-linked pricing path, so raw tier sorting
+and extrapolating a quoted price across allocation quantities are not accepted.
+
+The configured Odoo login endpoint was unreachable. Podman was located under
+LocalAppData/Programs rather than PATH; read-only machine inspection confirmed
+the VM stopped. No services/fixtures were started or modified. The Compose config
+check failed on its refused connection. Current local schema/ACL and tier behavior
+remain unverified; upstream source review does not claim installed-build equivalence.
+
+Python 3.11 was not located through PATH, registry and targeted installation roots;
+portability remains BLOCKED/UNVERIFIED without a global installation change.
+The unchanged optimizer imported PuLP 3.3.0 and available CBC 2.10.3 on Python
+3.14.7. Full fast tests passed: 314 passed, 37 deselected. A recorded-value T8
+normalization smoke proved 33.33% -> 0.3333 and risk proxy 0.6667; withheld history
+returned history_unavailable. This was not a live history read.
+
+Recommendation: GO WITH CONDITIONS for a hybrid input design toward thesis review,
+not automatic baseline acceptance. The report includes all ten final answers,
+fail-closed assembly design and a thesis-task readiness matrix. No runtime/optimizer
+source, new adapter, API, persistence, frontend, Odoo privileges, Google Drive
+documents or official task statement were changed. This follow-up remains
+uncommitted at handoff.
