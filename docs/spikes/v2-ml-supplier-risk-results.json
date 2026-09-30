@@ -1,0 +1,565 @@
+{
+  "recommendation": "GO WITH CONDITIONS",
+  "evidence_kind": "synthetic_pipeline_only",
+  "dataset_version": "synthetic-procurement-lines-v1",
+  "dataset_hash": "bd038d336ca2f4334c083dc1567dfc8cbe346377890672e5c110df57dad808ce",
+  "feature_schema_version": "decision-time-features-v1",
+  "feature_schema_hash": "781a15c6077a90c4b50cdcffb3f0abd3d94a98fb27df410bde14b7ec295d986c",
+  "feature_order": [
+    "historical_adherence_before_decision",
+    "historical_completed_count",
+    "requested_quantity_at_decision",
+    "decision_month"
+  ],
+  "target_version": "completed-line-schedule-miss-v1",
+  "target_definition": "full receipt completion > immutable decision-time Expected Arrival",
+  "target_hash": "04cb9c490ee5a9ade7736e8dbeb8c3ce40f949b1ddc32c114e79cb19be3f2edc",
+  "model_version": "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+  "parameter_hash": "6d73652a3327e83428e865a41f1362ba2e8e17dd29a18fa59df805412bad04d3",
+  "configured_parameters": {
+    "criterion": "gini",
+    "splitter": "best",
+    "max_depth": 3,
+    "min_samples_leaf": 12,
+    "min_samples_split": 24,
+    "random_state": 17,
+    "class_weight": null
+  },
+  "all_effective_parameters": {
+    "ccp_alpha": 0.0,
+    "class_weight": null,
+    "criterion": "gini",
+    "max_depth": 3,
+    "max_features": null,
+    "max_leaf_nodes": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 12,
+    "min_samples_split": 24,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "random_state": 17,
+    "splitter": "best"
+  },
+  "training_timestamp": "2026-09-30T15:50:25.686828+00:00",
+  "python": "3.14.7",
+  "libraries": {
+    "scikit-learn": "1.8.0",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "joblib": "1.6.0",
+    "threadpoolctl": "3.7.0",
+    "cloudpickle": "3.1.2",
+    "pulp": "3.3.0"
+  },
+  "split": {
+    "cutoff": "2025-11-12T00:00:00+00:00",
+    "export_as_of": "2026-04-01T00:00:00+00:00",
+    "train": 464,
+    "test": 180,
+    "test_history": "frozen training outcome pool; no test outcomes",
+    "train_class_counts_0_1": [
+      266,
+      198
+    ]
+  },
+  "inventory": {
+    "raw_lines": 726,
+    "labelled_completed_lines": 720,
+    "usable_feature_rows": 644,
+    "suppliers": 12,
+    "products": 1,
+    "class_counts": {
+      "0": 410,
+      "1": 310
+    },
+    "first_decision": "2025-01-01T00:00:00+00:00",
+    "last_decision": "2026-02-18T11:00:00+00:00",
+    "last_completion": "2026-03-15T05:00:00+00:00",
+    "per_supplier": {
+      "S00": 60,
+      "S01": 60,
+      "S02": 60,
+      "S03": 60,
+      "S04": 60,
+      "S05": 60,
+      "S06": 60,
+      "S07": 60,
+      "S08": 60,
+      "S09": 60,
+      "S10": 60,
+      "S11": 60
+    },
+    "missing_expected_arrival": 1,
+    "unproven_reference_snapshot": 1,
+    "exclusions_and_purges": {
+      "cancelled": 1,
+      "incomplete_receipt": 1,
+      "insufficient_prior_history": 56,
+      "missing_expected_arrival": 1,
+      "purged_training_outcome_after_cutoff": 20,
+      "quantity_changed": 1,
+      "return_affected": 1,
+      "unproven_decision_snapshot": 1
+    }
+  },
+  "decision_tree": {
+    "confusion_matrix_labels_0_1": [
+      [
+        104,
+        4
+      ],
+      [
+        68,
+        4
+      ]
+    ],
+    "positive_precision": 0.5,
+    "positive_recall": 0.05555555555555555,
+    "positive_f1": 0.1,
+    "balanced_accuracy": 0.5092592592592592,
+    "accuracy": 0.6,
+    "support": 180,
+    "class_support_0_1": [
+      108,
+      72
+    ]
+  },
+  "non_ml_baseline": {
+    "rule": "1 - prior adherence >= 0.5",
+    "confusion_matrix_labels_0_1": [
+      [
+        79,
+        29
+      ],
+      [
+        41,
+        31
+      ]
+    ],
+    "positive_precision": 0.5166666666666667,
+    "positive_recall": 0.4305555555555556,
+    "positive_f1": 0.4696969696969697,
+    "balanced_accuracy": 0.5810185185185186,
+    "accuracy": 0.6111111111111112,
+    "support": 180,
+    "class_support_0_1": [
+      108,
+      72
+    ]
+  },
+  "global_explanation": {
+    "depth": 3,
+    "leaves": 6,
+    "feature_importances": {
+      "historical_adherence_before_decision": 0.41308907405135625,
+      "historical_completed_count": 0.08809389386377796,
+      "requested_quantity_at_decision": 0.4988170320848658,
+      "decision_month": 0.0
+    },
+    "rules_display_rounded": "|--- requested_quantity_at_decision <= 150.00\n|   |--- historical_adherence_before_decision <= 0.32\n|   |   |--- class: 1\n|   |--- historical_adherence_before_decision >  0.32\n|   |   |--- historical_adherence_before_decision <= 0.81\n|   |   |   |--- class: 0\n|   |   |--- historical_adherence_before_decision >  0.81\n|   |   |   |--- class: 0\n|--- requested_quantity_at_decision >  150.00\n|   |--- historical_adherence_before_decision <= 0.88\n|   |   |--- historical_completed_count <= 35.50\n|   |   |   |--- class: 1\n|   |   |--- historical_completed_count >  35.50\n|   |   |   |--- class: 0\n|   |--- historical_adherence_before_decision >  0.88\n|   |   |--- class: 0\n",
+    "leaf_support": [
+      {
+        "leaf": 2,
+        "count": 20,
+        "class_counts_0_1": [
+          8,
+          12
+        ]
+      },
+      {
+        "leaf": 4,
+        "count": 178,
+        "class_counts_0_1": [
+          126,
+          52
+        ]
+      },
+      {
+        "leaf": 5,
+        "count": 20,
+        "class_counts_0_1": [
+          20,
+          0
+        ]
+      },
+      {
+        "leaf": 8,
+        "count": 195,
+        "class_counts_0_1": [
+          77,
+          118
+        ]
+      },
+      {
+        "leaf": 9,
+        "count": 29,
+        "class_counts_0_1": [
+          18,
+          11
+        ]
+      },
+      {
+        "leaf": 10,
+        "count": 22,
+        "class_counts_0_1": [
+          17,
+          5
+        ]
+      }
+    ]
+  },
+  "local_holdout_example": {
+    "id": "S00-W45",
+    "actual_class_for_evaluation_only": 0,
+    "supplier_id": "S00",
+    "ml_risk_score": "0.3793",
+    "predicted_class": 0,
+    "model_version": "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+    "evaluation_context": "synthetic-feasibility-only",
+    "observation_timestamp": "2025-11-12T00:00:00+00:00",
+    "explanation": {
+      "features": {
+        "historical_adherence_before_decision": 0.8636363636363636,
+        "historical_completed_count": 44.0,
+        "requested_quantity_at_decision": 200.0,
+        "decision_month": 11.0
+      },
+      "rules_traversed": [
+        {
+          "feature": "requested_quantity_at_decision",
+          "value_float32": 200.0,
+          "operator": ">",
+          "threshold": 150.0
+        },
+        {
+          "feature": "historical_adherence_before_decision",
+          "value_float32": 0.8636363744735718,
+          "operator": "<=",
+          "threshold": 0.8765243887901306
+        },
+        {
+          "feature": "historical_completed_count",
+          "value_float32": 44.0,
+          "operator": ">",
+          "threshold": 35.5
+        }
+      ],
+      "leaf_id": 9,
+      "leaf_sample_count": 29,
+      "leaf_class_counts_0_1": [
+        18,
+        11
+      ],
+      "raw_positive_class_score": 0.3793103448275862,
+      "canonical_score": "0.3793",
+      "score_is_calibrated_probability": false
+    }
+  },
+  "determinism": {
+    "training_repetitions": 3,
+    "model_hashes": [
+      "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+      "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+      "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892"
+    ],
+    "score_hashes": [
+      "27cae7060af62fe9971d314f4fceef605ca75f3503eed36f10a35d1465d0ea5e",
+      "27cae7060af62fe9971d314f4fceef605ca75f3503eed36f10a35d1465d0ea5e",
+      "27cae7060af62fe9971d314f4fceef605ca75f3503eed36f10a35d1465d0ea5e"
+    ],
+    "equal_models": true,
+    "equal_predictions": true,
+    "equal_scores": true
+  },
+  "integration_assessments": [
+    {
+      "supplier_id": "S11",
+      "ml_risk_score": "0.2921",
+      "predicted_class": 0,
+      "model_version": "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+      "evaluation_context": "synthetic-feasibility-only",
+      "observation_timestamp": "2025-11-12T00:00:00+00:00",
+      "explanation": {
+        "features": {
+          "historical_adherence_before_decision": 0.46511627906976744,
+          "historical_completed_count": 43.0,
+          "requested_quantity_at_decision": 100.0,
+          "decision_month": 11.0
+        },
+        "rules_traversed": [
+          {
+            "feature": "requested_quantity_at_decision",
+            "value_float32": 100.0,
+            "operator": "<=",
+            "threshold": 150.0
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.4651162922382355,
+            "operator": ">",
+            "threshold": 0.3166666775941849
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.4651162922382355,
+            "operator": "<=",
+            "threshold": 0.8090909123420715
+          }
+        ],
+        "leaf_id": 4,
+        "leaf_sample_count": 178,
+        "leaf_class_counts_0_1": [
+          126,
+          52
+        ],
+        "raw_positive_class_score": 0.29213483146067415,
+        "canonical_score": "0.2921",
+        "score_is_calibrated_probability": false
+      }
+    },
+    {
+      "supplier_id": "S06",
+      "ml_risk_score": "0.2921",
+      "predicted_class": 0,
+      "model_version": "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+      "evaluation_context": "synthetic-feasibility-only",
+      "observation_timestamp": "2025-11-12T00:00:00+00:00",
+      "explanation": {
+        "features": {
+          "historical_adherence_before_decision": 0.4418604651162791,
+          "historical_completed_count": 43.0,
+          "requested_quantity_at_decision": 100.0,
+          "decision_month": 11.0
+        },
+        "rules_traversed": [
+          {
+            "feature": "requested_quantity_at_decision",
+            "value_float32": 100.0,
+            "operator": "<=",
+            "threshold": 150.0
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.44186046719551086,
+            "operator": ">",
+            "threshold": 0.3166666775941849
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.44186046719551086,
+            "operator": "<=",
+            "threshold": 0.8090909123420715
+          }
+        ],
+        "leaf_id": 4,
+        "leaf_sample_count": 178,
+        "leaf_class_counts_0_1": [
+          126,
+          52
+        ],
+        "raw_positive_class_score": 0.29213483146067415,
+        "canonical_score": "0.2921",
+        "score_is_calibrated_probability": false
+      }
+    },
+    {
+      "supplier_id": "S00",
+      "ml_risk_score": "0.0000",
+      "predicted_class": 0,
+      "model_version": "2fb01bd8d63ce53ac33ee8a665b215a58351a1342ce7b46bf44c2b76da87b892",
+      "evaluation_context": "synthetic-feasibility-only",
+      "observation_timestamp": "2025-11-12T00:00:00+00:00",
+      "explanation": {
+        "features": {
+          "historical_adherence_before_decision": 0.8636363636363636,
+          "historical_completed_count": 44.0,
+          "requested_quantity_at_decision": 100.0,
+          "decision_month": 11.0
+        },
+        "rules_traversed": [
+          {
+            "feature": "requested_quantity_at_decision",
+            "value_float32": 100.0,
+            "operator": "<=",
+            "threshold": 150.0
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.8636363744735718,
+            "operator": ">",
+            "threshold": 0.3166666775941849
+          },
+          {
+            "feature": "historical_adherence_before_decision",
+            "value_float32": 0.8636363744735718,
+            "operator": ">",
+            "threshold": 0.8090909123420715
+          }
+        ],
+        "leaf_id": 5,
+        "leaf_sample_count": 20,
+        "leaf_class_counts_0_1": [
+          20,
+          0
+        ],
+        "raw_positive_class_score": 0.0,
+        "canonical_score": "0.0000",
+        "score_is_calibrated_probability": false
+      }
+    }
+  ],
+  "ml_to_milp": {
+    "scores": [
+      {
+        "supplier_id": "S11",
+        "value": "0.2921"
+      },
+      {
+        "supplier_id": "S06",
+        "value": "0.2921"
+      },
+      {
+        "supplier_id": "S00",
+        "value": "0.0000"
+      }
+    ],
+    "input": {
+      "required_quantity": 100,
+      "suppliers": [
+        {
+          "supplier_id": "S11",
+          "unit_cost": "10",
+          "capacity": 60,
+          "minimum_quantity": 0,
+          "available": true,
+          "deadline_eligible": true,
+          "historical_adherence": null,
+          "sample_size": 0,
+          "price_tiers": []
+        },
+        {
+          "supplier_id": "S06",
+          "unit_cost": "10.5",
+          "capacity": 80,
+          "minimum_quantity": 0,
+          "available": true,
+          "deadline_eligible": true,
+          "historical_adherence": null,
+          "sample_size": 0,
+          "price_tiers": []
+        },
+        {
+          "supplier_id": "S00",
+          "unit_cost": "11",
+          "capacity": 100,
+          "minimum_quantity": 0,
+          "available": true,
+          "deadline_eligible": true,
+          "historical_adherence": null,
+          "sample_size": 0,
+          "price_tiers": []
+        }
+      ],
+      "max_suppliers": 2,
+      "concentration_limit": "0.8"
+    },
+    "epsilon": "0.05",
+    "minimum_cost": {
+      "allocations": [
+        [
+          "S00",
+          0
+        ],
+        [
+          "S06",
+          40
+        ],
+        [
+          "S11",
+          60
+        ]
+      ],
+      "total_quantity": 100,
+      "total_cost": "1020",
+      "selected_suppliers": [
+        "S06",
+        "S11"
+      ],
+      "risk_proxy": "0.2921",
+      "concentration": "0.6",
+      "selected_supplier_count": 2,
+      "cost_premium": null,
+      "explanations": [
+        {
+          "supplier_id": "S00",
+          "code": "zero_in_optimal_plan",
+          "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+        },
+        {
+          "supplier_id": "S11",
+          "code": "capacity_binding",
+          "detail": "Capacity reached: 60."
+        }
+      ],
+      "risk_basis": "supplied_score"
+    },
+    "risk_aware": {
+      "allocations": [
+        [
+          "S00",
+          71
+        ],
+        [
+          "S06",
+          0
+        ],
+        [
+          "S11",
+          29
+        ]
+      ],
+      "total_quantity": 100,
+      "total_cost": "1071",
+      "selected_suppliers": [
+        "S00",
+        "S11"
+      ],
+      "risk_proxy": "0.084709",
+      "concentration": "0.71",
+      "selected_supplier_count": 2,
+      "cost_premium": "0.05",
+      "explanations": [
+        {
+          "supplier_id": "S06",
+          "code": "zero_in_optimal_plan",
+          "detail": "Zero in the objective/tie-break solution; this is not a causal exclusion proof."
+        },
+        {
+          "supplier_id": null,
+          "code": "cost_premium",
+          "detail": "Extra cost 51; relative premium 0.05 over the minimum-cost plan."
+        }
+      ],
+      "risk_basis": "supplied_score"
+    },
+    "allocation_changed": true,
+    "exposure_definition": "sum(quantity_i * canonical_ML_score_i) / required_quantity",
+    "interpretation": "Illustrative score exposure, not probability or expected loss."
+  },
+  "real_data": {
+    "live_availability_checked_at": "2026-09-30",
+    "unauthenticated_login_probe": "ConnectError",
+    "podman_machine_running": false,
+    "live_history_read_performed": false,
+    "established_leakage_safe_training_rows": 0,
+    "actual_database_total": "unknown; no available live environment/export",
+    "documented_controlled_fixture_lines": 4,
+    "eligible_outcomes": 3,
+    "class_counts_0_1": [
+      1,
+      2
+    ],
+    "suppliers": 1,
+    "products": 1
+  }
+}

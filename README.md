@@ -549,3 +549,13 @@ and gives implementation-independent thesis readiness advice. Capacity, approved
 demand and quantity-specific promises remain explicitly supplied; native pricing
 tiers and Python 3.11 portability remain unverified. No production V2 adapter is
 implemented.
+
+The isolated [ML supplier-risk spike](docs/spikes/v2-ml-supplier-risk-feasibility.md)
+fits one bounded Decision Tree with chronological, outcome-aware feature histories,
+explicit leakage tests and an ML-score-to-experimental-MILP proof. Synthetic results
+validate mechanics but show weaker prediction than the historical-KPI baseline;
+no suitable real training export is established. The recommendation is **GO WITH
+CONDITIONS** for research, with no production or thesis-baseline promotion.
+Install `python -m pip install -e ".[optimization-spike,ml-spike]"` and run
+`python -m tools.v2_ml_risk.experiments` to regenerate the
+[recorded results](docs/spikes/v2-ml-supplier-risk-results.json).

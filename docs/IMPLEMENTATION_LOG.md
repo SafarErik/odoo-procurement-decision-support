@@ -1269,3 +1269,54 @@ fail-closed assembly design and a thesis-task readiness matrix. No runtime/optim
 source, new adapter, API, persistence, frontend, Odoo privileges, Google Drive
 documents or official task statement were changed. This follow-up remains
 uncommitted at handoff.
+
+## 2026-09-30 — V2 ML supplier-risk feasibility spike
+
+Preserved the input capability audit in local commit `706a882` and created the
+isolated `spike/v2-ml-supplier-risk-feasibility` branch. Added one optional pinned
+DecisionTreeClassifier experiment under `tools/v2_ml_risk/`, dependency-free
+decision-time dataset/feature rules, leakage tests, interpretation/reproducibility
+evidence and a report with all sixteen final answers. This follow-up remains
+uncommitted at handoff; no push, PR or merge was performed.
+
+The documented T7/T8 fixture contains four lines, three eligible outcomes, one
+supplier and one product. It does not establish historical decision-time feature
+snapshots. Fresh read-only availability checks found the Podman VM stopped and
+the unauthenticated Odoo login endpoint unreachable (`ConnectError`). No services
+or business fixtures were started/changed. Actual historical database totals remain
+unknown; zero leakage-safe real training rows are established, not zero actual
+records. No real predictive evaluation is claimed.
+
+The deterministic synthetic source contains 726 lines, 720 labelled outcomes and
+644 usable feature rows after warmup/purging. Chronological training/holdout counts
+are 464/180. Prior history requires full completion and outcome availability strictly
+before each decision; holdout history excludes every test outcome. One fixed tree
+(depth <=3, leaf minimum 12, split minimum 24, random_state 17) produces identical
+model hashes, predictions and scores across three fits. It performs poorly: positive
+F1 0.10, balanced accuracy 0.5093, versus historical threshold baseline F1 0.4697,
+balanced accuracy 0.5810. No superiority is asserted and no tuning against holdout
+was performed.
+
+An explicit neutral SupplierRiskScore contract was added only to the experimental
+optimizer. Default historical coefficients/withholding remain intact; supplied
+scores use a distinct risk_basis and do not fabricate adherence/sample counts.
+The three-supplier proof changes minimum-cost allocation at cost 1020/exposure
+0.2921 to the 5%-premium risk plan at cost 1071/exposure 0.084709. Scores are leaf
+proportions, not calibrated probabilities. Quantity-dependent features versus fixed
+MILP score coefficients remain a documented semantic limitation.
+
+Local verification: focused ML/optimizer suite 78 passed; full fast suite 349 passed,
+37 deselected in 18.10 seconds on Python 3.14.7. Ruff formatting/lint, compileall,
+pip check, JSON/evidence consistency and Git whitespace checks passed. The full
+suite disabled pytest's cache provider after a cache-write warning in the focused
+run; existing FastAPI/Starlette deprecation warnings remain. Python 3.11 execution,
+live contracts and hosted CI are unverified/unrun; default hosted dependencies do
+not include optional ML/solver extras. Production packages, Odoo privileges,
+frontend, Google Drive documents and official thesis task were unchanged.
+
+Recommendation: GO WITH CONDITIONS for controlled research implementation and
+critical evaluation; NO-GO for real predictive usefulness claims or business use.
+Thesis-task wording is SAFE_IF_GENERALIZED to acknowledge available historical
+data or an explicitly identified controlled dataset. Data/snapshot coverage,
+censoring and objective semantics, independent baseline comparison, explicit
+thesis approval and Python 3.11 verification remain promotion conditions.

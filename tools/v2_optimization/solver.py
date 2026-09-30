@@ -15,6 +15,7 @@ from tools.v2_optimization.models import (
     ProcurementPlan,
     Status,
     Supplier,
+    SupplierRiskScore,
     scaled,
 )
 
@@ -39,7 +40,9 @@ def _upper(data: ProcurementOptimizationInput, supplier: Supplier) -> int:
     return upper if upper >= max(1, supplier.minimum_quantity) else 0
 
 
-def _risk_coefficient(supplier: Supplier) -> int:
+def _risk_coefficient(supplier: Supplier, scores: dict[str, int] | None = None) -> int:
+    if scores is not None:
+        return scores[supplier.supplier_id]
     assert supplier.historical_adherence is not None
     return RATIO_SCALE - scaled(
         supplier.historical_adherence, "Historical adherence", RATIO_SCALE, 0, RATIO_SCALE
@@ -149,6 +152,7 @@ def _plan(
     suppliers: tuple[Supplier, ...],
     quantities: list[int],
     minimum_cost_cents: int | None,
+    scores: dict[str, int] | None = None,
 ) -> ProcurementPlan:
     if sum(quantities) != data.required_quantity:
         raise ValueError("Solver allocation does not fulfill exact demand.")
@@ -205,9 +209,11 @@ def _plan(
         if _upper(data, s) > 0
     )
     risk = None
-    if history_complete:
+    if scores is not None or history_complete:
         risk_units = sum(
-            _risk_coefficient(s) * x for s, x in zip(suppliers, quantities, strict=True) if x
+            _risk_coefficient(s, scores) * x
+            for s, x in zip(suppliers, quantities, strict=True)
+            if x
         )
         risk = _ratio(risk_units, data.required_quantity * RATIO_SCALE)
     premium = None
@@ -231,6 +237,9 @@ def _plan(
         selected_supplier_count=len(selected),
         cost_premium=premium,
         explanations=tuple(reasons),
+        risk_basis="supplied_score"
+        if scores is not None
+        else "historical_schedule_adherence_proxy",
     )
 
 
@@ -238,6 +247,7 @@ def optimize(
     data: ProcurementOptimizationInput,
     *,
     epsilon: Decimal | None = None,
+    risk_scores: tuple[SupplierRiskScore, ...] | None = None,
 ) -> OptimizationResult:
     """Minimize cost, or risk within a cap derived from a newly proven minimum cost.
 
@@ -248,16 +258,32 @@ def optimize(
     if epsilon is not None:
         epsilon_units = scaled(epsilon, "Epsilon", RATIO_SCALE, 0, RATIO_SCALE)
     suppliers = tuple(sorted(data.suppliers, key=lambda s: s.supplier_id))
+    scores = None
+    if risk_scores is not None:
+        if not isinstance(risk_scores, tuple) or any(
+            not isinstance(score, SupplierRiskScore) for score in risk_scores
+        ):
+            raise ValueError("Risk scores must be a tuple of SupplierRiskScore values.")
+        scores = {
+            score.supplier_id: scaled(score.value, "Risk score", RATIO_SCALE, 0, RATIO_SCALE)
+            for score in risk_scores
+        }
+        if len(scores) != len(risk_scores) or set(scores) != {s.supplier_id for s in suppliers}:
+            raise ValueError("Supply exactly one explicit risk score for every input supplier.")
     diagnostics = _diagnostics(data)
     if any(
         reason.code in {"insufficient_effective_capacity", "supplier_count_capacity_shortfall"}
         for reason in diagnostics
     ):
         return OptimizationResult(Status.INFEASIBLE, reasons=diagnostics)
-    if epsilon is not None and any(
-        s.historical_adherence is None or s.sample_size < 3
-        for s in suppliers
-        if _upper(data, s) > 0
+    if (
+        epsilon is not None
+        and scores is None
+        and any(
+            s.historical_adherence is None or s.sample_size < 3
+            for s in suppliers
+            if _upper(data, s) > 0
+        )
     ):
         return OptimizationResult(
             Status.HISTORY_UNAVAILABLE,
@@ -331,7 +357,7 @@ def optimize(
         return failed(status)
     try:
         _validate_model(problem)
-        first = _plan(data, suppliers, _quantities(x), None)
+        first = _plan(data, suppliers, _quantities(x), None, scores)
         minimum_cents = int(Fraction(first.total_cost) * MONEY_SCALE)
         risk_optimum = None
         if epsilon is None:
@@ -341,7 +367,9 @@ def optimize(
             cap = minimum_cents * (RATIO_SCALE + epsilon_units) // RATIO_SCALE
             problem += cost <= cap, "epsilon_cost_cap"
             risk = pulp.lpSum(
-                _risk_coefficient(s) * x[i] for i, s in enumerate(suppliers) if _upper(data, s) > 0
+                _risk_coefficient(s, scores) * x[i]
+                for i, s in enumerate(suppliers)
+                if _upper(data, s) > 0
             )
             problem.setObjective(risk)
             status = _run(problem, solver)
@@ -350,7 +378,7 @@ def optimize(
             _validate_model(problem)
             quantities = _quantities(x)
             risk_optimum = sum(
-                _risk_coefficient(s) * quantity
+                _risk_coefficient(s, scores) * quantity
                 for s, quantity in zip(suppliers, quantities, strict=True)
                 if quantity
             )
@@ -361,7 +389,7 @@ def optimize(
             if status is not Status.OPTIMAL:
                 return failed(status)
             _validate_model(problem)
-            best = _plan(data, suppliers, _quantities(x), minimum_cents)
+            best = _plan(data, suppliers, _quantities(x), minimum_cents, scores)
             problem += (
                 cost == int(Fraction(best.total_cost) * MONEY_SCALE),
                 "secondary_cost_optimum",
@@ -376,7 +404,7 @@ def optimize(
             quantities = _quantities(x)
             problem += variable == quantities[i], f"lexicographic_{i}"
         plan = _plan(
-            data, suppliers, _quantities(x), minimum_cents if epsilon is not None else None
+            data, suppliers, _quantities(x), minimum_cents if epsilon is not None else None, scores
         )
         if epsilon is None and int(Fraction(plan.total_cost) * MONEY_SCALE) != minimum_cents:
             raise ValueError("Exact cost optimum was not preserved.")
@@ -384,7 +412,7 @@ def optimize(
             if int(Fraction(plan.total_cost) * MONEY_SCALE) > cap:
                 raise ValueError("Exact epsilon cap was violated.")
             actual_risk = sum(
-                _risk_coefficient(s) * quantity
+                _risk_coefficient(s, scores) * quantity
                 for s, quantity in zip(suppliers, _quantities(x), strict=True)
                 if quantity
             )

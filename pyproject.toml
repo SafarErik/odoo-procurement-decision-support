@@ -20,6 +20,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ml-spike = [
+    "scikit-learn==1.8.0",
+]
 optimization-spike = [
     "pulp==3.3.0",
 ]

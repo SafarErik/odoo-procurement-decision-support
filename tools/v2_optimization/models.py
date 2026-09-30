@@ -71,6 +71,19 @@ class Supplier:
 
 
 @dataclass(frozen=True)
+class SupplierRiskScore:
+    """Explicit external score; its evidence and interpretation stay outside the MILP."""
+
+    supplier_id: str
+    value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.supplier_id, str) or not self.supplier_id.strip():
+            raise ValueError("Supplier identity must be nonempty.")
+        scaled(self.value, "Supplied risk score", RATIO_SCALE, 0, RATIO_SCALE)
+
+
+@dataclass(frozen=True)
 class ProcurementOptimizationInput:
     required_quantity: int
     suppliers: tuple[Supplier, ...]
@@ -124,6 +137,7 @@ class ProcurementPlan:
     selected_supplier_count: int
     cost_premium: Decimal | None
     explanations: tuple[Explanation, ...]
+    risk_basis: str = "historical_schedule_adherence_proxy"
 
 
 @dataclass(frozen=True)
