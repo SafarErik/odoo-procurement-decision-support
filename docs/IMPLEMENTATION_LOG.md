@@ -1320,3 +1320,31 @@ Thesis-task wording is SAFE_IF_GENERALIZED to acknowledge available historical
 data or an explicitly identified controlled dataset. Data/snapshot coverage,
 censoring and objective semantics, independent baseline comparison, explicit
 thesis approval and Python 3.11 verification remain promotion conditions.
+
+## 2026-09-30 — V2 Reflex frontend capability spike
+
+Preserved the prior ML experiment in local commit `ffa2939`, then created
+`spike/v2-reflex-frontend-capability`. Added an explicit opt-in `/v2-cockpit`
+workspace; the default RFQ route remains unchanged. Neutral DTOs, mock client,
+presentation transformations, state transitions and native components are separate.
+An offline generator freezes existing experimental solver outputs and recorded ML
+scores; frontend events never invoke ML, MILP, Odoo, PostgreSQL or domain algorithms.
+
+Implemented supplier table/tree details, three explained plans, native bar/scatter,
+bounded scenario replacement/deltas, infeasibility, safe empty/error states,
+guarded session-local approval and snapshot-bound PDF pending. Reflex added native
+component dependencies to the existing frontend lock. No authored JS/framework.
+
+Final fast tests: 370 passed, 37 deselected in 18.03 seconds on Python 3.14.7.
+An initial system-temp access error was resolved with ignored project-local temp.
+Ruff format/lint, compileall, pip check and opt-in production frontend export passed.
+Fresh-process checks verified route isolation. Manual browser smoke exercised
+supplier details, button/scatter selection, outage/deltas, infeasibility, service
+recovery, approval error/success and PDF gating/pending. Screenshots, capability
+matrix and fifteen answers are in `docs/spikes/v2-reflex-frontend-capability.md`.
+
+Recommendation: GO WITH CONDITIONS for a bounded thesis PoC. Real HTTP, durable
+authenticated approval, actual PDF rendering/download, long jobs/load, Python 3.11
+and hosted/integration checks remain unverified. Weak ML predictive evidence and
+quantity-score semantics remain inherited limitations. No push, PR, merge, Odoo
+write, Google Drive change or baseline promotion occurred.

@@ -1,5 +1,7 @@
 """Read-only procurement ledger backed by the documented FastAPI boundary."""
 
+import os
+
 import reflex as rx
 from config import settings
 from rfq_client import fetch_rfq_dashboard
@@ -381,3 +383,15 @@ def index() -> rx.Component:
 
 app = rx.App()
 app.add_page(index, route="/", on_load=RfqState.refresh_rfqs, title="Open RFQs")
+
+# Explicit opt-in keeps the default RFQ application unchanged.
+if os.environ.get("ENABLE_V2_FRONTEND_SPIKE") == "1":
+    from frontend.v2_spike.page import workspace
+    from frontend.v2_spike.state import CockpitState
+
+    app.add_page(
+        workspace,
+        route="/v2-cockpit",
+        on_load=CockpitState.load_case,
+        title="Procurement case workspace",
+    )

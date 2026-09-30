@@ -1,0 +1,2079 @@
+{
+  "fixture_version": "v2-cockpit-v1",
+  "evidence_kind": "deterministic-synthetic",
+  "case": {
+    "case_id": "V2-DEMO-001",
+    "version": "case-v1",
+    "product": "DC-100 drive coupling",
+    "quantity": 100,
+    "uom": "Units",
+    "currency": "EUR",
+    "required_date": "21 Oct 2026",
+    "max_suppliers": 2,
+    "concentration_limit": "0.8",
+    "allowed_premium": "0.05"
+  },
+  "suppliers": [
+    {
+      "supplier_id": "A",
+      "name": "Northline Components",
+      "unit_price": "10",
+      "capacity": 60,
+      "minimum_quantity": 0,
+      "commitment": "Eligible \u00b7 illustrative commitment",
+      "historical_indicator": "46.5% / 43 prior lines",
+      "risk_score": "0.2921",
+      "predicted_class": "On schedule",
+      "source_status": "Synthetic terms / ML experiment",
+      "color": "#397BA6",
+      "explanation": [
+        "requested_quantity_at_decision <= 150 (input 100)",
+        "historical_adherence_before_decision > 0.316667 (input 0.465116)",
+        "historical_adherence_before_decision <= 0.809091 (input 0.465116)",
+        "Leaf support: 178; classes [on-time, miss] [126, 52]",
+        "Model: 2fb01bd8d63c \u00b7 synthetic context, quantity 100",
+        "Score is an uncalibrated leaf proportion; predictive value is not established."
+      ]
+    },
+    {
+      "supplier_id": "B",
+      "name": "Danube Supply",
+      "unit_price": "10.5",
+      "capacity": 80,
+      "minimum_quantity": 0,
+      "commitment": "Eligible \u00b7 illustrative commitment",
+      "historical_indicator": "44.2% / 43 prior lines",
+      "risk_score": "0.2921",
+      "predicted_class": "On schedule",
+      "source_status": "Synthetic terms / ML experiment",
+      "color": "#0B7773",
+      "explanation": [
+        "requested_quantity_at_decision <= 150 (input 100)",
+        "historical_adherence_before_decision > 0.316667 (input 0.44186)",
+        "historical_adherence_before_decision <= 0.809091 (input 0.44186)",
+        "Leaf support: 178; classes [on-time, miss] [126, 52]",
+        "Model: 2fb01bd8d63c \u00b7 synthetic context, quantity 100",
+        "Score is an uncalibrated leaf proportion; predictive value is not established."
+      ]
+    },
+    {
+      "supplier_id": "C",
+      "name": "Pannon Industrial",
+      "unit_price": "11",
+      "capacity": 100,
+      "minimum_quantity": 0,
+      "commitment": "Eligible \u00b7 illustrative commitment",
+      "historical_indicator": "86.4% / 44 prior lines",
+      "risk_score": "0.0000",
+      "predicted_class": "On schedule",
+      "source_status": "Synthetic terms / ML experiment",
+      "color": "#AF782B",
+      "explanation": [
+        "requested_quantity_at_decision <= 150 (input 100)",
+        "historical_adherence_before_decision > 0.316667 (input 0.863636)",
+        "historical_adherence_before_decision > 0.809091 (input 0.863636)",
+        "Leaf support: 20; classes [on-time, miss] [20, 0]",
+        "Model: 2fb01bd8d63c \u00b7 synthetic context, quantity 100",
+        "Score is an uncalibrated leaf proportion; predictive value is not established."
+      ]
+    },
+    {
+      "supplier_id": "D",
+      "name": "Baltic Parts",
+      "unit_price": "9",
+      "capacity": 100,
+      "minimum_quantity": 20,
+      "commitment": "Not admitted \u00b7 commitment unavailable",
+      "historical_indicator": "Unavailable",
+      "risk_score": null,
+      "predicted_class": "Withheld",
+      "source_status": "Incomplete contextual offer",
+      "color": "#6C7C88",
+      "explanation": [
+        "No accepted delivery commitment or usable risk assessment.",
+        "Not in the admitted three-supplier optimizer input."
+      ]
+    }
+  ],
+  "scenarios": {
+    "baseline": {
+      "label": "Original case",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1040",
+          "cost_premium": "0.01960784313725490196078431372549019607843",
+          "risk_exposure": "0.17526",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac20.00 higher (1.96%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1071",
+          "cost_premium": "0.05",
+          "risk_exposure": "0.084709",
+          "largest_share": "0.71",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 29,
+              "share": 29.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 71,
+              "share": 71.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac51.00 higher (5.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": []
+    },
+    "outage_A": {
+      "label": "Northline Components unavailable",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1060",
+          "cost_premium": "0",
+          "risk_exposure": "0.23368",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Danube Supply reaches its stated capacity.",
+            "Concentration bound reached.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1081",
+          "cost_premium": "0.01981132075471698113207547169811320754717",
+          "risk_exposure": "0.110998",
+          "largest_share": "0.62",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 38,
+              "share": 38.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 62,
+              "share": 62.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Cost is \u20ac21.00 higher (1.98%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1090",
+          "cost_premium": "0.02830188679245283018867924528301886792453",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Concentration bound reached.",
+            "Cost is \u20ac30.00 higher (2.83%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "40",
+          "risk_change": "-0.05842",
+          "allocation_change": "A: 60 \u2192 0; B: 40 \u2192 80; C: 0 \u2192 20",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "41",
+          "risk_change": "-0.064262",
+          "allocation_change": "A: 60 \u2192 0; B: 0 \u2192 38; C: 40 \u2192 62",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "19",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 0; B: 0 \u2192 20; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "outage_B": {
+      "label": "Danube Supply unavailable",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1040",
+          "cost_premium": "0",
+          "risk_exposure": "0.17526",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Northline Components reaches its stated capacity.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1060",
+          "cost_premium": "0.01923076923076923076923076923076923076923",
+          "risk_exposure": "0.11684",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Cost is \u20ac20.00 higher (1.92%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1080",
+          "cost_premium": "0.03846153846153846153846153846153846153846",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Concentration bound reached.",
+            "Cost is \u20ac40.00 higher (3.85%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "20",
+          "risk_change": "-0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 0; C: 0 \u2192 40",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "20",
+          "risk_change": "-0.05842",
+          "allocation_change": "A: 60 \u2192 40; B: 0 \u2192 0; C: 40 \u2192 60",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "9",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 20; B: 0 \u2192 0; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "outage_C": {
+      "label": "Pannon Industrial unavailable",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Northline Components reaches its stated capacity.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Northline Components reaches its stated capacity.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Availability forbids use.",
+            "Northline Components reaches its stated capacity.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "0",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 40; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "-20",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 40; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "-51",
+          "risk_change": "0.207391",
+          "allocation_change": "A: 29 \u2192 60; B: 0 \u2192 40; C: 71 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "capacity_A": {
+      "label": "Northline Components capacity reduced to 30",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1035",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.7",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 30,
+              "share": 30.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 70,
+              "share": 70.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1035",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.7",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 30,
+              "share": 30.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 70,
+              "share": 70.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1080",
+          "cost_premium": "0.04347826086956521739130434782608695652174",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Concentration bound reached.",
+            "Cost is \u20ac45.00 higher (4.35%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "15",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 30; B: 40 \u2192 70; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "-5",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 30; B: 0 \u2192 70; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "9",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 20; B: 0 \u2192 0; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "capacity_B": {
+      "label": "Danube Supply capacity reduced to 30",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1040",
+          "cost_premium": "0",
+          "risk_exposure": "0.17526",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Danube Supply receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1060",
+          "cost_premium": "0.01923076923076923076923076923076923076923",
+          "risk_exposure": "0.11684",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac20.00 higher (1.92%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1080",
+          "cost_premium": "0.03846153846153846153846153846153846153846",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Concentration bound reached.",
+            "Cost is \u20ac40.00 higher (3.85%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "20",
+          "risk_change": "-0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 0; C: 0 \u2192 40",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "20",
+          "risk_change": "-0.05842",
+          "allocation_change": "A: 60 \u2192 40; B: 0 \u2192 0; C: 40 \u2192 60",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "9",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 20; B: 0 \u2192 0; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "capacity_C": {
+      "label": "Pannon Industrial capacity reduced to 30",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1065",
+          "cost_premium": "0.04411764705882352941176470588235294117647",
+          "risk_exposure": "0.20447",
+          "largest_share": "0.7",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 70,
+              "share": 70.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 30,
+              "share": 30.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components receives no quantity in this objective solution.",
+            "Pannon Industrial reaches its stated capacity.",
+            "Cost is \u20ac45.00 higher (4.41%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "0",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 40; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "-20",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 40; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "-6",
+          "risk_change": "0.119761",
+          "allocation_change": "A: 29 \u2192 0; B: 0 \u2192 70; C: 71 \u2192 30",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "demand_A": {
+      "label": "Demand increased to 120",
+      "quantity": 120,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1291",
+          "cost_premium": "0.04959349593495934959349593495934959349593",
+          "risk_exposure": "0.07059083333333333333333333333333333333333",
+          "largest_share": "0.7583333333333333333333333333333333333333",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 29,
+              "share": 24.166666666666668,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 91,
+              "share": 75.83333333333333,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac61.00 higher (4.96%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "210",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 60; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "190",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 60; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "220",
+          "risk_change": "-0.01411816666666666666666666667",
+          "allocation_change": "A: 29 \u2192 29; B: 0 \u2192 0; C: 71 \u2192 91",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "demand_B": {
+      "label": "Demand increased to 120",
+      "quantity": 120,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1291",
+          "cost_premium": "0.04959349593495934959349593495934959349593",
+          "risk_exposure": "0.07059083333333333333333333333333333333333",
+          "largest_share": "0.7583333333333333333333333333333333333333",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 29,
+              "share": 24.166666666666668,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 91,
+              "share": 75.83333333333333,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac61.00 higher (4.96%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "210",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 60; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "190",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 60; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "220",
+          "risk_change": "-0.01411816666666666666666666667",
+          "allocation_change": "A: 29 \u2192 29; B: 0 \u2192 0; C: 71 \u2192 91",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "demand_C": {
+      "label": "Demand increased to 120",
+      "quantity": 120,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1230",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.5",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 60,
+              "share": 50.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 120,
+          "total_cost": "1291",
+          "cost_premium": "0.04959349593495934959349593495934959349593",
+          "risk_exposure": "0.07059083333333333333333333333333333333333",
+          "largest_share": "0.7583333333333333333333333333333333333333",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 29,
+              "share": 24.166666666666668,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 91,
+              "share": 75.83333333333333,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac61.00 higher (4.96%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "210",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 60; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "190",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 60; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "220",
+          "risk_change": "-0.01411816666666666666666666667",
+          "allocation_change": "A: 29 \u2192 29; B: 0 \u2192 0; C: 71 \u2192 91",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "price_A": {
+      "label": "Northline Components price increased by 20%",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1060",
+          "cost_premium": "0",
+          "risk_exposure": "0.23368",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components receives no quantity in this objective solution.",
+            "Danube Supply reaches its stated capacity.",
+            "Concentration bound reached.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1081",
+          "cost_premium": "0.01981132075471698113207547169811320754717",
+          "risk_exposure": "0.110998",
+          "largest_share": "0.62",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 38,
+              "share": 38.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 62,
+              "share": 62.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components receives no quantity in this objective solution.",
+            "Cost is \u20ac21.00 higher (1.98%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1090",
+          "cost_premium": "0.02830188679245283018867924528301886792453",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components receives no quantity in this objective solution.",
+            "Concentration bound reached.",
+            "Cost is \u20ac30.00 higher (2.83%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "40",
+          "risk_change": "-0.05842",
+          "allocation_change": "A: 60 \u2192 0; B: 40 \u2192 80; C: 0 \u2192 20",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "41",
+          "risk_change": "-0.064262",
+          "allocation_change": "A: 60 \u2192 0; B: 0 \u2192 38; C: 40 \u2192 62",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "19",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 0; B: 0 \u2192 20; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "price_B": {
+      "label": "Danube Supply price increased by 20%",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1040",
+          "cost_premium": "0",
+          "risk_exposure": "0.17526",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Danube Supply receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1060",
+          "cost_premium": "0.01923076923076923076923076923076923076923",
+          "risk_exposure": "0.11684",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Cost is \u20ac20.00 higher (1.92%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1080",
+          "cost_premium": "0.03846153846153846153846153846153846153846",
+          "risk_exposure": "0.05842",
+          "largest_share": "0.8",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 20,
+              "share": 20.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 80,
+              "share": 80.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Danube Supply receives no quantity in this objective solution.",
+            "Concentration bound reached.",
+            "Cost is \u20ac40.00 higher (3.85%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "20",
+          "risk_change": "-0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 0; C: 0 \u2192 40",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "20",
+          "risk_change": "-0.05842",
+          "allocation_change": "A: 60 \u2192 40; B: 0 \u2192 0; C: 40 \u2192 60",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "9",
+          "risk_change": "-0.026289",
+          "allocation_change": "A: 29 \u2192 20; B: 0 \u2192 0; C: 71 \u2192 80",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "price_C": {
+      "label": "Pannon Industrial price increased by 20%",
+      "quantity": 100,
+      "plans": [
+        {
+          "plan_id": "minimum",
+          "title": "Minimum Cost",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "balanced",
+          "title": "Balanced",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        },
+        {
+          "plan_id": "lower",
+          "title": "Lower-Risk Alternative",
+          "feasible": true,
+          "quantity": 100,
+          "total_cost": "1020",
+          "cost_premium": "0",
+          "risk_exposure": "0.2921",
+          "largest_share": "0.6",
+          "supplier_count": 2,
+          "allocations": [
+            {
+              "supplier_id": "A",
+              "name": "Northline Components",
+              "quantity": 60,
+              "share": 60.0,
+              "color": "#397BA6"
+            },
+            {
+              "supplier_id": "B",
+              "name": "Danube Supply",
+              "quantity": 40,
+              "share": 40.0,
+              "color": "#0B7773"
+            },
+            {
+              "supplier_id": "C",
+              "name": "Pannon Industrial",
+              "quantity": 0,
+              "share": 0.0,
+              "color": "#AF782B"
+            }
+          ],
+          "explanations": [
+            "Northline Components reaches its stated capacity.",
+            "Pannon Industrial receives no quantity in this objective solution.",
+            "Cost is \u20ac0.00 higher (0.00%) than the minimum-cost plan.",
+            "Model-derived score exposure is a planning proxy, not a delivery probability.",
+            "Baltic Parts is contextual only: no delivery commitment was admitted."
+          ]
+        }
+      ],
+      "reasons": [],
+      "deltas": [
+        {
+          "plan_id": "minimum",
+          "cost_change": "0",
+          "risk_change": "0.0000",
+          "allocation_change": "A: 60 \u2192 60; B: 40 \u2192 40; C: 0 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "balanced",
+          "cost_change": "-20",
+          "risk_change": "0.11684",
+          "allocation_change": "A: 60 \u2192 60; B: 0 \u2192 40; C: 40 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        },
+        {
+          "plan_id": "lower",
+          "cost_change": "-51",
+          "risk_change": "0.207391",
+          "allocation_change": "A: 29 \u2192 60; B: 0 \u2192 40; C: 71 \u2192 0",
+          "feasibility_change": "No: feasible in both cases"
+        }
+      ]
+    },
+    "shortfall_A": {
+      "label": "All supplier capacities reduced to 10",
+      "quantity": 100,
+      "plans": [],
+      "reasons": [
+        "Effective ceilings sum to 30 < demand 100."
+      ],
+      "deltas": []
+    },
+    "shortfall_B": {
+      "label": "All supplier capacities reduced to 10",
+      "quantity": 100,
+      "plans": [],
+      "reasons": [
+        "Effective ceilings sum to 30 < demand 100."
+      ],
+      "deltas": []
+    },
+    "shortfall_C": {
+      "label": "All supplier capacities reduced to 10",
+      "quantity": 100,
+      "plans": [],
+      "reasons": [
+        "Effective ceilings sum to 30 < demand 100."
+      ],
+      "deltas": []
+    }
+  },
+  "limits": [
+    "No live Odoo data or business actions",
+    "Risk scores fixed at comparison quantity",
+    "Scenario choices are bounded fixtures, not runtime optimization"
+  ]
+}

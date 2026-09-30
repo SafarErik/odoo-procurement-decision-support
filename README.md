@@ -559,3 +559,11 @@ CONDITIONS** for research, with no production or thesis-baseline promotion.
 Install `python -m pip install -e ".[optimization-spike,ml-spike]"` and run
 `python -m tools.v2_ml_risk.experiments` to regenerate the
 [recorded results](docs/spikes/v2-ml-supplier-risk-results.json).
+
+The opt-in [Reflex frontend capability spike](docs/spikes/v2-reflex-frontend-capability.md)
+provides a synthetic case workspace with supplier explanations, three allocation
+plans, native charts, mock scenarios, session-local approval and a pending backend
+PDF action. Set `ENABLE_V2_FRONTEND_SPIKE=1` and repository-root `PYTHONPATH` when
+running Reflex from `frontend/`; the report contains exact commands. The RFQ page
+remains the default. Recommendation: **GO WITH CONDITIONS** for the thesis PoC;
+real V2 HTTP, durable approval, PDF generation and Python 3.11 remain unverified.
