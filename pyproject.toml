@@ -15,6 +15,7 @@ dependencies = [
     "psycopg[binary]>=3.2,<4.0",
     "pydantic>=2.6,<3.0",
     "pydantic-settings>=2.6,<3.0",
+    "pulp==3.3.0",
     "sqlalchemy>=2.0,<3.0",
     "uvicorn[standard]>=0.32,<1.0",
 ]
@@ -37,6 +38,7 @@ include = [
     "decision_core*",
     "odoo_adapter*",
     "persistence*",
+    "optimization_adapter*",
 ]
 
 [tool.pytest.ini_options]
@@ -63,4 +65,5 @@ known-first-party = [
     "frontend",
     "odoo_adapter",
     "persistence",
+    "optimization_adapter",
 ]

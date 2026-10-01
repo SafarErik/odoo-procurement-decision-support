@@ -1,6 +1,19 @@
 # Development guidance
 
-## T0 scope
+## Current V2 scope and historical increments
+
+T13 authorizes the immutable one-product V2 planning model and application-ready
+MILP core. Keep solver infrastructure behind `optimization_adapter/`; the
+ERP-neutral `decision_core/planning/` uses a solver port. It does not authorize ML
+training, new Odoo assembly, V2 HTTP routes, migrations, Reflex integration,
+approval or PDF export. Preserve existing WSM/API behavior and T11/T12 version-1
+snapshots and stored-only retrieval/retry semantics. See `docs/T13_V2_MILP_DESIGN.md`
+and `docs/T13_HANDOFF.md` for supported input and numerical contracts.
+
+The T0 and first read-only RFQ increment below are historical scope records;
+they do not prohibit explicitly authorized later increments.
+
+## Historical T0 scope
 
 T0 establishes the local development foundation, a minimal FastAPI health API, a
 minimal separate Reflex frontend, Odoo Compose configuration, automated checks,
@@ -8,7 +21,7 @@ and an evidence-based Odoo capability spike. It does not implement procurement
 decision logic, rankings, constraints, KPIs, persistence schemas, or a final
 domain model.
 
-## Current read-only integration scope
+## Historical first read-only integration scope
 
 The first post-T0 increment validates a narrow Odoo 19 JSON-2 path for listing open
 `purchase.order` records. It may expose only the verified RFQ summary through the
@@ -22,7 +35,7 @@ canonical procurement model.
 - Keep Odoo communication and mapping behind `odoo_adapter/`; never access the Odoo database directly.
 - The frontend communicates only with the documented backend HTTP API. It must not access Odoo or a database.
 - Keep FastAPI route handlers thin and keep business logic out of Reflex components and route handlers.
-- The future application layer orchestrates use cases; it must not own infrastructure-specific logic.
+- The application layer orchestrates use cases; it must not own infrastructure-specific logic.
 - Do not invent or rely on unvalidated Odoo models, fields, authentication details, or API capabilities.
 - Never commit secrets. Keep local values in the ignored `.env` file.
 
@@ -68,7 +81,7 @@ After creating and activating a Python 3.11 virtual environment:
 python -m pip install -e ".[frontend,dev]"
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter
+python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter persistence migrations
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
@@ -83,6 +96,8 @@ from `frontend/` with `reflex run`.
   `integration` and browser-level full-flow tests with `e2e`; unknown markers fail.
 - Run the fast checks before handoff. Run `pytest -m "integration and not e2e" -v`
   only with the documented runtime services available.
+- PuLP 3.3.0 and actual bundled CBC execution are required for T13 fast checks.
+  Missing solver dependencies/executables must fail the runtime gate, never skip.
 - GitHub Actions uses Docker Compose on Ubuntu; local Windows development continues
   to use Podman Compose.
 - The `quality` job is the only check intended to be required for branch protection.

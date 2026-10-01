@@ -1199,3 +1199,37 @@ does not discover arbitrary supplier history, verify supplemental values as fact
 provide production identity management, create a decision frontend, or write to
 Odoo. The controlled T6 and T7 history fixtures are separate; no three-supplier
 live historical-scoring claim is made.
+
+## T13 — V2 domain and application-ready MILP procurement planning core
+
+Live current Drive baseline, requirements, roadmap, development status and
+ADR-024–027 were read before implementation. Entry GO followed verified remote
+main `71396e8924f6a1f60daf8b45f02861adf21a25e5`, preservation of pre-existing
+Reflex lockfile state, 271-pass legacy baseline and existing hosted-check review.
+Branch `feature/t13-v2-milp-core` starts from that main; the cumulative experimental
+PR #14 was selectively used as reference and remains unmerged.
+
+Added frozen ERP-neutral requirement/supplier/policy/plan contracts under
+`decision_core/planning/`, exact eligibility/output rules, a solver port and
+deterministic minimum-cost/epsilon orchestration. `optimization_adapter/` implements
+provisional PuLP/CBC with integer scaling, exact constraint checks, stable objective
+locks, explicit solver statuses and one shared time budget. The thin application
+entry point keeps external risk definition/assessment/validity context separate.
+Coefficients must cover all allowed allocation quantities; missing scores never
+become zero. No ML feature-schema decision or training was made.
+
+PuLP 3.3.0 is required and the Python 3.11 quality job explicitly executes the
+actual CBC runtime gate without optional skips. A project-local Python 3.11.16
+environment verified CBC 2.10.3 and the entire fast suite: 328 passed, 37 deselected
+in 10.47s, one upstream warning. All 57 T13 tests also passed on Python 3.14.7.
+Ruff format/lint, compileall, pip check and whitespace checks passed. Podman Compose
+validation FAILED because its machine socket refused connection; live integration
+and browser checks were SKIPPED. Hosted T13 runs remain UNVERIFIED.
+
+FR-V2-04–06 and AC-V2-04–07 are implemented/LOCAL PASS for this bounded core.
+FR-V2-07 is PARTIAL because ML tree-path explanations belong to T14. Existing
+WSM/API behavior and immutable version-1 T11/T12 snapshots, stored retrieval and
+retry semantics remain unchanged. No new Odoo assembly/API, database migration,
+Reflex integration, approval/PDF path or Odoo mutation was added. Changes are local,
+uncommitted and unmerged. Design, exact evidence, file map and T14 questions are
+recorded in `docs/T13_V2_MILP_DESIGN.md` and `docs/T13_HANDOFF.md`.
