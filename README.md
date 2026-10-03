@@ -2,10 +2,22 @@
 
 Development foundation for a BSc thesis proof of concept: an explainable,
 ERP-independent procurement decision-support system integrated with Odoo. The
-system will evaluate known supplier offers and provide a recommendation while
-leaving the final selection to a human decision-maker.
+accepted V2 system will evaluate suppliers with a Decision Tree, allocate orders
+with MILP, support disruption scenarios, and provide human approval and snapshot
+PDF export through a Python web frontend. The official task assignment remains
+TO BE DRAFTED; the complete V2 workflow is not implemented.
 
-**Current status:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
+**Current V2 implementation:** T13 supplies immutable one-product planning
+contracts, explicit hard constraints, minimum-cost allocation and epsilon cost-risk
+alternatives through an ERP-neutral solver port and a replaceable PuLP/CBC adapter.
+The application entry point requires explicit context for externally supplied risk
+coefficients; missing scores never become zero risk. Score validity must cover the
+supplier's allowed quantities. No ML training, V2 API/assembler/UI or approval/PDF
+path is implemented here. Python 3.11.16 and actual CBC 2.10.3 passed the local
+328-test fast suite; hosted T13 checks remain UNVERIFIED. See the
+[T13 design](docs/T13_V2_MILP_DESIGN.md) and [handoff](docs/T13_HANDOFF.md).
+
+**Implemented V1 baseline:** T0, the read-only T1 Odoo RFQ slice, the ERP-independent T2
 Decision Core, and the narrow T3 decision API are implemented. T4 completed live,
 read-only Odoo decision-input discovery. T5 installed the standard Purchase
 Agreements capability and added least-privilege, company-scoped
@@ -98,6 +110,12 @@ Decision Core snapshots --> application persistence ports --> PostgreSQL adapter
                                       |                              |
                                       +--> human decision rules      +--> Alembic schema
                                       +--> no recalculation          +--> immutable JSONB
+
+typed V2 input + external risk context --> application planning use case
+                                                     |
+                                                     +--> Decision Core planning/solver port
+                                                                    |
+                                                                    +--> PuLP/CBC adapter
 ```
 
 The frontend has no direct Odoo or database access. The application contract is
@@ -111,7 +129,8 @@ and database frameworks. Direct Odoo database access by this project is prohibit
 application/    ERP-neutral use cases and adapter ports
 backend/        FastAPI boundary and dependency composition
 frontend/       Separate Reflex procurement ledger
-decision_core/  ERP-independent constraint, normalization, WSM, and ranking logic
+decision_core/  ERP-independent V1 WSM and V2 planning contracts/orchestration
+optimization_adapter/  Replaceable V2 PuLP/CBC MILP solver implementation
 odoo_adapter/   Read-only Odoo JSON-2 transport and mapping
 infra/odoo/     Local Odoo/PostgreSQL Compose and isolated T7-S addon
 infra/persistence/  Disposable, isolated T11 PostgreSQL test service
@@ -176,6 +195,11 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[frontend,dev]"
 ```
+
+PuLP 3.3.0 is a required project dependency with bundled CBC. Fast tests execute
+the real solver, including an executable/version smoke test; they do not skip when
+it is missing. The adapter pin is provisional and does not silently follow a new
+solver API or runtime. No global solver installation is needed for this baseline.
 
 Ensure the Podman CLI is on `PATH`, start the existing machine, and confirm the
 Compose provider. The temporary `PATH` adjustment is needed only when the installer
@@ -300,7 +324,7 @@ UI and container logs after startup.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter persistence migrations infra/odoo/addons/t7s_inventory_history_projection
+python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter persistence migrations infra/odoo/addons/t7s_inventory_history_projection
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
@@ -322,8 +346,10 @@ policy; T8 history calculation, adapter, stable joins, withholding, and provenan
 T10 opt-in activation, fallback, profiles, explanations, T9 scenario parity, and
 legacy/API regressions; T11 versioned serialization, persistence ports, final-decision
 validation, idempotency, PostgreSQL migration/transaction/immutability behavior; and
-the separate Reflex
-state-backend port. With the documented runtime services running and the ignored
+the separate Reflex state-backend port. T13 adds mandatory actual MILP execution,
+independent exhaustive reference optima, integer/business constraint checks, risk
+validity, deterministic alternatives, timeout/failure and solver-boundary checks.
+With the documented runtime services running and the ignored
 `.env` configured, integration tests can be selected explicitly:
 
 ```powershell
@@ -356,7 +382,8 @@ GitHub Actions runs two independent workflows on ephemeral Ubuntu runners:
 
 - **Quality:** runs for every pull request, pushes to `main`, and manual dispatch.
   Its stable `quality` job performs the fast checks and validates the Compose model
-  with temporary synthetic credentials.
+  with temporary synthetic credentials. Python 3.11 installs required PuLP/CBC and
+  explicitly runs the T13 solver runtime gate; missing dependencies are failures.
 - **Container and API integration:** runs only for relevant runtime paths on pull
   requests and `main`, plus manual dispatch. It starts Odoo's PostgreSQL, a separate
   disposable T11 PostgreSQL service, Odoo, and FastAPI; runs only integration-marked
