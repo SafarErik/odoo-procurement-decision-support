@@ -2,25 +2,38 @@
 
 ## Result and repository state
 
-**LOCAL IMPLEMENTED / VERIFIED; HOSTED UNVERIFIED; NOT MERGED.** The bounded
+**IMPLEMENTED; LOCAL AND HOSTED CHECKS VERIFIED; PR #15 OPEN / NOT MERGED.** The bounded
 one-product core is ready for application composition. It is not a completed V2
-workflow or a validated ML predictor. Official thesis task assignment remains
-TO BE DRAFTED. Live Drive status, roadmap, ADR-024–027, requirements and development
-sections were read before design and implementation. See
-[design](T13_V2_MILP_DESIGN.md) for authoritative semantics and entry evidence.
+workflow or a validated ML predictor. Current Drive 00/02/06/07 were read live on
+2026-10-03. They record the official thesis task assignment as completed and
+recorded in the issued, approved task sheet (dated 2026-09-22, reference
+423.589/25/140); it is no longer TO BE DRAFTED. Subsequent implementation and
+evaluation must remain traceable to that assignment and the accepted V2 baseline.
+The original pre-implementation Drive/ADR reads and entry evidence remain in the
+[design](T13_V2_MILP_DESIGN.md).
 
 - Branch: `feature/t13-v2-milp-core`.
-- Verified remote main, starting base and current HEAD:
+- Entry base and remote main, reverified on 2026-10-03:
   `71396e8924f6a1f60daf8b45f02861adf21a25e5`.
-- T13 changes are local and uncommitted. No push, PR, merge or hosted T13 run.
+- Implementation commit: [`eae712fb47e66e0dbbbb7eda1c091849ffb4bbcc`](https://github.com/SafarErik/odoo-procurement-decision-support/commit/eae712fb47e66e0dbbbb7eda1c091849ffb4bbcc),
+  `Add T13 V2 MILP planning core`, committed and pushed on 2026-10-01.
+  Local HEAD, remote branch and PR head matched this commit before this correction.
+- PR [#15](https://github.com/SafarErik/odoo-procurement-decision-support/pull/15),
+  `Add T13 V2 MILP planning core`, is open, non-draft and unmerged, targeting `main`.
+  Implementation Quality and Container/API runs succeeded; evidence is below.
+- This 2026-10-03 documentation-only follow-up changes only `docs/T13_HANDOFF.md`.
+  Its commit follows the implementation commit; after publication the branch/PR
+  HEAD identifies this documentation revision, not the entry base or new core code.
+  The implementation evidence below remains attributed to `eae712f`; subsequent
+  documentation-head CI must be reported separately rather than assumed green.
 - PR [#14](https://github.com/SafarErik/odoo-procurement-decision-support/pull/14)
-  remains experimental and unmerged. Its latest combined head `b65347b` was used
-  as reference, including the ML increment's external-score extension.
+  was experimental and unmerged at the 2026-10-01 entry check. Its combined head
+  `b65347b` was used as reference, including the ML external-score extension.
 - Pre-existing apparent Reflex lockfile changes remain preserved in stash
   `bb904d26d5e85d6775187ac59f6940881566f493`; content diffs were empty after
   line-ending normalization. No stash drop/pop was performed.
 
-Entry **GO for local implementation** followed explicit remote, working-tree,
+Historical entry on 2026-10-01: **GO for local implementation** followed remote, working-tree,
 legacy and existing hosted checks. Detached-main fast baseline was 271 passed /
 37 deselected on Python 3.14.7. T12 PR #13 pre-merge head `e074e2e` had Quality
 35782454967 and Container/API 35782454981 success; the squash main commit itself
@@ -133,7 +146,13 @@ not an assertion that the old quantity-dependent ML model has this validity.
 These are synthetic score demonstrations. Equal-score cases deliberately return
 no distinct alternatives. Input permutations preserve plans and explanations.
 
-## Executed verification on 2026-10-01
+## Historical local verification on 2026-10-01
+
+This records the original local handoff before the implementation commit was
+published and PR #15 opened. The earlier draft-assignment and uncommitted/hosted
+unverified observations were historical state, superseded by the current record
+above. Local results and limitations below are preserved, not rerun or relabeled
+by this documentation correction.
 
 Python 3.11 was initially unavailable. A managed Python 3.11.16 runtime was installed
 under ignored `.venv/t13-python` with uv `--no-bin --no-registry`; the isolated
@@ -159,34 +178,63 @@ git diff --check
 | Compilation / dependency consistency / whitespace | PASS; no broken requirements |
 | Local Podman Compose | FAILED: running-machine socket at 127.0.0.1:64087 refused connection; `config --quiet` could not complete |
 | Service-dependent integration / controlled Odoo fixtures / browser E2E | SKIPPED: unavailable services; no service start or Odoo mutation |
-| Hosted T13 Quality / Container/API | UNVERIFIED: local uncommitted implementation, no remote run |
+| Hosted T13 Quality / Container/API at the original local handoff | UNVERIFIED at that stage: before the implementation commit and PR publication; later hosted results are recorded separately below |
 
 The required quality workflow now installs the solver as a required dependency and
-executes its runtime gate on Python 3.11; no import-or-skip fallback. Configuration
-is implemented, not a claim of a completed hosted run. The legacy suite includes
-WSM, HTTP contracts, T11/T12 serialization, stored-only replay/retrieval and error
-masking regressions. It does not substitute for unavailable PostgreSQL/Odoo live tests.
+executes its runtime gate on Python 3.11; no import-or-skip fallback. The legacy
+suite includes WSM, HTTP contracts, T11/T12 serialization, stored-only replay/retrieval
+and error masking regressions. The local fast suite did not substitute for the
+unavailable local PostgreSQL/Odoo service tests.
+
+## Hosted implementation evidence, reverified on 2026-10-03
+
+GitHub PR metadata, workflow conclusions, job steps and decoded logs were read
+for implementation commit `eae712fb47e66e0dbbbb7eda1c091849ffb4bbcc`. Both runs
+executed on 2026-10-01; this is a later evidence read, not a new local test run.
+
+| Gate | Actual hosted evidence |
+| --- | --- |
+| [Quality run 36835570151](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/36835570151), job 110282045586 | SUCCESS on Python 3.11.16: 328 passed, 37 deselected, one warning in 2.64s |
+| Required actual solver gate in the same Quality run | PASS: 5 passed in 0.08s, including `test_required_pulp_and_actual_cbc_runtime`; required PuLP 3.3.0/CBC runtime execution, no dependency skip |
+| Formatting / lint / compilation / dependencies / whitespace in Quality | PASS: 114 files already formatted, lint passed, compile step succeeded, no broken requirements, `git diff --check` step succeeded |
+| Hosted Docker Compose configuration in Quality | PASS for Odoo and isolated persistence configuration with synthetic credentials; separate from the earlier FAILED local Podman check |
+| [Container/API run 36835570266](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/36835570266), job 110282046528 | SUCCESS: 17 passed, 20 skipped, 328 deselected, one warning in 2.22s |
+| Service and persistence scope of that integration run | PASS: isolated T11/T12 PostgreSQL schema/snapshot/idempotency/concurrency/HTTP-flow tests plus FastAPI health/decision and Odoo HTTP service checks |
+| Reflex frontend export and technical named-volume persistence | PASS as job steps; compilation and synthetic volume-marker survival, not browser E2E or an Odoo business-scenario persistence proof |
+| Controlled live Odoo contracts in that integration run | SKIPPED: all 20 cases in `tests/integration/test_live_odoo_contract.py`, including RFQ/read-only/schema/T5, controlled T6, T7-S and T8 contracts |
+
+CodeRabbit reported SUCCESS for the same implementation commit. The successful
+workflow conclusions do not turn their 20 skipped tests into passes. The original
+local Podman socket failure and local service/browser skips remain unchanged;
+hosted Linux/Docker checks ran in a different environment. A complete controlled
+Odoo V2 E2E flow, ML training/inference on Python 3.11 and the full V2 workflow
+remain OPEN.
+
+This documentation correction verifies existing evidence and uses local
+`git diff --check`; it does not rerun local runtime/services or change code,
+Drive or Odoo. Its commit and latest CI state are reported separately after push.
 
 ## Acceptance mapping
 
-Statuses below describe the implemented local core on this branch, not merged or
-hosted acceptance and not completion of the entire V2 system.
+Statuses below describe the bounded core verified locally and by hosted checks on
+implementation commit `eae712f`, still in open/unmerged PR #15. They do not signify
+completion of the entire V2 system or execution of skipped live contracts.
 
 | Requirement / criterion | Status | Evidence and limit |
 | --- | --- | --- |
-| FR-V2-04 hard eligibility/constraints | IMPLEMENTED / LOCAL PASS | Explicit unknown-input rejection; availability/date, MOQ, capacity, max count, concentration and both commercial ranges; no silent relaxation |
-| FR-V2-05 MILP planning | IMPLEMENTED / LOCAL PASS | Integer x/binary y, exact demand and output verification, actual CBC and independent oracle |
-| FR-V2-06 comparable alternatives | IMPLEMENTED / LOCAL PASS | Verified reference, epsilon caps, exact cost/premium/exposure/allocation, distinct/deduplicated runs |
+| FR-V2-04 hard eligibility/constraints | IMPLEMENTED / VERIFIED | Explicit unknown-input rejection; availability/date, MOQ, capacity, max count, concentration and both commercial ranges; no silent relaxation |
+| FR-V2-05 MILP planning | IMPLEMENTED / VERIFIED | Integer x/binary y, exact demand and output verification, actual CBC and independent oracle |
+| FR-V2-06 comparable alternatives | IMPLEMENTED / VERIFIED | Verified reference, epsilon caps, exact cost/premium/exposure/allocation, distinct/deduplicated runs |
 | FR-V2-07 deterministic explanation | PARTIAL | Allocation/exclusion/bounds/premium/infeasibility implemented; ML tree path belongs to T14; no claimed probability/IIS |
-| AC-V2-04 controlled split/reference | LOCAL PASS | Three-supplier 6/4/0 plus independent exhaustive optima and hard-boundary cases |
-| AC-V2-05 distinct/no-distinct alternatives | LOCAL PASS | Two distinct epsilon results and equal-score deduplication fixtures |
-| AC-V2-06 determinism | LOCAL PASS | All six input permutations, equal-objective ties, fixed config and equal explanations |
-| AC-V2-07 reasons/error separation | LOCAL PASS | Hard vs optimal-zero reasons, binding bounds, MOQ interaction, invalid/timeout/executable/incumbent/corrupt-output tests |
+| AC-V2-04 controlled split/reference | PASS IN BOUNDED CORE | Three-supplier 6/4/0 plus independent exhaustive optima and hard-boundary cases |
+| AC-V2-05 distinct/no-distinct alternatives | PASS IN BOUNDED CORE | Two distinct epsilon results and equal-score deduplication fixtures |
+| AC-V2-06 determinism | PASS IN BOUNDED CORE | All six input permutations, equal-objective ties, fixed config and equal explanations |
+| AC-V2-07 reasons/error separation | PASS IN BOUNDED CORE | Hard vs optimal-zero reasons, binding bounds, MOQ interaction, invalid/timeout/executable/incumbent/corrupt-output tests |
 
 FR-V2-02–03, ML-specific FR-V2-07 and the complete API/UI/scenario/approval/PDF
 workflow remain open. T13 does not close AC-V2-01–03 or AC-V2-08–13.
 
-## Authorized Drive synchronization
+## Historical authorized Drive synchronization on 2026-10-01
 
 After verification, the current V2 sections of these existing documents were
 updated and independently read back through the connector:
@@ -201,6 +249,12 @@ roles and unchanged out-of-scope content, including historical V1/spike sections
 Existing native date fields were outside edited paragraphs. ADR-024–027 were not
 changed because this implements their accepted boundaries without a new
 architectural decision. ML/full V2 completion was not claimed.
+
+On 2026-10-03, 00/02/06/07 were read again for this repository-only correction.
+Their current baseline records PR #15 and hosted implementation success, bounded
+FR/AC acceptance, a completed official task assignment, and the open T14 dataset,
+leakage, score-validity and Python 3.11 ML gates. No Drive write was performed in
+this documentation update; the earlier synchronization above remains a dated record.
 
 ## T14 handoff
 
@@ -225,4 +279,6 @@ architectural decision. ML/full V2 completion was not claimed.
 
 Performance scaling, real dataset validation, native price tiers and broader solver
 numeric support remain unverified. T13 provides a bounded, documented composition
-point; deployment/hosted checks and later complete-system acceptance remain pending.
+point; deployment and later complete-system acceptance remain pending. The T13
+hosted implementation checks passed, while PR merge and the open T14 work remain
+separate actions.
