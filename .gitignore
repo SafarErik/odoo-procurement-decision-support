@@ -31,3 +31,6 @@ Thumbs.db
 
 # Local generated code-navigation index
 .codegraph/
+
+# Locally generated controlled ML datasets, models and reports
+.artifacts/

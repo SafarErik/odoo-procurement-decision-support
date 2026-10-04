@@ -1,0 +1,200 @@
+{
+  "heldout_assessment_hash": "6f9dcfb3f30b8db15676d394016c87254859547a2b73957572c96b272044061c",
+  "limitations": [
+    "All receipts and labels are synthetic; no real Odoo training export was used.",
+    "The model learns an intentionally constructed noisy labelling mechanism.",
+    "Scores are uncalibrated supplier-context planning exposure proxies.",
+    "Controlled quantity independence is not empirical delivery validity.",
+    "No real-world predictive superiority or complete V2 workflow claim."
+  ],
+  "metrics": {
+    "accuracy": 0.9875,
+    "confusion_matrix_labels_0_1": [
+      [
+        23,
+        1
+      ],
+      [
+        0,
+        56
+      ]
+    ],
+    "macro": {
+      "f1": 0.9849369233665977,
+      "precision": 0.9912280701754386,
+      "recall": 0.9791666666666667
+    },
+    "per_class": [
+      {
+        "class": 0,
+        "f1": 0.9787234042553191,
+        "precision": 1.0,
+        "predicted_support": 23,
+        "recall": 0.9583333333333334,
+        "support": 24
+      },
+      {
+        "class": 1,
+        "f1": 0.9911504424778761,
+        "precision": 0.9824561403508771,
+        "predicted_support": 57,
+        "recall": 1.0,
+        "support": 56
+      }
+    ],
+    "undefined_metrics": []
+  },
+  "model": {
+    "artifact_version": "t14-trusted-tree-v1",
+    "class_names": [
+      "schedule_regular",
+      "schedule_watch"
+    ],
+    "config": {
+      "ccp_alpha": 0.0,
+      "class_weight": null,
+      "criterion": "gini",
+      "max_depth": 3,
+      "min_samples_leaf": 10,
+      "min_samples_split": 20,
+      "random_state": 17,
+      "splitter": "best"
+    },
+    "dataset_version": "t14-controlled-supplier-contexts-v1",
+    "domain": [
+      "synthetic-company",
+      "synthetic-product",
+      "piece"
+    ],
+    "feature_names": [
+      "delivery_schedule_adherence",
+      "historical_completed_count"
+    ],
+    "feature_version": "t14-history-features-v1",
+    "label_version": "t14-next-window-schedule-watch-v1",
+    "mapping_version": "t14-leaf-exposure-v1",
+    "model_id": "41d595752279034d0969217fa3d1fb3b2497b55149321f9d3afb60b6161039d9",
+    "runtime": {
+      "joblib": "1.5.2",
+      "numpy": "2.3.5",
+      "python": "3.11",
+      "scipy": "1.16.3",
+      "sklearn": "1.8.0",
+      "threadpoolctl": "3.6.0"
+    },
+    "source_type": "t14_synthetic",
+    "train_class_support": [
+      43,
+      117
+    ],
+    "train_rows": 160,
+    "trained_through": "2026-01-31T00:00:00+00:00",
+    "training_id": "4fff1af3f1d3d432694d4a48b81c30a8da2ed7f55d46d592d395429762b19a7d"
+  },
+  "seed": 17,
+  "solver_demonstration": {
+    "alternatives": [
+      {
+        "allocations": [
+          {
+            "quantity": 8,
+            "supplier_id": "synthetic-S161"
+          },
+          {
+            "quantity": 2,
+            "supplier_id": "synthetic-S184"
+          },
+          {
+            "quantity": 0,
+            "supplier_id": "synthetic-S226"
+          }
+        ],
+        "cost_premium": "7/102",
+        "risk_exposure": "9661/50000",
+        "total_cost": "109"
+      }
+    ],
+    "context": {
+      "assessment_reference": "t14-assessments:bee7d3a9aabe9c3c5bbf813f60463a22b20534a374f432cfa1711478adb3a12a",
+      "controlled_fixture": true,
+      "definition_reference": "docs/T14_ML_DESIGN.md#t14-leaf-exposure-v1",
+      "validity_reference": "t14-quantity-independent-controlled-proxy:bd1cbc71ed94c5b614cbfab7f4eb29f0cdcdfe4fabec25ec1c70480bf30214f9"
+    },
+    "demonstration_only": true,
+    "minimum_cost": {
+      "allocations": [
+        {
+          "quantity": 0,
+          "supplier_id": "synthetic-S161"
+        },
+        {
+          "quantity": 4,
+          "supplier_id": "synthetic-S184"
+        },
+        {
+          "quantity": 6,
+          "supplier_id": "synthetic-S226"
+        }
+      ],
+      "cost_premium": "0",
+      "risk_exposure": "24661/25000",
+      "total_cost": "102"
+    },
+    "quantity_validity": "explicit constant controlled proxy on [1,1000]",
+    "status": "optimal",
+    "supplier_scores": {
+      "synthetic-S161": "0.0000",
+      "synthetic-S184": "0.9661",
+      "synthetic-S226": "1.0000"
+    }
+  },
+  "split": {
+    "boundary": "2026-02-15 00:00:00+00:00",
+    "dataset_id": "1384cf381c4b5617ec43e15d1ee00d8d3b70ecbe484ae373f256d5465fddb43f",
+    "dataset_version": "t14-controlled-supplier-contexts-v1",
+    "extracted_at": "2026-04-01 00:00:00+00:00",
+    "receipt_ids_unique": true,
+    "supplier_groups_disjoint": true,
+    "test_class_support": {
+      "0": 24,
+      "1": 56
+    },
+    "test_rows": 80,
+    "train_class_support": {
+      "0": 43,
+      "1": 117
+    },
+    "train_rows": 160
+  },
+  "tree": {
+    "depth": 3,
+    "display_rules_rounded": "|--- delivery_schedule_adherence <= 79.47\n|   |--- delivery_schedule_adherence <= 45.99\n|   |   |--- class: 1\n|   |--- delivery_schedule_adherence >  45.99\n|   |   |--- delivery_schedule_adherence <= 50.92\n|   |   |   |--- class: 1\n|   |   |--- delivery_schedule_adherence >  50.92\n|   |   |   |--- class: 1\n|--- delivery_schedule_adherence >  79.47\n|   |--- historical_completed_count <= 26.50\n|   |   |--- class: 0\n|   |--- historical_completed_count >  26.50\n|   |   |--- class: 0\n",
+    "feature_importances": {
+      "delivery_schedule_adherence": 0.997148699405276,
+      "historical_completed_count": 0.0028513005947240254
+    },
+    "leaf_counts": {
+      "2": [
+        0,
+        50
+      ],
+      "4": [
+        4,
+        9
+      ],
+      "5": [
+        2,
+        57
+      ],
+      "7": [
+        28,
+        0
+      ],
+      "8": [
+        9,
+        1
+      ]
+    },
+    "leaves": 5
+  }
+}

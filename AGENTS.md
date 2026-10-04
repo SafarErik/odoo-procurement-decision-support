@@ -2,6 +2,13 @@
 
 ## Current V2 scope and historical increments
 
+T14 adds the controlled offline Decision Tree pipeline under `supplier_evaluation/`
+and its narrow T13 risk-contract demonstration. See `docs/T14_ML_DESIGN.md` and
+`docs/T14_HANDOFF.md`. ML dependencies and trusted artifact loading stay outside
+the ERP-neutral planning core. Synthetic evidence is not a validated real-world
+predictor. T14 adds no live Odoo discovery/write, HTTP route, database migration,
+Reflex, approval/PDF or full T15 orchestration.
+
 T13 authorizes the immutable one-product V2 planning model and application-ready
 MILP core. Keep solver infrastructure behind `optimization_adapter/`; the
 ERP-neutral `decision_core/planning/` uses a solver port. It does not authorize ML
@@ -81,7 +88,7 @@ After creating and activating a Python 3.11 virtual environment:
 python -m pip install -e ".[frontend,dev]"
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter persistence migrations
+python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
 pytest -m "not integration and not e2e" -v
 python -m pip check
 podman compose --env-file .env -f infra/odoo/compose.yaml config
@@ -98,6 +105,9 @@ from `frontend/` with `reflex run`.
   only with the documented runtime services available.
 - PuLP 3.3.0 and actual bundled CBC execution are required for T13 fast checks.
   Missing solver dependencies/executables must fail the runtime gate, never skip.
+- T14 ML dependencies and actual training/artifact reload/inference are required
+  for fast checks; missing dependencies must fail, never skip. Python 3.11 remains
+  the compatibility baseline and the required CI runtime.
 - GitHub Actions uses Docker Compose on Ubuntu; local Windows development continues
   to use Podman Compose.
 - The `quality` job is the only check intended to be required for branch protection.

@@ -3,6 +3,52 @@
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
+## T14 — controlled Decision Tree supplier-evaluation pipeline (2026-10-04)
+
+Verified current remote main/T13 merge `ff8cc5bfebaef5f8d73751991101008830307012`,
+clean entry tree and Python 3.11.16 328-pass legacy/T13 baseline. Read current
+original Drive 00/02/03/06/07; their pre-merge status remains a dated record.
+Branch `feature/t14-decision-tree-pipeline` starts from that main. Saved
+`docs/T14_ML_DESIGN.md` before source implementation; inspected isolated ML spike
+ffa2939 without merging its cumulative code.
+
+Added `supplier_evaluation/` with controlled receipts and separate future label
+evidence, existing T8 Expected Arrival KPI calculation, strict as-of/identity/group/
+duplicate gates, fixed training-only DecisionTreeClassifier fit, trusted local
+artifact manifest/checksum/runtime validation, actual float32 tree paths, explicit
+metrics and a narrow T13 risk-input/CBC demonstration. Two quantity-independent
+historical features replace the spike's quantity-100 mismatch. Coefficients are
+versioned uncalibrated exposure proxies with complete declared quantity coverage;
+synthetic models reject observed contexts, missing scores never become zero.
+
+Seed 17; train 160 suppliers [43,117] at January 1, test 80 disjoint later suppliers
+[24,56] at March 1. Confusion matrix [[23,1],[0,56]], accuracy 0.9875, macro F1
+0.984937. Depth 3/five leaves. These measure an intentionally constructed noisy
+synthetic mechanism, not real-world prediction quality. Actual inferred scores
+produce a EUR 102 minimum-cost and EUR 109 lower-exposure plan under a 10% cost cap,
+using unchanged T13 MILP semantics.
+
+Required dependencies: sklearn 1.8.0, NumPy 2.3.5, SciPy 1.16.3, joblib 1.5.2 and
+threadpoolctl 3.6.0, installed only under ignored project-local Python 3.11.16.
+Quality CI installs and exercises real ML training/reload/inference/CBC, with no
+optional runtime skips. Generated datasets/models/reports are ignored; the small
+`docs/T14_EVALUATION.json` is reviewable evidence. README and AGENTS scope/commands
+are updated. FR-V2-02/03, AC-V2-02/03 and FR-V2-07 tree explanation target LOCAL
+PASS within controlled scope. Complete V2 and real prediction remain open.
+
+Final full fast suite passed with 394 tests / 37 deselected in 48.22s, including
+66 T14 tests; one upstream Starlette deprecation warning. Formatting (131 Python
+files), lint, compileall, pip check and whitespace passed. Local Podman Compose validation FAILED with
+127.0.0.1:64087 connection refused. Service/live Odoo/browser checks SKIPPED;
+hosted T14 CI and real prediction UNVERIFIED. Exact executed evidence is in
+`docs/T14_HANDOFF.md`, together with reproduction commands, measured metrics,
+traceability, limitations and a proposed Drive synchronization summary.
+
+No Decision Core/solver/WSM/API/history/persistence redesign, new Odoo assembly,
+HTTP route, migration, Reflex, approval/PDF or Odoo mutation. T15 owns full
+application/API/scenario/snapshot composition. Changes remain unstaged,
+uncommitted and unpushed; no PR/merge or Drive write was performed.
+
 ## T0 — Development foundation and early Odoo capability spike
 
 ### Objective

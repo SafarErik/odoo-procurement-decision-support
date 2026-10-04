@@ -16,6 +16,11 @@ dependencies = [
     "pydantic>=2.6,<3.0",
     "pydantic-settings>=2.6,<3.0",
     "pulp==3.3.0",
+    "scikit-learn==1.8.0",
+    "numpy==2.3.5",
+    "scipy==1.16.3",
+    "joblib==1.5.2",
+    "threadpoolctl==3.6.0",
     "sqlalchemy>=2.0,<3.0",
     "uvicorn[standard]>=0.32,<1.0",
 ]
@@ -39,6 +44,7 @@ include = [
     "odoo_adapter*",
     "persistence*",
     "optimization_adapter*",
+    "supplier_evaluation*",
 ]
 
 [tool.pytest.ini_options]
@@ -66,4 +72,5 @@ known-first-party = [
     "odoo_adapter",
     "persistence",
     "optimization_adapter",
+    "supplier_evaluation",
 ]

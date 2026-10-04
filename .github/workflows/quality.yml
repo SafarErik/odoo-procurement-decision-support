@@ -41,13 +41,16 @@ jobs:
         run: ruff check .
 
       - name: Compile Python sources
-        run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter persistence migrations
+        run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
 
       - name: Run fast tests
         run: pytest -m "not integration and not e2e" -v
 
       - name: Verify required T13 Python and CBC runtime
         run: python -m pytest tests/test_t13_solver_runtime.py -v
+
+      - name: Verify required T14 training reload inference and MILP contract
+        run: python -m pytest tests/test_t14_runtime.py -v
 
       - name: Check installed dependencies
         run: python -m pip check
