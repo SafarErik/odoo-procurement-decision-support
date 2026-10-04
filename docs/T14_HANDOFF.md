@@ -2,23 +2,43 @@
 
 ## Result and starting point
 
-**IMPLEMENTED / LOCAL CONTROLLED VERIFICATION; UNCOMMITTED FOR REVIEW.** T14 provides
+**IMPLEMENTED / LOCAL AND HOSTED IMPLEMENTATION CHECKS VERIFIED; PR #16 OPEN / NOT MERGED.** T14 provides
 an offline supplier-evaluation pipeline, versioned trusted model reload, actual tree
 paths and a narrow T13 risk-input/CBC demonstration. It does not complete the V2
 workflow or validate a real supplier predictor.
 
-Date: 2026-10-04. Branch: `feature/t14-decision-tree-pipeline`. Actual base/unchanged
-HEAD: `ff8cc5bfebaef5f8d73751991101008830307012`, verified by remote fetch,
-ls-remote, local origin/main and T13 ancestry. This is the merged T13 PR #15 commit.
+Repository and hosted evidence reverified on 2026-10-04:
+
+- Branch: `feature/t14-decision-tree-pipeline`.
+- Entry base: [`ff8cc5bfebaef5f8d73751991101008830307012`](https://github.com/SafarErik/odoo-procurement-decision-support/commit/ff8cc5bfebaef5f8d73751991101008830307012),
+  the merged T13 PR #15 commit. Remote main still matches this base at this check;
+  fetch, ls-remote and T13 ancestry were verified. It is not the T14 implementation HEAD.
+- Implementation commit: [`32e117242b1dbdf58f2e38897942e13c6507e12a`](https://github.com/SafarErik/odoo-procurement-decision-support/commit/32e117242b1dbdf58f2e38897942e13c6507e12a),
+  `Add Controlled T14 Supplier Evaluation Pipeline`, committed and published by
+  the user. Local HEAD, origin branch, ls-remote and PR HEAD matched this commit
+  before this documentation correction; the working tree was clean.
+- PR [#16](https://github.com/SafarErik/odoo-procurement-decision-support/pull/16),
+  `Add Controlled T14 Supplier Evaluation Pipeline`, is open, non-draft and unmerged,
+  targeting `main`. The verified implementation CI evidence below belongs to `32e1172`.
+- Documentation revision: this 2026-10-04 follow-up changes only `docs/T14_HANDOFF.md`
+  and is committed after the implementation commit on the same branch/PR. After
+  publication, branch/PR HEAD identifies this correction rather than the entry base
+  or implementation commit. Its exact commit and new HEAD's CI status are reported
+  after push; successful implementation runs do not establish CI for this revision.
+
 The October 2 Drive and October 3 T13 handoff pre-merge statements are dated status
-records. Do not treat them as evidence T13 is absent from main.
+records, not evidence that T13 is absent from main. At the original local T14
+handoff, changes were unstaged/uncommitted and hosted CI was unverified. Those
+pre-publication observations are historical and superseded by the publication and
+implementation checks above; the local results and limitations below are preserved.
 
 The entry working tree was clean. Python 3.11.16 baseline: 328 passed / 37 deselected;
 Ruff format/lint and pip check passed. Reused ignored `.venv/t13-check`, leaving the
 existing root Python 3.14.7 environment intact. Installed dependencies only in the
 project-local Python 3.11 environment. No unrelated work or stash was changed.
 
-Read current original 00_THESIS_STATUS, 02_ROADMAP, 03_ARCHITECTURE_DECISIONS,
+Before implementation on 2026-10-04, read the then-current original
+00_THESIS_STATUS, 02_ROADMAP, 03_ARCHITECTURE_DECISIONS,
 06_REQUIREMENTS_BASELINE and 07_DEVELOPMENT_STATUS under the actual
 SZAKDOLGOZAT / 00_Project_Control through Google Drive. They confirm ADR-025,
 FR-V2-02/03 and controlled data acceptance; the issued/approved task sheet is dated
@@ -135,9 +155,9 @@ These are actual ML predictions used in `RiskCoefficient`/`ExternalRiskContext`,
 not hard-coded coefficients or a mocked solve. The quantities, cost objective,
 epsilon semantics and deterministic tie-break remain T13's unchanged model.
 
-## Reproduction and verification
+## Historical local reproduction and verification (2026-10-04)
 
-Runtime: Windows; Python 3.11.16, sklearn 1.8.0, NumPy 2.3.5, SciPy 1.16.3,
+Recorded local runtime: Windows; Python 3.11.16, sklearn 1.8.0, NumPy 2.3.5, SciPy 1.16.3,
 joblib 1.5.2, threadpoolctl 3.6.0, PuLP 3.3.0, actual CBC 2.10.3. Dependencies are
 required, installed locally and pinned in project metadata. No optional skip.
 
@@ -177,8 +197,38 @@ integrity gates, not authentication or safe loading of foreign files.
 | PASS | Final formatting (131 Python files), lint, compilation, pip check and whitespace |
 | FAILED | Local Podman Compose configuration: 127.0.0.1:64087 socket connection refused; retry outside sandbox confirmed infrastructure failure |
 | SKIPPED | Local service integration, controlled live Odoo and browser E2E: unavailable runtime; no service start or Odoo mutation |
-| UNVERIFIED | Hosted T14 CI: changes intentionally uncommitted/unpushed; configured quality gate is not a hosted result |
 | UNVERIFIED | Real-world prediction, observed dataset sufficiency, full V2 API/UI/scenario/approval/PDF and cross-platform artifact portability |
+
+These are the original local execution results, not tests rerun for this
+documentation correction. The local Podman failure and service/live/browser skips
+remain unchanged by the subsequent hosted Linux/Docker success.
+
+## Hosted implementation evidence, reverified on 2026-10-04
+
+GitHub PR metadata, workflow conclusions, job steps and decoded logs were read for
+implementation commit `32e117242b1dbdf58f2e38897942e13c6507e12a`. Both workflows
+executed on 2026-10-04. This evidence read does not rerun local tests or services.
+
+| Gate | Actual hosted implementation evidence |
+| --- | --- |
+| [Quality run 37189074967](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37189074967), [job 111397267966](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37189074967/job/111397267966) | SUCCESS on Linux / Python 3.11.16: 394 passed, 37 deselected, one warning in 13.80s |
+| Required T13 solver gate in the same Quality run | PASS: 5 passed in 0.07s, including actual PuLP/CBC runtime execution |
+| Required T14 training/reload/inference/MILP gate in the same Quality run | PASS: 2 passed in 5.65s, including genuine training/export/reload/inference/CBC and all documented CLI stages; no dependency/runtime skips |
+| Formatting / lint / compilation / dependencies / whitespace / Compose configuration in Quality | PASS: 131 Python files formatted, lint passed, compilation and whitespace steps succeeded, no broken requirements; hosted Docker Compose configuration validated with synthetic credentials |
+| [Container/API run 37189075012](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37189075012), [job 111397268296](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37189075012/job/111397268296) | SUCCESS on Linux / Python 3.11.16: 17 passed, 20 skipped, 394 deselected, one warning in 3.24s |
+| Reflex frontend compilation and technical named-volume persistence in Container/API | PASS as job steps; compilation and technical persistence do not prove browser E2E or an Odoo business-scenario persistence flow |
+| Controlled live Odoo contracts in Container/API | SKIPPED: all 20 cases in `tests/integration/test_live_odoo_contract.py`, including RFQ/access/schema/T5 and controlled T6/T7-S/T8 contracts |
+
+CodeRabbit's commit status was SUCCESS for `32e1172` at this read. This status and
+the successful workflows do not turn skipped live tests into passes or establish
+real-world model validity, cross-platform artifact interchange, or full V2 readiness.
+The original synthetic-model limitations and quantity-independent proxy meaning
+remain unchanged. Hosted configuration/service checks used Linux/Docker and do not
+resolve the historical local Windows/Podman socket failure.
+
+The new documentation HEAD requires its own check. After push, inspect runs/statuses
+for that exact SHA and report their actual state. Pending, absent or path-filtered
+checks must not inherit SUCCESS from the implementation commit.
 
 ## Traceability and T15 boundary
 
@@ -203,9 +253,12 @@ Observed-data promotion and full T15 interface design remain separate decisions.
 
 ## Proposed Drive synchronization only — no writes performed
 
-- **00_THESIS_STATUS:** T13 is merged at ff8cc5b; T14 implemented and locally
-  verified with explicitly synthetic evidence. Preserve full V2 OPEN and issued
-  task-sheet attribution. Record uncommitted/unpublished state and Podman failure.
+- **00_THESIS_STATUS:** T13 is merged at ff8cc5b; T14 implementation is committed
+  and published at 32e1172 in open/unmerged PR #16, with local and hosted checks
+  verified on that implementation commit and explicitly synthetic evidence.
+  Preserve full V2 OPEN, issued task-sheet attribution, the historical local
+  Podman failure and live/browser skips. Record this subsequent documentation
+  revision and its CI separately; do not retain uncommitted/unpublished as current state.
 - **02_ROADMAP:** T14 data/cutoff/split/risk-validity/Python 3.11 gates addressed in
   controlled scope; next T15 is bounded assembly/API/scenario/snapshot composition,
   with observed promotion still requiring audited evidence.
@@ -215,8 +268,14 @@ Observed-data promotion and full T15 interface design remain separate decisions.
 - **06_REQUIREMENTS_BASELINE:** FR-V2-02/03, AC-V2-02/03 and tree portion of FR-V2-07
   LOCAL PASS on controlled data; keep workflow-level and live gates separate.
 - **07_DEVELOPMENT_STATUS:** record actual branch/base, runtime, measured metrics,
-  tree/CBC example, executed checks, FAILED/SKIPPED/UNVERIFIED categories and source
-  links to these T14 records. No hosted or full V2 completion claim.
+  implementation commit/PR and linked hosted runs, tree/CBC example, executed
+  checks and FAILED/SKIPPED/UNVERIFIED categories. Hosted implementation CI is
+  verified; the documentation HEAD's CI is separate. Keep skipped live tests,
+  synthetic limitations and full V2 OPEN, with links to these T14 records.
 
-All source/documentation changes are unstaged and uncommitted for user review.
-No push, PR or merge was performed.
+This documentation-only correction uses `git diff --check` and is committed/pushed
+to the existing `feature/t14-decision-tree-pipeline` branch and PR #16. It changes
+only this handoff. No local runtime/service tests are rerun, and no code, Drive,
+Odoo, new PR or merge operation is part of this correction. The implementation
+checks above remain attributed to `32e1172`; the correction's exact commit and
+latest CI state are reported separately after publication.
