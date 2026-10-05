@@ -22,6 +22,22 @@ or approval/PDF path is implemented. See the
 [T13 design](docs/T13_V2_MILP_DESIGN.md) and [handoff](docs/T13_HANDOFF.md).
 Current T14 evidence and limitations are in [T14 handoff](docs/T14_HANDOFF.md).
 
+**Post-merge status, 2026-10-05:** T13 PR #15 and T14 PR #16 are merged.
+GitHub reports `main` at `247914ac05663d7358d53036c08750d9390d1baa`, matching
+the local documentation branch HEAD. On that exact SHA, post-merge
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
+completed successfully. Quality includes actual Python 3.11 T14 training, saved-model
+reload, inference and the unchanged T13 CBC demonstration. This verifies the
+controlled synthetic pipeline; it does not promote an observed Odoo model, resolve
+the historical local Podman failure, or complete V2. The
+[T15 implementation plan](docs/T15_IMPLEMENTATION_PLAN.md) defines the next controlled
+API/scenario/persistence slice; it is a proposal, with no T15 runtime implementation.
+The ten active Hungarian Drive living documents were synchronized on 2026-10-05;
+task-assignment wording now consistently records the approved baseline. Fresh local
+fast checks passed (394 tests), including Compose configuration after Podman startup;
+this is configuration validation, not a new local service/live acceptance run.
+
 ## T14 controlled supplier evaluation
 
 The offline `supplier_evaluation/` package prepares 240 explicitly synthetic

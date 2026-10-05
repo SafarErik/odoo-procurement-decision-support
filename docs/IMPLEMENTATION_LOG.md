@@ -3,7 +3,54 @@
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
-## T14 — controlled Decision Tree supplier-evaluation pipeline (2026-10-04)
+## T13/T14 — post-merge documentation reconciliation (2026-10-05)
+
+Verified through authenticated GitHub branch/PR/workflow/job reads: T13 PR #15
+merged at `ff8cc5bfebaef5f8d73751991101008830307012`; T14 PR #16 merged at
+`247914ac05663d7358d53036c08750d9390d1baa`, which is current remote main and
+the clean entry HEAD of `feature/T15-implementation`. Local ancestry confirms T13.
+The local SSH alias lookup failed and `gh` was unavailable; no fetch or remote-ref
+update is claimed. The GitHub connector supplied current remote evidence.
+
+On exact main SHA `247914a`, post-merge
+[Quality 37358433437](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
+and [Container/API 37358433349](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
+are SUCCESS. Job steps verify actual Python 3.11 T13 CBC and controlled T14
+training/reload/inference/MILP, plus integration, frontend compilation and technical
+volume persistence. Earlier documentation-SHA Container/API run 37190288285 also
+completed successfully after the prior handoff. T13 merge-SHA Quality 37155058879
+and Container/API 37155058875 passed. Exact links and distinctions are in
+`docs/T14_HANDOFF.md`; no new test counts are inferred from job summaries.
+
+Historical local checks, the Podman socket failure, skipped service/live/browser
+tests and synthetic limitations below remain unchanged. Full V2 and observed
+Odoo/model promotion remain OPEN. The current tree cannot accept observed input.
+
+Synchronized and read back all ten active Hungarian Drive living documents in
+`SZAKDOLGOZAT/00_Project_Control` (00–08 and 99; 05 date only). Current merge/CI,
+controlled T14, ADR-025 and requirement status now agree. Contradictory task-sheet
+draft/advisor statements follow the issued/approved baseline already in 00/05;
+the official PDF was not independently reread. Preserved historical limitations,
+requirement IDs, native document structure/resource links and archives. Corrected
+duplicate sync dates to one Hungarian native October 5 date chip. Saved original
+reads and paragraph-level before/after review evidence; exact links are in the
+handoff. Full V2 and observed-model promotion remain open, independently of the
+controlled synthetic demonstration.
+
+Fresh local Python 3.11 verification: 394 passed / 37 deselected / one upstream
+Starlette warning in 33.85 s; Ruff format (132 files), lint, compilation, pip check
+and whitespace check passed. Read-only Compose configuration passed after the
+user started Podman, using the existing local provider outside the sandbox;
+initial sandbox launches were denied. No service/live tests were run, so the
+historical Podman socket failure and unverified live/browser gates are retained.
+
+Prepared `docs/T15_IMPLEMENTATION_PLAN.md`: controlled assembly, trusted saved-model
+inference, unchanged T13 MILP, explicit scenario reruns, immutable V2 snapshots and
+stored-only GET/exact retry. Defines three narrow API operations and meaningful
+acceptance checks; no frontend, approval/PDF, Odoo writes or speculative services.
+This is a documentation-only proposal; T15 implementation is not authorized here.
+
+## Historical T14 — controlled Decision Tree supplier-evaluation pipeline (2026-10-04)
 
 Verified current remote main/T13 merge `ff8cc5bfebaef5f8d73751991101008830307012`,
 clean entry tree and Python 3.11.16 328-pass legacy/T13 baseline. Read current
