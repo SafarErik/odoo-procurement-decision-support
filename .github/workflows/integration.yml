@@ -15,6 +15,7 @@ on:
       - "odoo_adapter/**/*.py"
       - "persistence/**"
       - "supplier_evaluation/**"
+      - "tools/t15_demo.py"
       - "tests/**"
       - "pyproject.toml"
   push:
@@ -33,6 +34,7 @@ on:
       - "odoo_adapter/**/*.py"
       - "persistence/**"
       - "supplier_evaluation/**"
+      - "tools/t15_demo.py"
       - "tests/**"
       - "pyproject.toml"
   workflow_dispatch:

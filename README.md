@@ -21,6 +21,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | What works and what comes next? | Current capability and next steps below |
 | What should I start or run in the terminal? | [Local development runbook](docs/LOCAL_DEVELOPMENT_AND_SSH.md) |
 | How do I run real database tests safely? | [Persistence guide](docs/PERSISTENCE_DEVELOPMENT.md) |
+| How can I see a plan, a disruption and stored retrieval? | [T15 terminal demonstration](docs/T15_DEMO.md) |
 | How does the controlled planning API work? | [T15 handoff](docs/T15_HANDOFF.md) |
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
@@ -39,18 +40,20 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 `247914ac05663d7358d53036c08750d9390d1baa`; its post-merge
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
-checks passed. Local T15 commit is `921673493d63b3e5fadd9189f50ee5b644308871` on
-`feature/T15-implementation`. At this check GitHub could not resolve that commit and
-returned no workflow runs for it. T15 hosted CI is unverified; main's results do
-not cover T15 or this consolidation working tree.
+checks passed. Local T15 implementation commit is `921673493d63b3e5fadd9189f50ee5b644308871`;
+the user committed the consolidation as `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`
+on `feature/T15-implementation`. GitHub could not resolve the latter SHA and returned
+no workflow runs for it at this check. The terminal-demo increment is uncommitted.
+T15 hosted CI is unverified; main's results do not cover these local increments.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
 probability. The complete Odoo-to-V2/model integration, frontend, approval/PDF and
 full local demonstration remain open. Historical checks, Podman forwarding failures
 and skipped live/browser gates remain in the [implementation log](docs/IMPLEMENTATION_LOG.md)
-and handoffs. Current T15 service evidence predates the subsequent audit fixes;
-its handoff distinguishes those runs. No new service/live acceptance is inferred.
+and handoffs. Fresh PostgreSQL and loopback HTTP demo verification now covers the
+audit fixes and shared fixture preparation; [T15 handoff](docs/T15_HANDOFF.md)
+distinguishes it from earlier runs. No new Odoo/live/browser acceptance is inferred.
 
 ## Architecture and code map
 
@@ -90,6 +93,8 @@ python -m pytest tests/test_t15_planning_api.py -v
 Those checks use actual saved inference and CBC through an in-process API with a
 memory repository. Real PostgreSQL acceptance has a separate command and disposable
 database in the [persistence guide](docs/PERSISTENCE_DEVELOPMENT.md).
+The [terminal demo](docs/T15_DEMO.md) generates matched synthetic artifacts from a
+fresh checkout and shows base/scenario creation, stored retrieval and exact replay.
 Before handoff, run the required fast checks from the runbook once.
 
 Quality CI executes the full fast suite, including mandatory actual ML/CBC runtime
@@ -100,7 +105,7 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the consolidation and validate/publish the existing controlled T15 slice;
+1. Review the terminal demonstration and publish the controlled T15 increments;
    verify CI for the published SHA, preserving the user's commit/merge control.
 2. Resolve the V2 Odoo input and model-compatibility demonstration boundary. The
    accepted ML baseline permits documented controlled/synthetic data; it does not

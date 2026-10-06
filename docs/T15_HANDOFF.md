@@ -1,6 +1,37 @@
 # T15 — controlled planning API, stress scenarios and immutable cases
 
-## Current review status — 2026-10-06
+## Current terminal demonstration and verification — 2026-10-06
+
+The user committed the consolidation as `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`.
+The separate demo increment is uncommitted. [Terminal procedure](T15_DEMO.md)
+and `python -m tools.t15_demo prepare` generate matched synthetic model/base/outage
+files; `run` calls the existing loopback API, stores per-run replay keys/responses
+and checks base/child retrieval plus exact base replay. Existing tests share the
+same moved fixture generator. There is no new endpoint, training-in-HTTP path,
+solver/model change, dependency, Odoo flow, frontend or approval/PDF.
+
+Fresh Python 3.11 fast evidence: **423 passed / 44 deselected / one upstream warning,
+37.82 s**. Focused actual PostgreSQL V1/T15 acceptance: **21 passed / one warning,
+22.11 s**. Actual separate Uvicorn/HTTP demo produced EUR **102 / 109** base plans
+and EUR **106** outage minimum. After restarting without a configured model,
+base/child GET and exact base/child replay returned `200` with equal snapshots;
+fresh base returned `503`. This evidence includes the audit fixes and new fixture
+location; it does not overwrite the earlier service results below.
+
+Verification reused the running disposable test container but created a separate
+temporary database, preserving existing test cases. Windows 55432 remained refused;
+a temporary localhost-only tunnel was used. The task database, owned backend/tunnel
+processes and local credential file were removed afterward; the existing test/Odoo
+containers remain running. Generated reports are ignored local review artifacts.
+No Odoo business call, browser or full service suite was run.
+
+Authenticated GitHub reads still find main `247914ac05663d7358d53036c08750d9390d1baa`;
+the entry local `d1b7acd` could not be resolved and has zero hosted workflow runs.
+Hosted T15 CI and Drive synchronization remain pending. Next: user review/publication,
+exact-SHA CI, then explicitly requested affected Hungarian document updates and
+the V2 Odoo/model demonstration boundary before the next product capability.
+
+## Consolidation review record — 2026-10-06
 
 The user has committed the controlled slice and audit fixes locally as
 `921673493d63b3e5fadd9189f50ee5b644308871` on `feature/T15-implementation`.

@@ -134,8 +134,8 @@ as the resetting test URL.
 
 For T15 inspection, configure the owner-generated saved model and a local bearer
 token before starting Uvicorn in this same terminal. Use the matching controlled
-payload; see [the terminal runbook](LOCAL_DEVELOPMENT_AND_SSH.md#manual-t15-api-inspection)
-for current review artifacts and the fresh-checkout acceptance path. Changes to
+payload; follow the [terminal demonstration](T15_DEMO.md) for fresh preparation,
+two-terminal API use and retrieval after a backend restart. Changes to
 process settings take effect when the backend starts. The token proves possession,
 not a buyer's identity. Model checksums prove integrity, not authenticity.
 

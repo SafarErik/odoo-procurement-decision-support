@@ -3,6 +3,61 @@
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
+## Reproducible controlled T15 terminal demonstration (2026-10-06)
+
+**Problem:** the manual API flow depended on ignored, previously generated
+request/model files and did not provide a fresh-checkout demonstration. Entry
+HEAD was the user's consolidation commit `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`
+on `feature/T15-implementation`; the working tree was clean.
+
+**Decision and behavior:** added repository-local `tools/t15_demo.py` with offline
+`prepare` and loopback HTTP `run`. Moved the existing controlled fixture generator
+from the test helper and re-exported it there so tests/demo share one implementation.
+Preparation produces a trusted saved model and matched base/outage requests. The
+run creates an immutable base/child, checks stored GET and exact base replay,
+prints costs/allocations and records per-run keys/responses in ignored artifacts.
+Keys are written before POSTs for manual recovery; there is no automatic POST retry.
+Remote/credentialed origins and redirects are disallowed for this local demo.
+Added one real composition check with a no-training trap and parameterized origin
+boundary checks. New terminal procedure explains model/DB/API roles, expected
+EUR 102/109/106 results, restart retrieval, failure interpretation and cleanup.
+Integration workflow path filters include the shared demo fixture module so changes
+to it also exercise the PostgreSQL consumers in hosted integration.
+No new production endpoint, dependency, infrastructure, migration or business rule.
+
+**Evidence:** fresh Python 3.11 fast suite **423 passed / 44 deselected / one upstream
+Starlette warning, 37.82 s**. Actual PostgreSQL T15 plus legacy persistence acceptance
+**21 passed / one warning, 22.11 s**. Actual loopback Uvicorn and CLI run produced
+base minimum EUR 102 (6/4/0), alternative EUR 109 (0/2/8), outage minimum EUR 106
+(0/8/2), using generated-request supplier order. Base/child retrieval and exact
+replay matched. After restarting the backend without a model directory, both
+stored GETs and exact base/child replays returned 200 with equal snapshots; fresh
+base returned 503. Detailed synthetic run/restart records remain under ignored
+`.artifacts/t15-demo/` and `.artifacts/t15-demo-verification/`.
+Ruff format/lint, compilation (including the demo tool), dependency consistency,
+patch whitespace, document-link/anchor and PowerShell example syntax checks passed.
+
+The existing disposable PostgreSQL container was already running; verification
+created a separate `t15_demo_verify_20261006_14a55ea1` database rather than resetting
+the user's test database. Windows 55432 was still refused, so a task-owned
+localhost-only SSH tunnel enabled access. The temporary database, owned backend/
+tunnel processes and runtime credential file were removed; existing Odoo and test
+containers remain running. The real user `.env` and Odoo business data were untouched.
+
+**Limits and next step:** new changes are unstaged/uncommitted/unpushed. GitHub main
+still resolves to `247914ac05663d7358d53036c08750d9390d1baa`; the local consolidation
+SHA could not be resolved and had zero hosted workflow runs. Local verification
+does not establish hosted CI, observed-model validity, live Odoo/browser acceptance
+or complete V2. Drive is unchanged pending the agreed publication/request sequence.
+Next: review/publish the increment, verify the published SHA's CI and synchronize
+the affected Hungarian records when requested; resolve the V2 Odoo/model boundary
+before further integration claims. Frontend, plan approval/PDF and full demo remain open.
+
+**Thesis relevance:** reproducible artifact preparation, actual ML/MILP/HTTP/storage
+composition, explicit disruption comparison and stored retrieval across process
+restart can support implementation/evaluation chapters. Synthetic exposure and
+local/hosted/observed acceptance remain distinct.
+
 ## Followable workflow and documentation consolidation (2026-10-06)
 
 **Problem:** current capability, historical scope and execution instructions were

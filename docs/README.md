@@ -12,6 +12,8 @@ explicitly supersedes them. They are not a second live dashboard.
   activate Python, start only its services, interpret checks and clean up.
 - [Persistence development](PERSISTENCE_DEVELOPMENT.md): isolated database,
   Windows forwarding workaround, destructive test boundary and Alembic.
+- [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
+  create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [Agent development guidance](../AGENTS.md): scope, architecture, testing and
   followable handoff principles inherited by repository work in future chats.
 - [Implementation log](IMPLEMENTATION_LOG.md): dated technical decisions and

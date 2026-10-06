@@ -173,11 +173,12 @@ safe disposable-database sequence. This manual flow needs a configured own datab
 and `T12_TRUSTED_CALLER_TOKEN` plus an owner-generated `T15_TRUSTED_MODEL_DIRECTORY`.
 Apply migrations explicitly before requests. HTTP never trains or migrates.
 
-The current local `.artifacts/t15/create-request.json` and matching `http-model/`
-are ignored review artifacts, not fresh-clone prerequisites. The supported fresh
-checkout acceptance route is the focused automated API/database tests, which create
-their own matched controlled fixtures. A reusable interactive T15 demo remains the
-next increment; do not substitute current dates or observed Odoo data into this model.
+Follow the [T15 terminal demonstration](T15_DEMO.md) to generate a trusted model
+and matched request files from a fresh checkout, then create a base, run an outage
+and retrieve/replay saved cases. `python -m tools.t15_demo prepare` trains offline;
+`run` only calls the existing loopback API. The tests share the same fixture generator.
+Generated `.artifacts/t15-demo/` files stay ignored. Do not substitute current dates
+or observed Odoo data into this controlled model.
 
 ## Windows forwarding troubleshooting and cleanup
 
