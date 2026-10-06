@@ -1,5 +1,24 @@
 # T15 — controlled planning API, stress scenarios and immutable cases
 
+## Current review status — 2026-10-06
+
+The user has committed the controlled slice and audit fixes locally as
+`921673493d63b3e5fadd9189f50ee5b644308871` on `feature/T15-implementation`.
+GitHub could not resolve that SHA and returned no workflow runs for it at this
+check. Remote main remains `247914ac05663d7358d53036c08750d9390d1baa`;
+its successful T13/T14 checks do not establish T15 hosted acceptance.
+The documentation/workflow consolidation is a separate uncommitted working-tree
+change. [README](../README.md) owns current capability/publication status;
+[the terminal runbook](LOCAL_DEVELOPMENT_AND_SSH.md) and
+[persistence guide](PERSISTENCE_DEVELOPMENT.md) own current execution procedures.
+
+The implementation evidence below is preserved as a dated record. PostgreSQL and
+loopback HTTP acceptance predates the subsequent audit fixes; no new service/live
+acceptance is claimed by this consolidation. Full V2 and observed integration
+remain open. Drive still reflects the previously synchronized T15 proposal.
+
+## Historical implementation handoff — 2026-10-05
+
 Status, 2026-10-05: **CONTROLLED LOCAL IMPLEMENTATION AND ACCEPTANCE PASS;
 REVIEW PENDING; HOSTED T15 CI UNVERIFIED.** Entry branch was
 `feature/T15-implementation`, HEAD `aac86eb7c7081fc3a780efa4da351f5616cd1185`,

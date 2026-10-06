@@ -3,6 +3,64 @@
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
+## Followable workflow and documentation consolidation (2026-10-06)
+
+**Problem:** current capability, historical scope and execution instructions were
+mixed across a 647-line README, incremental handoffs and stale Drive status. The
+user requested enduring, understandable terminal-first development principles
+while retaining meaningful tests and the accepted procurement/thesis baseline.
+
+**Decision and implemented behavior:** condensed README to 123 lines with the
+product flow, current capability/publication state and next steps. Added a small
+documentation map; retained historical handoffs, spikes and their limitations.
+Reworked the existing terminal/persistence guides around task selection, command
+purpose, prerequisites, expected result and cleanup. Clarified that one Podman
+machine hosts two Compose projects and that database-reset tests must remain
+separate from Odoo/application data. Documented the Python 3.11 environment,
+real-test versus manual API paths, explicit Alembic URL and forwarding workaround.
+Added durable working principles and the requested handoff format to AGENTS.md;
+saved one user-requested memory extension note for future-chat continuity.
+
+Quality now executes the mandatory ML/CBC runtime tests once within the full fast
+suite instead of repeating them in separate steps. Updated the two existing CI
+guard tests to check the fast selection and that runtime tests are not excluded
+as integration/E2E, retaining dependency/no-skip checks. No production code,
+dependency, Compose service, migration or accepted requirement changed.
+
+**Evidence:** authenticated GitHub reads found remote main `247914ac05663d7358d53036c08750d9390d1baa`
+with successful post-merge Quality 37358433437 and Container/API 37358433349.
+The clean entry local T15 commit was `921673493d63b3e5fadd9189f50ee5b644308871`;
+GitHub could not resolve it and returned zero workflow runs for that SHA.
+Added a dated T15 handoff status without rewriting its pre-commit evidence.
+
+Initial fast verification caught the two obsolete CI string guards: 417 passed,
+2 failed, 44 deselected, 33.65 s. After updating those guards, Python 3.11 fast
+regression passed: **419 passed / 44 deselected / one upstream Starlette warning,
+31.00 s**, with actual saved ML/CBC execution. Seven runtime tests were also
+confirmed in the fast selection by collection, not run a second time. Ruff
+format/lint, compilation, dependency consistency and whitespace checks passed.
+Local relative document links resolve and documented PowerShell blocks parse.
+Both existing Compose configurations passed quiet validation with the local
+provider; no service was started. The default shell did not resolve Podman, so
+validation used the known installed binary outside the sandbox. The first pytest
+run also encountered cache write warnings; the successful run used a fresh ignored
+`.artifacts/consolidation/pytest-cache`, without modifying the existing cache.
+
+**Limits and next step:** changes are unstaged/uncommitted/unpushed. No PostgreSQL,
+live Odoo or browser acceptance was rerun; the historical T15 service checks still
+predate its audit fixes. The Podman forwarding issue remains a workaround, not a
+repair. Drive is unchanged and still records the T15 proposal; synchronize affected
+Hungarian documents only on explicit request, consistent with the previously
+agreed post-publication sequence. A fresh-clone interactive T15 demonstration
+remains the next small usability increment; current automated acceptance generates
+its own matched controlled fixtures. Complete V2/observed integration and the
+planning frontend/approval/PDF remain open.
+
+**Thesis relevance:** development methodology and reproducibility can cite the
+task-specific runbooks and the separation of technical synthetic acceptance from
+observed Odoo/model acceptance. Results should connect problem, decision,
+implemented behavior, evidence and limitation rather than only count tests.
+
 ## Repository audit fixes (2026-10-05)
 
 Moved the T12 create HTTP handler to FastAPI's worker thread and run its existing

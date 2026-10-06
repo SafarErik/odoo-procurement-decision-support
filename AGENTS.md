@@ -1,5 +1,37 @@
 # Development guidance
 
+## Followable development workflow
+
+- Keep the accepted thesis/product baseline fixed. Describe each increment as a
+  buyer-visible capability or a necessary integration dependency, with a concrete
+  example and acceptance outcome. T-numbers are historical references, not the
+  explanation of the product.
+- Read the README for current scope/status, then the local terminal runbook for
+  execution. Explain what each command starts, checks or changes, its prerequisites,
+  expected result and cleanup. Start only the services needed for the task.
+- Use the existing Podman machine. Keep Odoo data and disposable persistence tests
+  in separate Compose projects; database-reset tests must never use an application
+  or Odoo database. Do not add infrastructure just to hide setup complexity.
+- Keep meaningful tests for business rules, trust boundaries, persistence and
+  integration. During implementation run focused checks; before handoff run the
+  required fast checks once. Repeat passed checks only after relevant changes,
+  failures or unresolved concerns. Run service/live/browser checks when relevant
+  and available, recording their actual scope and unrun gates.
+- Close a spike with its question, evidence, decision and remaining blocker.
+  Reopen it only when an assumption changes. Reuse accepted components and prefer
+  small demonstrable increments to speculative abstractions or broad restructuring.
+- Keep current capability/status in README, terminal procedures in the development
+  guides, and dated evidence in the implementation log/handoffs. Preserve historical
+  results and limitations; append a current status instead of rewriting history.
+  Update only documents whose meaning changed. Drive remains Hungarian and requires
+  an explicit user request; do not mirror technical execution diaries into every doc.
+- Record thesis-useful results as problem -> decision -> implemented behavior ->
+  evidence -> limitation -> chapter relevance. Maintain links to detailed evidence.
+- Handoffs state what changed, how it was verified, what remains blocked/unverified,
+  any needed user action, and the next product capability. Explain the result in
+  understandable language with accurate technical terms. Retain user control of
+  commit, publication and merge when requested.
+
 ## Current V2 scope and historical increments
 
 T15 composes the controlled synthetic V2 input, trusted saved T14 inference and

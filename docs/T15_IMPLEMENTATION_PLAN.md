@@ -1,5 +1,9 @@
 # T15 — controlled planning API, scenarios and immutable storage
 
+Current capability/publication status is in [README](../README.md); the dated
+proposal/implementation record below is historical. The 2026-10-06 update in
+[T15 handoff](T15_HANDOFF.md) records the subsequently user-created local commit.
+
 Status: **CONTROLLED SLICE IMPLEMENTED LOCALLY, 2026-10-05; REVIEW PENDING.**
 The user authorized implementation after reviewing this proposal. No commit/push/
 merge was made by this implementation task. See [current handoff](T15_HANDOFF.md).
