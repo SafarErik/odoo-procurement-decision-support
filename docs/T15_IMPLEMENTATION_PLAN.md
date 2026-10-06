@@ -1,6 +1,10 @@
 # T15 — controlled planning API, scenarios and immutable storage
 
-Status: **PROPOSED ONLY, 2026-10-05. No T15 implementation, migration or route exists.**
+Status: **CONTROLLED SLICE IMPLEMENTED LOCALLY, 2026-10-05; REVIEW PENDING.**
+The user authorized implementation after reviewing this proposal. No commit/push/
+merge was made by this implementation task. See [current handoff](T15_HANDOFF.md).
+The reviewed design below retains the controlled boundaries and acceptance goals;
+its proposed API/storage now have local implementations. Hosted T15 CI is unverified.
 Verified base: main `247914ac05663d7358d53036c08750d9390d1baa`, with T13/T14
 merged and post-merge Quality/Container/API successful. See [T14 handoff](T14_HANDOFF.md).
 
@@ -160,6 +164,7 @@ A later Odoo read timestamp cannot establish historical as-of availability.
 Synthetic metrics, past T7/T8 KPI acceptance and hosted service smoke do not meet
 this gate. No bypass, automatic promotion or unvalidated Odoo field is planned.
 
-Implement later in three reviewable steps: assembler/inference/planner composition;
-immutable storage/scenarios; thin API and service acceptance. This document approves
-none of those edits. Frontend, approval/PDF, Odoo writes and full V2 remain separate.
+The reviewed sequence was assembler/inference/planner composition, immutable
+storage/scenarios, then thin API and service acceptance. The subsequent user request
+authorized this controlled slice. Frontend, approval/PDF, Odoo writes, observed
+promotion and full V2 remain separate.

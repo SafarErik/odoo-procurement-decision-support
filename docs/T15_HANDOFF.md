@@ -1,0 +1,146 @@
+# T15 — controlled planning API, stress scenarios and immutable cases
+
+Status, 2026-10-05: **CONTROLLED LOCAL IMPLEMENTATION AND ACCEPTANCE PASS;
+REVIEW PENDING; HOSTED T15 CI UNVERIFIED.** Entry branch was
+`feature/T15-implementation`, HEAD `aac86eb7c7081fc3a780efa4da351f5616cd1185`,
+containing the user-committed proposal. This task leaves changes unstaged,
+uncommitted and unpushed. T13/T14 hosted evidence is historical and does not cover
+these edits. [Reviewed plan](T15_IMPLEMENTATION_PLAN.md).
+
+## Implemented boundary
+
+Controlled, explicitly synthetic receipt evidence and attributed business bundles
+are assembled into T14 features and T13 terms. New base creation loads the
+owner-configured saved T14 artifact, performs inference and exact risk joins, then
+calls the unchanged T13 planner/CBC adapter. Training stays offline. There is no
+T15 Odoo adapter, observed data relabelling, frontend, final approval or PDF flow.
+
+| Operation | Behavior |
+| --- | --- |
+| `POST /api/v2/procurement/planning-cases` | Controlled base creation; canonical UUID `Idempotency-Key`; `201` stored result, `200` exact replay |
+| `POST /api/v2/procurement/planning-cases/{case_id}/scenarios` | Explicit perturbation of a stored base; creates an immutable child; same shared key namespace and replay contract |
+| `GET /api/v2/procurement/planning-cases/{case_id}` | Stored snapshot only; no source read, model load, training, inference or solve |
+
+All three reuse the fail-closed `T12_TRUSTED_CALLER_TOKEN` bearer gate. Missing/wrong
+token is `401`; unconfigured gate is `503`. The secret proves possession, not buyer
+identity. Business source/approval references are caller attribution. Scenario
+demand changes represent attributed simulations, not final operational approval.
+
+Requests forbid unknown fields, use decimal strings and strict integers/booleans,
+and require explicit UTC simulation timestamps and ISO dates. Limits: 1–10 suppliers,
+3–50 prior receipts each, 1–3 epsilon values, 256 KiB streamed JSON body (`413` above
+the limit). Mandatory MOQ absence is explicit `null`; there are no currency/unit,
+quantity-approval or delivery-promise defaults. Each commercial bundle has one
+declared source for all its fields; assembly expands it into separate T6 field
+provenance. Receipt source identity and as-of evidence remain separately recorded.
+HTTP cannot supply features, predictions, future labels, coefficients or artifact paths.
+
+Invalid input/validity returns `422`; absent case `404`; conflicting key reuse `409`;
+unavailable persistence/artifact/solver runtime a sanitized `503`. Valid completed
+solver runs can be stored with `optimal`, `infeasible`, `no_proven_optimum` or
+`solver_error`. HTTP success means stored evidence, not optimality or approval.
+Unproven incumbents never become plans; a proved minimum may survive a failed
+alternative stage. Stored failures replay unchanged; recomputation requires a new key.
+
+## Scenarios and storage
+
+Supported perturbations: supplier outage, capacity reduction, demand increase,
+price increase and combined disturbance. Values must change in the named direction;
+combined requires at least two disturbance types. Unknown/duplicate suppliers and
+no-op changes fail closed. This slice permits children of a base only.
+
+Commercial-only scenarios reuse frozen features/assessments, revalidate context,
+time and full feasible quantity coverage, and rerun the same T13 planner. They do
+not reload or infer a model. Beyond-score-range requests fail closed rather than
+narrowing physical bounds. Changed history/model/context/cutoff requires a new base.
+Children store complete derived requests/results, delta, parent ID and updated
+field provenance. Minimum-cost comparisons include allocation, exact total-cost
+and exposure differences and statuses; missing plans yield unavailable comparison.
+A demand change's cost difference is not a like-for-like saving claim. Distinct
+epsilon alternatives and their stage statuses remain in each complete result.
+
+Migration `20261005_01` adds one `planning_cases` JSONB table with parent FK,
+version/hash, creation time and unique key/fingerprint. PostgreSQL transaction
+advisory locks serialize same-key creation; one row atomically stores case and key
+mapping. A database trigger rejects all UPDATE and DELETE operations. GET/replay
+reconstruct and validate stored values without recomputation. Model manifest/hash,
+model/training IDs, dataset/feature/label/mapping versions, actual paths and leaf
+support, exact decimals/fractions, input receipts/policy/source provenance and
+solver version/configuration are retained. Executable joblib bytes stay outside DB.
+Existing V1 tables, serializers, records and routes remain intact.
+
+## Configuration and verification
+
+Keep application PostgreSQL configuration `DECISION_DATABASE_URL` in ignored `.env`.
+The backend loads that file; Alembic does not. Export the configured application URL
+to the current PowerShell process before applying migrations explicitly:
+
+```powershell
+$env:DECISION_DATABASE_URL = .\.venv\t13-check\Scripts\python.exe -c "from backend.app.config import settings; print(settings.decision_database_url.get_secret_value())"
+.\.venv\t13-check\Scripts\python.exe -m alembic upgrade head
+```
+
+For the separate disposable test database, follow
+[the persistence guide](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations).
+Set `T15_TRUSTED_MODEL_DIRECTORY` only to an owner-generated local T14 model directory
+(for example the `model` directory
+from the existing offline T14 CLI). A checksum is integrity evidence, not artifact
+authenticity; HTTP callers never choose executable files. Blank configuration
+disables new base creation while existing GET/replay/scenarios remain stored-only.
+
+Subsequent audit fixes, 2026-10-05: the shared bearer guard rejects non-ASCII
+credentials with `401` and invalid token configuration with `503`; T15 rejects
+unrepresentable history/score-validity windows with `422`, without solving or
+storing a case. T12 creation now keeps its blocking transaction and awaited Odoo
+reads in a FastAPI worker. Unused frontend health code and solver risk-scale storage
+were removed. Audit working-tree verification: **419 fast tests passed / 44
+deselected / one upstream warning, 30.89 s**, plus Ruff format/lint, compilation,
+dependency, whitespace and quiet Compose configuration checks. The same-event-loop
+concurrency regression uses controlled bounded lock contention. PostgreSQL/service,
+live Odoo, browser and hosted CI checks were not rerun for these fixes; the historical
+acceptance evidence below predates them. See [implementation log](IMPLEMENTATION_LOG.md).
+
+Initial implementation's local Python 3.11 evidence (before the subsequent audit fixes):
+
+- Fast regression: **418 passed / 44 deselected / one upstream Starlette warning,
+  37.57 s**. Includes real saved-model/CBC composition, all five scenarios checked
+  against the existing independent exhaustive oracle, strict input/artifact gates,
+  failure proof semantics, GET/replay traps and legacy regressions.
+  The final blank-setting normalization was separately rechecked with the targeted
+  API guard/configuration test: 1 passed in 3.50 s.
+- PostgreSQL T15 plus legacy T11/T12 persistence: **21 passed / one upstream warning,
+  22.14 s**. Separate sessions/HTTP round-trip, immutable fields/key/deletion,
+  concurrent same-key compute-once behavior, conflicts and atomic rollback verified.
+- Actual Uvicorn/loopback HTTP smoke: base `201`, EUR **102 / 109**; with the configured
+  manifest temporarily unavailable, GET and exact replay `200`, scenario `201`,
+  fresh base `503`. Server stopped and manifest restored afterward. Detailed local
+  evidence is generated under ignored `.artifacts/t15/`; fixtures/models are synthetic.
+- Ruff format/lint, compilation, dependency and whitespace checks passed. The
+  integration workflow now includes `supplier_evaluation/**` in its path filters;
+  existing Python 3.11 jobs discover the new fast/PostgreSQL tests. No new hosted run
+  was executed, and no prior commit's success is attributed to this working tree.
+
+The isolated existing T11 PostgreSQL test Compose service was started with synthetic
+credentials. It was healthy in Podman but Windows port 55432 remained refused;
+tests used a temporary localhost-only SSH tunnel on 55433. This is a workaround,
+not resolution of the historical forwarding failure. The temporary HTTP server,
+tunnel and test container were cleaned up; the user's Odoo stack was left running.
+No Odoo business/live contracts, browser E2E or complete service suite was run here.
+
+Reproduce fast coverage with the standard repository checks. For the separate
+disposable test database, use the existing `infra/persistence/compose.test.yaml`,
+set `T11_TEST_DATABASE_URL`, and run:
+
+```powershell
+.\.venv\t13-check\Scripts\python.exe -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py -v
+```
+
+Those fixtures downgrade/reset their isolated test database; never point the test
+URL at an application or Odoo database. They require actual PostgreSQL services.
+
+Full V2 and observed Odoo/model promotion remain OPEN. Synthetic technical acceptance
+does not satisfy AC-V2-01's observed Odoo input gate or full AC-V2-13. The current
+model rejects observed contexts. Live commercial mappings, historical availability,
+source-derived labels and an observed-compatible model/schema/mapping still require
+separate audited acceptance. Drive was not edited in this implementation task;
+its T15 proposal/status should be synchronized after review.

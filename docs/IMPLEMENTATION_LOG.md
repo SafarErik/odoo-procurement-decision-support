@@ -3,6 +3,71 @@
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
+## Repository audit fixes (2026-10-05)
+
+Moved the T12 create HTTP handler to FastAPI's worker thread and run its existing
+async orchestration with `asyncio.run`. The synchronous PostgreSQL transaction/key
+lock and awaited Odoo reads stay together in that worker, preventing a second
+same-key request from blocking the API event loop needed by the first. Added a
+single-event-loop concurrent HTTP regression with bounded synchronous lock
+contention, compute-once storage and exact replay; this is a controlled lock test,
+not new live PostgreSQL acceptance.
+
+The shared T12/T15 bearer guard rejects non-ASCII credentials with `401` and treats
+non-ASCII configured tokens as unavailable (`503`). T15 translates unrepresentable
+history/score-validity datetime arithmetic into `422` invalid input, and malformed
+stored snapshots into the existing persistence-error contract. Added regression
+coverage for both API guards and the year-0001/year-9999 cutoffs; rejected creates
+store no case and never solve.
+
+Removed the unused T0 frontend health client, its URL property and four obsolete
+tests, retaining the Reflex configuration check and current RFQ client. Removed
+the unused solver risk-scale field without changing the MILP formulation. Clarified
+that Alembic requires a process/configuration URL; added the explicit PowerShell
+export from the backend's ignored `.env` configuration to the T15 handoff.
+
+Verification on the audit working tree: Python 3.11.16 fast suite **419 passed /
+44 deselected / one upstream Starlette warning, 30.89 s**. Ruff format/lint,
+compilation, dependency consistency, whitespace and both quiet Compose
+configuration checks passed. Podman configuration checks required execution
+outside the sandbox after its executable was denied; neither started services.
+
+Changes remain unstaged, uncommitted and unpushed. No Odoo operation, database
+migration, hosted CI, browser E2E or Google Drive change is part of these fixes.
+
+## T15 — controlled planning API, scenarios and immutable cases (2026-10-05)
+
+User authorized the reviewed controlled slice on `feature/T15-implementation`,
+entry HEAD `aac86eb7c7081fc3a780efa4da351f5616cd1185` (user-committed documentation
+proposal). Added V2 fact/field-provenance assembly, trusted saved T14 inference,
+unchanged T13 planning, three guarded HTTP operations, five explicit stress types
+and immutable JSONB case/key storage with stored-only GET/exact replay. One migration
+`20261005_01`; V1 tables/decoding/routes preserved. Scenarios retain frozen scores,
+revalidate full bounds, update source attribution and store new child snapshots.
+No new dependency, Odoo read/write path, training route, frontend or approval/PDF.
+
+Python 3.11 fast regression: 418 passed / 44 deselected / one upstream warning in
+37.57 s. T15 plus legacy PostgreSQL persistence acceptance: 21 passed / one warning
+in 22.14 s, including transactions, concurrent replay, immutability and rollback.
+Real saved inference/CBC reproduced EUR 102/109; five scenarios match independent
+small-instance enumeration. Actual loopback Uvicorn smoke proved create/retrieval/
+retry/scenario behavior even with the model manifest temporarily unavailable;
+new base failed safely with 503. Ruff, compilation, pip and whitespace checks passed.
+The final blank model-setting normalization also passed its targeted API guard/
+configuration check (1 passed, 3.50 s).
+
+Used the existing isolated T11 test Compose service with synthetic credentials.
+Windows forwarding to 55432 still failed; a temporary localhost-only SSH tunnel
+to the healthy VM service enabled tests. Temporary server/tunnel/test container
+were cleaned up; the user's Odoo stack and ignored user `.env` were unchanged.
+No live Odoo, browser or full service suite was run. Detailed evidence/configuration
+and API semantics are in `docs/T15_HANDOFF.md`; generated local proof is ignored.
+
+Integration CI path filters now cover the consumed ML package. Hosted T15 CI remains
+UNVERIFIED; T13/T14 run results below do not cover these edits. Changes are left
+unstaged/uncommitted/unpushed for review. Drive synchronization is deferred until
+review; full V2 and observed-model promotion remain separate open gates.
+
 ## T13/T14 — post-merge documentation reconciliation (2026-10-05)
 
 Verified through authenticated GitHub branch/PR/workflow/job reads: T13 PR #15

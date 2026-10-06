@@ -83,3 +83,24 @@ class DecisionCaseCreationRecord(Base):
     decision_case_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("decision_cases.decision_case_id"), nullable=False, unique=True
     )
+
+
+class PlanningCaseRecord(Base):
+    """Immutable V2 snapshot and creation mapping in one atomic row; V1 stays intact."""
+
+    __tablename__ = "planning_cases"
+    __table_args__ = (
+        PrimaryKeyConstraint("case_id", name="pk_planning_cases"),
+        CheckConstraint(
+            "snapshot_version = 't15-controlled-planning-v1'", name="ck_planning_cases_version"
+        ),
+    )
+
+    case_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    parent_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("planning_cases.case_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(36), nullable=False, unique=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    snapshot_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)

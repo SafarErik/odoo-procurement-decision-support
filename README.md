@@ -17,14 +17,15 @@ supplier's allowed quantities. T13 is merged in main at `ff8cc5b` (PR #15).
 T14 adds an offline controlled Decision Tree pipeline, validated model reload,
 actual tree-path explanations and a narrow ML-to-MILP contract demonstration.
 All generated training/evaluation evidence is explicitly synthetic; scores are
-uncalibrated quantity-independent planning exposure proxies. No V2 HTTP/assembler/UI
-or approval/PDF path is implemented. See the
+uncalibrated quantity-independent planning exposure proxies. The local T15 slice
+adds controlled assembly, saved inference, unchanged MILP, API stress scenarios
+and immutable storage/retrieval. V2 UI and approval/PDF remain open. See the
 [T13 design](docs/T13_V2_MILP_DESIGN.md) and [handoff](docs/T13_HANDOFF.md).
 Current T14 evidence and limitations are in [T14 handoff](docs/T14_HANDOFF.md).
 
 **Post-merge status, 2026-10-05:** T13 PR #15 and T14 PR #16 are merged.
-GitHub reports `main` at `247914ac05663d7358d53036c08750d9390d1baa`, matching
-the local documentation branch HEAD. On that exact SHA, post-merge
+At that check, GitHub reported `main` at `247914ac05663d7358d53036c08750d9390d1baa`,
+matching the entry local HEAD. On that exact SHA, post-merge
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
 completed successfully. Quality includes actual Python 3.11 T14 training, saved-model
@@ -32,11 +33,38 @@ reload, inference and the unchanged T13 CBC demonstration. This verifies the
 controlled synthetic pipeline; it does not promote an observed Odoo model, resolve
 the historical local Podman failure, or complete V2. The
 [T15 implementation plan](docs/T15_IMPLEMENTATION_PLAN.md) defines the next controlled
-API/scenario/persistence slice; it is a proposal, with no T15 runtime implementation.
+API/scenario/persistence slice. The proposal preceded the subsequently authorized
+local implementation; current evidence is in the [T15 handoff](docs/T15_HANDOFF.md).
 The ten active Hungarian Drive living documents were synchronized on 2026-10-05;
 task-assignment wording now consistently records the approved baseline. Fresh local
 fast checks passed (394 tests), including Compose configuration after Podman startup;
 this is configuration validation, not a new local service/live acceptance run.
+
+## T15 controlled planning cases
+
+The trusted-caller API now composes explicitly synthetic receipt evidence and
+attributed business terms with saved T14 inference and the unchanged T13 planner.
+Three operations create a base case, create an immutable scenario child and retrieve
+a stored case under `/api/v2/procurement/planning-cases`. Exact POST replay and GET
+do not read Odoo, load a model, train, infer or solve. Scenarios rerun the planner
+with stored scores and revalidated bounds. Database triggers reject snapshot/key
+UPDATE and DELETE. V1 storage and decision semantics remain unchanged.
+
+Owner configuration requires `DECISION_DATABASE_URL`, the existing
+`T12_TRUSTED_CALLER_TOKEN` and `T15_TRUSTED_MODEL_DIRECTORY` pointing only to an
+owner-generated T14 artifact. Export `DECISION_DATABASE_URL` to the process environment
+before applying Alembic explicitly; Alembic does not load `.env`. Requests do not
+migrate or train. Blank artifact configuration fails closed for new base cases. The
+[handoff](docs/T15_HANDOFF.md) describes the input boundary, local checks and limits.
+This is an uncommitted controlled synthetic implementation, with new hosted CI
+unverified. Observed Odoo/model promotion and full V2 remain open.
+
+The audit fixes run T12's blocking transaction and awaited Odoo reads together in
+a FastAPI worker, reject non-ASCII bearer credentials with `401` (invalid token
+configuration fails closed with `503`), and return `422` for unrepresentable T15
+history/score-validity windows. The obsolete T0 frontend health client and unused
+solver risk-scale field were removed. Existing RFQ dashboard and stored-case
+retrieval/replay contracts remain unchanged.
 
 ## T14 controlled supplier evaluation
 

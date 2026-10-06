@@ -1,5 +1,11 @@
 # T14 — controlled Decision Tree supplier-evaluation handoff
 
+T15 continuation, 2026-10-05: the subsequently authorized controlled composition
+is implemented locally; see [T15 handoff](T15_HANDOFF.md). The T13/T14 checks and
+documentation-only state below are preserved as their dated verification record,
+not CI evidence for T15. Entry HEAD for T15 implementation was `aac86eb`, after
+the user committed the documentation proposal. Observed promotion and full V2 remain open.
+
 ## Current post-merge status (2026-10-05)
 
 **T13 AND CONTROLLED T14 MERGED; EXACT-SHA HOSTED CHECKS VERIFIED. FULL V2 AND

@@ -22,7 +22,14 @@ def imports(path):
 def test_ml_is_external_to_existing_runtime_boundaries():
     for folder in ("decision_core", "optimization_adapter", "backend", "frontend", "persistence"):
         for path in (ROOT / folder).rglob("*.py"):
-            assert imports(path).isdisjoint({"supplier_evaluation", "sklearn", "joblib"}), path
+            # T15 composes T14 at the existing backend root; routes/storage/core stay external.
+            if path in {
+                ROOT / "backend/app/dependencies.py",
+                ROOT / "backend/app/planning_case_schemas.py",
+            }:
+                assert imports(path).isdisjoint({"sklearn", "joblib"}), path
+            else:
+                assert imports(path).isdisjoint({"supplier_evaluation", "sklearn", "joblib"}), path
     for filename in ("contracts.py", "history.py", "dataset.py", "model.py", "artifacts.py"):
         assert imports(ROOT / "supplier_evaluation" / filename).isdisjoint(
             {

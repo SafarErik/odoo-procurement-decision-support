@@ -2,6 +2,14 @@
 
 ## Current V2 scope and historical increments
 
+T15 composes the controlled synthetic V2 input, trusted saved T14 inference and
+unchanged T13 MILP with bounded FastAPI routes, five explicit stress scenarios,
+immutable PostgreSQL snapshots and stored-only GET/exact replay. See
+`docs/T15_HANDOFF.md`. Keep observed Odoo/model promotion separate; there is no
+T15 Odoo adapter/read/write, frontend, approval/PDF or complete V2 acceptance.
+Do not train during HTTP requests or let callers select executable artifacts.
+Preserve V1 routes/snapshots. New local checks do not establish hosted CI.
+
 T14 adds the controlled offline Decision Tree pipeline under `supplier_evaluation/`
 and its narrow T13 risk-contract demonstration. See `docs/T14_ML_DESIGN.md` and
 `docs/T14_HANDOFF.md`. ML dependencies and trusted artifact loading stay outside
