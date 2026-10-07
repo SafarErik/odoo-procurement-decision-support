@@ -19,12 +19,6 @@ class FrontendSettings(BaseSettings):
     )
 
     @property
-    def health_url(self) -> str:
-        """Return the documented backend health endpoint without duplicate slashes."""
-
-        return f"{self.backend_base_url.rstrip('/')}/api/v1/health"
-
-    @property
     def rfqs_url(self) -> str:
         """Return the documented open-RFQ endpoint."""
 

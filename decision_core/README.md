@@ -1,4 +1,4 @@
-# Decision Core
+if # Decision Core
 
 This package contains the ERP-independent T2 procurement decision pipeline:
 

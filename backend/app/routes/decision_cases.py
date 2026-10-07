@@ -1,5 +1,6 @@
 """Thin trusted-caller HTTP boundary for persisted decision cases."""
 
+import asyncio
 from datetime import UTC
 from decimal import Decimal
 from hmac import compare_digest
@@ -57,7 +58,7 @@ def require_trusted_caller(
 ) -> None:
     """A shared PoC service secret proves possession only, never buyer identity."""
     configured = settings.t12_trusted_caller_token.get_secret_value()
-    if not configured:
+    if not configured or not configured.isascii():
         raise HTTPException(
             503,
             detail={
@@ -65,7 +66,11 @@ def require_trusted_caller(
                 "message": "The trusted-caller gate is unavailable.",
             },
         )
-    if credentials is None or not compare_digest(credentials.credentials, configured):
+    if (
+        credentials is None
+        or not credentials.credentials.isascii()
+        or not compare_digest(credentials.credentials, configured)
+    ):
         raise HTTPException(
             401,
             detail={"code": "unauthorized", "message": "A valid bearer token is required."},
@@ -169,7 +174,7 @@ def _unit_of_work():
         503: {"description": "Dependency unavailable"},
     },
 )
-async def post_decision_case(
+def post_decision_case(
     request: DecisionCaseCreateRequest,
     response: Response,
     idempotency_key: Annotated[str, Header()],
@@ -195,11 +200,14 @@ async def post_decision_case(
         request.purchase_group_id, terms, request.scoring_policy_id, history, idempotency_key
     )
     try:
-        created = await create_decision_case(
-            command,
-            comparison_reader=get_comparison_case_reader(),
-            history_reader=get_historical_performance_reader(),
-            unit_of_work=_unit_of_work(),
+        # Keep the blocking transaction and its awaited reads in the same worker.
+        created = asyncio.run(
+            create_decision_case(
+                command,
+                comparison_reader=get_comparison_case_reader(),
+                history_reader=get_historical_performance_reader(),
+                unit_of_work=_unit_of_work(),
+            )
         )
     except (OrchestrationError, DecisionCaseError, RepositoryError) as error:
         raise _http_error(error) from error

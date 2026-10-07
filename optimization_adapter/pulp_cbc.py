@@ -55,7 +55,6 @@ class EncodedModel:
     costs: tuple[int, ...]
     risks: tuple[int, ...]
     cost_unit: Fraction
-    risk_unit: Fraction
 
 
 class PulpCbcSolver:
@@ -116,9 +115,7 @@ class PulpCbcSolver:
         suppliers = tuple(sorted(request.suppliers, key=lambda s: s.supplier_id))
         costs, cost_unit = self._scale(tuple(s.unit_price for s in suppliers))
         scores = {c.supplier_id: c.value for c in request.risk_coefficients or ()}
-        risks, risk_unit = self._scale(
-            tuple(scores.get(s.supplier_id, Decimal(0)) for s in suppliers)
-        )
+        risks, _ = self._scale(tuple(scores.get(s.supplier_id, Decimal(0)) for s in suppliers))
         # Risk zero here is an unused internal cost-only expression, not an asserted missing score.
         q = request.requirement.approved_quantity
         require(
@@ -153,7 +150,6 @@ class PulpCbcSolver:
             costs,
             risks,
             cost_unit,
-            risk_unit,
         )
 
     def _integer_values(self, problem: pulp.LpProblem) -> dict[pulp.LpVariable, int]:

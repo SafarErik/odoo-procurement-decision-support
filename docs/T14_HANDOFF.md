@@ -1,6 +1,79 @@
 # T14 — controlled Decision Tree supplier-evaluation handoff
 
-## Result and starting point
+T15 continuation, 2026-10-05: the subsequently authorized controlled composition
+is implemented locally; see [T15 handoff](T15_HANDOFF.md). The T13/T14 checks and
+documentation-only state below are preserved as their dated verification record,
+not CI evidence for T15. Entry HEAD for T15 implementation was `aac86eb`, after
+the user committed the documentation proposal. Observed promotion and full V2 remain open.
+
+## Current post-merge status (2026-10-05)
+
+**T13 AND CONTROLLED T14 MERGED; EXACT-SHA HOSTED CHECKS VERIFIED. FULL V2 AND
+OBSERVED-MODEL PROMOTION OPEN.** GitHub branch, PR, workflow and job metadata were
+read through the authenticated connector. Local Git SSH lookup failed because the
+configured alias could not resolve, and `gh` was unavailable; the connector supplied
+the remote verification. Local HEAD is identical to verified remote main.
+
+| Record | Verified status |
+| --- | --- |
+| T13 PR [#15](https://github.com/SafarErik/odoo-procurement-decision-support/pull/15) | Merged 2026-10-03 21:25:33 UTC at `ff8cc5bfebaef5f8d73751991101008830307012` |
+| T14 PR [#16](https://github.com/SafarErik/odoo-procurement-decision-support/pull/16) | Merged 2026-10-05 18:46:02 UTC at `247914ac05663d7358d53036c08750d9390d1baa` |
+| Current remote main / local HEAD | `247914ac05663d7358d53036c08750d9390d1baa`; local branch `feature/T15-implementation`; T13 merge is an ancestor |
+| T13 post-merge checks, `ff8cc5b` | [Quality 37155058879](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37155058879) and [Container/API 37155058875](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37155058875): SUCCESS |
+| Current main Quality, exact `247914a` | [Run 37358433437](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437), [job 111926654919](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437/job/111926654919): SUCCESS, including fast tests, required actual T13 solver and T14 training/reload/inference/MILP gates, formatting, lint, compilation, dependency, whitespace and Compose checks |
+| Current main Container/API, exact `247914a` | [Run 37358433349](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349), [job 111926655177](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349/job/111926655177): SUCCESS, including service integration, frontend compilation and technical named-volume persistence |
+| Earlier documentation-HEAD checks, exact `247914a` | [Quality 37190288091](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37190288091) and [Container/API 37190288285](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37190288285): now both SUCCESS; Container/API was still in progress at the prior handoff |
+| CodeRabbit commit status, exact `247914a` | SUCCESS; separate from runtime acceptance |
+
+This read verified workflow conclusions and job steps, not newly decoded test logs;
+the test counts below retain their original commit and execution attribution.
+Hosted Linux/Docker success does not resolve the historical local Windows/Podman
+socket failure or establish live Odoo/business-flow or browser E2E acceptance.
+The earlier implementation run's 20 skipped live contracts remain skipped evidence.
+No local service/live tests were run in this documentation update.
+
+The current controlled model continues to reject observed inference. Its synthetic
+accuracy and quantity-independent exposure mapping do not establish real predictive
+validity, calibration or portability. The [T15 plan](T15_IMPLEMENTATION_PLAN.md)
+uses existing components for a synthetic controlled slice and keeps observed
+Odoo/model promotion as a separate audited gate. Full V2, frontend, approval and
+PDF remain open. T15 is planned only; no code, migration or API was added here.
+
+### Documentation synchronization and fresh local checks (2026-10-05)
+
+Updated and read back all ten active Hungarian living documents under
+`SZAKDOLGOZAT/00_Project_Control`: 00 status, 01 outline, 02 roadmap,
+03 architecture decisions, 04 research notes, 05 writing guide (date only),
+06 requirements, 07 development status, 08 theoretical overview and 99 project
+instructions reference. [Current thesis status](https://docs.google.com/document/d/1X2WGVVYn0j1ymX0cv5kQQGIaJiEc7pcLSZYDIrXA3VU/edit)
+and [development status](https://docs.google.com/document/d/1Xgphr_FEurdFlK651s2DTJWlubwt9vii1c5st9iO6E8/edit)
+now record both merges, exact-SHA hosted success, controlled T14 evidence and the
+separate observed-promotion/full-V2 gates. ADR-025 records the implemented
+two-feature exposure mapping; requirement IDs and remaining acceptance gates
+are preserved. Stale T13-unmerged/T14-future claims were corrected as current status.
+
+Contradictory task-sheet statements in 04/08/99 now follow the approved baseline
+already recorded in 00/05: issued 2026-09-22, reference 423.589/25/140, supervisor
+Dr. Villányi Balázs and approving department head Dr. Illés Balázs. This reconciles
+existing living records; the official PDF was not independently reread here.
+Hungarian text, native date chips, headings, lists and resource links were checked
+after writing; linked CI runs were verified. Original documents and paragraph-level
+before/after changes were saved in the task's review artifacts. Archives, folders,
+sharing and actual ChatGPT Project Instructions settings were not modified.
+
+Fresh local Python 3.11 checks on this documentation working tree: **394 passed,
+37 deselected, one upstream Starlette warning, 33.85 s**. Ruff format (132 files),
+Ruff lint, compilation, dependency consistency and `git diff --check` passed.
+The read-only Compose configuration check passed after the user started Podman,
+using the existing project-local provider outside the sandbox; initial sandbox
+attempts could not launch the Windows binary (Access denied). No service/live test
+or Odoo operation was run. This later configuration PASS does not erase the
+historical runtime socket failure or establish local service reachability.
+
+## Historical result and starting point (2026-10-04)
+
+The remaining sections preserve the October 4 implementation and handoff record;
+their then-current PR/Drive/CI statements are superseded by the dated status above.
 
 **IMPLEMENTED / LOCAL AND HOSTED IMPLEMENTATION CHECKS VERIFIED; PR #16 OPEN / NOT MERGED.** T14 provides
 an offline supplier-evaluation pipeline, versioned trusted model reload, actual tree
@@ -226,9 +299,9 @@ The original synthetic-model limitations and quantity-independent proxy meaning
 remain unchanged. Hosted configuration/service checks used Linux/Docker and do not
 resolve the historical local Windows/Podman socket failure.
 
-The new documentation HEAD requires its own check. After push, inspect runs/statuses
-for that exact SHA and report their actual state. Pending, absent or path-filtered
-checks must not inherit SUCCESS from the implementation commit.
+At that historical handoff, the new documentation HEAD required its own check.
+Its subsequent checks and merge are recorded in the dated post-merge section above.
+Pending, absent or path-filtered checks must never inherit SUCCESS from another SHA.
 
 ## Traceability and T15 boundary
 
@@ -251,7 +324,7 @@ Odoo reread, fit, inference or solve. Approval/PDF and frontend remain T16/T17.
 There is no blocking question for the authorized controlled T14 increment.
 Observed-data promotion and full T15 interface design remain separate decisions.
 
-## Proposed Drive synchronization only — no writes performed
+## Historical proposed Drive synchronization (2026-10-04; no writes then)
 
 - **00_THESIS_STATUS:** T13 is merged at ff8cc5b; T14 implementation is committed
   and published at 32e1172 in open/unmerged PR #16, with local and hosted checks
@@ -273,9 +346,9 @@ Observed-data promotion and full T15 interface design remain separate decisions.
   verified; the documentation HEAD's CI is separate. Keep skipped live tests,
   synthetic limitations and full V2 OPEN, with links to these T14 records.
 
-This documentation-only correction uses `git diff --check` and is committed/pushed
-to the existing `feature/t14-decision-tree-pipeline` branch and PR #16. It changes
-only this handoff. No local runtime/service tests are rerun, and no code, Drive,
-Odoo, new PR or merge operation is part of this correction. The implementation
+That documentation-only correction used `git diff --check` and was committed/pushed
+to the existing `feature/t14-decision-tree-pipeline` branch and PR #16. It changed
+only this handoff. No local runtime/service tests were rerun, and no code, Drive,
+Odoo, new PR or merge operation was part of that correction. The implementation
 checks above remain attributed to `32e1172`; the correction's exact commit and
-latest CI state are reported separately after publication.
+CI state were reported separately after publication.

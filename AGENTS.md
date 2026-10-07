@@ -1,6 +1,56 @@
 # Development guidance
 
+## Followable development workflow
+
+- Keep the accepted thesis/product baseline fixed. Describe each increment as a
+  buyer-visible capability or a necessary integration dependency, with a concrete
+  example and acceptance outcome. T-numbers are historical references, not the
+  explanation of the product.
+- Read the README for current scope/status, then the local terminal runbook for
+  execution. Explain what each command starts, checks or changes, its prerequisites,
+  expected result and cleanup. Start only the services needed for the task.
+- Use the existing Podman machine. Keep Odoo data and disposable persistence tests
+  in separate Compose projects; database-reset tests must never use an application
+  or Odoo database. Do not add infrastructure just to hide setup complexity.
+- Keep meaningful tests for business rules, trust boundaries, persistence and
+  integration. During implementation run focused checks; before handoff run the
+  required fast checks once. Repeat passed checks only after relevant changes,
+  failures or unresolved concerns. Run service/live/browser checks when relevant
+  and available, recording their actual scope and unrun gates.
+- Close a spike with its question, evidence, decision and remaining blocker.
+  Reopen it only when an assumption changes. Reuse accepted components and prefer
+  small demonstrable increments to speculative abstractions or broad restructuring.
+- Keep current capability/status in README, terminal procedures in the development
+  guides, and dated evidence in the implementation log/handoffs. Preserve historical
+  results and limitations; append a current status instead of rewriting history.
+  Update only documents whose meaning changed. Drive remains Hungarian and requires
+  an explicit user request; do not mirror technical execution diaries into every doc.
+- Record thesis-useful results as problem -> decision -> implemented behavior ->
+  evidence -> limitation -> chapter relevance. Maintain links to detailed evidence.
+- Handoffs state what changed, how it was verified, what remains blocked/unverified,
+  any needed user action, and the next product capability. Explain the result in
+  understandable language with accurate technical terms. Retain user control of
+  commit, publication and merge when requested.
+
 ## Current V2 scope and historical increments
+
+The 2026-10-07 user-authorized T15 extension supports controlled live Odoo quotations
+with separately synthetic ML evidence through `/api/v2/procurement/planning-cases/from-odoo`.
+The server independently reads the selected group/currency and checks caller
+expectations; field provenance keeps Odoo prices/identities separate from explicit
+business terms and generated history. New creation acquires sources only after
+idempotency lookup/locking; GET/exact replay and scenarios use stored inputs.
+Training remains offline and observed Odoo history/model promotion remains open.
+See `docs/T15_ODOO_COMPATIBILITY_PLAN.md` and the controlled Odoo section of
+`docs/T15_DEMO.md`. No Odoo writes, frontend or approval/PDF are authorized here.
+
+The original T15 slice composes controlled synthetic V2 input, trusted saved T14 inference and
+unchanged T13 MILP with bounded FastAPI routes, five explicit stress scenarios,
+immutable PostgreSQL snapshots and stored-only GET/exact replay. See
+`docs/T15_HANDOFF.md`. Keep observed Odoo/model promotion separate; there is no
+T15 Odoo adapter/read/write, frontend, approval/PDF or complete V2 acceptance.
+Do not train during HTTP requests or let callers select executable artifacts.
+Preserve V1 routes/snapshots. New local checks do not establish hosted CI.
 
 T14 adds the controlled offline Decision Tree pipeline under `supplier_evaluation/`
 and its narrow T13 risk-contract demonstration. See `docs/T14_ML_DESIGN.md` and

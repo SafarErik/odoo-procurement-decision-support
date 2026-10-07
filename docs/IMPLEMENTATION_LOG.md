@@ -1,9 +1,398 @@
 # Implementation log
 
+## Controlled Odoo quotations, synthetic model and immutable V2 completion (2026-10-07)
+
+**Problem and decision:** the history credential was renewed, but the three selected
+fixture suppliers have no visible confirmed company-1 orders in the bounded read;
+known T7 receipts belong to another supplier/product. User delegated the fastest
+sound path. Keep live Odoo quotation/context evidence and explicit business terms
+separate from genuinely generated synthetic ML history. This closes the controlled
+integration dependency without claiming an observed predictor or fabricating receipts.
+
+**Implemented behavior:** a small V2 assembler validates exact group/offer/supplier/
+line/context joins, common currency resolved through a bounded adapter read, and
+explicit Q/business terms. Added `/from-odoo` creation with the existing strict
+controlled schema. Independently read prices/context must match caller expectations;
+they are not caller-certified upstream facts. A normalized caller intent and shared
+locked transaction resolve exact retry before source acquisition, saved inference or
+unchanged CBC. Existing scenario/GET paths, JSONB schema/immutability and V1 remain.
+Snapshots retain field provenance, selection identity, acquisition cutoff and
+`odoo_quotations_synthetic_history` kind. No infrastructure or migration added.
+
+Offline generation accepts an explicit company/product/unit domain and still
+produces synthetic data. The existing training pipeline creates a genuine new
+artifact/model ID/checksum and saved dataset; source guards and mapping are unchanged.
+The owner assigns simulated A/B/C profiles explicitly. Preparation and the shared
+HTTP demo now support live quotations; printed currency comes from the snapshot.
+CI path filters include the new tool. AGENTS/README, index, handoff, selected plan
+and terminal instructions record the new controlled boundary, preserving history.
+
+**Verification:** renewed history identity HTTP 200, uid 8; focused projection
+security 1 passed / 19 deselected, 1.80 s. Hybrid/legacy API/demo checks 40 passed /
+one warning, 16.77 s. Initial full fast suite 433 passed / 45 deselected, 42.23 s.
+Review caught a missing stored comparison identity for its provenance path; added
+that value and assertion. Final Python 3.11 fast suite **433 passed / 45 deselected /
+one upstream warning, 39.46 s**. Actual PostgreSQL T15+V1 **22 passed / one warning,
+25.90 s**, including hybrid round-trip and upstream-free replay. The isolated
+verification helper initially lacked the checkout on `sys.path`, preventing only
+its subsequent live demo; corrected the helper and ran migrations/live acceptance
+without repeating the passed database suite.
+
+Ruff format/lint, compileall, dependency consistency and whitespace checks passed.
+Documentation verification resolved 72 local links/anchors and parsed all 12
+PowerShell blocks in the demo guide.
+
+Actual read-only Odoo group 2 + saved synthetic inference + CBC + PostgreSQL/API:
+USD 1,850 minimum (A/B/C 50/0/150), USD 2,200 lower-exposure alternative (100/100/0),
+C outage USD 2,200 (100/100/0). This uses explicit controlled Q=200, capacities
+120/100/160, hard MOQ 50/100/150, 80% concentration and 20% epsilon, distinct from
+quotation Q=100. Live acceptance used TestClient with real external services, not a
+new Uvicorn/browser session. A fresh client context with Odoo/model access disabled
+returned identical base/child GET and exact base/child replay (200); fresh base 503.
+Fast checks also trap HTTP training/solver calls after invalid inputs and verify
+context/price/tax/supplier mismatch, no source renaming, conflicts and sanitization.
+
+The existing stopped test container was started without recreating it; a separate
+temporary database protected user test cases. Windows forwarding still required a
+hidden localhost tunnel. The temporary database, owned tunnel and ignored runtime
+credential file were removed and the test container restored to stopped. Odoo is
+unchanged and remains running. Ignored local run/restart evidence is under
+`.artifacts/t15-odoo-demo/` and `.artifacts/t15-odoo-verify-00ee8a59ce1f4dd4b926f936e8e4bf43/`.
+
+**Limits, thesis relevance and next step:** no commit/push/merge or Drive edit.
+Published `ab8d7b2` CI is historical and does not cover these working-tree changes;
+new-SHA CI awaits publication. The user's previous PostgreSQL retry is still
+user-unconfirmed. Controlled T15 is locally complete and ready for review/closure;
+observed receipt/model promotion and full V2 are not. Next: review/publish, verify
+CI, user merge decision, then T16 controlled planning cockpit. Chapters 4/6/7 can
+use source separation, real composition, disruption comparison and immutable
+upstream-independent retrieval; synthetic exposure is not predictive superiority.
+
+## V2 Odoo/model controlled-fixture readiness (2026-10-07)
+
+**Goal:** connect the selected controlled Odoo comparison case to V2 assembly and
+establish a legitimate saved-model compatibility boundary before planning/storage.
+User selected reuse of the development fixture. The accepted baseline is unchanged.
+
+**Evidence:** clean entry HEAD `ab8d7b21b18ac4b7323e0ed32f637ae351658786`, PR #17
+open/unmerged; exact-head quality, container-api-integration and GitGuardian success
+verified by authenticated GitHub metadata. Odoo localhost responds. Existing RFQ
+key authenticates uid 7 and the comparison reader maps group 2 / orders 16–18 /
+suppliers 51–53 / product 54 / company 1 / UoM 1 / currency 1. Four focused existing
+RFQ/identity/T6 integration tests passed, 16 deselected, 1.68 s; fresh pytest
+temporary/cache folders avoided the prior Windows ownership issue.
+
+The separately configured history key returned HTTP 401; it may be expired or
+invalid, but its precise cause is not proven. Known T7 fixture orders 19–22 / lines
+31–34 belong to supplier 55 and product 57, not the comparison context. These
+bounded reads do not establish absence of other matching history. Existing model
+envelope/inference requires synthetic source and its trained domain; a controlled
+Odoo business fixture alone does not make that artifact compatible.
+
+**Decision and deliverable:** added the small
+[Odoo compatibility readiness plan](T15_ODOO_COMPATIBILITY_PLAN.md): reuse existing
+readers/KPI/core/storage, require explicit V2 business terms and exact contextual
+history, check source/domain/schema/cutoff/range before solve/store, and require a
+versioned compatible dataset/model contract for a positive flow. No always-failing
+new endpoint or source-type bypass. Current README and handoff link the plan and
+record publication/readiness separately from historical evidence.
+
+**Limits and next step:** renew only the dedicated history API key through the
+documented human UI procedure and ignored `.env`, confirm, then verify read-only.
+Identify or manually provision matching controlled evidence and define the saved
+model contract before positive inference implementation. No production code, Odoo
+mutation, dependency/infrastructure change, database reset, commit/push/merge or
+Drive update. Full fast/PostgreSQL acceptance was not rerun for this documentation
+preflight; the user's prior PostgreSQL retry remains unverified. T15's implemented
+synthetic slice and complete Odoo/model acceptance remain separate closure claims.
+Thesis relevance: source semantics, contextual joins, model applicability and
+negative integration gates support chapters 4/6/7.
+
+## T15 published CI, user temporary-directory failure and Hungarian synchronization (2026-10-06)
+
+**Publication:** the user committed/published `feature/T15-implementation` at
+`200af3e79ac82640fac882b95c2cf85ed80ff588` and opened PR #17. Authenticated GitHub
+reads confirm OPEN, not merged; main remains `247914ac05663d7358d53036c08750d9390d1baa`.
+Exact-head [Quality 37523314998](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314998),
+[Container/API 37523314994](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314994)
+and GitGuardian succeeded. Workflow status is verified; no new CI test count is
+inferred. Earlier unpublished records below remain dated historical evidence.
+
+**User result and diagnosis:** terminal demo worked according to the user's report.
+Their PostgreSQL selection gave 14 passed / 7 setup errors / 2 warnings, 11.81 s:
+WinError 5 under Windows Temp. All seven T15 tests depend on one temporary model
+fixture, so they fail before planning/database assertions. The inspected shared
+pytest root owner is `CodexSandboxOffline`, strongly supporting different agent/
+terminal identity permissions; the exact nested failure path is unconfirmed from
+the truncated traceback. A non-destructive agent fixture probe passed one test,
+while the default repository cache emitted its own permission warning.
+
+**Minimal correction and verification:** documented fresh GUID-based ignored
+workspace directories for each pytest run, with explicit parent creation,
+`--basetemp` and `cache_dir`. Updated current README/runbook examples and demo
+troubleshooting. No ACL changes, shared Temp deletion or runtime/test logic changes.
+First local trial lacked the parent: 383 passed / 40 setup errors, WinError 3.
+Corrected Python 3.11 fast run: **423 passed / 44 deselected / one upstream warning,
+24.33 s**, actual ML training/reload/inference and CBC included. The user's
+PostgreSQL retry remains pending; no database/service acceptance was rerun here.
+Ruff format/lint, compilation, dependency consistency and patch whitespace passed;
+36 current PowerShell examples parsed and local document links/anchors resolved.
+
+**Explicitly authorized Drive synchronization:** updated Hungarian living docs
+00/01/02/03/04/06/07/08/99, retaining official title/task baseline, IDs, archive links
+and historical checks/limits. The writing guide 05 was read and retained. Current
+documents consistently state T13/T14 merged; T15 controlled assembly/saved inference/
+MILP/scenarios/immutable storage and stored-only retrieval implemented and published,
+PR #17 open, exact-head CI successful. AC-V2-08/10 pass in the controlled slice;
+complete Odoo assembly/model promotion, frontend, plan approval/PDF and full V2 open.
+Resolved obsolete T15 assignments and split repository technical truth from Drive
+Hungarian thesis truth. 99 carries the followable terminal-first, small-increment,
+meaningful-test and concise handoff principles without changing application settings.
+
+Native file-backed before/after reads and exact comparison verified all intended
+paragraph edits, preserved heading/list roles, dates and native links; new PR/CI
+links retain inherited typography. Review snapshots and a verification receipt are
+local artifacts in the task's `t15-sync-20261006` visualization directory. Main living
+entry: [00_THESIS_STATUS](https://docs.google.com/document/d/1X2WGVVYn0j1ymX0cv5kQQGIaJiEc7pcLSZYDIrXA3VU/edit);
+detailed record: [07_DEVELOPMENT_STATUS](https://docs.google.com/document/d/1Xgphr_FEurdFlK651s2DTJWlubwt9vii1c5st9iO6E8/edit).
+
+**Limits and next step:** current repo documentation changes remain unstaged,
+uncommitted and unpushed; published CI does not cover them. No service was started,
+Odoo changed, database reset, frontend or approval/PDF added, or Git merge performed.
+User retries the documented PostgreSQL command, reviews PR #17, and retains merge
+control. Next product work is the bounded V2 Odoo/model compatibility plan, followed
+by T16 cockpit. Thesis chapters 6/7 can use controlled integration/reproducibility
+evidence with explicit synthetic, local, hosted and user-confirmed boundaries.
+
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
-## T14 — controlled Decision Tree supplier-evaluation pipeline (2026-10-04)
+## Reproducible controlled T15 terminal demonstration (2026-10-06)
+
+**Problem:** the manual API flow depended on ignored, previously generated
+request/model files and did not provide a fresh-checkout demonstration. Entry
+HEAD was the user's consolidation commit `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`
+on `feature/T15-implementation`; the working tree was clean.
+
+**Decision and behavior:** added repository-local `tools/t15_demo.py` with offline
+`prepare` and loopback HTTP `run`. Moved the existing controlled fixture generator
+from the test helper and re-exported it there so tests/demo share one implementation.
+Preparation produces a trusted saved model and matched base/outage requests. The
+run creates an immutable base/child, checks stored GET and exact base replay,
+prints costs/allocations and records per-run keys/responses in ignored artifacts.
+Keys are written before POSTs for manual recovery; there is no automatic POST retry.
+Remote/credentialed origins and redirects are disallowed for this local demo.
+Added one real composition check with a no-training trap and parameterized origin
+boundary checks. New terminal procedure explains model/DB/API roles, expected
+EUR 102/109/106 results, restart retrieval, failure interpretation and cleanup.
+Integration workflow path filters include the shared demo fixture module so changes
+to it also exercise the PostgreSQL consumers in hosted integration.
+No new production endpoint, dependency, infrastructure, migration or business rule.
+
+**Evidence:** fresh Python 3.11 fast suite **423 passed / 44 deselected / one upstream
+Starlette warning, 37.82 s**. Actual PostgreSQL T15 plus legacy persistence acceptance
+**21 passed / one warning, 22.11 s**. Actual loopback Uvicorn and CLI run produced
+base minimum EUR 102 (6/4/0), alternative EUR 109 (0/2/8), outage minimum EUR 106
+(0/8/2), using generated-request supplier order. Base/child retrieval and exact
+replay matched. After restarting the backend without a model directory, both
+stored GETs and exact base/child replays returned 200 with equal snapshots; fresh
+base returned 503. Detailed synthetic run/restart records remain under ignored
+`.artifacts/t15-demo/` and `.artifacts/t15-demo-verification/`.
+Ruff format/lint, compilation (including the demo tool), dependency consistency,
+patch whitespace, document-link/anchor and PowerShell example syntax checks passed.
+
+The existing disposable PostgreSQL container was already running; verification
+created a separate `t15_demo_verify_20261006_14a55ea1` database rather than resetting
+the user's test database. Windows 55432 was still refused, so a task-owned
+localhost-only SSH tunnel enabled access. The temporary database, owned backend/
+tunnel processes and runtime credential file were removed; existing Odoo and test
+containers remain running. The real user `.env` and Odoo business data were untouched.
+
+**Limits and next step:** new changes are unstaged/uncommitted/unpushed. GitHub main
+still resolves to `247914ac05663d7358d53036c08750d9390d1baa`; the local consolidation
+SHA could not be resolved and had zero hosted workflow runs. Local verification
+does not establish hosted CI, observed-model validity, live Odoo/browser acceptance
+or complete V2. Drive is unchanged pending the agreed publication/request sequence.
+Next: review/publish the increment, verify the published SHA's CI and synchronize
+the affected Hungarian records when requested; resolve the V2 Odoo/model boundary
+before further integration claims. Frontend, plan approval/PDF and full demo remain open.
+
+**Thesis relevance:** reproducible artifact preparation, actual ML/MILP/HTTP/storage
+composition, explicit disruption comparison and stored retrieval across process
+restart can support implementation/evaluation chapters. Synthetic exposure and
+local/hosted/observed acceptance remain distinct.
+
+## Followable workflow and documentation consolidation (2026-10-06)
+
+**Problem:** current capability, historical scope and execution instructions were
+mixed across a 647-line README, incremental handoffs and stale Drive status. The
+user requested enduring, understandable terminal-first development principles
+while retaining meaningful tests and the accepted procurement/thesis baseline.
+
+**Decision and implemented behavior:** condensed README to 123 lines with the
+product flow, current capability/publication state and next steps. Added a small
+documentation map; retained historical handoffs, spikes and their limitations.
+Reworked the existing terminal/persistence guides around task selection, command
+purpose, prerequisites, expected result and cleanup. Clarified that one Podman
+machine hosts two Compose projects and that database-reset tests must remain
+separate from Odoo/application data. Documented the Python 3.11 environment,
+real-test versus manual API paths, explicit Alembic URL and forwarding workaround.
+Added durable working principles and the requested handoff format to AGENTS.md;
+saved one user-requested memory extension note for future-chat continuity.
+
+Quality now executes the mandatory ML/CBC runtime tests once within the full fast
+suite instead of repeating them in separate steps. Updated the two existing CI
+guard tests to check the fast selection and that runtime tests are not excluded
+as integration/E2E, retaining dependency/no-skip checks. No production code,
+dependency, Compose service, migration or accepted requirement changed.
+
+**Evidence:** authenticated GitHub reads found remote main `247914ac05663d7358d53036c08750d9390d1baa`
+with successful post-merge Quality 37358433437 and Container/API 37358433349.
+The clean entry local T15 commit was `921673493d63b3e5fadd9189f50ee5b644308871`;
+GitHub could not resolve it and returned zero workflow runs for that SHA.
+Added a dated T15 handoff status without rewriting its pre-commit evidence.
+
+Initial fast verification caught the two obsolete CI string guards: 417 passed,
+2 failed, 44 deselected, 33.65 s. After updating those guards, Python 3.11 fast
+regression passed: **419 passed / 44 deselected / one upstream Starlette warning,
+31.00 s**, with actual saved ML/CBC execution. Seven runtime tests were also
+confirmed in the fast selection by collection, not run a second time. Ruff
+format/lint, compilation, dependency consistency and whitespace checks passed.
+Local relative document links resolve and documented PowerShell blocks parse.
+Both existing Compose configurations passed quiet validation with the local
+provider; no service was started. The default shell did not resolve Podman, so
+validation used the known installed binary outside the sandbox. The first pytest
+run also encountered cache write warnings; the successful run used a fresh ignored
+`.artifacts/consolidation/pytest-cache`, without modifying the existing cache.
+
+**Limits and next step:** changes are unstaged/uncommitted/unpushed. No PostgreSQL,
+live Odoo or browser acceptance was rerun; the historical T15 service checks still
+predate its audit fixes. The Podman forwarding issue remains a workaround, not a
+repair. Drive is unchanged and still records the T15 proposal; synchronize affected
+Hungarian documents only on explicit request, consistent with the previously
+agreed post-publication sequence. A fresh-clone interactive T15 demonstration
+remains the next small usability increment; current automated acceptance generates
+its own matched controlled fixtures. Complete V2/observed integration and the
+planning frontend/approval/PDF remain open.
+
+**Thesis relevance:** development methodology and reproducibility can cite the
+task-specific runbooks and the separation of technical synthetic acceptance from
+observed Odoo/model acceptance. Results should connect problem, decision,
+implemented behavior, evidence and limitation rather than only count tests.
+
+## Repository audit fixes (2026-10-05)
+
+Moved the T12 create HTTP handler to FastAPI's worker thread and run its existing
+async orchestration with `asyncio.run`. The synchronous PostgreSQL transaction/key
+lock and awaited Odoo reads stay together in that worker, preventing a second
+same-key request from blocking the API event loop needed by the first. Added a
+single-event-loop concurrent HTTP regression with bounded synchronous lock
+contention, compute-once storage and exact replay; this is a controlled lock test,
+not new live PostgreSQL acceptance.
+
+The shared T12/T15 bearer guard rejects non-ASCII credentials with `401` and treats
+non-ASCII configured tokens as unavailable (`503`). T15 translates unrepresentable
+history/score-validity datetime arithmetic into `422` invalid input, and malformed
+stored snapshots into the existing persistence-error contract. Added regression
+coverage for both API guards and the year-0001/year-9999 cutoffs; rejected creates
+store no case and never solve.
+
+Removed the unused T0 frontend health client, its URL property and four obsolete
+tests, retaining the Reflex configuration check and current RFQ client. Removed
+the unused solver risk-scale field without changing the MILP formulation. Clarified
+that Alembic requires a process/configuration URL; added the explicit PowerShell
+export from the backend's ignored `.env` configuration to the T15 handoff.
+
+Verification on the audit working tree: Python 3.11.16 fast suite **419 passed /
+44 deselected / one upstream Starlette warning, 30.89 s**. Ruff format/lint,
+compilation, dependency consistency, whitespace and both quiet Compose
+configuration checks passed. Podman configuration checks required execution
+outside the sandbox after its executable was denied; neither started services.
+
+Changes remain unstaged, uncommitted and unpushed. No Odoo operation, database
+migration, hosted CI, browser E2E or Google Drive change is part of these fixes.
+
+## T15 — controlled planning API, scenarios and immutable cases (2026-10-05)
+
+User authorized the reviewed controlled slice on `feature/T15-implementation`,
+entry HEAD `aac86eb7c7081fc3a780efa4da351f5616cd1185` (user-committed documentation
+proposal). Added V2 fact/field-provenance assembly, trusted saved T14 inference,
+unchanged T13 planning, three guarded HTTP operations, five explicit stress types
+and immutable JSONB case/key storage with stored-only GET/exact replay. One migration
+`20261005_01`; V1 tables/decoding/routes preserved. Scenarios retain frozen scores,
+revalidate full bounds, update source attribution and store new child snapshots.
+No new dependency, Odoo read/write path, training route, frontend or approval/PDF.
+
+Python 3.11 fast regression: 418 passed / 44 deselected / one upstream warning in
+37.57 s. T15 plus legacy PostgreSQL persistence acceptance: 21 passed / one warning
+in 22.14 s, including transactions, concurrent replay, immutability and rollback.
+Real saved inference/CBC reproduced EUR 102/109; five scenarios match independent
+small-instance enumeration. Actual loopback Uvicorn smoke proved create/retrieval/
+retry/scenario behavior even with the model manifest temporarily unavailable;
+new base failed safely with 503. Ruff, compilation, pip and whitespace checks passed.
+The final blank model-setting normalization also passed its targeted API guard/
+configuration check (1 passed, 3.50 s).
+
+Used the existing isolated T11 test Compose service with synthetic credentials.
+Windows forwarding to 55432 still failed; a temporary localhost-only SSH tunnel
+to the healthy VM service enabled tests. Temporary server/tunnel/test container
+were cleaned up; the user's Odoo stack and ignored user `.env` were unchanged.
+No live Odoo, browser or full service suite was run. Detailed evidence/configuration
+and API semantics are in `docs/T15_HANDOFF.md`; generated local proof is ignored.
+
+Integration CI path filters now cover the consumed ML package. Hosted T15 CI remains
+UNVERIFIED; T13/T14 run results below do not cover these edits. Changes are left
+unstaged/uncommitted/unpushed for review. Drive synchronization is deferred until
+review; full V2 and observed-model promotion remain separate open gates.
+
+## T13/T14 — post-merge documentation reconciliation (2026-10-05)
+
+Verified through authenticated GitHub branch/PR/workflow/job reads: T13 PR #15
+merged at `ff8cc5bfebaef5f8d73751991101008830307012`; T14 PR #16 merged at
+`247914ac05663d7358d53036c08750d9390d1baa`, which is current remote main and
+the clean entry HEAD of `feature/T15-implementation`. Local ancestry confirms T13.
+The local SSH alias lookup failed and `gh` was unavailable; no fetch or remote-ref
+update is claimed. The GitHub connector supplied current remote evidence.
+
+On exact main SHA `247914a`, post-merge
+[Quality 37358433437](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
+and [Container/API 37358433349](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
+are SUCCESS. Job steps verify actual Python 3.11 T13 CBC and controlled T14
+training/reload/inference/MILP, plus integration, frontend compilation and technical
+volume persistence. Earlier documentation-SHA Container/API run 37190288285 also
+completed successfully after the prior handoff. T13 merge-SHA Quality 37155058879
+and Container/API 37155058875 passed. Exact links and distinctions are in
+`docs/T14_HANDOFF.md`; no new test counts are inferred from job summaries.
+
+Historical local checks, the Podman socket failure, skipped service/live/browser
+tests and synthetic limitations below remain unchanged. Full V2 and observed
+Odoo/model promotion remain OPEN. The current tree cannot accept observed input.
+
+Synchronized and read back all ten active Hungarian Drive living documents in
+`SZAKDOLGOZAT/00_Project_Control` (00–08 and 99; 05 date only). Current merge/CI,
+controlled T14, ADR-025 and requirement status now agree. Contradictory task-sheet
+draft/advisor statements follow the issued/approved baseline already in 00/05;
+the official PDF was not independently reread. Preserved historical limitations,
+requirement IDs, native document structure/resource links and archives. Corrected
+duplicate sync dates to one Hungarian native October 5 date chip. Saved original
+reads and paragraph-level before/after review evidence; exact links are in the
+handoff. Full V2 and observed-model promotion remain open, independently of the
+controlled synthetic demonstration.
+
+Fresh local Python 3.11 verification: 394 passed / 37 deselected / one upstream
+Starlette warning in 33.85 s; Ruff format (132 files), lint, compilation, pip check
+and whitespace check passed. Read-only Compose configuration passed after the
+user started Podman, using the existing local provider outside the sandbox;
+initial sandbox launches were denied. No service/live tests were run, so the
+historical Podman socket failure and unverified live/browser gates are retained.
+
+Prepared `docs/T15_IMPLEMENTATION_PLAN.md`: controlled assembly, trusted saved-model
+inference, unchanged T13 MILP, explicit scenario reruns, immutable V2 snapshots and
+stored-only GET/exact retry. Defines three narrow API operations and meaningful
+acceptance checks; no frontend, approval/PDF, Odoo writes or speculative services.
+This is a documentation-only proposal; T15 implementation is not authorized here.
+
+## Historical T14 — controlled Decision Tree supplier-evaluation pipeline (2026-10-04)
 
 Verified current remote main/T13 merge `ff8cc5bfebaef5f8d73751991101008830307012`,
 clean entry tree and Python 3.11.16 328-pass legacy/T13 baseline. Read current

@@ -43,14 +43,10 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
 
-      - name: Run fast tests
+      # Unmarked T13/T14 runtime tests execute real CBC and ML in this same suite.
+      # Missing runtimes fail; do not repeat the included tests in separate steps.
+      - name: Run fast tests including required ML and CBC runtime
         run: pytest -m "not integration and not e2e" -v
-
-      - name: Verify required T13 Python and CBC runtime
-        run: python -m pytest tests/test_t13_solver_runtime.py -v
-
-      - name: Verify required T14 training reload inference and MILP contract
-        run: python -m pytest tests/test_t14_runtime.py -v
 
       - name: Check installed dependencies
         run: python -m pip check

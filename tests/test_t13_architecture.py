@@ -56,7 +56,12 @@ def test_t13_is_required_in_python_311_quality_not_an_optional_skip():
     required = project.split("[project.optional-dependencies]")[0]
     assert '"pulp==3.3.0"' in required
     quality = (ROOT / ".github/workflows/quality.yml").read_text()
-    assert 'python-version: "3.11"' in quality and "test_t13_solver_runtime.py" in quality
+    assert 'python-version: "3.11"' in quality
+    assert 'run: pytest -m "not integration and not e2e" -v' in quality
+    runtime = ast.parse((ROOT / "tests/test_t13_solver_runtime.py").read_text())
+    assert not {"integration", "e2e"} & {
+        node.attr for node in ast.walk(runtime) if isinstance(node, ast.Attribute)
+    }
     for path in (ROOT / "tests").glob("test_t13*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

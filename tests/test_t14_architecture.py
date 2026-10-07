@@ -22,7 +22,14 @@ def imports(path):
 def test_ml_is_external_to_existing_runtime_boundaries():
     for folder in ("decision_core", "optimization_adapter", "backend", "frontend", "persistence"):
         for path in (ROOT / folder).rglob("*.py"):
-            assert imports(path).isdisjoint({"supplier_evaluation", "sklearn", "joblib"}), path
+            # T15 composes T14 at the existing backend root; routes/storage/core stay external.
+            if path in {
+                ROOT / "backend/app/dependencies.py",
+                ROOT / "backend/app/planning_case_schemas.py",
+            }:
+                assert imports(path).isdisjoint({"sklearn", "joblib"}), path
+            else:
+                assert imports(path).isdisjoint({"supplier_evaluation", "sklearn", "joblib"}), path
     for filename in ("contracts.py", "history.py", "dataset.py", "model.py", "artifacts.py"):
         assert imports(ROOT / "supplier_evaluation" / filename).isdisjoint(
             {
@@ -48,7 +55,12 @@ def test_required_ml_dependency_and_python311_ci_cannot_silently_skip():
     assert "supplier_evaluation*" in project["tool"]["setuptools"]["packages"]["find"]["include"]
     quality = (ROOT / ".github/workflows/quality.yml").read_text()
     assert 'python-version: "3.11"' in quality
-    assert "test_t14_runtime.py" in quality and "supplier_evaluation" in quality
+    assert 'run: pytest -m "not integration and not e2e" -v' in quality
+    assert "supplier_evaluation" in quality
+    runtime = ast.parse((ROOT / "tests/test_t14_runtime.py").read_text())
+    assert not {"integration", "e2e"} & {
+        node.attr for node in ast.walk(runtime) if isinstance(node, ast.Attribute)
+    }
     for path in (ROOT / "tests").glob("test_t14*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

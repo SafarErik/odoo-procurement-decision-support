@@ -163,6 +163,39 @@ class OdooComparisonCaseReader:
                 "Odoo returned an invalid comparison-case payload"
             ) from error
 
+    async def read_currency_code(self, currency_id: str) -> tuple[str, datetime]:
+        """Resolve one already selected currency; no conversion or broad discovery."""
+        from odoo_adapter.historical_performance_reader import _prefixed_id
+
+        identifier = _prefixed_id(currency_id, "odoo:res.currency:")
+        try:
+            async with httpx.AsyncClient(
+                timeout=self._timeout_seconds,
+                transport=self._transport,
+                headers={
+                    "Authorization": f"Bearer {self._api_key}",
+                    "X-Odoo-Database": self._database,
+                },
+            ) as client:
+                rows = await self._post(
+                    client,
+                    "res.currency",
+                    "search_read",
+                    {
+                        "domain": [["id", "=", identifier]],
+                        "fields": ["id", "name"],
+                        "limit": 2,
+                    },
+                )
+            if not isinstance(rows, list) or len(rows) != 1 or rows[0]["id"] != identifier:
+                raise ValueError("Missing selected currency.")
+            code = _required_string(rows[0], "name")
+            if len(code) != 3 or not code.isascii() or not code.isalpha() or not code.isupper():
+                raise ValueError("Unsupported currency code.")
+            return code, datetime.now(UTC)
+        except (httpx.HTTPError, KeyError, TypeError, ValueError) as error:
+            raise ProcurementDataUnavailable("Selected Odoo currency is unavailable.") from error
+
     async def _post(
         self,
         client: httpx.AsyncClient,

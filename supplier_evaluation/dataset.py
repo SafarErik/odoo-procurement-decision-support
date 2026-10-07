@@ -166,11 +166,16 @@ def prepare_dataset(
     )
 
 
-def generate_dataset() -> tuple[Observation, ...]:
+def generate_dataset(
+    *, domain: tuple[str, str, str] = ("synthetic-company", "synthetic-product", "piece")
+) -> tuple[Observation, ...]:
+    """Generate synthetic evidence in an explicit context; never import Odoo history."""
+    if not isinstance(domain, tuple) or len(domain) != 3:
+        raise ValueError("Supply one company/product/unit domain.")
     rng = random.Random(SEED)
     rows = []
     for i in range(240):
-        context = Context(f"synthetic-S{i:03}", "synthetic-company", "synthetic-product", "piece")
+        context = Context(f"synthetic-S{i:03}", *domain)
         cutoff = datetime(2026, 1 if i < 160 else 3, 1, tzinfo=UTC)
         count = rng.randint(8, 30)
         past_miss_rate = rng.uniform(0.05, 0.70)

@@ -1,7 +1,10 @@
 """Trusted HTTP boundary and stored-case lifecycle contracts for T12."""
 
+import asyncio
+from threading import Event, Lock
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -11,6 +14,7 @@ from backend.app.config import settings
 from backend.app.main import app
 from tests.test_decision_case_orchestration import (
     FakeComparisonReader,
+    FakeCreations,
     FakeHistoryReader,
     FakeUnitOfWork,
     _command,
@@ -179,6 +183,69 @@ def test_openapi_describes_shared_secret_and_preserves_t3():
     description = schema["paths"][BASE]["post"]["description"]
     assert "does not authenticate" in description
     assert "actor_reference" in description
+
+
+@pytest.mark.parametrize("prefix", [BASE, "/api/v2/procurement/planning-cases"])
+def test_non_ascii_bearer_is_rejected_and_invalid_configuration_fails_closed(
+    configured, monkeypatch, prefix
+):
+    response = client.get(f"{prefix}/{uuid4()}", headers=[(b"Authorization", b"Bearer \xff")])
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("invalid-\u00ff"))
+    assert client.get(f"{prefix}/{uuid4()}", headers=_headers()).status_code == 503
+
+
+def test_same_key_http_requests_share_one_event_loop_without_blocking(configured, monkeypatch):
+    from backend.app.routes import decision_cases as routes
+
+    shared, comparison, _ = configured
+    key_lock, reading, waiting = Lock(), Event(), Event()
+
+    class LockedCreations(FakeCreations):
+        def lock(self, key):
+            if key_lock.locked():
+                waiting.set()
+            self.held = key_lock.acquire(timeout=2)
+            assert self.held, "The API event loop blocked the first transaction's Odoo read."
+
+    class LockedUnitOfWork(FakeUnitOfWork):
+        def __init__(self):
+            super().__init__()
+            self.cases = shared.cases
+            self.creations = LockedCreations()
+            self.creations.items = shared.creations.items
+
+        def __exit__(self, *args):
+            if self.creations.held:
+                key_lock.release()
+
+    async def delayed_read(group_id):
+        reading.set()
+        assert await asyncio.to_thread(waiting.wait, 2)
+        return await FakeComparisonReader.read_comparison_case(comparison, group_id)
+
+    monkeypatch.setattr(comparison, "read_comparison_case", delayed_read)
+    monkeypatch.setattr(routes, "get_decision_unit_of_work", LockedUnitOfWork)
+
+    async def send():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as concurrent_client:
+            headers = _headers()
+            first = asyncio.create_task(
+                concurrent_client.post(BASE, json=_payload(), headers=headers)
+            )
+            assert await asyncio.to_thread(reading.wait, 2)
+            second = asyncio.create_task(
+                concurrent_client.post(BASE, json=_payload(), headers=headers)
+            )
+            return await asyncio.gather(first, second)
+
+    responses = asyncio.run(send())
+    assert sorted(response.status_code for response in responses) == [200, 201]
+    assert responses[0].json()["decision_case_id"] == responses[1].json()["decision_case_id"]
+    assert comparison.calls == 1 and len(shared.cases.items) == 1
 
 
 @pytest.mark.parametrize("outcome", ["override_recommendation", "no_award"])
