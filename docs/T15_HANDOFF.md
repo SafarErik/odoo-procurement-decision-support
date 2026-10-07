@@ -1,6 +1,45 @@
 # T15 — controlled planning API, stress scenarios and immutable cases
 
-## Current terminal demonstration and verification — 2026-10-06
+## Current publication, user verification and Drive synchronization — 2026-10-06
+
+The user published `feature/T15-implementation` at
+`200af3e79ac82640fac882b95c2cf85ed80ff588` and opened
+[PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17).
+Authenticated GitHub checks confirm the PR is **open, not merged**;
+main remains `247914ac05663d7358d53036c08750d9390d1baa`.
+Exact-head [Quality 37523314998](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314998),
+[Container/API 37523314994](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314994)
+and GitGuardian succeeded. No new test count is inferred from workflow metadata.
+
+The user confirmed the terminal demonstration worked, but their database selection
+reported **14 passed / 7 setup errors / 2 warnings, 11.81 s**. The seven T15 tests
+share a temporary saved-model fixture; `WinError 5` under Windows Temp blocks setup
+before their business/SQL assertions. The inspected shared pytest root is owned by
+`CodexSandboxOffline`, strongly supporting a cross-identity permission conflict.
+The user's full traceback is unavailable, so the precise nested path is unconfirmed.
+
+The [persistence guide](PERSISTENCE_DEVELOPMENT.md#windows-permissionerror-winerror-5-during-fixture-setup)
+now creates a fresh ignored GUID directory in the current user's terminal for
+each pytest invocation, with separate `--basetemp` and `cache_dir`. No ACL changes
+or shared Temp deletion. The first workaround trial omitted parent creation:
+383 passed / 40 setup errors (`WinError 3`). After adding that step, actual Python
+3.11 fast acceptance passed: **423 passed / 44 deselected / one upstream warning,
+24.33 s**. The user's real PostgreSQL retry remains pending; earlier local database
+success and hosted CI do not overwrite their failed run.
+
+On explicit request, Hungarian Drive 00/01/02/03/04/06/07/08/99 were synchronized:
+controlled T15 is implemented/published/CI verified; AC-V2-08/10 pass in that slice;
+PR #17 is open; V2 Odoo assembly, observed-model promotion and full V2 remain open.
+Task assignments and repository-versus-Drive responsibilities now agree. 05 was
+checked and retained. Native readback verified all intended text, existing heading/
+list roles, date chips, native links, new GitHub links and historical records.
+
+These documentation changes remain unstaged/uncommitted/unpushed, outside the
+published SHA's hosted evidence. Next: user database retry and PR review/merge
+decision, then plan the smallest V2 Odoo/model boundary increment before T16.
+No production code, Odoo operation, frontend or approval/PDF was added.
+
+## Historical terminal demonstration and verification, before publication — 2026-10-06
 
 The user committed the consolidation as `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`.
 The separate demo increment is uncommitted. [Terminal procedure](T15_DEMO.md)
@@ -31,7 +70,7 @@ Hosted T15 CI and Drive synchronization remain pending. Next: user review/public
 exact-SHA CI, then explicitly requested affected Hungarian document updates and
 the V2 Odoo/model demonstration boundary before the next product capability.
 
-## Consolidation review record — 2026-10-06
+## Historical consolidation review record, before publication — 2026-10-06
 
 The user has committed the controlled slice and audit fixes locally as
 `921673493d63b3e5fadd9189f50ee5b644308871` on `feature/T15-implementation`.

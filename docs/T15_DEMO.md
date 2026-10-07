@@ -153,6 +153,7 @@ restored to the generated directory; rerunning the demo while it is blank gives 
 | HTTP 422 | Matching generated payload/model and simulation date; explicit terms and validity |
 | HTTP 503 | Database/schema, configured artifact/runtime, or unconfigured bearer gate |
 | CLI incomplete | Inspect the run record and API logs; no automatic POST retry occurred |
+| Pytest WinError 5 in temporary model setup | Use the fresh per-run temp/cache paths in the [persistence guide](PERSISTENCE_DEVELOPMENT.md#windows-permissionerror-winerror-5-during-fixture-setup) |
 
 Use `--base-url http://127.0.0.1:<port>` for another loopback API port. Redirects
 are not followed and remote/credentialed URL origins are rejected. Never paste

@@ -40,11 +40,14 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 `247914ac05663d7358d53036c08750d9390d1baa`; its post-merge
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
-checks passed. Local T15 implementation commit is `921673493d63b3e5fadd9189f50ee5b644308871`;
-the user committed the consolidation as `d1b7acd3070f4c10f58f5bf4b5a61897cf2314ba`
-on `feature/T15-implementation`. GitHub could not resolve the latter SHA and returned
-no workflow runs for it at this check. The terminal-demo increment is uncommitted.
-T15 hosted CI is unverified; main's results do not cover these local increments.
+checks passed. T15 is published on `feature/T15-implementation` at
+`200af3e79ac82640fac882b95c2cf85ed80ff588` in
+[PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17),
+which is **open, not merged**. Its exact-head
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314998)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314994)
+checks passed; GitGuardian also succeeded. The current documentation corrections
+are uncommitted and are not covered by those hosted results.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
@@ -87,7 +90,9 @@ project-local Python 3.11 environment and select only the required services.
 For focused controlled planning checks, no running Podman/backend/frontend is needed:
 
 ```powershell
-python -m pytest tests/test_t15_planning_api.py -v
+$taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $taskRun | Out-Null
+python -m pytest tests/test_t15_planning_api.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 ```
 
 Those checks use actual saved inference and CBC through an in-process API with a
@@ -105,8 +110,8 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the terminal demonstration and publish the controlled T15 increments;
-   verify CI for the published SHA, preserving the user's commit/merge control.
+1. Retry the user's PostgreSQL checks with the fresh temporary/cache folders in
+   the persistence guide, then review PR #17 for the user's merge decision.
 2. Resolve the V2 Odoo input and model-compatibility demonstration boundary. The
    accepted ML baseline permits documented controlled/synthetic data; it does not
    permit relabelling observations or claiming predictive validity without evidence.
@@ -119,9 +124,13 @@ claimed. Browser milestone procedures are in the runbook.
 
 The repository owns executable behavior, terminal procedures and dated technical
 evidence. Drive owns the Hungarian thesis requirements, architecture decisions,
-roadmap and writing material. Its living status documents were last synchronized
-on 2026-10-05 and still describe T15 as proposed; they do not reflect the local T15
-commit or these workflow principles. Drive edits require an explicit user request.
+roadmap and writing material. On the user's explicit request, nine affected
+Hungarian living documents were synchronized on 2026-10-06: T13/T14 merged,
+controlled T15 implemented/published/CI verified with PR #17 still open, enduring
+workflow principles and the user's separate temporary-directory failure/retry gap.
+Native headings, lists, date chips, links and historical evidence were verified
+after editing. The writing guide was checked and retained. Further Drive edits
+require an explicit user request.
 
 Update current status here; link detailed evidence instead of repeating execution
 logs. Historical handoffs/spikes retain their dated boundaries. Use the

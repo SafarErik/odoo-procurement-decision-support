@@ -67,7 +67,9 @@ For a T15 change, the focused API tests exercise actual saved inference/CBC and
 all five scenarios without external services:
 
 ```powershell
-python -m pytest tests/test_t15_planning_api.py -v
+$taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $taskRun | Out-Null
+python -m pytest tests/test_t15_planning_api.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 ```
 
 Expect successful assertions. An HTTP `201` in a test means a case was stored in its
@@ -214,7 +216,9 @@ Do not use `down --volumes` against the Odoo project during testing.
 ruff format --check .
 ruff check .
 python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
-python -m pytest -m "not integration and not e2e" -v
+$taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $taskRun | Out-Null
+python -m pytest -m "not integration and not e2e" -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 python -m pip check
 git diff --check
 ```
@@ -223,6 +227,12 @@ These check formatting, lint, compilable source, fast regressions, installed
 dependency consistency and patch whitespace. Actual ML/CBC execution is required;
 missing runtimes fail. Run this selection once before handoff and repeat only after
 relevant changes or unresolved failures. Python compilation is not a static type check.
+
+The fresh ignored pytest folders avoid Windows ownership conflicts between your
+terminal and an agent execution identity. Generate a new `$taskRun` for each run;
+pytest clears its `--basetemp` directory. See the persistence guide's
+[permission-error explanation](PERSISTENCE_DEVELOPMENT.md#windows-permissionerror-winerror-5-during-fixture-setup)
+if fixture setup fails under the shared Windows temporary directory.
 
 When Compose configuration changed, or a service handoff needs configuration validation:
 

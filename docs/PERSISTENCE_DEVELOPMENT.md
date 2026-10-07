@@ -92,7 +92,9 @@ not a resolved Windows forwarding defect. Do not expose the service beyond local
 ## 2. Run the database acceptance tests
 
 ```powershell
-python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py -v
+$taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $taskRun | Out-Null
+python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 ```
 
 The fixtures create/reset the schema themselves. Expect tests to execute and pass;
@@ -105,6 +107,21 @@ results belong to their own dated log entry rather than overwriting that evidenc
 
 Do not run resetting tests concurrently with manual API experimentation. An API
 TestClient is used within pytest; there is no need to start Uvicorn for this selection.
+
+### Windows `PermissionError: [WinError 5]` during fixture setup
+
+If the traceback points into `%LOCALAPPDATA%\Temp\pytest-*`, another user or
+agent execution identity may own the shared pytest directory. The T15 tests
+share one temporary model fixture, so one setup failure can produce seven errors
+before the database/API assertions execute. This is not evidence of seven planning
+defects. A cache permission warning can have the same ownership cause.
+
+Run the three lines above in your normal activated terminal: they select fresh,
+ignored workspace folders for temporary files and cache. Generate a new `$taskRun`
+for **every** pytest invocation. Pytest clears `--basetemp` at startup; never point
+it at model/demo output, existing data or the `.artifacts` root. No administrator
+terminal or shared temporary-folder permission change is needed. Keep the original
+failure and record the retry result separately.
 
 <a id="apply-or-inspect-migrations"></a>
 

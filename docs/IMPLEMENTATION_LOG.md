@@ -1,5 +1,61 @@
 # Implementation log
 
+## T15 published CI, user temporary-directory failure and Hungarian synchronization (2026-10-06)
+
+**Publication:** the user committed/published `feature/T15-implementation` at
+`200af3e79ac82640fac882b95c2cf85ed80ff588` and opened PR #17. Authenticated GitHub
+reads confirm OPEN, not merged; main remains `247914ac05663d7358d53036c08750d9390d1baa`.
+Exact-head [Quality 37523314998](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314998),
+[Container/API 37523314994](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314994)
+and GitGuardian succeeded. Workflow status is verified; no new CI test count is
+inferred. Earlier unpublished records below remain dated historical evidence.
+
+**User result and diagnosis:** terminal demo worked according to the user's report.
+Their PostgreSQL selection gave 14 passed / 7 setup errors / 2 warnings, 11.81 s:
+WinError 5 under Windows Temp. All seven T15 tests depend on one temporary model
+fixture, so they fail before planning/database assertions. The inspected shared
+pytest root owner is `CodexSandboxOffline`, strongly supporting different agent/
+terminal identity permissions; the exact nested failure path is unconfirmed from
+the truncated traceback. A non-destructive agent fixture probe passed one test,
+while the default repository cache emitted its own permission warning.
+
+**Minimal correction and verification:** documented fresh GUID-based ignored
+workspace directories for each pytest run, with explicit parent creation,
+`--basetemp` and `cache_dir`. Updated current README/runbook examples and demo
+troubleshooting. No ACL changes, shared Temp deletion or runtime/test logic changes.
+First local trial lacked the parent: 383 passed / 40 setup errors, WinError 3.
+Corrected Python 3.11 fast run: **423 passed / 44 deselected / one upstream warning,
+24.33 s**, actual ML training/reload/inference and CBC included. The user's
+PostgreSQL retry remains pending; no database/service acceptance was rerun here.
+Ruff format/lint, compilation, dependency consistency and patch whitespace passed;
+36 current PowerShell examples parsed and local document links/anchors resolved.
+
+**Explicitly authorized Drive synchronization:** updated Hungarian living docs
+00/01/02/03/04/06/07/08/99, retaining official title/task baseline, IDs, archive links
+and historical checks/limits. The writing guide 05 was read and retained. Current
+documents consistently state T13/T14 merged; T15 controlled assembly/saved inference/
+MILP/scenarios/immutable storage and stored-only retrieval implemented and published,
+PR #17 open, exact-head CI successful. AC-V2-08/10 pass in the controlled slice;
+complete Odoo assembly/model promotion, frontend, plan approval/PDF and full V2 open.
+Resolved obsolete T15 assignments and split repository technical truth from Drive
+Hungarian thesis truth. 99 carries the followable terminal-first, small-increment,
+meaningful-test and concise handoff principles without changing application settings.
+
+Native file-backed before/after reads and exact comparison verified all intended
+paragraph edits, preserved heading/list roles, dates and native links; new PR/CI
+links retain inherited typography. Review snapshots and a verification receipt are
+local artifacts in the task's `t15-sync-20261006` visualization directory. Main living
+entry: [00_THESIS_STATUS](https://docs.google.com/document/d/1X2WGVVYn0j1ymX0cv5kQQGIaJiEc7pcLSZYDIrXA3VU/edit);
+detailed record: [07_DEVELOPMENT_STATUS](https://docs.google.com/document/d/1Xgphr_FEurdFlK651s2DTJWlubwt9vii1c5st9iO6E8/edit).
+
+**Limits and next step:** current repo documentation changes remain unstaged,
+uncommitted and unpushed; published CI does not cover them. No service was started,
+Odoo changed, database reset, frontend or approval/PDF added, or Git merge performed.
+User retries the documented PostgreSQL command, reviews PR #17, and retains merge
+control. Next product work is the bounded V2 Odoo/model compatibility plan, followed
+by T16 cockpit. Thesis chapters 6/7 can use controlled integration/reproducibility
+evidence with explicit synthetic, local, hosted and user-confirmed boundaries.
+
 This log is organised by development increment. It records evidence and decisions,
 not a commit-by-commit diary.
 
