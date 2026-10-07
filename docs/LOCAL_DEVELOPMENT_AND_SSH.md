@@ -17,6 +17,7 @@ containers/projects are not separate Podman machines.
 | PostgreSQL persistence acceptance | Python + disposable `decision-db` | Actual database round-trip, immutability, rollback and concurrency |
 | Odoo/RFQ ledger or controlled live contracts | Odoo + its internal `db`; FastAPI/Reflex only for their flows | Documented read-only mappings or the existing RFQ UI |
 | Manual T15 API inspection | FastAPI + own planning database + trusted saved model | Controlled HTTP planning/scenario/stored retrieval; Odoo/Reflex unnecessary |
+| Stored planning view | FastAPI + database containing saved cases + Reflex | Recorded base/scenario display; no Odoo or configured ML model needed for GET |
 
 The Odoo Compose project stores ERP data in named volumes. The planning-test project
 is disposable and has no named volume. Its tests reset the schema. Keep them separate;
@@ -148,8 +149,8 @@ Pop-Location
 ```
 
 Open the printed URL, normally <http://localhost:3000>. Reflex's state backend uses
-8001 and calls FastAPI on 8000. The current page is the RFQ ledger, not the V2
-planning cockpit. Check RFQ rendering/refresh, stop FastAPI to inspect the error
+8001 and calls FastAPI on 8000. The root page is the RFQ ledger; `/planning` is the
+separate stored planning view below. Check RFQ rendering/refresh, stop FastAPI to inspect the error
 state, then restart it and confirm recovery. Record browser evidence separately
 from `reflex export --frontend-only --no-zip`, which checks compilation only.
 
@@ -181,6 +182,137 @@ and retrieve/replay saved cases. `python -m tools.t15_demo prepare` trains offli
 `run` only calls the existing loopback API. The tests share the same fixture generator.
 Generated `.artifacts/t15-demo/` files stay ignored. Do not substitute current dates
 or observed Odoo data into this controlled model.
+
+## Stored planning view: two terminals
+
+Prerequisite: activate Python 3.11 in each terminal and install `.[frontend,dev]`
+after pulling this increment. The frontend extra includes SQLAlchemy asyncio
+support (`greenlet`), which Reflex requires while converting event payloads.
+Reuse a completed [T15 demonstration](T15_DEMO.md) and its database; do not reset
+that database while viewing its cases. No new Podman machine or Compose project
+is needed. If you have no saved cases, complete that linked procedure first.
+
+For an existing saved-case database, the simplest shared configuration is the
+ignored root `.env`: FastAPI reads `DECISION_DATABASE_URL` and
+`T12_TRUSTED_CALLER_TOKEN`; Reflex reads the same token and `BACKEND_BASE_URL`.
+When using these persistent local settings, no demo `caller-token.txt` is needed.
+Clear stale process environment overrides before restarting the affected server.
+FastAPI caches settings/database composition at startup; editing `.env` alone
+does not refresh an already running process. A model is unnecessary for stored GET.
+
+If the existing disposable demo container is stopped, reuse it with
+`podman start procurement-decision-support-t11-test_decision-db_1` to preserve its
+cases. Do not recreate it with new credentials or run resetting tests while viewing
+those cases. A healthy database whose Windows port 55432 refuses connections still
+needs the [localhost 55433 tunnel](PERSISTENCE_DEVELOPMENT.md#healthy-container-windows-host-port-refused).
+Keep that tunnel running while `DECISION_DATABASE_URL` uses 55433. This is a
+development demonstration database; it is not Odoo's internal PostgreSQL.
+
+In terminal 1 retain the demo's `DECISION_DATABASE_URL` and shared token, then
+serve the existing API. A configured model is unnecessary for stored GET:
+
+```powershell
+$env:T15_TRUSTED_MODEL_DIRECTORY = ""
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+In terminal 2, from the repository root, load the same ignored temporary token
+file that the synthetic demo created and find a completed report:
+
+```powershell
+$env:BACKEND_BASE_URL = "http://127.0.0.1:8000"
+$env:T12_TRUSTED_CALLER_TOKEN = Get-Content .artifacts/t15-demo/caller-token.txt -Raw
+$taskReportFile = Get-ChildItem .artifacts/t15-demo -Filter 'run-*.json' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$taskReport = Get-Content -LiteralPath $taskReportFile.FullName -Raw | ConvertFrom-Json
+$taskReport.stored_retrieval_and_replay_verified
+$taskReport.base.case_id
+$taskReport.scenario.case_id
+Push-Location frontend
+reflex run --backend-host 127.0.0.1
+Pop-Location
+```
+
+Expect the verification flag to be true; otherwise select an earlier completed
+report. Reflex serves its web page on 3000 and state backend on 8001; its Python
+HTTP client calls FastAPI on 8000. Open <http://localhost:3000/planning> directly
+to avoid starting the RFQ page's Odoo refresh. The token stays on the Reflex
+server, outside browser forms/state. This shared service credential is a local
+PoC access boundary, not buyer authentication; keep this flow on loopback.
+
+1. Paste the base UUID and press **Load stored case**. Expect EUR 102 minimum,
+   EUR 109 alternative and the saved allocations. Expand the plan explanations,
+   supplier tree paths, stored identity and field provenance.
+2. Load the scenario UUID. Expect EUR 106 minimum, parent lineage and the recorded
+   EUR 4 cost delta. These are stored comparisons, not new calculations.
+3. Submit `not-a-uuid`, then a canonical UUID absent from this database. Expect
+   validation/not-found messages, with previous results removed.
+4. Stop FastAPI with Ctrl+C and submit a saved UUID. Expect an unavailable-service
+   message. Restart FastAPI with the same database/token and load again; expect
+   recovery. A model and live Odoo remain unnecessary for this retrieval.
+
+For a completed hybrid Odoo demonstration, use its own token/report paths under
+`.artifacts/t15-odoo-demo/` and the same database/backend configuration as that
+run. Its base shows USD 1,850/2,200 and Supplier C's outage shows USD 2,200.
+The source banner must retain **Odoo quotations; synthetic ML history**.
+Historical validity is displayed as recorded and does not refresh ML scores.
+
+Stop Reflex and FastAPI with Ctrl+C. Follow the existing demo cleanup for its
+database/tunnel and temporary token. Remove process-only credentials from each
+terminal with `Remove-Item Env:T12_TRUSTED_CALLER_TOKEN -ErrorAction SilentlyContinue`.
+Keep saved reports until their evidence is no longer needed. This slice has no
+case creation, scenario controls, charts, approval or PDF UI.
+
+If an existing ignored `frontend/.web` cache fails with Windows `WinError 5`, stop
+its processes and use a fresh ignored workdir rather than deleting another
+execution identity's cache. From `frontend/`, before rerunning Reflex:
+
+```powershell
+$taskWebRun = Join-Path (Resolve-Path ../.artifacts).Path ("reflex-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path "$taskWebRun/temp" -Force | Out-Null
+$env:REFLEX_WEB_WORKDIR = "$taskWebRun/web"
+$env:TEMP = "$taskWebRun/temp"
+$env:TMP = "$taskWebRun/temp"
+$env:TMPDIR = "$taskWebRun/temp"
+```
+
+These settings affect this terminal only. Close it after stopping Reflex to
+restore normal temporary-directory settings. Use a working installed Node.js
+on its process PATH; CI remains on Node.js 22.22. Production export verifies
+compilation only; [the T16 handoff](T16_HANDOFF.md) records actual browser scope.
+
+### Missing generated route configuration at Reflex startup
+
+`Route config file not found at "app/routes.ts"` can indicate an incomplete
+generated `.web` cache. Reflex supplies `app/routes.js`, which React Router also
+accepts. Do not add an application `routes.ts` to conceal the missing generated
+file. The later `psutil.NoSuchProcess` traceback is cleanup after frontend failure.
+
+On 2026-10-07 the user's cache lacked both `app/routes.js` and a generated Radix
+theme component. Restoring only the route file allowed startup but still produced
+HTTP 500. Preserving the whole cache and letting Reflex initialize/compile a fresh
+one fixed the page. The existing root `.venv` (Python 3.14.7 / Reflex 0.9.11.post1)
+and Node 24.20.0 then served `/planning` with HTTP 200 and no browser console errors.
+This frontend startup check does not change the Python 3.11 ML/CI baseline.
+
+Stop your Reflex process with Ctrl+C first. From the repository root, preserve the
+generated cache under ignored artifacts and start with one explicitly chosen
+interpreter. For the documented Python 3.11 environment:
+
+```powershell
+$taskCache = (Resolve-Path -LiteralPath frontend/.web).Path
+$taskCacheBackup = Join-Path (Resolve-Path .artifacts).Path ("reflex-web-backup-" + [guid]::NewGuid().ToString("N"))
+Move-Item -LiteralPath $taskCache -Destination $taskCacheBackup
+Push-Location frontend
+../.venv/t13-check/Scripts/reflex.exe run --backend-host 127.0.0.1
+Pop-Location
+```
+
+The move is reversible and affects generated web files, not application source or
+Odoo/planning database records. Expected: initialization, compilation, then the
+printed frontend/state-server URLs. Verify `/planning` renders, not just that
+startup prints success. Avoid alternating Reflex versions against the same cache.
+If using the existing root frontend environment instead, use
+`../.venv/Scripts/reflex.exe` consistently; the two environments are distinct.
 
 ## Windows forwarding troubleshooting and cleanup
 

@@ -34,6 +34,13 @@
 
 ## Current V2 scope and historical increments
 
+The first T16 slice displays existing immutable planning cases in Reflex at
+`/planning`, through the authenticated stored-only GET API. Keep the service token
+in Reflex server configuration, never browser state or form fields. Preserve the
+RFQ ledger and synthetic/observed provenance distinction. Case creation/scenario
+controls, charts, approval/PDF and full T16/V2 acceptance remain later work. See
+`docs/T16_HANDOFF.md`. The earlier frontend exclusions below describe those increments.
+
 The 2026-10-07 user-authorized T15 extension supports controlled live Odoo quotations
 with separately synthetic ML evidence through `/api/v2/procurement/planning-cases/from-odoo`.
 The server independently reads the selected group/currency and checks caller

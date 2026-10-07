@@ -1,8 +1,12 @@
-"""Read-only procurement ledger backed by the documented FastAPI boundary."""
+"""RFQ ledger and stored planning display through the documented FastAPI boundary."""
+
+from typing import Any
 
 import reflex as rx
-from config import settings
-from rfq_client import fetch_rfq_dashboard
+
+from frontend.config import settings
+from frontend.planning_client import fetch_planning_case
+from frontend.rfq_client import fetch_rfq_dashboard
 
 PAPER = "#F8F7F8"
 SURFACE = "#FFFFFF"
@@ -286,7 +290,12 @@ def index() -> rx.Component:
                         spacing="3",
                         align="center",
                     ),
-                    _connection_badge(),
+                    rx.hstack(
+                        rx.link("Stored plans", href="/planning", color=AUBERGINE),
+                        _connection_badge(),
+                        spacing="4",
+                        align="center",
+                    ),
                     justify="between",
                     align="center",
                     width="100%",
@@ -379,5 +388,247 @@ def index() -> rx.Component:
     )
 
 
+class PlanningState(rx.State):
+    """Browser-visible display values only; the service secret stays in config."""
+
+    details: dict[str, str] = {}
+    plans: list[dict[str, str]] = []
+    allocations: list[dict[str, str]] = []
+    assessments: list[dict[str, str]] = []
+    provenance: list[dict[str, str]] = []
+    error_message: str = ""
+    is_loading: bool = False
+    has_case: bool = False
+
+    @rx.event
+    async def load_case(self, form_data: dict[str, Any]):
+        self.has_case = False
+        self.details = {}
+        self.plans = []
+        self.allocations = []
+        self.assessments = []
+        self.provenance = []
+        self.error_message = ""
+        self.is_loading = True
+        yield
+        try:
+            case_id = form_data.get("case_id", "")
+            result, self.error_message = await fetch_planning_case(
+                settings.planning_cases_url,
+                case_id.strip() if isinstance(case_id, str) else "",
+                settings.t12_trusted_caller_token.get_secret_value(),
+            )
+            if result is not None:
+                self.details = result.details
+                self.plans = result.plans
+                self.allocations = result.allocations
+                self.assessments = result.assessments
+                self.provenance = result.provenance
+                self.has_case = True
+        finally:
+            self.is_loading = False
+
+
+def _recorded_plan(plan: rx.Var[dict[str, str]]) -> rx.Component:
+    return rx.box(
+        rx.heading(plan["label"], as_="h3", size="4", color=INK),
+        rx.text(plan["cost"], size="7", font_weight="600", margin_y="0.75rem"),
+        rx.text("Exposure proxy: ", plan["exposure"], color=MUTED),
+        rx.text("Cost premium ratio: ", plan["premium"], color=MUTED),
+        rx.el.details(
+            rx.el.summary("Recorded plan explanations", cursor="pointer"),
+            rx.text(plan["explanations"], white_space="pre-line", margin_top="0.75rem"),
+            margin_top="1rem",
+        ),
+        border=f"1px solid {HAIRLINE}",
+        background=SURFACE,
+        border_radius="0.5rem",
+        padding="1.25rem",
+    )
+
+
+def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
+    return rx.el.details(
+        rx.el.summary(row["supplier"], " — score ", row["score"], cursor="pointer"),
+        rx.text("Class: ", row["class"], " · Recorded validity: ", row["valid_until"]),
+        rx.text(row["path"], white_space="pre-line", margin_y="0.75rem"),
+        rx.text("Synthetic source: ", row["source"], overflow_wrap="anywhere"),
+        rx.text("Model: ", row["model"], overflow_wrap="anywhere"),
+        padding="1rem",
+        border_bottom=f"1px solid {HAIRLINE}",
+    )
+
+
+def _recorded_sources(row: rx.Var[dict[str, str]]) -> rx.Component:
+    return rx.table.row(
+        rx.table.cell(row["field"]),
+        rx.table.cell(row["type"]),
+        rx.table.cell(row["reference"]),
+        rx.table.cell(row["observed_at"]),
+    )
+
+
+def _recorded_case() -> rx.Component:
+    return rx.vstack(
+        rx.callout(
+            rx.text(
+                PlanningState.details["input_kind"],
+                ". ML scores are synthetic exposure proxies, not failure probabilities.",
+                as_="span",
+            ),
+            color_scheme="plum",
+            width="100%",
+        ),
+        rx.heading(PlanningState.details["status"], as_="h2", size="5"),
+        rx.text("Scenario: ", PlanningState.details["scenario"]),
+        rx.text("Product: ", PlanningState.details["product"]),
+        rx.text(
+            "Demand: ",
+            PlanningState.details["quantity"],
+            " ",
+            PlanningState.details["unit"],
+            " · Required: ",
+            PlanningState.details["required_date"],
+        ),
+        rx.cond(
+            PlanningState.plans.length() > 0,
+            rx.grid(
+                rx.foreach(PlanningState.plans, _recorded_plan),
+                columns=rx.breakpoints(initial="1", md="2"),
+                gap="1rem",
+                width="100%",
+            ),
+            rx.callout("No proven plan is recorded for this run.", color_scheme="amber"),
+        ),
+        rx.text(PlanningState.details["explanations"], white_space="pre-line"),
+        rx.text(PlanningState.details["comparison"], white_space="pre-line"),
+        rx.el.details(
+            rx.el.summary("Stored case identity and timestamps", cursor="pointer"),
+            rx.text("Case: ", PlanningState.details["case_id"], overflow_wrap="anywhere"),
+            rx.text("Parent: ", PlanningState.details["parent_id"], overflow_wrap="anywhere"),
+            rx.text("Company: ", PlanningState.details["company"]),
+            rx.text("Created: ", PlanningState.details["created_at"]),
+            rx.text("Recorded cutoff: ", PlanningState.details["as_of"]),
+            rx.text(
+                "Snapshot hash: ", PlanningState.details["snapshot_hash"], overflow_wrap="anywhere"
+            ),
+        ),
+        rx.heading("Recorded allocations", as_="h2", size="4"),
+        rx.box(
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell("Plan"),
+                        rx.table.column_header_cell("Supplier ID"),
+                        rx.table.column_header_cell("Quantity"),
+                    )
+                ),
+                rx.table.body(
+                    rx.foreach(
+                        PlanningState.allocations,
+                        lambda row: rx.table.row(
+                            rx.table.cell(row["plan"]),
+                            rx.table.cell(row["supplier"]),
+                            rx.table.cell(row["quantity"]),
+                        ),
+                    )
+                ),
+                width="100%",
+            ),
+            overflow_x="auto",
+            width="100%",
+        ),
+        rx.heading("Saved supplier evaluation and tree paths", as_="h2", size="4"),
+        rx.text(
+            "Recorded validity is historical; viewing this case does not refresh its scores.",
+            color=MUTED,
+        ),
+        rx.box(rx.foreach(PlanningState.assessments, _recorded_assessment), width="100%"),
+        rx.el.details(
+            rx.el.summary("Field provenance", cursor="pointer"),
+            rx.box(
+                rx.table.root(
+                    rx.table.header(
+                        rx.table.row(
+                            rx.table.column_header_cell("Field"),
+                            rx.table.column_header_cell("Source type"),
+                            rx.table.column_header_cell("Reference"),
+                            rx.table.column_header_cell("Observed at"),
+                        )
+                    ),
+                    rx.table.body(rx.foreach(PlanningState.provenance, _recorded_sources)),
+                ),
+                overflow="auto",
+                max_height="24rem",
+                width="100%",
+            ),
+            width="100%",
+        ),
+        spacing="4",
+        align="stretch",
+        width="100%",
+    )
+
+
+def planning_page() -> rx.Component:
+    """Read an existing immutable case; no creation, scenario mutation or approval."""
+    return rx.box(
+        rx.vstack(
+            rx.link("← Open RFQs", href="/", color=AUBERGINE),
+            rx.heading("Stored procurement plans", size="8", color=INK),
+            rx.text("Review a saved base or scenario case without recalculating it.", color=MUTED),
+            rx.el.form(
+                rx.vstack(
+                    rx.el.label("Planning case UUID", html_for="planning-case-id"),
+                    rx.input(
+                        id="planning-case-id",
+                        name="case_id",
+                        required=True,
+                        placeholder="Paste a case UUID from your completed terminal run",
+                        width="100%",
+                        disabled=PlanningState.is_loading,
+                    ),
+                    rx.button("Load stored case", type="submit", loading=PlanningState.is_loading),
+                    align="stretch",
+                    spacing="3",
+                    width="100%",
+                ),
+                on_submit=PlanningState.load_case,
+                reset_on_submit=False,
+                width="100%",
+            ),
+            rx.box(
+                rx.cond(
+                    PlanningState.is_loading,
+                    rx.hstack(rx.spinner(), rx.text("Loading stored case…")),
+                    rx.cond(
+                        PlanningState.error_message != "",
+                        rx.callout(PlanningState.error_message, color_scheme="red", role="alert"),
+                        rx.cond(
+                            PlanningState.has_case,
+                            _recorded_case(),
+                            rx.text("Load a saved case to see its recorded results.", color=MUTED),
+                        ),
+                    ),
+                ),
+                aria_live="polite",
+                width="100%",
+            ),
+            max_width="72rem",
+            margin="0 auto",
+            padding=["1.25rem", "2rem", "2.5rem"],
+            spacing="5",
+            align="stretch",
+            width="100%",
+        ),
+        background=PAPER,
+        color=INK,
+        min_height="100vh",
+        width="100%",
+        font_family='"Segoe UI Variable", Aptos, "Segoe UI", sans-serif',
+    )
+
+
 app = rx.App()
 app.add_page(index, route="/", on_load=RfqState.refresh_rfqs, title="Open RFQs")
+app.add_page(planning_page, route="/planning", title="Stored procurement plans")

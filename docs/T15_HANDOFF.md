@@ -1,5 +1,16 @@
 # T15 — controlled planning API, stress scenarios and immutable cases
 
+## Post-merge status — 2026-10-07
+
+T15 PR #17 is merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`.
+Post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
+passed for that exact SHA. The explicitly requested Hungarian Drive update was
+completed on 2026-10-07. Controlled T15 is closed; observed-model promotion and
+full V2 remain open. The dated local/pre-publication records below are preserved.
+The first T16 stored-results UI is a separate uncommitted increment; see
+[its handoff](T16_HANDOFF.md), without attributing T15 CI to those changes.
+
 ## Current controlled hybrid completion — 2026-10-07
 
 **LOCAL CONTROLLED T15 ACCEPTANCE PASS; USER REVIEW/PUBLICATION AND NEW-SHA CI PENDING.**
