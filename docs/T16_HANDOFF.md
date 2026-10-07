@@ -1,4 +1,112 @@
-# T16 first increment: view an existing stored planning case
+# T16: controlled procurement workspace
+
+## Current status — 2026-10-07, creation / outage / UX increment
+
+The first stored-view slice is committed as `b9987df`; the following addition is
+local, unstaged and uncommitted on `feature/T16-reflex-frontend-implementation`.
+No commit, push, merge or Drive synchronization was performed for this increment.
+The records below remain dated historical evidence; their earlier scope/status
+statements do not describe this new capability. T15 main/CI evidence still applies
+to its exact merged SHA, not these new changes.
+
+The buyer can now load the prepared synthetic inputs, inspect price/capacity/policy,
+enter demand, create/save a plan through the existing POST API, run one explicit
+supplier outage, return to the base and reopen either UUID through stored-only GET.
+Every outage runs against the original base, never cumulatively against a child.
+Editable demand receives its own controlled authority/source reference; commercial
+terms/history/policy retain the prepared fixture attribution. This is a simulation,
+not operational demand approval. Odoo acquisition is outside this creation form.
+
+The workspace puts quantity allocations and cost trade-offs first. Supplier bars
+show allocated quantities; scores use a labelled 0–100 exposure scale. The exact
+rational values and original solver notes remain expandable. Plain-language notes
+preserve the meaning of unselected suppliers and binding capacity/concentration
+limits, without asserting causal explanations. Saved class labels, delivery
+adherence, completed-receipt support and history windows explain the ML input.
+Tree paths are model branch conditions, not receipt records. Audit details keep
+identity, timestamps, model/source references and field provenance accessible.
+Responsive tabs/forms use existing Reflex/native HTML components, without a chart
+package, new dependency, custom JavaScript or additional infrastructure.
+
+### Model meaning and API boundary
+
+`DecisionTreeClassifier` predicts `schedule_regular` / `schedule_watch` using prior
+Expected Arrival adherence and eligible completed-line count. The score is the
+class-1 training fraction in the reached leaf, rounded according to the existing
+T14 mapping. Plan exposure is the existing quantity-weighted score aggregate.
+Synthetic training makes it a controlled exposure proxy; it is not a calibrated
+failure probability, expected late quantity or validated real-world predictor.
+UI presentation does not alter model, class, score, risk coefficients or MILP.
+
+Reflex calls only existing authenticated routes: base POST, scenario POST and saved
+GET. It reads the fixed owner-prepared demo JSON locally for the synthetic form;
+the browser cannot choose executable artifacts or files. FastAPI alone loads the
+owner-configured compatible saved model and performs inference/optimization.
+Training stays offline. Shared bearer authentication remains server-side PoC access,
+not buyer identity. No backend/core/API contract or migration changed here.
+
+Each new action gets one canonical UUID idempotency key. Unknown POST outcomes
+retain the exact URL/body/key, block changed intent and offer an explicit retry.
+A failed recovery attempt (including authentication rejection) does not discard
+previous uncertainty. There are no automatic retries or redirects. The readable,
+copyable recovery JSON contains no token. Recovery intent lives in the Reflex
+session: copy it before leaving/restarting. Durable multi-user request recovery is
+a separate capability, not hidden infrastructure in this local slice.
+
+### Verification and limits
+
+| Check | Actual evidence |
+| --- | --- |
+| Focused frontend/API checks | 32 passed; actual saved model/CBC, ASGI create/GET/outage and state transitions. A response lost after commit, then rejected authentication during recovery, retains the same payload/key and recovers one row. Invalid demand, malformed snapshots, secrets, no redirects/retries and stored-only retrieval remain covered. |
+| Required Python 3.11 checks | 465 passed, 45 service/browser tests deselected, one upstream Starlette/httpx deprecation warning. Ruff format/lint, compileall, pip check and diff whitespace pass. Final run details are in the implementation log. |
+| Real browser / API / PostgreSQL | Isolated Reflex on 3108/8208 called real FastAPI on 8108 using the existing planning database/tunnel. Base `8b64062b-b695-4ed9-b49c-52f43064c835`: EUR 102/109. Supplier S226 outage `ed2e23c1-c4e2-4c7a-90e0-0b3a6a1c6463`: EUR 106 and +4 EUR. Reopening the original base returns EUR 102/109; independent GET verifies lineage, stored snapshots and reused assessments. |
+| Edited demand / infeasibility | Demand 25 saves `1e9c3368-d5db-4307-b7b9-1d2910199e31` as infeasible. Independent GET verifies quantity 25, `controlled-demand-25-t16-v1` and `t16-ui-demand-v1`. This is a stored business result, not a service failure. |
+| Browser UX and failures | Disabled in-flight controls, readable constraint notes, base navigation, stored-service unavailable/clear/recovery, and native exact-request copy verified. At 390px the plan grid has one column and no horizontal page overflow; the viewport override was reset. Final console is checked after development reload. |
+| Production frontend export | `reflex export --frontend-only --no-zip` passed all four build stages in the isolated cache; compilation only, not production browser acceptance. |
+| New hosted CI / live Odoo / resetting integration suite | Not run for this increment. The current manual planning database was preserved; no resetting tests ran against it. No new Odoo read/write or observed-model promotion was performed. |
+
+Validation uses Python 3.11.16 / Reflex 0.9.12. The browser frontend and export
+reuse the user's Python 3.14.7 / Reflex 0.9.11.post1 environment; FastAPI and the
+model run under Python 3.11. No compatibility baseline was changed. Agent-owned
+preview ports 3108/8208/8108 were stopped and the temporary tab closed. The user's
+3000/8001/8000 services, existing database and 55433 tunnel remain running.
+
+Ignored evidence is under `.artifacts/t16-next-browser/`: `cases.json`,
+`desktop-comparison.jpg`, and a separately prepared Python 3.11 `demo/model/`.
+The existing default demo model was incompatible with that runtime; the verification
+model was prepared offline in the isolated folder, with identical original request
+inputs. The original artifacts were preserved. First creation returned 503 and
+retained intent; after pointing only the agent's preview API at the compatible
+model, explicit retry succeeded. The runbook now explains this setup distinction.
+An unconfirmed in-app browser download was replaced with verified native clipboard
+copy plus a read-only JSON field. Final browser inspection found no visible connection warning and no console
+warning/error; requests succeeded after reload. This does not establish production
+E2E coverage. The generated preview cache and all newly saved cases are synthetic.
+
+### User review and next capability
+
+Follow the [current workspace walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test).
+Creation requires the matching offline model configured on FastAPI; stored GET
+and scenario reruns do not. No new Odoo API key is needed for this slice. Review
+quantity 10, Supplier S226 outage, base reopening, saved UUIDs and quantity 25.
+Commit/publication/merge remain under the user's control; verify hosted checks for
+the published SHA before claiming them.
+
+T16 remains partial. The next buyer capability is read-only Odoo quotation selection
+with explicit supplemental terms through existing `/from-odoo`, preserving the
+synthetic ML provenance. Then extend other existing scenario controls and visual
+comparisons. Approval/PDF belongs to T17. Observed receipt/model promotion and full
+V2/system acceptance remain separate open gates.
+
+Thesis note: problem = a technical snapshot dump with terminal-only creation;
+decision = progressive buyer explanations and reuse existing POST/GET contracts;
+behavior = controlled create -> saved ML -> MILP -> immutable outage/retrieval;
+evidence = API/state/CBC/browser/PostgreSQL checks; limitation = synthetic model,
+one scenario control and session-scoped recovery; relevance = architecture,
+implementation, usability and testing chapters.
+
+## First stored-view increment — historical record
+
 
 ## Status — 2026-10-07
 

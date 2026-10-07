@@ -30,5 +30,10 @@ class FrontendSettings(BaseSettings):
     def planning_cases_url(self) -> str:
         return f"{self.backend_base_url.rstrip('/')}/api/v2/procurement/planning-cases"
 
+    @property
+    def controlled_demo_file(self) -> Path:
+        """Reuse the existing offline demo; browsers cannot choose files or models."""
+        return PROJECT_ROOT / ".artifacts/t15-demo/create-request.json"
+
 
 settings = FrontendSettings()

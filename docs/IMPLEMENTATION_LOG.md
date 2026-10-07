@@ -1747,3 +1747,70 @@ The prior hybrid report's UUID returned 404 in the current demo database. Histor
 hybrid acceptance is retained without claiming that case is currently available.
 This closes the local stored-display setup gap, not the remaining T16 creation,
 scenario controls/charts, observed-model promotion or full V2 acceptance.
+
+
+## 2026-10-07 — T16 controlled creation, supplier outage and buyer explanations
+
+Problem: the first stored-view page exposed rational values and solver codes before
+buyer quantities/trade-offs, while creation/scenarios required the terminal.
+Decision: reuse the fixed offline T15 demo, existing authenticated POST/GET routes,
+Reflex tabs/forms and CSS bars. No new backend contract, solver/model algorithm,
+service, dependency, Odoo operation or broad restructuring was required.
+
+Implemented: controlled synthetic demand creation, independent supplier-outage
+children, base navigation, stored retrieval, quantity bars, exact cost/premium
+presentation, schedule classes and receipt-history summaries. Expandable audit
+sections preserve exact fractions, tree conditions, raw solver explanations,
+identity and provenance. Tree conditions are not historical receipt rows; model
+scores remain synthetic uncalibrated schedule-watch exposure. UI-edited demand has
+an explicit controlled authority and source reference, retaining original commercial
+terms/policy/history attribution. Human operational approval remains outside T16.
+
+Trust/recovery: no token or artifact selector in browser state/forms; no training
+in HTTP. Each action retains an exact payload/UUID key. Interrupted responses block
+changed intent and require explicit recovery. An authentication failure during
+recovery cannot discard earlier uncertainty. Copyable read-only JSON provides
+manual recovery before the Reflex session ends; no durable request queue was added.
+
+Evidence: focused suite 32 passed. Required Python 3.11 fast suite 465 passed /
+45 deselected, one upstream Starlette/httpx warning; format/lint, compileall, pip
+check and whitespace passed. Initial focused invocation lacked its basetemp parent
+(WinError 3); creating a fresh ignored run parent fixed setup. A format-only mixed
+line-ending check was corrected with Ruff. Later provenance/recovery logic changes
+received focused checks and the required suite again; historical runs are retained.
+
+Real isolated browser/API/PostgreSQL acceptance: base EUR 102/109
+`8b64062b-b695-4ed9-b49c-52f43064c835`; S226-outage EUR 106 / +4 EUR
+`ed2e23c1-c4e2-4c7a-90e0-0b3a6a1c6463`; edited demand 25 infeasible
+`1e9c3368-d5db-4307-b7b9-1d2910199e31`. Independent stored GET verifies parent,
+reused assessments and edited-demand references. Browser verifies constraint notes,
+base navigation, service-down clear/recovery, disabled actions and exact-request
+copy. 390px layout has one plan column and no page overflow; viewport restored.
+Evidence files: `.artifacts/t16-next-browser/cases.json` and
+`desktop-comparison.jpg`. Current manual cases/database were retained; no resetting
+integration test or Odoo action was run against user data.
+
+Runtime finding: default saved model failed the Python 3.11 manifest gate. A fresh
+owner-generated model was prepared offline in the isolated verification folder;
+its initial request equals the existing fixture. Original artifacts remained
+unchanged. The preview API's process-only model setting was corrected; explicit
+same-request retry recovered from 503. An unconfirmed in-app browser download was
+replaced with native copy/read-only recovery JSON. Final browser inspection confirms the framework connection notice is hidden,
+console warnings/errors are absent and requests succeed after reload. These are
+local findings, not new hosted or production/browser automation acceptance.
+
+Limit/next: controlled creation and one outage UI are complete locally; Odoo
+quotation selection, other scenario controls and broader comparisons remain T16
+work. Observed model promotion, approval/PDF and full V2 remain separate. No new
+hosted CI was verified. First slice is committed as `b9987df`; this addition stays
+unstaged/uncommitted/unpushed under user review. No Drive edits. Thesis relevance:
+architecture, implementation, usability, provenance and testing chapters.
+
+Final handoff checks: required suite 465 passed / 45 deselected / one warning in
+45.85s after the final recovery fix; Ruff format/lint, compileall, pip check and
+whitespace passed. Production frontend export passed all four build stages in the
+isolated cache. Python 3.11.16 / Reflex 0.9.12 validates the baseline; live frontend
+and export use existing Python 3.14.7 / Reflex 0.9.11.post1, with real FastAPI/model
+on Python 3.11. Agent preview ports 3108/8208/8108 and browser tab were stopped;
+user ports 3000/8001/8000 and database/tunnel 55433 remain available. No tracked
+lockfile, default demo artifact, dependency or user environment value changed.

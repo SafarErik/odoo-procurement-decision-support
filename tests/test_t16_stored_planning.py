@@ -1,6 +1,7 @@
 """Stored API-to-cockpit contracts, including source honesty and failure recovery."""
 
 import asyncio
+import json
 from copy import deepcopy
 from uuid import uuid4
 
@@ -14,7 +15,7 @@ from backend.app.main import app
 from frontend.app import PlanningState, planning_page
 from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
-from frontend.planning_client import fetch_planning_case
+from frontend.planning_client import fetch_planning_case, submit_planning_request
 from tests.t15_helpers import MemoryPlanningUnitOfWork, controlled_assets
 from tests.test_t15_planning_api import forbidden
 
@@ -148,7 +149,7 @@ def test_invalid_identity_or_missing_secret_never_sends_request(case_id, token):
     assert display is None and error
 
 
-@pytest.mark.parametrize("fault", ["identity", "version", "decimal", "source", "shape"])
+@pytest.mark.parametrize("fault", ["identity", "version", "decimal", "source", "shape", "quantity"])
 def test_malformed_snapshots_fail_closed(stored_cases, fault):
     payload = deepcopy(stored_cases[1])
     if fault == "identity":
@@ -161,6 +162,8 @@ def test_malformed_snapshots_fail_closed(stored_cases, fault):
         payload["snapshot"]["assessments"][0]["snapshot"]["source_type"] = "odoo_observed"
     if fault == "shape":
         del payload["snapshot"]["request"]["requirement"]["currency"]
+    if fault == "quantity":
+        payload["snapshot"]["request"]["requirement"]["approved_quantity"] = 0
     display, error = asyncio.run(
         fetch_planning_case(
             "http://api.test/cases",
@@ -235,3 +238,125 @@ def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, m
     assert FrontendSettings(_env_file=None).planning_cases_url.endswith(
         "/api/v2/procurement/planning-cases"
     )
+
+
+def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_path, monkeypatch):
+    directory = tmp_path / "model"
+    payload = controlled_assets(directory)
+    fixture = tmp_path / "create-request.json"
+    fixture.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(FrontendSettings, "controlled_demo_file", property(lambda _: fixture))
+    monkeypatch.setattr(backend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(backend_settings, "t15_trusted_model_directory", directory)
+    uow = MemoryPlanningUnitOfWork()
+    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
+    calls = []
+    asgi = httpx.ASGITransport(app=app)
+
+    async def lose_first_response(request):
+        calls.append((request.url.path, request.headers["Idempotency-Key"], request.content))
+        if len(calls) == 2:
+            return httpx.Response(401, text=TOKEN)
+        response = await asgi.handle_async_request(request)
+        if len(calls) == 1:
+            assert response.status_code == 201 and len(uow.rows) == 1
+            raise httpx.ReadTimeout("Response lost after commit", request=request)
+        return response
+
+    async def post(url, body, key, token):
+        return await submit_planning_request(
+            url, body, key, token, transport=httpx.MockTransport(lose_first_response)
+        )
+
+    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    state = PlanningState(_reflex_internal_init=True)
+    PlanningState.prepare_demo.fn(state)
+    assert state.demo_ready and state.demo_offers
+
+    async def event(handler, *args):
+        async for _ in handler.fn(state, *args):
+            assert state.is_loading
+
+    asyncio.run(event(PlanningState.create_demo, {"quantity": "10", "token": "ignored"}))
+    assert state.has_pending and not state.has_case and len(calls) == 1
+    recovery = json.loads(state.recovery_json)
+    expected = deepcopy(payload)
+    expected["approval_reference"] = "controlled-demand-10-t16-v1"
+    expected["requirement_source"] = {
+        "source_type": "controlled_business_terms",
+        "source_reference": "t16-ui-demand-v1",
+        "observed_at": payload["as_of"],
+    }
+    assert recovery["payload"] == expected and recovery["key"] == state.request_key
+    assert json.loads(fixture.read_text(encoding="utf-8")) == payload
+    assert TOKEN not in str(state.dict()) and TOKEN not in state.recovery_json
+    asyncio.run(event(PlanningState.create_demo, {"quantity": "11"}))
+    assert len(calls) == 1  # Changed intent cannot replace an uncertain request.
+    asyncio.run(event(PlanningState.recover_request))
+    assert state.has_pending and len(uow.rows) == 1
+    assert state._pending["key"] == recovery["key"]
+    asyncio.run(event(PlanningState.create_demo, {"quantity": "11"}))
+    assert len(calls) == 2
+    asyncio.run(event(PlanningState.recover_request))
+    assert calls[0] == calls[1] == calls[2] and len(uow.rows) == 1
+    assert state.has_case and not state.has_pending
+    assert [p["cost"] for p in state.plans] == ["102 EUR", "109 EUR"]
+    assert state.plans[0]["exposure_display"] == "98.6 / 100"
+    assert state.plans[1]["premium_display"] == "+7 EUR (+6.9%) above minimum"
+    base_id = state.details["case_id"]
+    snapshot = uow.rows[base_id].snapshot
+    for name in ("infer_planning_features", "resolve_odoo_planning_input"):
+        monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
+    asyncio.run(
+        event(PlanningState.run_outage, {"supplier": payload["suppliers"][0]["supplier_id"]})
+    )
+    assert state.details["parent_id"] == base_id and state.details["base_id"] == base_id
+    assert state.plans[0]["cost"] == "106 EUR" and len(uow.rows) == 2
+    assert uow.rows[base_id].snapshot == snapshot
+    assert calls[3][1] != calls[0][1]
+    monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
+    display, error = asyncio.run(
+        fetch_planning_case(
+            frontend_settings.planning_cases_url, state.details["case_id"], TOKEN, transport=asgi
+        )
+    )
+    assert not error and display.details == state.details
+    assert display.assessments[0]["class_label"] in ("Schedule regular", "Schedule watch")
+    assert "completed receipts" in display.assessments[0]["history_summary"]
+
+
+@pytest.mark.parametrize(
+    "status,uncertain", [(401, False), (409, False), (422, False), (503, True), (302, True)]
+)
+def test_post_errors_keep_secrets_private_and_never_retry(status, uncertain):
+    calls = []
+
+    def respond(request):
+        calls.append(request)
+        return httpx.Response(status, text=TOKEN, headers={"Location": "http://elsewhere.test"})
+
+    display, error, pending = asyncio.run(
+        submit_planning_request(
+            "http://api.test/cases",
+            {"synthetic": True},
+            str(uuid4()),
+            TOKEN,
+            transport=httpx.MockTransport(respond),
+        )
+    )
+    assert display is None and error and TOKEN not in error and pending is uncertain
+    assert len(calls) == 1 and calls[0].method == "POST"
+
+
+@pytest.mark.parametrize("quantity", ["0", "1001", "1.5", "-1", "١٠", 10, "x" * 100])
+def test_invalid_demo_quantity_never_posts(quantity):
+    state = PlanningState(_reflex_internal_init=True)
+    state.demo_ready = True
+
+    async def submit():
+        async for _ in PlanningState.create_demo.fn(state, {"quantity": quantity}):
+            pass
+
+    asyncio.run(submit())
+    assert state.error_message and not state.has_pending and not state._pending

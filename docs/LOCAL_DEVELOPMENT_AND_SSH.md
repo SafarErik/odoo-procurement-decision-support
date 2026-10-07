@@ -280,6 +280,97 @@ restore normal temporary-directory settings. Use a working installed Node.js
 on its process PATH; CI remains on Node.js 22.22. Production export verifies
 compilation only; [the T16 handoff](T16_HANDOFF.md) records actual browser scope.
 
+## Controlled planning workspace: create and test
+
+The 2026-10-07 next T16 slice adds creation and one supplier outage to `/planning`.
+The earlier stored-only walkthrough remains valid for retrieval. This form reads
+only the fixed owner-prepared `.artifacts/t15-demo/create-request.json` on the
+Reflex server; it never accepts an artifact path or trains a model. Odoo is not
+needed for synthetic creation, scenarios or stored GET.
+
+1. Keep the existing planning database/tunnel running. Stop FastAPI before
+   preparing the default demo, since preparation overwrites its local model/request
+   files. From the repository root, prepare with the Python 3.11 baseline:
+
+   ```powershell
+   .\.venv\t13-check\Scripts\python.exe -m tools.t15_demo prepare
+   ```
+
+   This generates synthetic history and a compatible saved Decision Tree **offline**.
+   It changes ignored demo artifacts only; it creates no database case. Keep the
+   simulation cutoff/required date. A model prepared under another Python/numerical
+   runtime can be rejected even though previously stored cases still load.
+
+2. In the FastAPI terminal, opt in to that owner-generated model and start the API:
+
+   ```powershell
+   $env:T15_TRUSTED_MODEL_DIRECTORY = (Resolve-Path .artifacts/t15-demo/model).Path
+   .\.venv\t13-check\Scripts\python.exe -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+   The existing ignored `.env` supplies `DECISION_DATABASE_URL` and the shared
+   `T12_TRUSTED_CALLER_TOKEN`. Preserve the database containing cases you want to
+   keep; do not run resetting integration tests against it. This model setting is
+   process-only. Stored GET and scenarios reuse saved assessments and need no model.
+
+3. Restart Reflex in its existing frontend environment; keep one version against
+   its generated cache. In the user's existing root frontend environment:
+
+   ```powershell
+   $env:BACKEND_BASE_URL = "http://127.0.0.1:8000"
+   Push-Location frontend
+   ../.venv/Scripts/reflex.exe run --backend-host 127.0.0.1
+   Pop-Location
+   ```
+
+   Python 3.11 remains the backend/ML/CI compatibility baseline; this command reuses
+   the user's already verified frontend-only environment. Open
+   <http://localhost:3000/planning>. Both servers read the same service token from
+   the ignored root `.env`; clear stale process overrides before restarting.
+
+4. Choose **Create a demo plan**, then **Load demo inputs**. Read the supplier
+   prices/capacities and policy. Keep demand **10**, then **Create and save plan**.
+   Expect EUR 102 minimum and EUR 109 alternative (+7 EUR / approximately 6.9%).
+   The allocation bars show quantities, not probabilities. Schedule classes and
+   exposure use synthetic saved-model evidence; exact fractions remain expandable.
+   Copy the returned case ID. Creation saves a new immutable case in the database.
+
+5. Under **Test a supplier outage**, choose **Demo supplier S226**, then
+   **Run outage scenario**. Expect EUR 106 minimum, +4 EUR against the base, a new
+   UUID and parent lineage. **View base case** reopens the EUR 102/109 result.
+   Every outage is applied to the original base, not cumulatively to a child.
+   Repeat stored loading with both IDs; it performs GET only. Demand **25** in a
+   separately created demo has no feasible plan under this fixture's constraints;
+   a recorded infeasible result is distinct from API/service failure.
+
+6. If a POST response is interrupted or the API returns an uncertain error,
+   **Retry the same request** resends the retained exact payload/idempotency key.
+   No automatic retry occurs and changed inputs cannot replace pending intent.
+   Keep the tab/server session alive. Expand **Request recovery record** and use
+   **Copy exact request**, or select its read-only JSON manually, before leaving.
+   Save the JSON locally if needed. It contains URL/payload/key, never the service
+   token. Session recovery is a local PoC limit; there is no durable request queue.
+   For a copied recovery file, confirm its URL is your loopback planning endpoint
+   and restore that API at the same port. Then perform an explicit exact replay:
+
+   ```powershell
+   $taskRecovery = Get-Content -LiteralPath ./planning-request-recovery.json -Raw | ConvertFrom-Json
+   $taskToken = (& .\.venv\t13-check\Scripts\python.exe -c "from backend.app.config import settings; print(settings.t12_trusted_caller_token.get_secret_value())").Trim()
+   $taskBody = $taskRecovery.payload | ConvertTo-Json -Depth 100 -Compress
+   Invoke-RestMethod -Uri $taskRecovery.url -Method Post -ContentType 'application/json' -Body $taskBody -Headers @{Authorization="Bearer $taskToken"; 'Idempotency-Key'=$taskRecovery.key}
+   Remove-Variable taskToken
+   ```
+
+   Capture the token into the variable; do not print it or store it in the recovery
+   file. HTTP 200 is exact replay of an existing case; HTTP 201 is first successful
+   creation. Both return the saved UUID. Do not change payload/key during recovery.
+
+Stop only the FastAPI/Reflex processes you started with Ctrl+C. Remove the
+process-only model setting with
+`Remove-Item Env:T15_TRUSTED_MODEL_DIRECTORY -ErrorAction SilentlyContinue`.
+Follow the persistence guide for database/tunnel cleanup when finished. Keep saved
+case IDs/evidence. No Odoo writes, approval or PDF are performed by this slice.
+
 ### Missing generated route configuration at Reflex startup
 
 `Route config file not found at "app/routes.ts"` can indicate an incomplete

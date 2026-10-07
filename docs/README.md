@@ -26,7 +26,7 @@ explicitly supersedes them. They are not a second live dashboard.
 | Integer allocation and cost/exposure alternatives | [T13 MILP](T13_V2_MILP_DESIGN.md) | [T13 handoff](T13_HANDOFF.md) |
 | Offline Decision Tree and saved supplier evaluation | [T14 ML](T14_ML_DESIGN.md) | [T14 handoff](T14_HANDOFF.md), [controlled metrics](T14_EVALUATION.json) |
 | Controlled assembly -> inference -> MILP -> scenarios -> immutable storage | [Reviewed T15 plan](T15_IMPLEMENTATION_PLAN.md) | [T15 handoff](T15_HANDOFF.md) |
-| View saved plans, allocations, explanations and provenance in Reflex | [Stored planning walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#stored-planning-view-two-terminals) | [First T16 handoff](T16_HANDOFF.md) |
+| Create a controlled plan, compare allocations, run an outage and reopen stored results | [Planning workspace walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test) | [T16 handoff](T16_HANDOFF.md) |
 
 T15 supports synthetic inputs and a controlled hybrid: live Odoo quotations with
 separately synthetic ML history. See [compatibility boundary](T15_ODOO_COMPATIBILITY_PLAN.md)

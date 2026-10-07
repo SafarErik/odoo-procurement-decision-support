@@ -23,7 +23,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I run real database tests safely? | [Persistence guide](docs/PERSISTENCE_DEVELOPMENT.md) |
 | How can I see a plan, a disruption and stored retrieval? | [T15 terminal demonstration](docs/T15_DEMO.md) |
 | How does the controlled planning API work? | [T15 handoff](docs/T15_HANDOFF.md) |
-| How can I view a saved plan in Reflex? | [Stored planning walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#stored-planning-view-two-terminals), [T16 handoff](docs/T16_HANDOFF.md) |
+| How can I create, compare and reopen a plan in Reflex? | [Planning workspace walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test), [T16 handoff](docs/T16_HANDOFF.md) |
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 
@@ -35,15 +35,17 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
-| Buyer-facing planning workflow | T16's first local slice displays saved base/scenario plans at `/planning`, including allocations, cost/exposure, explanations and provenance. Creation/scenario controls, charts, plan approval and snapshot PDF remain open. |
+| Buyer-facing planning workflow | T16 locally creates a controlled synthetic case, runs one supplier outage and reopens stored results at `/planning`. Allocation bars, cost premiums, schedule classes and progressive audit details support comparison. Odoo creation UI, other scenario controls and broader charts remain open; approval/PDF belongs to T17. |
 
 **Publication:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
 merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
-checks passed. T16 changes are local and uncommitted on
-`feature/T16-reflex-frontend-implementation`; those hosted results do not cover them.
+checks passed. The first T16 stored-view slice is committed locally as `b9987df`.
+The new creation/outage/UX changes are uncommitted on
+`feature/T16-reflex-frontend-implementation`; new hosted checks have not been verified
+for this increment. T15 main results do not cover T16.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
@@ -61,6 +63,12 @@ user confirmed the synthetic stored case displays through Reflex; independent li
 API GET against actual PostgreSQL returned 200. This is stored retrieval acceptance,
 not a fresh Odoo acquisition or complete V2 browser flow. The prior hybrid report
 exists locally, but its case is absent from the currently connected demo database.
+
+The next T16 slice now also passes a real Reflex -> FastAPI -> PostgreSQL
+controlled creation/outage flow: EUR 102/109 base plans and EUR 106 after the
+outage. The model was prepared offline in Python 3.11; no live Odoo acquisition
+was performed. See the dated [T16 handoff](docs/T16_HANDOFF.md) for scope,
+request-recovery checks and the compatible-model setup requirement.
 
 ## Architecture and code map
 
@@ -114,10 +122,10 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the first T16 slice using the linked stored-planning walkthrough, then
-   publish it under the user's control and verify CI for that exact SHA.
-2. Add the next T16 capability: controlled case creation and an explicit outage
-   rerun through existing API routes. Add charts once that interaction works.
+1. Review the controlled creation/outage workspace using the linked walkthrough,
+   then publish under the user's control and verify CI for that exact SHA.
+2. Add read-only Odoo quotation selection with explicit supplemental terms, reusing
+   `/from-odoo`; extend the existing scenario UI and comparisons in small increments.
    [The compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains live
    Odoo quotations plus synthetic ML history with independent provenance; matching
    observed receipts/model promotion stays separately open.
