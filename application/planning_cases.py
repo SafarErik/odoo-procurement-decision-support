@@ -94,6 +94,17 @@ def fingerprint(intent) -> str:
     return hashlib.sha256(snapshot_json(intent).encode()).hexdigest()
 
 
+def normalize_planning_facts(facts):
+    return replace(
+        facts,
+        policy=replace(facts.policy, epsilons=tuple(sorted(set(facts.policy.epsilons)))),
+        suppliers=tuple(
+            replace(s, receipts=tuple(sorted(s.receipts, key=lambda r: r.line_id)))
+            for s in sorted(facts.suppliers, key=lambda s: s.terms.supplier_id)
+        ),
+    )
+
+
 def validate_snapshot(case: PlanningCase) -> dict:
     """Decode stored contracts only; never infer, solve or read a model/upstream."""
     try:
@@ -300,10 +311,17 @@ def create_planning_case(
     delta: ScenarioDelta | None = None,
     infer: Callable,
     solver_factory: Callable,
+    base_intent: dict | None = None,
+    load_base: Callable | None = None,
 ) -> tuple[PlanningCase, bool]:
     """One locked transaction contains computation and immutable key/case insertion."""
     canonical_uuid(key)
-    if (facts is None) == (parent_id is None) or (parent_id is None) != (delta is None):
+    loaded_base = base_intent is not None and load_base is not None
+    if (
+        sum((facts is not None, parent_id is not None, loaded_base)) != 1
+        or (base_intent is None) != (load_base is None)
+        or (parent_id is None) != (delta is None)
+    ):
         raise PlanningCaseError("invalid_planning_input", "Supply a base input or one scenario.")
     if parent_id is not None:
         canonical_uuid(parent_id)
@@ -314,15 +332,10 @@ def create_planning_case(
                 delta, suppliers=tuple(sorted(delta.suppliers, key=lambda s: s.supplier_id))
             ),
         }
+    elif loaded_base:
+        intent = {"operation": "odoo_quotations_synthetic_history", "input": base_intent}
     else:
-        normalized = replace(
-            facts,
-            policy=replace(facts.policy, epsilons=tuple(sorted(set(facts.policy.epsilons)))),
-            suppliers=tuple(
-                replace(s, receipts=tuple(sorted(s.receipts, key=lambda r: r.line_id)))
-                for s in sorted(facts.suppliers, key=lambda s: s.terms.supplier_id)
-            ),
-        )
+        normalized = normalize_planning_facts(facts)
         intent = {"operation": "base", "facts": normalized}
     request_hash = fingerprint(intent)
     with uow:
@@ -338,7 +351,17 @@ def create_planning_case(
         try:
             base = None
             if parent_id is None:
+                extra_provenance = None
+                if loaded_base:
+                    normalized, extra_provenance = load_base()
                 request, features, provenance = assemble_planning_input(normalized)
+                if extra_provenance is not None:
+                    overrides = {e.canonical_path: e for e in extra_provenance.entries}
+                    if len(overrides) != len(extra_provenance.entries):
+                        raise ValueError("Duplicate prepared provenance paths.")
+                    entries = {e.canonical_path: e for e in provenance.entries}
+                    entries.update(overrides)
+                    provenance = type(provenance)(tuple(entries[k] for k in sorted(entries)))
                 assessments, manifest = infer(features)
                 as_of, company = normalized.as_of, normalized.company_id
                 snapshot = {
@@ -346,6 +369,11 @@ def create_planning_case(
                     "model_manifest": manifest,
                     "provenance": json_value(provenance),
                 }
+                if loaded_base:
+                    snapshot["facts"]["input_kind"] = "odoo_quotations_synthetic_history"
+                    snapshot["facts"]["comparison_case_id"] = (
+                        f"odoo:purchase.order.group:{base_intent['purchase_group_id']}"
+                    )
             else:
                 parent = uow.cases.get(parent_id)
                 if parent is None:

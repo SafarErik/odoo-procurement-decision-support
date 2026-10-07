@@ -1,5 +1,113 @@
 # Implementation log
 
+## Controlled Odoo quotations, synthetic model and immutable V2 completion (2026-10-07)
+
+**Problem and decision:** the history credential was renewed, but the three selected
+fixture suppliers have no visible confirmed company-1 orders in the bounded read;
+known T7 receipts belong to another supplier/product. User delegated the fastest
+sound path. Keep live Odoo quotation/context evidence and explicit business terms
+separate from genuinely generated synthetic ML history. This closes the controlled
+integration dependency without claiming an observed predictor or fabricating receipts.
+
+**Implemented behavior:** a small V2 assembler validates exact group/offer/supplier/
+line/context joins, common currency resolved through a bounded adapter read, and
+explicit Q/business terms. Added `/from-odoo` creation with the existing strict
+controlled schema. Independently read prices/context must match caller expectations;
+they are not caller-certified upstream facts. A normalized caller intent and shared
+locked transaction resolve exact retry before source acquisition, saved inference or
+unchanged CBC. Existing scenario/GET paths, JSONB schema/immutability and V1 remain.
+Snapshots retain field provenance, selection identity, acquisition cutoff and
+`odoo_quotations_synthetic_history` kind. No infrastructure or migration added.
+
+Offline generation accepts an explicit company/product/unit domain and still
+produces synthetic data. The existing training pipeline creates a genuine new
+artifact/model ID/checksum and saved dataset; source guards and mapping are unchanged.
+The owner assigns simulated A/B/C profiles explicitly. Preparation and the shared
+HTTP demo now support live quotations; printed currency comes from the snapshot.
+CI path filters include the new tool. AGENTS/README, index, handoff, selected plan
+and terminal instructions record the new controlled boundary, preserving history.
+
+**Verification:** renewed history identity HTTP 200, uid 8; focused projection
+security 1 passed / 19 deselected, 1.80 s. Hybrid/legacy API/demo checks 40 passed /
+one warning, 16.77 s. Initial full fast suite 433 passed / 45 deselected, 42.23 s.
+Review caught a missing stored comparison identity for its provenance path; added
+that value and assertion. Final Python 3.11 fast suite **433 passed / 45 deselected /
+one upstream warning, 39.46 s**. Actual PostgreSQL T15+V1 **22 passed / one warning,
+25.90 s**, including hybrid round-trip and upstream-free replay. The isolated
+verification helper initially lacked the checkout on `sys.path`, preventing only
+its subsequent live demo; corrected the helper and ran migrations/live acceptance
+without repeating the passed database suite.
+
+Ruff format/lint, compileall, dependency consistency and whitespace checks passed.
+Documentation verification resolved 72 local links/anchors and parsed all 12
+PowerShell blocks in the demo guide.
+
+Actual read-only Odoo group 2 + saved synthetic inference + CBC + PostgreSQL/API:
+USD 1,850 minimum (A/B/C 50/0/150), USD 2,200 lower-exposure alternative (100/100/0),
+C outage USD 2,200 (100/100/0). This uses explicit controlled Q=200, capacities
+120/100/160, hard MOQ 50/100/150, 80% concentration and 20% epsilon, distinct from
+quotation Q=100. Live acceptance used TestClient with real external services, not a
+new Uvicorn/browser session. A fresh client context with Odoo/model access disabled
+returned identical base/child GET and exact base/child replay (200); fresh base 503.
+Fast checks also trap HTTP training/solver calls after invalid inputs and verify
+context/price/tax/supplier mismatch, no source renaming, conflicts and sanitization.
+
+The existing stopped test container was started without recreating it; a separate
+temporary database protected user test cases. Windows forwarding still required a
+hidden localhost tunnel. The temporary database, owned tunnel and ignored runtime
+credential file were removed and the test container restored to stopped. Odoo is
+unchanged and remains running. Ignored local run/restart evidence is under
+`.artifacts/t15-odoo-demo/` and `.artifacts/t15-odoo-verify-00ee8a59ce1f4dd4b926f936e8e4bf43/`.
+
+**Limits, thesis relevance and next step:** no commit/push/merge or Drive edit.
+Published `ab8d7b2` CI is historical and does not cover these working-tree changes;
+new-SHA CI awaits publication. The user's previous PostgreSQL retry is still
+user-unconfirmed. Controlled T15 is locally complete and ready for review/closure;
+observed receipt/model promotion and full V2 are not. Next: review/publish, verify
+CI, user merge decision, then T16 controlled planning cockpit. Chapters 4/6/7 can
+use source separation, real composition, disruption comparison and immutable
+upstream-independent retrieval; synthetic exposure is not predictive superiority.
+
+## V2 Odoo/model controlled-fixture readiness (2026-10-07)
+
+**Goal:** connect the selected controlled Odoo comparison case to V2 assembly and
+establish a legitimate saved-model compatibility boundary before planning/storage.
+User selected reuse of the development fixture. The accepted baseline is unchanged.
+
+**Evidence:** clean entry HEAD `ab8d7b21b18ac4b7323e0ed32f637ae351658786`, PR #17
+open/unmerged; exact-head quality, container-api-integration and GitGuardian success
+verified by authenticated GitHub metadata. Odoo localhost responds. Existing RFQ
+key authenticates uid 7 and the comparison reader maps group 2 / orders 16–18 /
+suppliers 51–53 / product 54 / company 1 / UoM 1 / currency 1. Four focused existing
+RFQ/identity/T6 integration tests passed, 16 deselected, 1.68 s; fresh pytest
+temporary/cache folders avoided the prior Windows ownership issue.
+
+The separately configured history key returned HTTP 401; it may be expired or
+invalid, but its precise cause is not proven. Known T7 fixture orders 19–22 / lines
+31–34 belong to supplier 55 and product 57, not the comparison context. These
+bounded reads do not establish absence of other matching history. Existing model
+envelope/inference requires synthetic source and its trained domain; a controlled
+Odoo business fixture alone does not make that artifact compatible.
+
+**Decision and deliverable:** added the small
+[Odoo compatibility readiness plan](T15_ODOO_COMPATIBILITY_PLAN.md): reuse existing
+readers/KPI/core/storage, require explicit V2 business terms and exact contextual
+history, check source/domain/schema/cutoff/range before solve/store, and require a
+versioned compatible dataset/model contract for a positive flow. No always-failing
+new endpoint or source-type bypass. Current README and handoff link the plan and
+record publication/readiness separately from historical evidence.
+
+**Limits and next step:** renew only the dedicated history API key through the
+documented human UI procedure and ignored `.env`, confirm, then verify read-only.
+Identify or manually provision matching controlled evidence and define the saved
+model contract before positive inference implementation. No production code, Odoo
+mutation, dependency/infrastructure change, database reset, commit/push/merge or
+Drive update. Full fast/PostgreSQL acceptance was not rerun for this documentation
+preflight; the user's prior PostgreSQL retry remains unverified. T15's implemented
+synthetic slice and complete Odoo/model acceptance remain separate closure claims.
+Thesis relevance: source semantics, contextual joins, model applicability and
+negative integration gates support chapters 4/6/7.
+
 ## T15 published CI, user temporary-directory failure and Hungarian synchronization (2026-10-06)
 
 **Publication:** the user committed/published `feature/T15-implementation` at

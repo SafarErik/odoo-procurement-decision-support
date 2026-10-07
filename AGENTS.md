@@ -34,7 +34,17 @@
 
 ## Current V2 scope and historical increments
 
-T15 composes the controlled synthetic V2 input, trusted saved T14 inference and
+The 2026-10-07 user-authorized T15 extension supports controlled live Odoo quotations
+with separately synthetic ML evidence through `/api/v2/procurement/planning-cases/from-odoo`.
+The server independently reads the selected group/currency and checks caller
+expectations; field provenance keeps Odoo prices/identities separate from explicit
+business terms and generated history. New creation acquires sources only after
+idempotency lookup/locking; GET/exact replay and scenarios use stored inputs.
+Training remains offline and observed Odoo history/model promotion remains open.
+See `docs/T15_ODOO_COMPATIBILITY_PLAN.md` and the controlled Odoo section of
+`docs/T15_DEMO.md`. No Odoo writes, frontend or approval/PDF are authorized here.
+
+The original T15 slice composes controlled synthetic V2 input, trusted saved T14 inference and
 unchanged T13 MILP with bounded FastAPI routes, five explicit stress scenarios,
 immutable PostgreSQL snapshots and stored-only GET/exact replay. See
 `docs/T15_HANDOFF.md`. Keep observed Odoo/model promotion separate; there is no

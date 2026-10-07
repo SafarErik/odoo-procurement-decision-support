@@ -11,13 +11,16 @@ from application.planning_cases import (
     PlanningCaseError,
     create_planning_case,
     get_planning_case,
+    normalize_planning_facts,
 )
 from backend.app.dependencies import (
     get_planning_unit_of_work,
     infer_planning_features,
     planning_solver_factory,
+    resolve_odoo_planning_input,
 )
 from backend.app.planning_case_schemas import (
+    OdooPlanningCreateRequest,
     PlanningCaseResponse,
     PlanningCreateRequest,
     ScenarioRequest,
@@ -92,6 +95,28 @@ def post_planning_case(
             get_planning_unit_of_work(),
             idempotency_key,
             facts=request.to_facts(),
+            infer=infer_planning_features,
+            solver_factory=planning_solver_factory,
+        )
+        response.status_code = 200 if replay else 201
+        return _response(case, replay)
+    except (PlanningCaseError, RepositoryError, ValueError) as error:
+        _error(error)
+
+
+@router.post("/from-odoo", response_model=PlanningCaseResponse, status_code=201)
+def post_odoo_planning_case(
+    request: OdooPlanningCreateRequest,
+    response: Response,
+    idempotency_key: Annotated[str, Header()],
+):
+    try:
+        facts = normalize_planning_facts(request.controlled_input.to_facts())
+        case, replay = create_planning_case(
+            get_planning_unit_of_work(),
+            idempotency_key,
+            base_intent={"purchase_group_id": request.purchase_group_id, "facts": facts},
+            load_base=lambda: resolve_odoo_planning_input(request.purchase_group_id, facts),
             infer=infer_planning_features,
             solver_factory=planning_solver_factory,
         )

@@ -174,3 +174,59 @@ def test_failed_commit_rolls_back_case_and_key_then_allows_fresh_attempt(configu
         assert connection.execute(text("SELECT count(*) FROM planning_cases")).scalar_one() == 0
     with TestClient(app) as client:
         assert client.post(BASE, json=payload, headers=headers(key)).status_code == 201
+
+
+def test_hybrid_quotation_case_roundtrip_and_upstream_free_replay(
+    configured, monkeypatch, tmp_path
+):
+    import asyncio
+
+    from tests.test_odoo_comparison_case_adapter import _payloads
+    from tests.test_t15_odoo_planning import quotation_reader
+    from tools.t15_odoo_demo import prepare_odoo_assets
+
+    engine, _, _ = configured
+    reader = quotation_reader(_payloads(), [])
+    case = asyncio.run(reader.read_comparison_case(501))
+    code, observed = asyncio.run(reader.read_currency_code(case.offers[0].currency_id))
+    payload, scenario = prepare_odoo_assets(tmp_path, case, code, observed)
+    monkeypatch.setattr(settings, "t15_trusted_model_directory", tmp_path / "model")
+    monkeypatch.setattr("backend.app.dependencies.get_comparison_case_reader", lambda: reader)
+    key = str(uuid4())
+    with TestClient(app) as client:
+        response = client.post(f"{BASE}/from-odoo", json=payload, headers=headers(key))
+        assert response.status_code == 201, response.text
+        base = response.json()
+        response = client.post(
+            f"{BASE}/{base['case_id']}/scenarios", json=scenario, headers=headers()
+        )
+        assert response.status_code == 201, response.text
+        child = response.json()
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT count(*) FROM planning_cases")).scalar_one() == 2
+            assert (
+                connection.execute(
+                    text(
+                        "SELECT snapshot->'facts'->>'input_kind' "
+                        "FROM planning_cases WHERE case_id=:id"
+                    ),
+                    {"id": base["case_id"]},
+                ).scalar_one()
+                == "odoo_quotations_synthetic_history"
+            )
+        monkeypatch.setattr(
+            "backend.app.routes.planning_cases.resolve_odoo_planning_input", forbidden
+        )
+        monkeypatch.setattr("backend.app.routes.planning_cases.infer_planning_features", forbidden)
+        monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
+        assert (
+            client.post(f"{BASE}/from-odoo", json=payload, headers=headers(key)).json()[
+                "snapshot_hash"
+            ]
+            == base["snapshot_hash"]
+        )
+        for stored in (base, child):
+            assert (
+                client.get(f"{BASE}/{stored['case_id']}", headers=headers()).json()["snapshot"]
+                == stored["snapshot"]
+            )

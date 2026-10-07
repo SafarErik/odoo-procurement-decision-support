@@ -1,6 +1,79 @@
 # T15 — controlled planning API, stress scenarios and immutable cases
 
-## Current publication, user verification and Drive synchronization — 2026-10-06
+## Current controlled hybrid completion — 2026-10-07
+
+**LOCAL CONTROLLED T15 ACCEPTANCE PASS; USER REVIEW/PUBLICATION AND NEW-SHA CI PENDING.**
+The user renewed the history key, selected the existing fixture and delegated
+the fastest sound implementation choice. The key now authenticates uid 8; the
+read-only projection security contract passed (1 test / 19 deselected, 1.80 s).
+The bounded read found no confirmed company-1 orders for suppliers 51/52/53.
+The chosen path therefore uses live Odoo quotations plus separately synthetic ML
+history; actual Odoo receipt/model promotion stays open.
+
+The new `/api/v2/procurement/planning-cases/from-odoo` POST reuses strict controlled
+DTOs, bearer/body-size guards, saved inference, unchanged MILP and immutable
+storage. It reads the selected group and currency through existing adapters after
+locked idempotency lookup, checks expected identities/prices, and stores separate
+Odoo/business/synthetic/clock provenance and comparison identity. The original
+synthetic POST and V1 behavior remain supported. GET/exact replay do not acquire
+sources; scenarios reuse the stored parent and assessments.
+
+Offline preparation genuinely trains/saves a synthetic artifact in the fixture's
+company/product/unit domain with a new model/training ID and recorded dataset.
+It does not patch manifests, change source checks or feed observed receipts into
+the synthetic model. Full [boundary/contract](T15_ODOO_COMPATIBILITY_PLAN.md) and
+[terminal variant](T15_DEMO.md#controlled-odoo-quotation-demo).
+
+Final Python 3.11 fast checks: **433 passed / 45 deselected / one upstream warning,
+39.46 s**. Actual isolated PostgreSQL T15+V1: **22 passed / one warning, 25.90 s**.
+Controlled live Odoo + saved model + CBC + PostgreSQL/API produced USD **1,850**
+minimum (50/0/150), USD **2,200** lower-exposure alternative (100/100/0), and USD
+**2,200** C-outage minimum (100/100/0). The API used TestClient against real Odoo
+and PostgreSQL, not a new separate Uvicorn/browser run. With Odoo/model disabled
+in a fresh TestClient context, base/child GET and exact base/child replay returned
+200 with equal snapshots; fresh creation returned 503.
+
+Verification started the existing stopped disposable database without replacing
+its credentials/data, then used a separate `t15_odoo_verify_*` database. The known
+Windows forwarding issue required a hidden localhost-only tunnel. The temporary
+database, tunnel and credential file were removed; the test container returned to
+its original stopped state. Odoo remains running and no Odoo business record changed.
+Reports are ignored under `.artifacts/t15-odoo-demo/` and
+`.artifacts/t15-odoo-verify-00ee8a59ce1f4dd4b926f936e8e4bf43/`.
+
+The prior published HEAD `ab8d7b21b18ac4b7323e0ed32f637ae351658786` has successful
+CI, but does not cover this uncommitted increment. The user's previous PostgreSQL
+retry remains user-unconfirmed and is not overwritten by agent service acceptance.
+Drive was not changed here. Controlled T15 is locally ready to close after review,
+publication and exact-SHA CI; the next product capability is the T16 planning
+cockpit. Observed history/model validity, approval/PDF and full V2 remain open.
+
+## Historical initial Odoo/model readiness, before key renewal — 2026-10-07
+
+The user committed/published the prior documentation as
+`ab8d7b21b18ac4b7323e0ed32f637ae351658786`. PR #17 remains open; exact-head
+`quality`, `container-api-integration` and GitGuardian checks succeeded, verified
+through authenticated GitHub metadata. Earlier SHA/run records below remain
+historical; they do not cover the new uncommitted compatibility-plan documentation.
+
+The user authorized investigation/implementation of the Odoo/model dependency
+and selected reuse of the controlled development fixture. Read-only preflight:
+existing RFQ identity and group 2 access succeed; four focused live RFQ/T6 tests
+passed, 16 deselected. The dedicated history key returns HTTP 401. Known history
+uses supplier 55/product 57, not comparison suppliers 51/52/53/product 54; no
+matching history or model is inferred. The synthetic T14 artifact explicitly
+rejects Odoo-derived evidence and a different company/product/unit domain.
+
+[Reviewable readiness and implementation plan](T15_ODOO_COMPATIBILITY_PLAN.md)
+records the stable input/API boundary, missing business/history/model contracts
+and meaningful acceptance checks. Renew the dedicated key using the existing
+manual procedure, then confirm and verify it read-only. No key was printed,
+Odoo UI/write performed, database reset or compatibility guard weakened.
+No product code was implemented; full Odoo/model acceptance and the user's prior
+PostgreSQL retry remain unverified. Current documentation is unstaged/uncommitted;
+Drive was not changed by this readiness task. User retains merge control.
+
+## Historical publication, user verification and Drive synchronization — 2026-10-06
 
 The user published `feature/T15-implementation` at
 `200af3e79ac82640fac882b95c2cf85ed80ff588` and opened

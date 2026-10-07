@@ -186,6 +186,11 @@ class PlanningCreateRequest(StrictModel):
         )
 
 
+class OdooPlanningCreateRequest(StrictModel):
+    purchase_group_id: PositiveCount
+    controlled_input: PlanningCreateRequest
+
+
 class ChangeRequest(StrictModel):
     supplier_id: Text
     available: bool | None = Field(default=None, strict=True)

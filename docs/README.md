@@ -27,7 +27,9 @@ explicitly supersedes them. They are not a second live dashboard.
 | Offline Decision Tree and saved supplier evaluation | [T14 ML](T14_ML_DESIGN.md) | [T14 handoff](T14_HANDOFF.md), [controlled metrics](T14_EVALUATION.json) |
 | Controlled assembly -> inference -> MILP -> scenarios -> immutable storage | [Reviewed T15 plan](T15_IMPLEMENTATION_PLAN.md) | [T15 handoff](T15_HANDOFF.md) |
 
-T15 currently uses explicitly synthetic inputs. The complete observed Odoo/model
+T15 supports synthetic inputs and a controlled hybrid: live Odoo quotations with
+separately synthetic ML history. See [compatibility boundary](T15_ODOO_COMPATIBILITY_PLAN.md)
+and the Odoo section of [the terminal demo](T15_DEMO.md). The complete observed Odoo/model
 integration and buyer-facing V2 frontend, approval/PDF and end-to-end acceptance
 remain open. The accepted thesis/technology baseline is unchanged.
 

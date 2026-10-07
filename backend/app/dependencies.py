@@ -120,3 +120,27 @@ def planning_solver_factory():
             "solver_unavailable", "The configured solver runtime is unavailable."
         ) from error
     return solver, evidence
+
+
+def resolve_odoo_planning_input(group_id, facts):
+    """Read through adapters inside the locked new-case computation, never on replay."""
+    import asyncio
+
+    from application.decision_cases import RepositoryError
+    from application.odoo_planning_input import bind_controlled_odoo_input
+    from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
+
+    async def read():
+        reader = get_comparison_case_reader()
+        case = await reader.read_comparison_case(group_id)
+        if not case.offers:
+            raise ValueError("An explicit comparison case is required.")
+        code, observed_at = await reader.read_currency_code(case.offers[0].currency_id)
+        return bind_controlled_odoo_input(case, facts, code, observed_at)
+
+    try:
+        return asyncio.run(read())
+    except (ProcurementDataUnavailable, ProcurementDataResponseError) as error:
+        raise RepositoryError(
+            "odoo_unavailable", "The selected Odoo input is unavailable."
+        ) from error

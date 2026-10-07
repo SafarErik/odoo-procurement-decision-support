@@ -11,17 +11,24 @@ import httpx
 
 from supplier_evaluation.artifacts import save_model
 from supplier_evaluation.contracts import SYNTHETIC, QuantityValidity
-from supplier_evaluation.dataset import BOUNDARY, EXTRACTED_AT, generate_dataset, prepare_dataset
+from supplier_evaluation.dataset import (
+    BOUNDARY,
+    EXTRACTED_AT,
+    generate_dataset,
+    prepare_dataset,
+    save_dataset,
+)
 from supplier_evaluation.model import train
 
 BASE = "/api/v2/procurement/planning-cases"
 
 
-def prepare_assets(directory):
-    rows = generate_dataset()
+def prepare_assets(directory, *, domain=None):
+    rows = generate_dataset() if domain is None else generate_dataset(domain=domain)
     split = prepare_dataset(rows, boundary=BOUNDARY, extracted_at=EXTRACTED_AT)
     model = train(split)
     save_model(model, directory)
+    save_dataset(directory / "dataset.json", rows)
     assessments = sorted(
         (
             model.infer(e.snapshot, QuantityValidity(1, 1000, "controlled-proxy-v1"))
@@ -108,7 +115,7 @@ def prepare_demo(directory):
     return payload
 
 
-def run_demo(directory, client):
+def run_demo(directory, client, *, create_path=BASE):
     payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
     delta = json.loads((directory / "scenario-request.json").read_text(encoding="utf-8"))
     record = {"base_key": str(uuid4()), "scenario_key": str(uuid4())}
@@ -123,7 +130,7 @@ def run_demo(directory, client):
         return response.json()
 
     base = accepted(
-        client.post(BASE, json=payload, headers={"Idempotency-Key": record["base_key"]}), 201
+        client.post(create_path, json=payload, headers={"Idempotency-Key": record["base_key"]}), 201
     )
     record["base"] = base
     write_json(report_path, record)
@@ -144,7 +151,7 @@ def run_demo(directory, client):
         if stored != case:
             raise ValueError("Stored retrieval differs from its created case.")
     replay = accepted(
-        client.post(BASE, json=payload, headers={"Idempotency-Key": record["base_key"]}), 200
+        client.post(create_path, json=payload, headers={"Idempotency-Key": record["base_key"]}), 200
     )
     if (
         not replay["idempotent_replay"]
@@ -167,7 +174,8 @@ def run_demo(directory, client):
                     quantities = ", ".join(
                         f"{a['supplier_id']}={a['quantity']}" for a in plan["allocations"]
                     )
-                    print(f"  {kind}: EUR {plan['total_cost']}; allocation {quantities}")
+                    currency = case["snapshot"]["request"]["requirement"]["currency"]
+                    print(f"  {kind}: {currency} {plan['total_cost']}; allocation {quantities}")
     print("Stored base/child retrieval and exact replay match; parent snapshot unchanged.")
     return record
 

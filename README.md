@@ -26,14 +26,14 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 
-## Current capability — verified 2026-10-06
+## Current capability — verified 2026-10-07
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
-| Odoo facts and supplier history | Bounded read-only RFQ/comparison/history components exist. Complete V2 Odoo input assembly remains open; business terms require explicit source attribution. |
+| Odoo facts and supplier history | V2 independently reads selected quotations/currency, verifies expectations and assembles attributed business terms. The controlled demonstration uses synthetic ML history; matching Odoo receipt history/model promotion remains open. |
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
-| Planning API, scenarios, storage | T15 composes controlled synthetic facts, saved inference and MILP; five stress scenarios create immutable child records; GET/exact replay use stored data only. |
+| Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
 | Buyer-facing planning workflow | The existing Reflex UI lists RFQs. The V2 planning cockpit, plan approval and snapshot PDF remain open. |
 
 **Publication:** T13/T14 are merged. GitHub main is
@@ -41,22 +41,27 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433437)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37358433349)
 checks passed. T15 is published on `feature/T15-implementation` at
-`200af3e79ac82640fac882b95c2cf85ed80ff588` in
+`ab8d7b21b18ac4b7323e0ed32f637ae351658786` in
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17),
-which is **open, not merged**. Its exact-head
+which is **open, not merged**. Authenticated checks confirm `quality`,
+`container-api-integration` and GitGuardian succeeded on that HEAD. The earlier
+`200af3e79ac82640fac882b95c2cf85ed80ff588` implementation/demo HEAD's
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314998)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37523314994)
-checks passed; GitGuardian also succeeded. The current documentation corrections
-are uncommitted and are not covered by those hosted results.
+checks also passed. Current controlled Odoo/hybrid implementation changes are
+uncommitted and are not covered by those hosted results.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
-probability. The complete Odoo-to-V2/model integration, frontend, approval/PDF and
+probability. Odoo-derived ML history/model promotion, frontend, approval/PDF and
 full local demonstration remain open. Historical checks, Podman forwarding failures
 and skipped live/browser gates remain in the [implementation log](docs/IMPLEMENTATION_LOG.md)
 and handoffs. Fresh PostgreSQL and loopback HTTP demo verification now covers the
 audit fixes and shared fixture preparation; [T15 handoff](docs/T15_HANDOFF.md)
-distinguishes it from earlier runs. No new Odoo/live/browser acceptance is inferred.
+distinguishes it from earlier runs. The controlled live Odoo quotation/PostgreSQL/API
+flow now passes: USD 1,850 minimum, USD 2,200 lower-exposure alternative and
+USD 2,200 after Supplier C's outage. This is read-only quotation acceptance with
+synthetic ML evidence; no browser or complete observed-model acceptance is inferred.
 
 ## Architecture and code map
 
@@ -110,11 +115,14 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Retry the user's PostgreSQL checks with the fresh temporary/cache folders in
-   the persistence guide, then review PR #17 for the user's merge decision.
-2. Resolve the V2 Odoo input and model-compatibility demonstration boundary. The
-   accepted ML baseline permits documented controlled/synthetic data; it does not
-   permit relabelling observations or claiming predictive validity without evidence.
+1. Review/publish the completed controlled T15 hybrid increment and verify CI for
+   its new SHA before the user's PR #17 merge decision. The previous user-specific
+   PostgreSQL retry is distinct from the new 22-test agent acceptance pass.
+2. Start the smallest T16 planning cockpit against the controlled API/stored cases.
+   [Chosen compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md): live Odoo
+   quotations plus genuinely synthetic ML history, with independent provenance.
+   Matching Odoo receipts and observed-model promotion remain separately open;
+   the accepted baseline permits controlled data but no relabelling or predictive claims.
 3. Deliver the T16 Reflex planning cockpit, then T17 V2 approval/PDF and a complete
    local demonstration. Keep unresolved integration dependencies visible.
 4. Complete T18 system evaluation and T19 thesis closure against the accepted
@@ -129,8 +137,9 @@ Hungarian living documents were synchronized on 2026-10-06: T13/T14 merged,
 controlled T15 implemented/published/CI verified with PR #17 still open, enduring
 workflow principles and the user's separate temporary-directory failure/retry gap.
 Native headings, lists, date chips, links and historical evidence were verified
-after editing. The writing guide was checked and retained. Further Drive edits
-require an explicit user request.
+after editing. The writing guide was checked and retained. The 2026-10-07 hybrid
+increment has not yet been synchronized to Drive. Further Drive edits require an
+explicit user request.
 
 Update current status here; link detailed evidence instead of repeating execution
 logs. Historical handoffs/spikes retain their dated boundaries. Use the
