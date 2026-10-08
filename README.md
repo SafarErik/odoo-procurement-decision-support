@@ -20,6 +20,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | --- | --- |
 | What works and what comes next? | Current capability and next steps below |
 | What should I start or run in the terminal? | [Local development runbook](docs/LOCAL_DEVELOPMENT_AND_SSH.md) |
+| Why does a saved plan say planning data is unavailable? | [Local stack recovery checklist](docs/LOCAL_DEVELOPMENT_AND_SSH.md#planning-data-unavailable-recover-the-local-stack) |
 | How do I run real database tests safely? | [Persistence guide](docs/PERSISTENCE_DEVELOPMENT.md) |
 | How can I see a plan, a disruption and stored retrieval? | [T15 terminal demonstration](docs/T15_DEMO.md) |
 | How does the controlled planning API work? | [T15 handoff](docs/T15_HANDOFF.md) |

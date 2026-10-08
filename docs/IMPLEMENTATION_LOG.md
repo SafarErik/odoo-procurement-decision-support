@@ -1,5 +1,39 @@
 # Implementation log
 
+## Repeated local planning unavailability: machine/container/tunnel recovery (2026-10-08)
+
+**Problem -> cause:** the user's stored-case view reports planning data unavailable.
+FastAPI/Reflex still listen on 8000/8001/3000, but the existing Podman machine is
+stopped, all three development containers are exited, and Windows 8069/55433 have
+no listeners. Health returns 200 while RFQs return 503 and planning GET times out;
+health alone does not establish dependency readiness. Machine startup again reports
+the recurring `win-sshproxy.exe` failure.
+
+**Decision -> recovery:** start `podman-machine-default` and the existing Odoo DB,
+planning DB and Odoo containers without recreating them. Verify planning
+`pg_isready` and Odoo HTTP 200 inside the VM. Restore one localhost-only SSH tunnel
+from current machine SSH configuration for 8069 -> VM 8069 and 55433 -> VM 55432.
+Leave it running for the user's application session (observed process 26708;
+the PID is session-specific, not a reusable command).
+
+**Evidence:** both Windows ports become reachable; actual FastAPI health, RFQs and
+GET of `e183f917-fc33-4e28-a7a8-0aea22679176` return 200. Stored minimum cost is
+still USD 1,850. No credentials, schema, saved cases, volumes or application code
+were changed. Add the ordered startup/readiness/forwarding/API-verification and
+cleanup procedure to [local development](LOCAL_DEVELOPMENT_AND_SSH.md#planning-data-unavailable-recover-the-local-stack)
+and link it from README. Earlier recovery/acceptance evidence below is historical.
+The actual user Reflex service on 3000 reloads the selected case as **Plans ready**,
+USD 1,850/2,200, with the previous error absent. Screenshot:
+`.artifacts/t16-runtime-recovery/repeated-restored-planning.jpg`. The documented
+PowerShell authenticated GET succeeds, all six new command blocks parse, and
+patch whitespace checks pass.
+
+**Limit -> chapter relevance:** this restores a development session, not Podman's
+native Windows proxy. The machine/containers/tunnel must remain running; a restart
+requires repeating the checklist. No new full suite or hosted CI was run for this
+runtime/documentation-only change. The record supports reproducibility and local
+integration troubleshooting; T16 scope and synthetic-model limitations are unchanged.
+
 ## Controlled T16 cockpit completion and local acceptance (2026-10-08)
 
 **Problem:** creation, five scenarios and retrieval were available, but the cockpit

@@ -608,6 +608,131 @@ startup prints success. Avoid alternating Reflex versions against the same cache
 If using the existing root frontend environment instead, use
 `../.venv/Scripts/reflex.exe` consistently; the two environments are distinct.
 
+## Planning data unavailable: recover the local stack
+
+Use this checklist when `/planning` says **Planning data is unavailable. Check the
+FastAPI service and planning database.** Run commands from the repository root
+in your normal PowerShell terminal. Existing `.env` credentials and saved cases
+are reused; no new data, model training, migration or database reset is required.
+The error is not proof that the database is unconfigured: a stopped Podman machine,
+stopped database container or lost Windows forwarding can cause the same message.
+
+### 1. Check FastAPI, then the existing Podman machine
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
+$taskPodman = Join-Path $env:LOCALAPPDATA "Programs\Podman\podman.exe"
+& $taskPodman machine list
+$taskMachine = (& $taskPodman machine inspect podman-machine-default | ConvertFrom-Json)[0]
+if ($taskMachine.State -eq "stopped") {
+    & $taskPodman machine start podman-machine-default
+}
+& $taskPodman ps -a --format '{{.Names}} {{.Status}} {{.Ports}}'
+```
+
+Health `status: ok` proves only that FastAPI runs; it does not test PostgreSQL or
+Odoo. If health cannot connect, start FastAPI using the earlier runbook section.
+The explicit Podman path handles a normal Windows terminal without Podman on PATH;
+use your installation path if it differs. Reuse `podman-machine-default`, never
+initialize another machine to repair this error. A `win-sshproxy.exe failed to
+start` warning can leave the machine working while Windows forwarding remains broken.
+
+### 2. Start only the existing containers you need
+
+If the planning container is shown as **Exited**, restore it without recreating it:
+
+```powershell
+& $taskPodman start procurement-decision-support-t11-test_decision-db_1
+& $taskPodman exec procurement-decision-support-t11-test_decision-db_1 pg_isready -h 127.0.0.1 -p 5432
+```
+
+Expect **accepting connections**; if startup is still in progress, repeat the
+readiness check after a few seconds. Stored retrieval needs this planning database,
+FastAPI and Reflex; it needs neither Odoo nor a configured ML model. Despite its
+historical `t11-test` name, this existing container currently holds manual demo
+cases. Do not run resetting pytest fixtures against it or recreate/remove it.
+If your container names differ, use the verified names from `podman ps -a`.
+
+For new Odoo plans or the RFQ ledger, also start these existing containers if exited,
+with Odoo's own database first:
+
+```powershell
+& $taskPodman start procurement-decision-support-t0_db_1
+& $taskPodman start procurement-decision-support-t0_odoo_1
+& $taskPodman machine ssh podman-machine-default 'curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8069/web/login'
+```
+
+Expect internal Odoo HTTP **200** once startup finishes. This is API-service
+readiness, not direct access to Odoo's database.
+
+### 3. Restore missing Windows localhost forwarding
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 55433 -InformationLevel Quiet
+Test-NetConnection 127.0.0.1 -Port 8069 -InformationLevel Quiet
+Get-NetTCPConnection -LocalPort 55433,8069 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object LocalAddress,LocalPort,OwningProcess
+```
+
+For this local setup, the planning container publishes **55432 inside the Podman
+machine**, and FastAPI's configured database URL uses **55433 on Windows**. The SSH
+tunnel bridges them. If internal PostgreSQL is ready but Windows 55433 is false,
+restore the tunnel below in a **separate terminal and leave that terminal open**.
+If both ports are missing, this one command also restores Odoo on 8069:
+
+```powershell
+$taskPodman = Join-Path $env:LOCALAPPDATA "Programs\Podman\podman.exe"
+$taskMachine = (& $taskPodman machine inspect podman-machine-default | ConvertFrom-Json)[0]
+ssh.exe -i $taskMachine.SSHConfig.IdentityPath -p $taskMachine.SSHConfig.Port `
+  -o ExitOnForwardFailure=yes -N `
+  -L 127.0.0.1:55433:127.0.0.1:55432 `
+  -L 127.0.0.1:8069:127.0.0.1:8069 `
+  "$($taskMachine.SSHConfig.RemoteUsername)@127.0.0.1"
+```
+
+No prompt/output while SSH remains running is normal. Repeat the Windows port
+checks from another terminal; expect **True**. If one port already works, omit
+that port's `-L` line rather than starting a duplicate forward or killing its
+listener. `ExitOnForwardFailure=yes` makes bind failures visible. The machine SSH
+port/key are discovered dynamically, not copied from an old session.
+
+**Keep Podman and the tunnel running for the entire application session.** Closing
+the tunnel terminal, pressing Ctrl+C, stopping Podman or restarting Windows removes
+the connection. Saved `.env` settings do not restart these processes. After a
+restart, repeat this checklist. The tunnel is a localhost-only development
+workaround; it does not repair Podman's Windows proxy. Do not broaden binds or use
+`down --volumes`, resetting tests or database recreation as a connectivity fix.
+
+### 4. Verify the actual saved-case request
+
+Reload the same case in Reflex. To test FastAPI independently, capture the configured
+token into a PowerShell variable without displaying it, then request a known saved
+UUID from this database:
+
+```powershell
+$taskServiceToken = & .\.venv\t13-check\Scripts\python.exe -c "from backend.app.config import settings; print(settings.t12_trusted_caller_token.get_secret_value())"
+$taskHeaders = @{Authorization = "Bearer $taskServiceToken"}
+$taskCaseId = "e183f917-fc33-4e28-a7a8-0aea22679176"
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v2/procurement/planning-cases/$taskCaseId" -Headers $taskHeaders |
+    Select-Object case_id, parent_id
+Remove-Variable taskServiceToken,taskHeaders
+```
+
+Expect **HTTP 200** and the matching case ID, then **Load stored case** should show
+USD 1,850/2,200 for this fixture. Use your own saved UUID on another database.
+**401/403** means a service-token mismatch; **404** means the case is absent from
+the selected database; **503** or a timeout means inspect the backend dependency
+error and configured database host/port. Editing `.env` requires restarting the
+affected server; restoring a tunnel alone normally only requires another request.
+Do not paste tokens into the browser or shared logs. Stop the foreground tunnel
+with Ctrl+C only when finished testing.
+
+Verified recurrence on 2026-10-08: FastAPI/Reflex were running, Podman and all three
+existing containers were stopped, and Windows 8069/55433 had no listeners.
+Starting those existing services and one localhost-only tunnel restored health,
+RFQ and the selected stored-case requests to HTTP 200 without changing credentials
+or saved data. See the dated [implementation log](IMPLEMENTATION_LOG.md).
+
 ## Windows forwarding troubleshooting and cleanup
 
 If the service is healthy in Podman but Windows localhost refuses a connection,
