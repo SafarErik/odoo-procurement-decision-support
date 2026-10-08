@@ -34,8 +34,8 @@
 
 ## Current V2 scope and historical increments
 
-T16 now authorizes controlled synthetic case creation, one explicit supplier-outage
-rerun and stored-only retrieval in Reflex at `/planning`, through existing HTTP
+T16 now authorizes controlled synthetic case creation, all five existing stress
+scenario types and stored-only retrieval in Reflex at `/planning`, through existing HTTP
 routes. Reuse the offline prepared demo request; never train or load a model in
 Reflex or accept a browser-selected file/artifact. Preserve exact request/key on
 uncertain POST outcomes and require explicit retry. Keep the service token on the
@@ -47,8 +47,13 @@ edit explicit demand/date/capacity/MOQ/promised-date terms, and let FastAPI re-r
 Odoo before saving. Do not imply that loading the local preview refreshes Odoo.
 Keep its separately synthetic history and owner-configured matching model; do not
 add arbitrary quotation discovery or browser-selected models. Preserve the RFQ
-ledger and synthetic/observed provenance distinction. Other scenario controls,
-arbitrary Odoo selection and full T16/V2 acceptance remain open;
+ledger and synthetic/observed provenance distinction. The scenario UI adds capacity
+reduction, demand increase, price increase and a bounded combination of demand
+and one supplier's capacity/price. Compare stored original-base allocations, cost,
+exposure and feasibility; do not present simulated prices as fresh Odoo facts or
+demand-total differences as like-for-like savings. Scenarios always target the
+original base, including from a child. Arbitrary Odoo selection, broader combined
+changes and full T16/V2 acceptance remain open;
 approval/PDF belongs to T17. See `docs/T16_HANDOFF.md`. Earlier frontend exclusions
 below describe those historical increments.
 

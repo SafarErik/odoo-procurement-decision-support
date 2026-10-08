@@ -1,6 +1,7 @@
-"""RFQ ledger and stored planning display through the documented FastAPI boundary."""
+"""RFQ ledger and controlled planning workspace through the FastAPI boundary."""
 
 import json
+import re
 from copy import deepcopy
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
@@ -401,6 +402,9 @@ class PlanningState(rx.State):
     allocations: list[dict[str, str]] = []
     assessments: list[dict[str, str]] = []
     provenance: list[dict[str, str]] = []
+    scenario_suppliers: list[dict[str, str]] = []
+    comparison_rows: list[dict[str, str]] = []
+    scenario_kind: str = "capacity_reduction"
     error_message: str = ""
     is_loading: bool = False
     has_case: bool = False
@@ -430,6 +434,8 @@ class PlanningState(rx.State):
         self.allocations = result.allocations
         self.assessments = result.assessments
         self.provenance = result.provenance
+        self.scenario_suppliers = result.scenario_suppliers
+        self.comparison_rows = result.comparison_rows
         self.has_case = True
 
     @rx.event
@@ -681,6 +687,90 @@ class PlanningState(rx.State):
             self.is_loading = False
 
     @rx.event
+    def change_scenario_kind(self, value: str):
+        if (
+            not self.is_loading
+            and not self.has_pending
+            and value in {"capacity_reduction", "demand_increase", "price_increase", "combined"}
+        ):
+            self.scenario_kind = value
+
+    @rx.event
+    async def run_scenario(self, form_data: dict[str, Any]):
+        # ponytail: combined changes one supplier plus demand; extend for a multi-supplier case.
+        if self.is_loading or self.has_pending:
+            return
+        try:
+            if not self.has_case:
+                raise ValueError("Load a base or scenario first")
+            kind = form_data.get("kind")
+            if kind not in {"capacity_reduction", "demand_increase", "price_increase", "combined"}:
+                raise ValueError("Unsupported scenario")
+            payload = {
+                "kind": kind,
+                "source": {
+                    "source_type": "controlled_business_terms",
+                    "source_reference": "t16-ui-what-if-v1",
+                    "observed_at": self.details["as_of"],
+                },
+                "suppliers": [],
+            }
+            changes = 0
+            if kind in {"demand_increase", "combined"}:
+                value = form_data.get("quantity", "")
+                if kind == "demand_increase" or value != "":
+                    demand = _bounded_form_integer(value, minimum=1)
+                    if demand <= int(self.details["base_quantity"]):
+                        raise ValueError("Demand must increase")
+                    payload["approved_quantity"] = demand
+                    changes += 1
+            supplier_change = {}
+            if kind in {"capacity_reduction", "price_increase", "combined"}:
+                selected = form_data.get("supplier", "")
+                terms = next(s for s in self.scenario_suppliers if s["supplier"] == selected)
+                supplier_change["supplier_id"] = selected
+                if kind in {"capacity_reduction", "combined"}:
+                    value = form_data.get("capacity", "")
+                    if kind == "capacity_reduction" or value != "":
+                        capacity = _bounded_form_integer(value, minimum=0)
+                        if capacity >= int(terms["capacity"]):
+                            raise ValueError("Capacity must decrease")
+                        supplier_change["capacity"] = capacity
+                        changes += 1
+                if kind in {"price_increase", "combined"}:
+                    value = form_data.get("price", "")
+                    if kind == "price_increase" or value != "":
+                        if (
+                            not isinstance(value, str)
+                            or len(value) > 64
+                            or re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value) is None
+                            or Decimal(value) <= Decimal(terms["price"])
+                        ):
+                            raise ValueError("Price must increase")
+                        supplier_change["unit_price"] = value
+                        changes += 1
+            if kind == "combined" and changes < 2:
+                raise ValueError("Choose at least two disturbances")
+            if len(supplier_change) > 1:
+                payload["suppliers"] = [supplier_change]
+        except (ValueError, TypeError, KeyError, StopIteration, InvalidOperation):
+            self.error_message = (
+                "Choose a base supplier and enter a strict change from the original base: "
+                "higher demand (1–1,000), lower capacity (0–1,000), or a higher decimal "
+                "price per unit. Combined scenarios need at least two changes; leave unused "
+                "values blank."
+            )
+            return
+        self._prepare_request(
+            f"{settings.planning_cases_url}/{self.details['base_id']}/scenarios", payload
+        )
+        yield
+        try:
+            await self._send_pending()
+        finally:
+            self.is_loading = False
+
+    @rx.event
     async def recover_request(self):
         if self.is_loading or not self.has_pending or not self._pending:
             return
@@ -702,6 +792,8 @@ class PlanningState(rx.State):
         self.allocations = []
         self.assessments = []
         self.provenance = []
+        self.scenario_suppliers = []
+        self.comparison_rows = []
         self.error_message = ""
         self.notice = ""
         self.is_loading = True
@@ -918,6 +1010,258 @@ def _outage_form() -> rx.Component:
     )
 
 
+def _scenario_form() -> rx.Component:
+    busy = PlanningState.is_loading | PlanningState.has_pending
+    combined = PlanningState.scenario_kind == "combined"
+    return rx.box(
+        rx.heading("Test other what-if changes", as_="h2", size="4"),
+        rx.text(
+            "Every scenario starts from the original saved base, including when viewing a child. "
+            "These are assumptions: Odoo is neither reread nor updated, "
+            "and saved ML scores are reused.",
+            size="2",
+            color=MUTED,
+            max_width="75ch",
+            margin_y="0.75rem",
+        ),
+        rx.text(
+            "Original demand: ",
+            PlanningState.details["base_quantity"],
+            " ",
+            PlanningState.details["unit"],
+            size="2",
+            margin_bottom="1rem",
+        ),
+        rx.el.form(
+            rx.el.label("Scenario type", html_for="stress-kind", display="block"),
+            rx.el.select(
+                rx.el.option("Capacity reduction", value="capacity_reduction"),
+                rx.el.option("Demand increase", value="demand_increase"),
+                rx.el.option("Price increase", value="price_increase"),
+                rx.el.option("Combined changes", value="combined"),
+                id="stress-kind",
+                name="kind",
+                value=PlanningState.scenario_kind,
+                on_change=PlanningState.change_scenario_kind,
+                disabled=busy,
+                padding="0.65rem",
+                width="100%",
+                border=f"1px solid {HAIRLINE}",
+                border_radius="0.35rem",
+                background=SURFACE,
+            ),
+            rx.cond(
+                PlanningState.scenario_kind != "demand_increase",
+                rx.box(
+                    rx.el.label(
+                        "Supplier to change (original terms)",
+                        html_for="stress-supplier",
+                        display="block",
+                    ),
+                    rx.el.select(
+                        rx.el.option("Choose a supplier", value="", disabled=True),
+                        rx.foreach(
+                            PlanningState.scenario_suppliers,
+                            lambda row: rx.el.option(
+                                row["name"]
+                                + " · capacity "
+                                + row["capacity"]
+                                + " · "
+                                + row["price"]
+                                + " "
+                                + PlanningState.details["currency"]
+                                + "/unit",
+                                value=row["supplier"],
+                            ),
+                        ),
+                        id="stress-supplier",
+                        name="supplier",
+                        default_value="",
+                        required=True,
+                        disabled=busy,
+                        padding="0.65rem",
+                        width="100%",
+                        border=f"1px solid {HAIRLINE}",
+                        border_radius="0.35rem",
+                        background=SURFACE,
+                    ),
+                    margin_top="1rem",
+                ),
+            ),
+            rx.flex(
+                rx.cond(
+                    (PlanningState.scenario_kind == "demand_increase") | combined,
+                    rx.box(
+                        rx.el.label(
+                            "New demand quantity", html_for="stress-quantity", display="block"
+                        ),
+                        rx.input(
+                            id="stress-quantity",
+                            name="quantity",
+                            type="number",
+                            min="1",
+                            max="1000",
+                            step="1",
+                            required=~combined,
+                            disabled=busy,
+                            width="100%",
+                        ),
+                        flex="1",
+                        min_width="12rem",
+                    ),
+                ),
+                rx.cond(
+                    (PlanningState.scenario_kind == "capacity_reduction") | combined,
+                    rx.box(
+                        rx.el.label(
+                            "New capacity limit", html_for="stress-capacity", display="block"
+                        ),
+                        rx.input(
+                            id="stress-capacity",
+                            name="capacity",
+                            type="number",
+                            min="0",
+                            max="1000",
+                            step="1",
+                            required=~combined,
+                            disabled=busy,
+                            width="100%",
+                        ),
+                        flex="1",
+                        min_width="12rem",
+                    ),
+                ),
+                rx.cond(
+                    (PlanningState.scenario_kind == "price_increase") | combined,
+                    rx.box(
+                        rx.el.label("New price per unit", html_for="stress-price", display="block"),
+                        rx.input(
+                            id="stress-price",
+                            name="price",
+                            type="text",
+                            input_mode="decimal",
+                            max_length=64,
+                            placeholder="e.g. 11.50",
+                            required=~combined,
+                            disabled=busy,
+                            width="100%",
+                        ),
+                        flex="1",
+                        min_width="12rem",
+                    ),
+                ),
+                gap="1rem",
+                flex_wrap="wrap",
+                margin_y="1rem",
+            ),
+            rx.cond(
+                combined,
+                rx.text(
+                    "Enter at least two changes above. Capacity and price apply to the "
+                    "selected supplier; leave unused values blank.",
+                    size="2",
+                    color=MUTED,
+                    margin_bottom="1rem",
+                ),
+            ),
+            rx.button("Create and save scenario", type="submit", disabled=busy, size="3"),
+            on_submit=PlanningState.run_scenario,
+            reset_on_submit=False,
+        ),
+        background="#F0EBF2",
+        padding="1.5rem",
+        border_radius="0.65rem",
+        width="100%",
+    )
+
+
+def _scenario_comparison() -> rx.Component:
+    return rx.box(
+        rx.heading("Change from the base case", as_="h3", size="4"),
+        rx.text(
+            "What-if assumptions: ",
+            PlanningState.details["assumptions"],
+            size="2",
+            margin_y="0.5rem",
+        ),
+        rx.text(PlanningState.details["comparison_display"], size="2", margin_bottom="1rem"),
+        rx.box(
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell("Result"),
+                        rx.table.column_header_cell("Original base"),
+                        rx.table.column_header_cell("Scenario"),
+                    )
+                ),
+                rx.table.body(
+                    rx.table.row(
+                        rx.table.row_header_cell("Feasibility"),
+                        rx.table.cell(PlanningState.details["base_status_label"]),
+                        rx.table.cell(PlanningState.details["scenario_status_label"]),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Demand quantity"),
+                        rx.table.cell(PlanningState.details["base_quantity"]),
+                        rx.table.cell(PlanningState.details["quantity"]),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Minimum total cost"),
+                        rx.table.cell(PlanningState.details["base_cost"]),
+                        rx.table.cell(PlanningState.details["scenario_cost"]),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Schedule-watch exposure"),
+                        rx.table.cell(PlanningState.details["base_exposure"]),
+                        rx.table.cell(PlanningState.details["scenario_exposure"]),
+                    ),
+                ),
+            ),
+            overflow_x="auto",
+            width="100%",
+        ),
+        rx.cond(
+            PlanningState.comparison_rows.length() > 0,
+            rx.box(
+                rx.text("Minimum-cost allocation changes", font_weight="600", margin_y="0.75rem"),
+                rx.table.root(
+                    rx.table.header(
+                        rx.table.row(
+                            rx.table.column_header_cell("Supplier"),
+                            rx.table.column_header_cell("Base quantity"),
+                            rx.table.column_header_cell("Scenario quantity"),
+                            rx.table.column_header_cell("Change"),
+                        )
+                    ),
+                    rx.table.body(
+                        rx.foreach(
+                            PlanningState.comparison_rows,
+                            lambda row: rx.table.row(
+                                rx.table.row_header_cell(row["name"]),
+                                rx.table.cell(row["base"]),
+                                rx.table.cell(row["scenario"]),
+                                rx.table.cell(row["change"]),
+                            ),
+                        )
+                    ),
+                ),
+                overflow_x="auto",
+                width="100%",
+            ),
+            rx.text(
+                "No comparable proven minimum-cost allocation is available. View the base "
+                "case to inspect its saved result; missing values are not zero allocations.",
+                size="2",
+                color=MUTED,
+                margin_top="0.75rem",
+            ),
+        ),
+        width="100%",
+        padding="1rem",
+        border_left=f"3px solid {CONNECTED}",
+    )
+
+
 def _recorded_case() -> rx.Component:
     return rx.vstack(
         rx.box(
@@ -988,24 +1332,22 @@ def _recorded_case() -> rx.Component:
                 width="100%",
             ),
             rx.callout(
-                (
+                rx.cond(
+                    PlanningState.details["status"] == "infeasible",
                     "These constraints cannot produce a proven plan. Review demand and "
-                    "supplier limits before creating another case."
+                    "supplier limits before creating another case.",
+                    "No proven result is available. Check the recorded status and diagnostics; "
+                    "this does not establish that the constraints are infeasible.",
                 ),
                 color_scheme="amber",
             ),
         ),
         rx.cond(
             PlanningState.details["comparison"] != "",
-            rx.box(
-                rx.heading("Change from the base case", as_="h3", size="4"),
-                rx.text(PlanningState.details["comparison_display"], size="2", margin_top="0.5rem"),
-                width="100%",
-                padding="1rem",
-                border_left=f"3px solid {CONNECTED}",
-            ),
+            _scenario_comparison(),
         ),
         _outage_form(),
+        _scenario_form(),
         rx.box(
             rx.heading("Supplier schedule assessment", as_="h2", size="5"),
             rx.text(
@@ -1384,7 +1726,7 @@ def _planning_controls() -> rx.Component:
 
 
 def planning_page() -> rx.Component:
-    """Controlled creation, one explicit outage and immutable stored retrieval."""
+    """Controlled creation, explicit what-if scenarios and immutable stored retrieval."""
     return rx.box(
         rx.box(
             rx.hstack(

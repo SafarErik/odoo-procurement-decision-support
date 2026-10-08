@@ -474,6 +474,59 @@ This demonstrates live quotation acquisition with synthetic ML history. Arbitrar
 comparison discovery, observed receipt/model promotion, other scenario controls,
 approval/PDF and full V2 acceptance remain separate work.
 
+## What-if scenarios and stored comparisons
+
+Added 2026-10-08. Open a saved base or child at `/planning`. This requires only
+Reflex, FastAPI, the existing planning database/tunnel and matching server-side
+service token. No Odoo access, configured model or training is needed for scenario
+creation or GET. A fresh base still needs its own documented preparation/creation.
+Use the original 200-unit Odoo fixture base for the examples below; synthetic
+cases use their own saved terms and will have different results.
+
+The existing **Test a supplier outage** control remains. Under **Test other
+what-if changes**, choose a scenario type. Supplier options show the **original
+base** capacity and unit price, even when viewing a scenario. Every submission
+targets that base, never a cumulative child. Each action saves a new immutable
+UUID with parent lineage and reuses the base's recorded supplier assessments.
+
+| Scenario type | Inputs and expected fixture result |
+| --- | --- |
+| Capacity reduction | Select `odoo:res.partner:53`, set **New capacity limit** to `100`, and press **Create and save scenario**. Expect USD 2,200, allocations 100/100/0 and +350 USD against the USD 1,850 base. |
+| Demand increase | Set **New demand quantity** to `220`. Expect USD 2,040, allocations 60/0/160 and +190 USD. The comparison explicitly states that these totals cover different demand quantities; it is not a like-for-like saving. |
+| Price increase | Select supplier 53, enter **New price per unit** `11.00`. Expect USD 2,150 and +300 USD. This is an explicit simulated unit price, not a changed Odoo quotation. |
+| Combined changes | Select supplier 53, set demand `220` and capacity `100`; leave price blank. Expect USD 2,400, allocations 120/100/0 and +550 USD. Capacity/price apply to this one selected supplier; at least two of demand/capacity/price must change. |
+| Infeasible demand | Choose demand increase and enter `500`. Expect **No feasible plan** with a saved UUID. The original base remains saved; cost/exposure/allocation comparisons are unavailable, not zero. |
+
+Demand must strictly exceed original demand; capacity must strictly decrease;
+price must strictly increase. Quantity inputs accept bounded whole numbers up to
+1,000 (capacity can be zero); price uses plain decimal text, without exponent,
+comma, currency symbol or binary float conversion. The backend independently
+validates changes and model quantity applicability. For combined changes, leave
+unused values blank; this UI does not implement arbitrary multi-supplier mixtures.
+
+**Change from the base case** shows the recorded what-if assumptions, original
+and scenario feasibility, demand, minimum total cost, exposure and per-supplier
+quantity changes. Exact fractions/solver notes remain expandable. Cost/exposure
+values for the base are reconstructed from the stored scenario minimum and exact
+stored deltas; no optimization or scoring runs during display. When either result
+lacks a proven minimum, unavailable comparison cells are labelled honestly; use
+**View base case** for its full saved result. A solver failure is not shown as
+proven infeasibility.
+
+After each run, retain the UUID. Reopen it with **Open a saved case**, then use
+**View base case** to confirm the base is unchanged. Scenario source wording must
+say **Saved Odoo quotations with what-if changes; synthetic ML history** for a
+hybrid case. Neither the simulated terms nor stored classifications claim a fresh
+Odoo read or validated observed prediction.
+
+Try demand `200`, capacity `160` for supplier 53, price `9`, or a combined form
+with only one change. Expect validation errors and no new POST. For uncertain
+service outcomes, preserve the exact URL/body/key and use **Retry the same
+request**, as documented earlier. Changed intent stays blocked until recovery;
+there is no automatic retry or durable recovery queue. Stop only your preview
+processes/tunnel with Ctrl+C and retain database volumes/cases. No Odoo writes,
+approval or PDF are performed.
+
 ### Missing generated route configuration at Reflex startup
 
 `Route config file not found at "app/routes.ts"` can indicate an incomplete

@@ -1,6 +1,72 @@
 # T16: controlled procurement workspace
 
-## Current status — 2026-10-08, prepared Odoo creation
+## Current status — 2026-10-08, scenario controls and comparison
+
+The prepared-Odoo increment is now published in open PR #18 at
+`ad8aeb2358470fba2fa386851bd140b70f72dbfb`. Its
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183516)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183536)
+runs completed successfully, independently verified. The following addition is
+local, unstaged and uncommitted; those checks do not cover this diff. No commit,
+push, merge or Drive synchronization occurred. Earlier records below retain their
+historical publication, scope, checks and limitations.
+
+### Buyer capability and boundary
+
+The existing outage control is joined by capacity reduction, demand increase,
+price increase and a bounded combined form. Combined accepts at least two changes
+among demand and one selected supplier's capacity/price. Every scenario uses the
+original saved base, even from a child. Original supplier terms are displayed for
+validation; simulated prices are labelled what-if assumptions, never fresh Odoo
+facts. The resulting child retains immutable lineage, attribution and assessments.
+No new backend contract, migration, solver/model algorithm, service or dependency
+was added. Odoo acquisition and inference are unnecessary for scenarios/GET.
+
+The stored comparison shows original/scenario feasibility, demand, minimum total
+cost, exposure and per-supplier quantities/deltas. It uses the existing recorded
+comparison and result, not new solving or scoring. Exact fractions remain in audit
+details. Demand comparisons explicitly warn that total quantities differ; a cost
+delta is not a like-for-like saving. No proven minimum means unavailable metrics
+and allocations, never fabricated zero values. Solver failure is distinct from
+proven infeasibility. The full base is accessible through stored GET.
+
+Exact URL/body/key recovery, explicit retry, changed-intent blocking and server-only
+credentials are preserved. Returned comparison rows must join the base suppliers,
+match recorded demand totals and agree with the scenario's saved allocations.
+The combined UI deliberately covers one supplier plus demand; broader combinations
+remain unimplemented rather than hidden behind a generic editor.
+
+### Verification
+
+| Check | Actual evidence |
+| --- | --- |
+| Focused/regression | Existing frontend suites: 47 passed. Initial new scenario suite: 28 passed; the added comparison/result mismatch regression is covered by the final full run (29 new tests total). Actual API/CBC, all four new controls, repeated scenarios from children, exact recovery after lost committed response, invalid inputs, malformed comparison and what-if provenance. |
+| Required Python 3.11 checks | 509 passed, 45 integration/E2E deselected, one upstream Starlette/httpx warning, 55.58s. Actual ML training/reload/inference and CBC execute. Ruff format (155 files)/lint, compileall, pip check and patch whitespace pass. |
+| Real browser/API/PostgreSQL | Stored hybrid base `e183f917-fc33-4e28-a7a8-0aea22679176` stays USD 1,850. Capacity 100 -> USD 2,200; demand 220 -> USD 2,040; supplier 53 price 11.00 -> USD 2,150; demand 220 + capacity 100 -> USD 2,400; demand 500 -> stored infeasible. API preview forbids Odoo acquisition/inference. Independent GET verifies all five children, original parent, identical saved assessments/facts and unchanged base snapshot/hash. |
+| Browser presentation | Stored combined-case reopening shows original/scenario quantity, cost, exposure and allocation changes. Final labels use readable status text. At the 390px viewport override, page has no horizontal overflow; override reset. No visible framework connection notice or console warning/error after final reload. |
+| Browser failure/compilation | One-change combined form rejected before POST. Stopped API gives safe service error and clears comparison. Production frontend-only export passed four build stages; compilation only. |
+| Static/credential boundary | Odoo Compose config and required static checks pass. Server token absent from 41 generated client/export files and public state/recovery JSON. |
+| Remaining gates | New hosted CI, the resetting database suite, arbitrary quotation discovery, broader combined changes, observed model promotion and full T16/V2 acceptance remain open. Approval/PDF belongs to T17. |
+
+Live evidence is ignored under `.artifacts/t16-scenarios-check/`: `cases.json` and
+`comparison.jpg`. Saved children: capacity `579192b3-0e0f-49dd-aa0d-4705e94a1c28`,
+demand `2204e8de-33b1-4b87-95c1-b49423c7bdde`, price
+`e66407ec-3040-40da-8e4c-135845e7b3ad`, combined
+`dd643faf-3f72-499b-86b4-f1202bcc550a`, infeasible
+`07eb3b3b-f0d4-4540-937d-c3752d4deb08`. No resetting test or Odoo operation was
+performed against user data. Runtime/export/cleanup details are in the log.
+
+### Review and next step
+
+Use the [scenario walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#what-if-scenarios-and-stored-comparisons).
+Only the planning database, FastAPI and Reflex are needed for an existing base.
+No new API key or manual Odoo change is required. Commit/publication/merge remain
+with the user; check CI for the resulting exact SHA. Then assess the complete
+controlled workflow against T16 acceptance requirements before claiming closure.
+General Odoo selection and observed-model promotion are not solved by these forms;
+T17 approval/PDF remains separate. Drive stays unchanged until explicitly requested.
+
+## Prior prepared Odoo creation — 2026-10-08
 
 PR [#18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
 is open at `de7ac92820e367e28b79dd0f7073f5b8c4191397`. Its

@@ -16,6 +16,8 @@ class PlanningDisplay:
     allocations: list[dict[str, str]]
     assessments: list[dict[str, str]]
     provenance: list[dict[str, str]]
+    scenario_suppliers: list[dict[str, str]]
+    comparison_rows: list[dict[str, str]]
 
 
 async def submit_planning_request(
@@ -216,13 +218,14 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     if quantity <= 0:
         raise ValueError("Invalid recorded demand")
     status = _required_string(result, "status")
-    if status not in {
-        "optimal",
-        "infeasible",
-        "no_proven_optimum",
-        "solver_error",
-        "invalid_input",
-    }:
+    status_labels = {
+        "optimal": "Plans ready",
+        "infeasible": "No feasible plan",
+        "no_proven_optimum": "No proven optimum",
+        "solver_error": "Solver unavailable",
+        "invalid_input": "Input rejected",
+    }
+    if status not in status_labels:
         raise ValueError("Unknown planning status")
     kinds = {
         "controlled_synthetic": "Controlled synthetic inputs and ML history",
@@ -233,6 +236,22 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     if parent is not None and str(UUID(parent)) != parent:
         raise ValueError("Invalid parent identity")
     scenario = snapshot["scenario"]
+    base_quantity = facts["requirement"]["approved_quantity"]
+    _integer(base_quantity)
+    if base_quantity <= 0:
+        raise ValueError("Invalid base quantity")
+    scenario_suppliers = [
+        {
+            "supplier": _required_string(s["terms"], "supplier_id"),
+            "name": _supplier_label(s["terms"]["supplier_id"]),
+            "capacity": _integer(s["terms"]["capacity"]),
+            "price": str(_decimal(s["terms"]["unit_price"])),
+        }
+        for s in facts["suppliers"]
+    ]
+    supplier_ids = {s["supplier"] for s in scenario_suppliers}
+    if len(supplier_ids) != len(scenario_suppliers):
+        raise ValueError("Duplicate base supplier")
     details = {
         "case_id": expected_id,
         "parent_id": parent or "Base case",
@@ -249,22 +268,29 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         "scenario": "Base case" if scenario is None else _required_string(scenario, "kind"),
         "base_id": parent or expected_id,
         "currency": currency,
-        "status_label": {
-            "optimal": "Plans ready",
-            "infeasible": "No feasible plan",
-            "no_proven_optimum": "No proven optimum",
-            "solver_error": "Solver unavailable",
-            "invalid_input": "Input rejected",
-        }[status],
+        "status_label": status_labels[status],
         "scenario_label": "Base case"
         if scenario is None
         else _required_string(scenario, "kind").replace("_", " ").capitalize(),
         "comparison": "",
         "comparison_display": "",
+        "base_quantity": str(base_quantity),
+        "base_status": "",
+        "base_status_label": "",
+        "scenario_status": status.replace("_", " "),
+        "scenario_status_label": status_labels[status],
+        "base_cost": "Not comparable",
+        "scenario_cost": "No proven minimum-cost plan",
+        "base_exposure": "Not comparable",
+        "scenario_exposure": "Not comparable",
+        "assumptions": "",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
     }
     comparison = snapshot["comparison"]
+    comparison_rows = []
     if comparison is not None:
+        details["base_status"] = _required_string(comparison, "base_status").replace("_", " ")
+        details["base_status_label"] = status_labels[comparison["base_status"]]
         delta = comparison["minimum_cost"]
         details["comparison"] = _required_string(comparison, "meaning")
         details["comparison_display"] = (
@@ -273,6 +299,38 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         )
         if delta is not None:
             cost_delta = _decimal(delta["total_cost_delta"])
+            minimum = result["minimum_cost_plan"]
+            details["scenario_cost"] = f"{_decimal(minimum['total_cost']):,f} {currency}"
+            details["base_cost"] = f"{_decimal(minimum['total_cost']) - cost_delta:,f} {currency}"
+            details["scenario_exposure"] = f"{_ratio(minimum['risk_exposure']) * 100:.1f} / 100"
+            base_exposure = _ratio(minimum["risk_exposure"]) - _ratio(delta["risk_exposure_delta"])
+            details["base_exposure"] = f"{base_exposure * 100:.1f} / 100"
+            before, after = {}, {}
+            for rows, target in (
+                (delta["base_allocations"], before),
+                (delta["scenario_allocations"], after),
+            ):
+                for row in rows:
+                    identity = _required_string(row, "supplier_id")
+                    _integer(row["quantity"])
+                    if identity in target or row["quantity"] < 0:
+                        raise ValueError("Invalid comparison allocation")
+                    target[identity] = row["quantity"]
+                if set(target) != supplier_ids:
+                    raise ValueError("Invalid comparison supplier join")
+            if sum(before.values()) != base_quantity or sum(after.values()) != quantity:
+                raise ValueError("Invalid comparison quantity")
+            if after != {a["supplier_id"]: a["quantity"] for a in minimum["allocations"]}:
+                raise ValueError("Comparison differs from recorded plan")
+            comparison_rows = [
+                {
+                    "name": _supplier_label(identity),
+                    "base": str(before[identity]),
+                    "scenario": str(after[identity]),
+                    "change": f"{after[identity] - before[identity]:+d}",
+                }
+                for identity in sorted(supplier_ids)
+            ]
             details["comparison_display"] = (
                 f"Minimum cost changes by {cost_delta:+,f} {currency}. "
                 f"Schedule-watch exposure changes by "
@@ -281,6 +339,32 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
             details["comparison"] += (
                 f" Cost delta: {_decimal(delta['total_cost_delta']):,f} {currency}; "
                 f"exposure delta: {_rational(delta['risk_exposure_delta'])}."
+            )
+        if base_quantity != quantity:
+            details["comparison_display"] += (
+                " Demand changed: these totals cover different quantities, "
+                "not a like-for-like saving."
+            )
+    if scenario is not None:
+        assumptions = []
+        if scenario["approved_quantity"] is not None:
+            assumptions.append(
+                f"Demand: {scenario['approved_quantity']} {requirement['quantity_unit']}"
+            )
+        for change in scenario["suppliers"]:
+            name = _supplier_label(_required_string(change, "supplier_id"))
+            if change["available"] is False:
+                assumptions.append(f"{name}: unavailable")
+            if change["capacity"] is not None:
+                assumptions.append(f"{name}: capacity {change['capacity']}")
+            if change["unit_price"] is not None:
+                assumptions.append(
+                    f"{name}: price {_decimal(change['unit_price']):,f} {currency} per unit"
+                )
+        details["assumptions"] = "; ".join(assumptions)
+        if facts.get("input_kind") == "odoo_quotations_synthetic_history":
+            details["input_kind"] = (
+                "Saved Odoo quotations with what-if changes; synthetic ML history"
             )
     plans, allocations = [], []
     minimum = result["minimum_cost_plan"]
@@ -373,4 +457,6 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         }
         for entry in snapshot["provenance"]["entries"]
     ]
-    return PlanningDisplay(details, plans, allocations, assessments, provenance)
+    return PlanningDisplay(
+        details, plans, allocations, assessments, provenance, scenario_suppliers, comparison_rows
+    )

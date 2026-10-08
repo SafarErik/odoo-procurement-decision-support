@@ -35,7 +35,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
-| Buyer-facing planning workflow | T16 creates synthetic cases or uses the prepared Odoo quotation comparison with editable explicit demand/supplier terms at `/planning`. FastAPI re-reads Odoo prices/context before saving; ML history remains synthetic. Allocation/cost/class comparison, one outage and stored retrieval work. Arbitrary quotation discovery, other scenario controls and full T16 acceptance remain open; approval/PDF belongs to T17. |
+| Buyer-facing planning workflow | T16 creates synthetic or prepared-Odoo cases at `/planning`, runs outage/capacity/demand/price/bounded combined scenarios, compares base/scenario allocations, cost, exposure and feasibility, and reopens stored results. Creation re-reads Odoo; scenarios reuse saved inputs and synthetic assessments. Arbitrary quotation discovery and full T16 acceptance remain open; approval/PDF belongs to T17. |
 
 **Publication:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
@@ -43,11 +43,11 @@ merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
 checks passed. T16 [PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
-is open at `de7ac92820e367e28b79dd0f7073f5b8c4191397`; its
-[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212085)
-and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212092)
-checks passed. The following prepared-Odoo UI extension is local and uncommitted
-on the same branch; those hosted checks do not cover this new diff.
+is open at `ad8aeb2358470fba2fa386851bd140b70f72dbfb`; its
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183516)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183536)
+checks passed, covering prepared-Odoo creation. The new scenario/comparison diff
+remains local and uncommitted on the same branch; those hosted checks do not cover it.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
@@ -78,6 +78,12 @@ USD 2,200 after Supplier C's outage and stored base reopening. The form uses a
 fixed prepared comparison, with captured prices checked again during creation;
 it is not arbitrary live quotation discovery. See the
 [Odoo UI walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace).
+
+The next local increment exposes all five supported scenario types and stored
+base/scenario comparisons. Browser/PostgreSQL checks reuse the saved hybrid base
+with Odoo acquisition and inference disabled. What-if prices remain assumptions;
+demand comparisons explicitly distinguish different total quantities. See the
+[scenario walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#what-if-scenarios-and-stored-comparisons).
 
 ## Architecture and code map
 
@@ -131,10 +137,11 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the prepared-Odoo creation/outage/retrieval workflow, then commit and
+1. Review the scenario/comparison workflow, then commit and
    publish under the user's control; verify CI for the resulting exact SHA.
-2. Extend the other existing scenario controls and comparisons in small increments.
-   Arbitrary Odoo quotation discovery is not implemented by this prepared flow.
+2. Assess the controlled workflow against T16 acceptance requirements before closure.
+   Arbitrary Odoo quotation discovery is not implemented by the prepared flow;
+   do not silently treat it or observed-model promotion as accepted.
    [The compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains live
    Odoo quotations plus synthetic ML history with independent provenance; matching
    observed receipts/model promotion stays separately open.
