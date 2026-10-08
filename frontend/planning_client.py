@@ -252,6 +252,28 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     supplier_ids = {s["supplier"] for s in scenario_suppliers}
     if len(supplier_ids) != len(scenario_suppliers):
         raise ValueError("Duplicate base supplier")
+    saved_suppliers = {s["supplier_id"]: s for s in request["suppliers"]}
+    if len(saved_suppliers) != len(request["suppliers"]) or set(saved_suppliers) != supplier_ids:
+        raise ValueError("Invalid saved supplier join")
+    for row in scenario_suppliers:
+        saved = saved_suppliers[row["supplier"]]
+        row.update(
+            saved_price=f"{_decimal(saved['unit_price']):,f}",
+            saved_capacity=_integer(saved["capacity"]),
+            saved_moq="None"
+            if saved["minimum_order"]["quantity"] is None
+            else _integer(saved["minimum_order"]["quantity"]),
+            saved_date=_required_string(saved, "promised_date"),
+            saved_available="Available" if saved["available"] else "Unavailable",
+            saved_ranges=(
+                f"Price {_integer(saved['price_quantities']['minimum'])}–"
+                f"{_integer(saved['price_quantities']['maximum'])}; "
+                f"delivery {_integer(saved['delivery_quantities']['minimum'])}–"
+                f"{_integer(saved['delivery_quantities']['maximum'])}"
+            ),
+        )
+    policy = request["policy"]
+    concentration = policy["concentration_limit"]
     details = {
         "case_id": expected_id,
         "parent_id": parent or "Base case",
@@ -284,6 +306,20 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         "base_exposure": "Not comparable",
         "scenario_exposure": "Not comparable",
         "assumptions": "",
+        "policy": (
+            f"Maximum suppliers: {_integer(policy['max_suppliers'])}. "
+            + (
+                "No concentration limit. "
+                if concentration is None
+                else f"Maximum share per supplier: {_decimal(concentration) * 100:g}%. "
+            )
+            + "Alternative cost allowances: "
+            + (", ".join(f"{_decimal(e) * 100:g}%" for e in policy["epsilons"]) or "none")
+            + "."
+        ),
+        "alternative_notice": "",
+        "chart_min_cost": "",
+        "chart_max_cost": "",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
     }
     comparison = snapshot["comparison"]
@@ -369,11 +405,35 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     plans, allocations = [], []
     minimum = result["minimum_cost_plan"]
     recorded = ([] if minimum is None else [minimum]) + result["alternatives"]
+    if recorded:
+        costs = [_decimal(p["total_cost"]) for p in recorded]
+        if any(cost <= 0 for cost in costs):
+            raise ValueError("Invalid recorded plan cost")
+        low, high = min(costs), max(costs)
+        details["chart_min_cost"] = f"{low:,f} {currency}"
+        details["chart_max_cost"] = f"{high:,f} {currency}"
+        if len(recorded) == 1:
+            details["alternative_notice"] = (
+                "Alternative search did not finish successfully. Only the proven minimum-cost "
+                "plan is shown; this does not establish that no alternative exists."
+                if status != "optimal"
+                else "No distinct alternative was found within the recorded cost allowances."
+                if policy["epsilons"]
+                else "No alternatives were requested for this case."
+            )
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
+        exposure = _ratio(plan["risk_exposure"])
+        if not 0 <= exposure <= 1:
+            raise ValueError("Invalid recorded exposure")
         plans.append(
             {
                 "label": label,
+                "number": str(index + 1),
+                "chart_x": "50%"
+                if high == low
+                else f"{100 * (_decimal(plan['total_cost']) - low) / (high - low):.4f}%",
+                "chart_y": f"{10 + 80 * (1 - exposure):.4f}%",
                 "cost": f"{_decimal(plan['total_cost']):,f} {currency}",
                 "exposure": _rational(plan["risk_exposure"]),
                 "premium": _rational(plan["cost_premium"]),
@@ -441,6 +501,10 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "model": _required_string(assessment, "model_id"),
                 "source": _required_string(feature, "source_reference"),
                 "valid_until": _parse_datetime(assessment["valid_until"]).isoformat(),
+                "quantity_range": (
+                    f"{_integer(assessment['quantities']['minimum'])}–"
+                    f"{_integer(assessment['quantities']['maximum'])} units"
+                ),
                 "path": "\n".join(
                     f"{step['feature']} = {step['value_float32']} "
                     f"{step['operator']} {step['threshold']}"

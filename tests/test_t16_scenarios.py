@@ -3,6 +3,7 @@
 import asyncio
 import json
 from copy import deepcopy
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -65,10 +66,23 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
     asyncio.run(event(state, PlanningState.run_scenario, {**form, "token": "ignored"}))
     assert not state.error_message and state.has_case and not state.has_pending
     child_id = state.details["case_id"]
+    child_terms = deepcopy(state.scenario_suppliers)
     child = json.loads(uow.rows[child_id].snapshot)
     assert state.details["parent_id"] == base["case_id"]
     assert child["assessments"] == base["snapshot"]["assessments"]
-    assert state.scenario_suppliers == original_terms
+    assert [
+        {key: row[key] for key in ("supplier", "name", "capacity", "price")}
+        for row in state.scenario_suppliers
+    ] == [
+        {key: row[key] for key in ("supplier", "name", "capacity", "price")}
+        for row in original_terms
+    ]
+    for row in state.scenario_suppliers:
+        saved = next(
+            s for s in child["request"]["suppliers"] if s["supplier_id"] == row["supplier"]
+        )
+        assert row["saved_capacity"] == str(saved["capacity"])
+        assert Decimal(row["saved_price"]) == Decimal(saved["unit_price"])
     assert child["scenario"]["kind"] == form["kind"]
     assert child["scenario"]["source"]["source_reference"] == "t16-ui-what-if-v1"
     assert state.details["base_cost"] == "102 EUR"
@@ -97,7 +111,7 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
             transport=transport,
         )
     )
-    assert not error and display.comparison_rows and display.scenario_suppliers == original_terms
+    assert not error and display.comparison_rows and display.scenario_suppliers == child_terms
     assert TOKEN not in str(state.dict()) and TOKEN not in state.recovery_json
     assert planning_page() is not None
 

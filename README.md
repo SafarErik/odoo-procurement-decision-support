@@ -35,7 +35,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
-| Buyer-facing planning workflow | T16 creates synthetic or prepared-Odoo cases at `/planning`, runs outage/capacity/demand/price/bounded combined scenarios, compares base/scenario allocations, cost, exposure and feasibility, and reopens stored results. Creation re-reads Odoo; scenarios reuse saved inputs and synthetic assessments. Arbitrary quotation discovery and full T16 acceptance remain open; approval/PDF belongs to T17. |
+| Buyer-facing planning workflow | T16 controlled implementation is complete locally: synthetic/prepared-Odoo creation, all five bounded stress types, saved plan cost/exposure chart, allocation comparisons, tree explanations, saved input/provenance audit and stored retrieval. Local functional acceptance passes; user testing and publication of the final diff remain pending. Arbitrary quotation discovery and observed-model promotion are separate open capabilities; approval/PDF belongs to T17. |
 
 **Publication:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
@@ -43,16 +43,18 @@ merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
 checks passed. T16 [PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
-is open at `ad8aeb2358470fba2fa386851bd140b70f72dbfb`; its
-[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183516)
-and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37779183536)
-checks passed, covering prepared-Odoo creation. The new scenario/comparison diff
-remains local and uncommitted on the same branch; those hosted checks do not cover it.
+is open at `0a2cafbacef4adf45f97902df56d7aace21d8786`; its
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351589)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351546)
+checks passed, covering the published scenario/comparison workflow. The final
+chart/input-audit/acceptance diff remains local and uncommitted on the same branch;
+those hosted checks do not cover it. The [T16 acceptance record](docs/T16_HANDOFF.md)
+records 516 passing fast tests and fresh browser/API/PostgreSQL evidence.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
-probability. Odoo-derived ML history/model promotion, the remaining frontend, approval/PDF and
-full local demonstration remain open. Historical checks, Podman forwarding failures
+probability. Odoo-derived ML history/model promotion, approval/PDF and
+full V2 demonstration/evaluation remain open. Historical checks, Podman forwarding failures
 and skipped live/browser gates remain in the [implementation log](docs/IMPLEMENTATION_LOG.md)
 and handoffs. Fresh PostgreSQL and loopback HTTP demo verification now covers the
 audit fixes and shared fixture preparation; [T15 handoff](docs/T15_HANDOFF.md)
@@ -64,7 +66,8 @@ repository with upstream calls disabled. After local configuration recovery, the
 user confirmed the synthetic stored case displays through Reflex; independent live
 API GET against actual PostgreSQL returned 200. This is stored retrieval acceptance,
 not a fresh Odoo acquisition or complete V2 browser flow. The prior hybrid report
-exists locally, but its case is absent from the currently connected demo database.
+existed locally, but its case was absent from the database at that earlier recovery.
+That historical limitation is separate from the fresh persisted T16 cases below.
 
 The next T16 slice now also passes a real Reflex -> FastAPI -> PostgreSQL
 controlled creation/outage flow: EUR 102/109 base plans and EUR 106 after the
@@ -79,11 +82,19 @@ fixed prepared comparison, with captured prices checked again during creation;
 it is not arbitrary live quotation discovery. See the
 [Odoo UI walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace).
 
-The next local increment exposes all five supported scenario types and stored
+The published scenario increment exposes all five supported scenario types and stored
 base/scenario comparisons. Browser/PostgreSQL checks reuse the saved hybrid base
 with Odoo acquisition and inference disabled. What-if prices remain assumptions;
 demand comparisons explicitly distinguish different total quantities. See the
 [scenario walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#what-if-scenarios-and-stored-comparisons).
+
+The final local T16 increment adds the saved cost/exposure chart, explicit
+no-distinct-alternative handling and saved input/policy audit. Fresh controlled
+Odoo creation, all five scenarios, infeasibility, synthetic creation, stored GET,
+service failure and mobile chart checks pass. See the
+[short user validation sequence](docs/LOCAL_DEVELOPMENT_AND_SSH.md#t16-final-user-validation).
+This closes local functional acceptance for the controlled cockpit, not the
+approval/PDF portions of FR-V2-09 or full V2 acceptance. Drive remains unchanged.
 
 ## Architecture and code map
 
@@ -96,7 +107,7 @@ demand comparisons explicitly distinguish different total quantities. See the
 | `optimization_adapter/` | PuLP/CBC implementation behind that port |
 | `persistence/`, `migrations/` | Own PostgreSQL snapshots and explicit Alembic migrations |
 | `backend/` | FastAPI contracts, errors and dependency composition |
-| `frontend/` | Separate Reflex API clients; RFQ ledger and controlled create/outage/retrieval workspace |
+| `frontend/` | Separate Reflex API clients; RFQ ledger and controlled creation/scenario/comparison/retrieval workspace |
 | `tests/`, `.github/workflows/` | Fast, database/service and controlled-live verification |
 | `infra/` | Odoo stack/addon and separate disposable persistence-test service |
 | `docs/`, `tools/` | Designs/evidence and isolated non-runtime evaluation tooling |
@@ -137,16 +148,17 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the scenario/comparison workflow, then commit and
-   publish under the user's control; verify CI for the resulting exact SHA.
-2. Assess the controlled workflow against T16 acceptance requirements before closure.
+1. Repeat the short T16 validation sequence, then commit and publish the final diff
+   under the user's control; verify CI for the resulting exact SHA before merge.
+2. Synchronize the Hungarian Drive status on explicit request after user validation,
+   then plan T17 human approval/no-award and approved-snapshot PDF.
    Arbitrary Odoo quotation discovery is not implemented by the prepared flow;
    do not silently treat it or observed-model promotion as accepted.
    [The compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains live
    Odoo quotations plus synthetic ML history with independent provenance; matching
    observed receipts/model promotion stays separately open.
-3. Complete T16 acceptance, then T17 V2 approval/PDF and a complete
-   local demonstration. Keep unresolved integration dependencies visible.
+3. Implement T17 and complete the local demonstration. Keep unresolved observed
+   history/model integration dependencies visible; the full UI revamp comes later.
 4. Complete T18 system evaluation and T19 thesis closure against the accepted
    requirements. Plan the next small capability in detail; later work stays indicative.
 

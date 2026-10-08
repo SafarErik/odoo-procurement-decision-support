@@ -902,6 +902,119 @@ def _recorded_plan(plan: rx.Var[dict[str, str]]) -> rx.Component:
     )
 
 
+def _plan_tradeoff_chart() -> rx.Component:
+    return rx.box(
+        rx.heading("Cost and schedule-watch exposure", as_="h2", size="5"),
+        rx.text(
+            "Each point is a saved plan for the same demand. Left costs less; lower means "
+            "less exposure in this simulation. Exposure is not a failure probability.",
+            color=MUTED,
+            size="2",
+            max_width="72ch",
+            margin_top="0.5rem",
+        ),
+        rx.box(
+            *[
+                rx.box(
+                    rx.text(
+                        label,
+                        position="absolute",
+                        right="100%",
+                        padding_right="0.5rem",
+                        transform="translateY(-50%)",
+                        size="1",
+                        color=MUTED,
+                    ),
+                    position="absolute",
+                    top=top,
+                    width="100%",
+                    border_top=f"1px solid {HAIRLINE}",
+                )
+                for label, top in (("100", "10%"), ("50", "50%"), ("0", "90%"))
+            ],
+            rx.foreach(
+                PlanningState.plans,
+                lambda plan: rx.box(
+                    plan["number"],
+                    position="absolute",
+                    left=plan["chart_x"],
+                    top=plan["chart_y"],
+                    transform="translate(-50%, -50%)",
+                    width="1.75rem",
+                    height="1.75rem",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                    border_radius="50%",
+                    background=AUBERGINE,
+                    color=SURFACE,
+                    font_size="0.8rem",
+                    font_weight="650",
+                    title=plan["label"] + ": " + plan["cost"] + "; " + plan["exposure_display"],
+                ),
+            ),
+            position="relative",
+            height="15rem",
+            margin_left="2rem",
+            margin_right="1rem",
+            margin_top="1rem",
+            role="img",
+            aria_label="Saved plan cost versus exposure plot. Exact values follow.",
+        ),
+        rx.flex(
+            rx.text(PlanningState.details["chart_min_cost"], size="2"),
+            rx.text(PlanningState.details["chart_max_cost"], size="2"),
+            justify="between",
+            gap="1rem",
+            flex_wrap="wrap",
+            margin_left="2rem",
+            margin_right="1rem",
+        ),
+        rx.text(
+            rx.cond(
+                PlanningState.details["chart_min_cost"] == PlanningState.details["chart_max_cost"],
+                "All shown plans have the same total cost",
+                "Total cost; axis spans the saved plan costs",
+            ),
+            size="1",
+            color=MUTED,
+            text_align="center",
+            margin_y="0.75rem",
+        ),
+        rx.box(
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell("Point / plan"),
+                        rx.table.column_header_cell("Total cost"),
+                        rx.table.column_header_cell("Exposure / 100"),
+                    )
+                ),
+                rx.table.body(
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: rx.table.row(
+                            rx.table.cell(plan["number"], ". ", plan["label"]),
+                            rx.table.cell(plan["cost"]),
+                            rx.table.cell(plan["exposure_display"]),
+                        ),
+                    )
+                ),
+            ),
+            overflow_x="auto",
+            width="100%",
+        ),
+        rx.text(
+            "Plot positions are approximate. Exact costs and exposure fractions are "
+            "available in the saved plan details.",
+            size="1",
+            color=MUTED,
+            margin_top="0.75rem",
+        ),
+        width="100%",
+    )
+
+
 def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
     return rx.box(
         rx.flex(
@@ -929,6 +1042,7 @@ def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
             rx.text("Exact supplier ID: ", row["supplier"], size="2"),
             rx.text("Recorded class: ", row["class"], " · Score: ", row["score"], size="2"),
             rx.text("Recorded validity end: ", row["valid_until"], size="2"),
+            rx.text("Recorded score applicability: ", row["quantity_range"], size="2"),
             rx.text(
                 "Synthetic history reference: ", row["source"], size="2", overflow_wrap="anywhere"
             ),
@@ -1343,6 +1457,11 @@ def _recorded_case() -> rx.Component:
             ),
         ),
         rx.cond(
+            PlanningState.details["alternative_notice"] != "",
+            rx.callout(PlanningState.details["alternative_notice"], color_scheme="gray"),
+        ),
+        rx.cond(PlanningState.plans.length() > 0, _plan_tradeoff_chart()),
+        rx.cond(
             PlanningState.details["comparison"] != "",
             _scenario_comparison(),
         ),
@@ -1374,6 +1493,46 @@ def _recorded_case() -> rx.Component:
                 rx.text("Company: ", PlanningState.details["company"]),
                 rx.text("Saved at: ", PlanningState.details["created_at"]),
                 rx.text("Simulation cutoff: ", PlanningState.details["as_of"]),
+                rx.heading("Saved inputs for this case", as_="h3", size="3"),
+                rx.text(PlanningState.details["policy"]),
+                rx.box(
+                    rx.table.root(
+                        rx.table.header(
+                            rx.table.row(
+                                *[
+                                    rx.table.column_header_cell(label)
+                                    for label in (
+                                        "Supplier",
+                                        "Unit price",
+                                        "Capacity",
+                                        "MOQ",
+                                        "Promised",
+                                        "Availability",
+                                        "Quantity applicability",
+                                    )
+                                ]
+                            )
+                        ),
+                        rx.table.body(
+                            rx.foreach(
+                                PlanningState.scenario_suppliers,
+                                lambda row: rx.table.row(
+                                    rx.table.cell(row["name"]),
+                                    rx.table.cell(
+                                        row["saved_price"], " ", PlanningState.details["currency"]
+                                    ),
+                                    rx.table.cell(row["saved_capacity"]),
+                                    rx.table.cell(row["saved_moq"]),
+                                    rx.table.cell(row["saved_date"]),
+                                    rx.table.cell(row["saved_available"]),
+                                    rx.table.cell(row["saved_ranges"]),
+                                ),
+                            )
+                        ),
+                    ),
+                    overflow_x="auto",
+                    width="100%",
+                ),
                 rx.text(
                     "Snapshot hash: ",
                     PlanningState.details["snapshot_hash"],

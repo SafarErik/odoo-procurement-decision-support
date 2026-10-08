@@ -1,6 +1,92 @@
 # T16: controlled procurement workspace
 
-## Current status — 2026-10-08, scenario controls and comparison
+## Current status — 2026-10-08, controlled T16 locally complete
+
+The controlled cockpit implementation is complete and local functional acceptance
+passes. User testing, publication of this final diff and its exact-HEAD CI remain
+pending; T16 is not merged and full V2 acceptance is not claimed. Drive was read
+to check the accepted requirements and was not edited. The requirements baseline
+is [06_REQUIREMENTS_BASELINE](https://docs.google.com/document/d/1g0zie-3mEWdrkiBMUET--ST8eCdmOPOVfyjyWXr_Iig/edit).
+AC-V2-09 is locally satisfied for the controlled cockpit. FR-V2-09's human
+approval/PDF behavior still belongs to T17; AC-V2-11/12/13 remain open.
+
+### Final change and publication boundary
+
+Add a responsive native HTML/CSS cost-versus-exposure plot using saved plans only,
+with a numbered key, exact decimal money, approximate positions and fixed 0–100
+exposure scale. No new chart package, backend endpoint, migration, model/solver
+algorithm or runtime training was added. Cards retain exact exposure/premium
+fractions. A single-plan result explicitly distinguishes no distinct alternative,
+no requested alternatives and an incomplete alternative search. Infeasible cases
+have no chart or fabricated zero metrics. Coincident points may overlap; every
+saved plan remains individually listed in the key/cards.
+
+The input audit now shows the current saved price, capacity, MOQ, promised date,
+availability and price/delivery applicability, plus policy and recorded ML
+quantity applicability. Scenario controls retain original-base terms independently
+of those saved child inputs. GET/chart display never reacquires Odoo facts,
+loads a model or solves a plan. Existing API/recovery and server-only token
+boundaries remain unchanged.
+
+Published PR [#18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
+is open at `0a2cafbacef4adf45f97902df56d7aace21d8786`. Its exact-HEAD
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351589)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351546)
+runs are independently verified successful. They cover the published five-scenario
+workflow, not this final local chart/audit/acceptance diff. Changes remain unstaged,
+uncommitted and unpushed. Historical records below retain their original boundaries.
+
+### Controlled acceptance matrix
+
+| Requirement / check | Actual evidence and scope |
+| --- | --- |
+| Case creation and input review, FR-V2-01/09 | Fresh Reflex -> FastAPI -> read-only Odoo -> saved synthetic model -> unchanged MILP -> actual PostgreSQL: Q=200, USD 1,850/2,200. Captured quotation preview and supplied business terms remain separate; FastAPI independently re-reads group/currency before creation. Pure synthetic browser creation also passes at Q=10, EUR 102/109, using its matching owner-configured domain. |
+| Plans, allocations, charts, FR-V2-06/09 | Chart/key/cards show USD 1,850 at 75.0/100 versus USD 2,200 at 48.3/100, exact money/premium and saved allocations. Outage/combined single-plan results display the explicit no-distinct-alternative message. Focused checks cover equal costs, endpoint exposure, close decimal costs, incomplete search and missing plans. |
+| Explanation and input provenance, FR-V2-07/09 | Actual saved tree branches, history window, supplier classes, saved input/policy table, field sources and score applicability are visible. Sources remain Odoo quotations + supplied terms + separately synthetic history. |
+| All five stress types, FR-V2-08/09 | Fresh browser children: outage USD 2,200; capacity 100 USD 2,200; demand 220 USD 2,040; price 11.00 USD 2,150; combined demand 220 + capacity 100 USD 2,400. Every child targets the original base, including when submitted from another child. Acquisition/inference are forbidden on the isolated API during this stage; saved assessments are reused. |
+| Infeasibility, loading and errors, FR-V2-09 | Demand 500 saves infeasible with no chart, invented allocations or cost comparison. Browser loading is visible and controls are disabled. One-change combined input is rejected before POST. Stopping only the agent API gives the safe service error and clears prior chart/case; tests also cover invalid UUIDs, auth/not-found/malformed snapshots and definite/uncertain POST outcomes. |
+| Immutable persistence/retrieval, FR-V2-10 | Independent HTTP GET from actual PostgreSQL verifies all children, original parent, unchanged base hash and identical saved facts/assessments. User API on 8000 reopens the fresh base with matching hash after the isolated API is stopped. Fast tests forbid source/model/solver calls on stored GET/exact replay and verify recovery retains exact intent/key. No resetting suite was run against manual cases. |
+| Browser presentation / existing RFQs | Chart checked at 390px with no horizontal document overflow; viewport restored. Exact values remain in a table for accessibility. No visible framework connection error or browser warning/error at final successful rendering. Existing RFQ ledger reads 13 quotations / 8 vendors through the API. |
+| Required Python 3.11 checks | **516 passed, 45 integration/E2E deselected**, one upstream Starlette/httpx deprecation warning, 74.58s. Real ML training/reload/inference and bundled CBC execute. Ruff format (156 files)/lint, compileall, pip check and quiet Odoo Compose configuration pass. |
+| Frontend compilation / credential boundary | Production `reflex export --frontend-only --no-zip` passes four build stages in the isolated generated cache; compilation only. Shared token absent from 41 generated client/export files; public-state/recovery tests also pass. Browser/export reuse Python 3.14.7 / Reflex 0.9.11.post1; required validation uses Python 3.11.16 / Reflex 0.9.12. |
+
+Browser evidence and independent stored GET output are ignored under
+`.artifacts/t16-closure/`: `ids.json`, `cases.json`, `tradeoff.jpg`, `mobile.jpg`
+and `verify.py`. Fresh base `233b8b59-10cf-43ee-aaa0-61eef4a00a30` remains available
+through the user's API. Children: outage `c6cbb68b-5d8d-4171-87ee-b29f14d76f0f`,
+capacity `470b69c9-5735-4baa-b0e5-c86e1785b1be`, demand
+`c02adda1-118f-4360-9fac-e44bcac2c6d4`, price
+`40f521de-a41d-4e56-8c2a-c90a284f99ad`, combined
+`df0e619b-4b1a-4491-adcb-f2af82b53896`, infeasible
+`e87a42ae-9440-4fb3-92ab-ca96b7ecbc02`. Fresh synthetic base:
+`a8723891-cf95-45d2-b046-0246bdb6ee70`. UUIDs describe this local database;
+the prepared runbooks are the reproducible procedure for another environment.
+
+Agent preview listeners 3111/8211/8111 are stopped and the acceptance tab is closed.
+The existing user services 3000/8001/8000 and localhost-only forwarding process
+2876 on 8069/55433 remain running. No user `.env`, default prepared artifact,
+generated `.web` cache, Podman machine, container or database volume was replaced.
+The isolated preparation generated matching models offline and added eight own
+planning snapshots, without changing Odoo records. The resetting database suite,
+new-diff hosted CI, production browser run and formal accessibility audit were
+not rerun/performed; they are not implied by compilation or scoped local acceptance.
+
+### User handoff and remaining scope
+
+Repeat [T16 final user validation](LOCAL_DEVELOPMENT_AND_SSH.md#t16-final-user-validation),
+then publish and verify CI for the new exact SHA under user control. Synchronize
+Hungarian Drive documents on the user's next explicit request, then plan T17
+human approval/no-award and approved immutable snapshot PDF. No new API key or
+Odoo data entry is needed for this T16 review.
+
+Arbitrary Odoo discovery, broader multi-supplier combinations and observed receipt
+dataset/model promotion remain explicitly unimplemented. They are outside this
+controlled T16 closure, not silently accepted capabilities. Full system evaluation
+belongs to T18; the full visual redesign remains later work. The model still uses
+synthetic evidence and its score is an uncalibrated exposure proxy. No Odoo writes,
+direct Odoo database access, seeding, approval/PDF or cloud infrastructure was added.
+
+## Prior status — 2026-10-08, scenario controls and comparison
 
 The prepared-Odoo increment is now published in open PR #18 at
 `ad8aeb2358470fba2fa386851bd140b70f72dbfb`. Its

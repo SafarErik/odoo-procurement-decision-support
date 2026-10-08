@@ -52,9 +52,13 @@ reduction, demand increase, price increase and a bounded combination of demand
 and one supplier's capacity/price. Compare stored original-base allocations, cost,
 exposure and feasibility; do not present simulated prices as fresh Odoo facts or
 demand-total differences as like-for-like savings. Scenarios always target the
-original base, including from a child. Arbitrary Odoo selection, broader combined
-changes and full T16/V2 acceptance remain open;
-approval/PDF belongs to T17. See `docs/T16_HANDOFF.md`. Earlier frontend exclusions
+original base, including from a child. The final 2026-10-08 increment adds a
+stored-only cost/exposure chart, explicit single-plan outcome and saved input/policy
+audit. Controlled T16 implementation and local functional acceptance are complete;
+user validation, publication and new-HEAD CI remain pending. Arbitrary Odoo
+selection, broader combined changes, observed-model promotion and full V2 acceptance
+remain separate open capabilities; approval/PDF belongs to T17. Preserve exact
+money/fractions alongside approximate plotting coordinates. See `docs/T16_HANDOFF.md`. Earlier frontend exclusions
 below describe those historical increments.
 
 The 2026-10-07 user-authorized T15 extension supports controlled live Odoo quotations

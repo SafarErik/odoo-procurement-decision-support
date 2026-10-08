@@ -471,7 +471,7 @@ port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
 Stop your FastAPI/Reflex/tunnel processes with Ctrl+C when finished; remove the
 process-only model setting as above. Keep saved UUIDs/evidence and named volumes.
 This demonstrates live quotation acquisition with synthetic ML history. Arbitrary
-comparison discovery, observed receipt/model promotion, other scenario controls,
+comparison discovery, observed receipt/model promotion,
 approval/PDF and full V2 acceptance remain separate work.
 
 ## What-if scenarios and stored comparisons
@@ -526,6 +526,53 @@ request**, as documented earlier. Changed intent stays blocked until recovery;
 there is no automatic retry or durable recovery queue. Stop only your preview
 processes/tunnel with Ctrl+C and retain database volumes/cases. No Odoo writes,
 approval or PDF are performed.
+
+## T16 final user validation
+
+Added 2026-10-08. The controlled cockpit is implemented and locally accepted;
+this short review checks the buyer-visible result before publication. Reuse your
+running Odoo/planning database, FastAPI and Reflex, with the shared service token
+and matching Odoo-domain model configured as above. No new Odoo records, API key,
+training during requests or database reset is required. Refresh `/planning` after
+the code change; restart your Reflex process if it has not recompiled.
+
+1. **Create or reopen the Odoo base.** The default prepared Q=200 fixture gives
+   USD 1,850 and USD 2,200. Alternatively open the fresh acceptance base
+   `233b8b59-10cf-43ee-aaa0-61eef4a00a30` in the current local database; UUIDs are
+   local evidence, not portable fixtures. For new creation, review captured
+   expectations and all supplied business terms before saving.
+2. **Compare the chart and plan cards.** The lower-cost point is USD 1,850 with
+   exposure 75.0/100; the USD 2,200 point has exposure 48.3/100 and a +350 USD
+   premium. The exposure scale is fixed 0–100, not a probability. Plot positions
+   are approximate; the key/cards preserve exact decimal costs, and expandable
+   solver notes preserve exact fractions. If all costs match, points sit centrally;
+   coincident metrics can overlap, with every plan still listed in the key.
+3. **Inspect the evidence.** Expand a supplier's tree explanation and **Audit
+   details and sources**. Check saved price/capacity/MOQ/promised date/availability,
+   quantity applicability, policy, model applicability and field sources. These
+   are the saved case's inputs; scenario selectors separately show original base
+   terms. The generated ML history must remain explicitly synthetic.
+4. **Run the five scenarios** using the table above. Supplier C outage/capacity
+   100 -> USD 2,200; demand 220 -> USD 2,040; C price 11.00 -> USD 2,150; combined
+   demand 220 and C capacity 100 -> USD 2,400. A one-plan result says that no
+   distinct alternative was found within the recorded allowances. A failed
+   alternative search is described as incomplete, not proof that none exists.
+5. **Check infeasibility and retrieval.** Demand 500 saves **No feasible plan**;
+   it shows no fabricated chart or allocation. Copy the UUID, reopen it and use
+   **View base case** to return to USD 1,850/2,200. Even from a child, every rerun
+   starts from that original base; demand changes are not like-for-like savings.
+6. **Check validation.** A combined form with only one change, unchanged capacity
+   or price, or demand no higher than the base must be rejected. If a service
+   failure occurs, follow the recovery procedure above; never change pending
+   intent or generate a new key to recover an uncertain POST.
+
+The pure synthetic form still gives EUR 102/109 at Q=10 when FastAPI is restarted
+with its matching synthetic-domain model. One owner-configured domain at a time
+is intentional. Stored GET/scenarios work across those domains without choosing
+or loading a model in the browser. Your stored cases and Odoo volumes stay intact.
+Stop only processes you started, retaining the Windows forwarding tunnel while
+you continue testing. Approval/no-award/PDF, observed-model promotion and the full
+visual redesign are later work. Drive synchronization follows your validation.
 
 ### Missing generated route configuration at Reflex startup
 

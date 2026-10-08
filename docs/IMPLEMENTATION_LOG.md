@@ -1,5 +1,73 @@
 # Implementation log
 
+## Controlled T16 cockpit completion and local acceptance (2026-10-08)
+
+**Problem:** creation, five scenarios and retrieval were available, but the cockpit
+lacked the required cost/exposure chart, an explicit single-plan outcome and a
+consolidated requirements-to-evidence record. Saved cases also needed a clear view
+of the actual terms/policy used, independently of the original-base scenario controls.
+
+**Decision -> behavior:** reuse native Reflex/HTML/CSS and the existing saved API
+response. Add a numbered cost-versus-exposure plot/key with exact decimal costs,
+approximate positions and fixed 0–100 exposure scale. Preserve exact fractions in
+solver details; do not recalibrate/recompute model scores or plans. Distinguish no
+distinct alternative, no requested alternatives and incomplete alternative search.
+Infeasibility produces no chart/fabricated zero values. The audit shows saved price,
+capacity, MOQ, promised date, availability, applicability and policy; selectors
+retain original base terms. Validate the saved supplier join and exposure bounds.
+No endpoint, dependency, migration, model/solver algorithm or Odoo write was added.
+
+**Evidence:** required Python 3.11 fast suite **516 passed, 45 integration/E2E
+deselected**, one upstream Starlette/httpx warning, 74.58s; actual offline training,
+saved reload/inference and bundled CBC execute. Ruff format/lint, compileall,
+pip check, quiet Odoo Compose config and patch whitespace pass. The first focused
+run caught four stale test assertions equating all displayed child terms with base
+terms; assertions now separately check unchanged controls and actual saved child
+inputs. Focused follow-ups pass; the final full suite covers the corrected tests.
+Production frontend-only export passes four stages. Shared token absent from 41
+generated client/export files, with public state/recovery boundary checks passing.
+
+Fresh real browser/API/PostgreSQL acceptance creates the Odoo quotation base
+`233b8b59-10cf-43ee-aaa0-61eef4a00a30`: USD 1,850/2,200, exposure 75.0/48.3 out of
+100. Odoo is read-only; business terms and synthetic ML history retain independent
+provenance. Restarting the agent API with acquisition/inference forbidden still
+saves all five children: outage 2,200; capacity 100 -> 2,200; demand 220 -> 2,040;
+price 11.00 -> 2,150; combined demand 220 + capacity 100 -> 2,400 USD. Demand 500
+is stored infeasible without fabricated comparisons/chart. One-change combined
+input is rejected before POST. Independent GET verifies original parents, identical
+saved facts/assessments and unchanged base hash. Existing user API on 8000 reopens
+the fresh base with HTTP 200 and matching hash. Pure synthetic browser creation
+with its matching model gives EUR 102/109, base `a8723891-cf95-45d2-b046-0246bdb6ee70`.
+
+Browser evidence covers chart/key, actual tree path, saved input/provenance audit,
+single-plan message, loading/disabled controls, stored reopening and unavailable
+API clearing prior results. At 390px there is no horizontal document overflow;
+viewport restored. No visible framework connection notice or final console
+warning/error. Existing RFQ ledger still reads 13 RFQs / 8 vendors. UUIDs, snapshots
+and screenshots are ignored in `.artifacts/t16-closure/`; the
+[T16 handoff](T16_HANDOFF.md) owns the acceptance matrix and full case list.
+
+**Publication/runtime:** open PR #18 at `0a2cafbacef4adf45f97902df56d7aace21d8786`
+has independently verified successful Quality `37806351589` and Container/API
+`37806351546`. They cover the earlier published scenario workflow, not this local
+closure diff. No staging, commit, push, merge or Drive edit occurred. Validation
+uses Python 3.11.16 / Reflex 0.9.12; browser/export reuse Python 3.14.7 / Reflex
+0.9.11.post1. Agent previews on 3111/8211/8111 are stopped; user services and
+forwarding tunnel 2876 remain running. Existing configuration, generated user
+cache, Odoo data and volumes are preserved. Eight new own planning snapshots were
+saved; no reset suite was run against manual cases.
+
+**Limit -> next -> chapter relevance:** controlled T16 implementation and local
+AC-V2-09 acceptance are complete, pending user validation/publication/new-HEAD CI.
+FR-V2-09 approval/PDF and AC11/12/13 remain open. Arbitrary discovery, broader
+combinations and observed dataset/model promotion remain separate unimplemented
+capabilities; synthetic exposure is not a calibrated failure probability. No
+production browser run or formal accessibility audit is claimed. The full visual
+revamp stays later. User validation -> explicit Hungarian Drive synchronization ->
+T17 approval/no-award and approved-snapshot PDF planning. This record supports
+frontend/integration architecture, explainability, verification and limitations
+chapters; historical status/checks below remain unchanged.
+
 ## User-session localhost recovery (2026-10-08)
 
 The user's FastAPI starts successfully, but RFQ GET returns 503 and stored planning
