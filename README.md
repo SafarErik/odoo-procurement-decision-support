@@ -36,7 +36,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
-| Buyer-facing planning workflow | T16 controlled implementation is complete locally: synthetic/prepared-Odoo creation, all five bounded stress types, saved plan cost/exposure chart, allocation comparisons, tree explanations, saved input/provenance audit and stored retrieval. Local functional acceptance passes; user testing and publication of the final diff remain pending. Arbitrary quotation discovery and observed-model promotion are separate open capabilities; approval/PDF belongs to T17. |
+| Buyer-facing planning workflow | T16 now presents a procurement cockpit with separate Plans, What-if, Suppliers and Audit views, a direct cost/exposure trade-off, draft scenario assumptions, original-value validation and an in-app test guide. Synthetic/prepared-Odoo creation, five stress types and stored retrieval retain the existing API. User acceptance/publication of the usability revision remain pending. Observed-model promotion and arbitrary quotation discovery remain separate; approval/PDF belongs to T17. |
 
 **Publication:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
@@ -44,12 +44,14 @@ merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
 checks passed. T16 [PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
-is open at `0a2cafbacef4adf45f97902df56d7aace21d8786`; its
+was previously verified open at `0a2cafbacef4adf45f97902df56d7aace21d8786`; its
 [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351589)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37806351546)
 checks passed, covering the published scenario/comparison workflow. The final
-chart/input-audit/acceptance diff remains local and uncommitted on the same branch;
-those hosted checks do not cover it. The [T16 acceptance record](docs/T16_HANDOFF.md)
+chart/input-audit/acceptance increment was subsequently committed by the user;
+local HEAD is now `02c359ca1920a55ac20e510a1a992785257fc680`. Hosted checks for
+that SHA were not refreshed during the cockpit revision, whose changes remain local.
+Those earlier hosted checks do not cover this revision. The [T16 acceptance record](docs/T16_HANDOFF.md)
 records 516 passing fast tests and fresh browser/API/PostgreSQL evidence.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
@@ -94,8 +96,9 @@ no-distinct-alternative handling and saved input/policy audit. Fresh controlled
 Odoo creation, all five scenarios, infeasibility, synthetic creation, stored GET,
 service failure and mobile chart checks pass. See the
 [short user validation sequence](docs/LOCAL_DEVELOPMENT_AND_SSH.md#t16-final-user-validation).
-This closes local functional acceptance for the controlled cockpit, not the
-approval/PDF portions of FR-V2-09 or full V2 acceptance. Drive remains unchanged.
+This was the earlier local functional acceptance. User feedback reopened T16 for
+usability and maintainability; the current cockpit revision is recorded separately
+in the handoff. Approval/PDF and full V2 acceptance remain open. Drive remains unchanged.
 
 ## Architecture and code map
 

@@ -80,7 +80,7 @@ def test_odoo_creation_lost_response_exact_recovery_outage_and_get(
             transport=httpx.MockTransport(lose_response),
         )
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     form.update({"token": "ignored", "unit_price": "0", "model_directory": "ignored"})
     asyncio.run(event(state, PlanningState.create_odoo, form))
     assert state.has_pending and not state.has_case and len(uow.rows) == 1
@@ -117,8 +117,9 @@ def test_odoo_creation_lost_response_exact_recovery_outage_and_get(
     asyncio.run(
         event(
             state,
-            PlanningState.run_outage,
+            PlanningState.run_scenario,
             {
+                "kind": "supplier_outage",
                 "supplier": payload["controlled_input"]["suppliers"][-1]["supplier_id"],
             },
         )
@@ -150,7 +151,7 @@ def test_changed_odoo_price_rejected_without_persistence(configured, prepared_st
             url, body, key, token, transport=httpx.ASGITransport(app=app)
         )
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     asyncio.run(event(state, PlanningState.create_odoo, form))
     assert not uow.rows and not state.has_case and not state.has_pending
     assert "re-prepare" in state.error_message
@@ -172,7 +173,7 @@ def test_changed_odoo_price_rejected_without_persistence(configured, prepared_st
 )
 def test_invalid_terms_never_post(prepared_state, monkeypatch, field, value):
     state, form = prepared_state
-    monkeypatch.setattr("frontend.app.submit_planning_request", forbidden)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", forbidden)
     asyncio.run(event(state, PlanningState.create_odoo, {**form, field: value}))
     assert state.error_message and not state.has_pending and not state._pending
 
@@ -185,7 +186,7 @@ def test_blank_moq_and_changed_terms_are_explicit(prepared_state, monkeypatch):
         captured.append(payload)
         return None, "Unavailable", True
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     form.update({"odoo:res.partner:301_moq": "", "odoo:res.partner:301_capacity": "0"})
     asyncio.run(event(state, PlanningState.create_odoo, form))
     supplier = captured[0]["controlled_input"]["suppliers"][0]

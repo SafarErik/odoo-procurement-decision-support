@@ -1,5 +1,51 @@
 # Implementation log
 
+## T16 procurement cockpit usability and decomposition (2026-10-08)
+
+**Problem:** functional success left buyers interpreting raw IDs, long tree/solver
+records, sparse chart points and a generic scenario rejection. The single Reflex
+module also mixed the RFQ ledger, HTTP state and all planning components.
+
+**Decision:** revise the buyer workflow within the existing controlled scope.
+Use separate Plans / What-if / Suppliers / Audit views, full-width Odoo input
+review, direct cost/exposure wording, original-value scenario validation and an
+embedded reproducible test guide. Split source by responsibility rather than
+introducing a frontend framework, chart dependency or backend abstraction.
+
+**Implemented behavior:** `frontend/app.py` composes pages; `rfq_page.py` owns the
+ledger; `planning/` owns state, inputs, scenarios, saved results, audit and layout.
+The unified composer includes outage and preserves original-base targeting,
+immutable children and exact uncertain-request recovery. Supplier conditions are
+readable while exact branch records remain available. Captured Odoo quotations
+are labelled as captured; synthetic history/model provenance remains explicit.
+
+**Evidence:** final Python 3.11 fast suite 521 passed / 45 deselected, one existing
+Starlette/httpx deprecation warning, final run 61.01s; actual ML/CBC execute. Ruff format/lint,
+compileall, pip check and Compose config pass. A failed initial fixture-temp probe
+lacked its parent directory; focused checks pass after creating the documented
+isolated directory. The Compose provider initially lacked PATH and passes using
+the existing local environment. Browser critique caught and corrected stacked
+desktop plan cards, a premature uncertain-save notice, comparison placement and
+Reflex numeric event types; final draft inputs retain exact text without new warnings.
+Actual read-only Odoo creation saves USD 1,850/2,200; all five scenarios and
+infeasibility pass through the original-base PostgreSQL flow with acquisition and
+inference forbidden. Independent HTTP retrieval verifies eight cases and unchanged
+base evidence across nine cases; separate synthetic browser creation saves EUR
+102/109, mobile layouts do not overflow and the RFQ ledger still works.
+Production frontend export passes four stages; shared token absent from 39
+generated client/export files. The stopped-agent-backend browser check clears the
+previous result and shows the safe service error. Only agent previews were closed;
+the user's services, containers, tunnel and saved records remain available.
+See [T16 handoff](T16_HANDOFF.md) for exact scope, IDs and remaining gates.
+
+**Limitations / thesis relevance:** this strengthens the implemented web interface,
+explanation and reproducible decision-process evaluation (FR-V2-07/08/09/10), not
+observed ML validity or full V2 acceptance. Snapshot business names are absent;
+neutral readable labels retain exact identities for audit. Odoo mock receipts
+would still be synthetic evidence. User acceptance, publication/new-diff CI and
+Hungarian Drive synchronization remain pending; T17 approval/PDF follows planning.
+No Odoo writes, observed-model promotion, commit, push or merge occurred.
+
 ## Repeated local planning unavailability: machine/container/tunnel recovery (2026-10-08)
 
 **Problem -> cause:** the user's stored-case view reports planning data unavailable.

@@ -37,7 +37,7 @@ def configured(stored_cases, monkeypatch):
         calls.append((url, deepcopy(body), key))
         return await submit_planning_request(url, body, key, token, transport=transport)
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     state = PlanningState(_reflex_internal_init=True)
     state._show(_map_case(base, base["case_id"]))
     return state, uow, base, calls, transport
@@ -180,7 +180,7 @@ def test_lost_response_recovers_exact_scenario_without_solving_again(configured,
             url, payload, key, token, transport=httpx.MockTransport(lose_first)
         )
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     form = {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"}
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.has_pending and len(uow.rows) == count + 1

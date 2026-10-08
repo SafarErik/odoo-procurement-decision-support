@@ -1,0 +1,10 @@
+"""Shared workspace palette."""
+
+PAPER = "#EFF3F6"
+SURFACE = "#FFFFFF"
+INK = "#243746"
+MUTED = "#526575"
+ACCENT = "#2457C5"
+CONNECTED = "#167466"
+HAIRLINE = "#D4DEE7"
+ERROR = "#A43E47"

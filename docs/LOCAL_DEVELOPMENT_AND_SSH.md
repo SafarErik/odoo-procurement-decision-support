@@ -371,6 +371,65 @@ process-only model setting with
 Follow the persistence guide for database/tunnel cleanup when finished. Keep saved
 case IDs/evidence. No Odoo writes, approval or PDF are performed by this slice.
 
+## Procurement cockpit: a short test with expected outcomes
+
+Updated 2026-10-08 after usability feedback. The earlier walkthroughs below record
+the preceding layout; the cockpit now uses **Saved case / Odoo / Demo** to start,
+then **Plans / What-if / Suppliers / Audit** for the loaded result. Open the
+in-app **What should I test?** guide for the same workflow.
+
+Start only FastAPI, Reflex and the planning PostgreSQL service for saved-case and
+scenario testing. Odoo is needed for new Odoo case creation, not saved retrieval
+or stress scenarios. Keep the Podman machine and any forwarding tunnel running.
+If dependencies fail, use [the recovery checklist](#planning-data-unavailable-recover-the-local-stack).
+There is no new setup command or infrastructure for this UI revision.
+After switching to this revised source, restart Reflex from `frontend/` using
+`reflex run` in your existing activated frontend environment, then reload the
+browser. State/component module paths changed; reopening your saved case avoids
+carrying an old browser session across that change. FastAPI needs no source restart
+for this frontend revision. The fresh local case
+`400a2b2f-7625-4876-a1e5-7f2eb7e255c7` has the same documented Q=200 result.
+
+The existing controlled Odoo base case `e183f917-fc33-4e28-a7a8-0aea22679176`
+can be reopened if it remains in your local planning database. A UUID is not a
+fixture generator: if that case is absent, create a new case using the prepared
+comparison procedure below. Expected amounts here apply to the documented fixture
+(200 units, prices 10/12/9 USD, capacities 120/100/160, MOQ 50/100/150).
+
+| Action | Where to look / expected result |
+| --- | --- |
+| Saved case: paste the base UUID and Load stored case | Plans shows USD 1,850 (Supplier 51: 50; Supplier 53: 150) and USD 2,200 (Supplier 51: 100; Supplier 52: 100). Each split totals 200. |
+| Read the blue comparison sentence | The alternative adds USD 350 / 18.9% and reduces simulated exposure from 75.0 to 48.3, or 26.7 points. This is not a failure probability. |
+| Audit: inspect saved inputs and policy | Check price, capacity, MOQ, dates, unit identity, maximum 2 suppliers, 80% share and 20% alternative allowance. Raw IDs and exact fractions remain available. |
+| What-if: Capacity reduction, Supplier 52, enter 200 | Rejected: its original capacity is 100. The field requires a reduction; no case is created. |
+| What-if: Capacity reduction, Supplier 53, enter 100 | New saved scenario: USD 2,200, allocations 100/100/0. Capacity below that supplier's MOQ makes it unusable; the original base remains unchanged. |
+| What-if: Supplier outage, Supplier 53 | New scenario: USD 2,200 and allocations 100/100/0. |
+| What-if: Demand increase, enter 220 | USD 2,040 minimum, allocations 60/0/160. Demand differs, so the total-cost change is not a like-for-like saving. |
+| What-if: Price increase, Supplier 53, enter 11 | USD 2,150 minimum. The new price is a scenario assumption, not an updated Odoo quote. |
+| What-if: Combined changes, Supplier 53, demand 220 and capacity 100; leave price blank | USD 2,400 minimum, allocations 120/100/0. Two changes are required. |
+| What-if: Demand increase, enter 500 | Saved No feasible plan. No invented allocations, chart points or zero-valued cost/exposure. View the base again to recover the original comparison. |
+| Copy a child case ID and reopen it through Saved case | Same costs, allocations and Audit snapshot hash. Viewing does not call Odoo, run the Decision Tree or solve MILP. |
+| Suppliers: expand a classification path and the training explanation | Readable branch conditions lead to the saved class; exact float32 inputs/thresholds remain in Exact tree record. Histories are explicitly synthetic. |
+
+Scenarios always start from the original base, including when viewing a child.
+The draft shows assumptions before saving; it does not promise feasibility.
+After saving, the comparison appears first in What-if. If a POST response is
+uncertain, keep the tab open and use **Retry the same request**. Do not alter the
+payload/key; copy its recovery record before leaving. Never reset this database
+to troubleshoot a display error.
+
+The Decision Tree uses generated prior on-time delivery rate and completed-receipt
+count, trained offline. Its next-30-day label requires five complete future outcomes
+and flags Schedule watch at two or more late deliveries. Separate supplier groups
+and a time boundary prevent leakage across the controlled training/test split.
+The leaf's class-1 training proportion becomes an uncalibrated score. MILP exposure
+is `sum(allocated_quantity * saved_score) / demand`, shown on a 0–100 scale.
+Mock receipts entered in Odoo still provide synthetic evidence. Observed training
+requires documented extraction, cutoffs/availability, complete labels, compatible
+model scope and held-out evaluation in a separate increment; it is not part of
+this frontend test. Approval/PDF follows in T17. Drive synchronization follows
+user acceptance and is not implied by repository documentation changes.
+
 ## Controlled Odoo planning workspace
 
 Added 2026-10-08. This uses the prepared three-quotation comparison from T15,

@@ -34,6 +34,14 @@
 
 ## Current V2 scope and historical increments
 
+The 2026-10-08 user-authorized T16 usability revision decomposes Reflex into
+`frontend/planning/` state, input, scenario, result, audit and page modules, with
+`frontend/app.py` as composition root. Preserve the separate Plans/What-if/Suppliers/
+Audit workflow, readable explanations with exact saved values available, scenario
+drafts and original-base validation. Verify visual changes in the built-in browser,
+including mobile and errors. Keep synthetic model evidence explicit; frontend
+work does not authorize populating Odoo or promoting an observed model.
+
 T16 now authorizes controlled synthetic case creation, all five existing stress
 scenario types and stored-only retrieval in Reflex at `/planning`, through existing HTTP
 routes. Reuse the offline prepared demo request; never train or load a model in

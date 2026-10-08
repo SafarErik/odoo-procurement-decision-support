@@ -189,7 +189,7 @@ def test_hybrid_provenance_and_exact_money_are_presented_without_relabelling(sto
         )
     )
     assert not error and display.plans[0]["cost"] == "102.001 EUR"
-    assert display.details["input_kind"] == "Live Odoo quotations; synthetic ML history"
+    assert display.details["input_kind"] == "Captured Odoo quotations; synthetic ML history"
     assert display.provenance[0]["type"] == "odoo_json2"
 
 
@@ -214,7 +214,7 @@ def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, m
         assert token == TOKEN and case_id == payload["case_id"]
         return next(outcomes)
 
-    monkeypatch.setattr("frontend.app.fetch_planning_case", fetch)
+    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", fetch)
     monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
     state = PlanningState(_reflex_internal_init=True)
 
@@ -269,7 +269,7 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
             url, body, key, token, transport=httpx.MockTransport(lose_first_response)
         )
 
-    monkeypatch.setattr("frontend.app.submit_planning_request", post)
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
     state = PlanningState(_reflex_internal_init=True)
     PlanningState.prepare_demo.fn(state)
     assert state.demo_ready and state.demo_offers
@@ -309,7 +309,10 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
     for name in ("infer_planning_features", "resolve_odoo_planning_input"):
         monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
     asyncio.run(
-        event(PlanningState.run_outage, {"supplier": payload["suppliers"][0]["supplier_id"]})
+        event(
+            PlanningState.run_scenario,
+            {"kind": "supplier_outage", "supplier": payload["suppliers"][0]["supplier_id"]},
+        )
     )
     assert state.details["parent_id"] == base_id and state.details["base_id"] == base_id
     assert state.plans[0]["cost"] == "106 EUR" and len(uow.rows) == 2

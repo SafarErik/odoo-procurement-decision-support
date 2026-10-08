@@ -1,6 +1,86 @@
 # T16: controlled procurement workspace
 
-## Current status — 2026-10-08, controlled T16 locally complete
+## Current status — 2026-10-08, cockpit usability revision
+
+User feedback reopened T16 after the functional checks below: the report layout
+did not make the buyer's next action, cost/exposure trade-off or test procedure
+clear enough. This revision keeps the thesis baseline and existing API/model/MILP/
+persistence contracts. It changes presentation and frontend organization.
+
+- **Workflow:** Start with Saved case / Odoo / Demo, then use Plans / What-if /
+  Suppliers / Audit. Odoo input review gets full width; a successful save returns
+  to the comparison. The embedded test guide and
+  [expected-outcome walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#procurement-cockpit-a-short-test-with-expected-outcomes)
+  explain what to enter and inspect.
+- **Decisions:** the UI states the extra cost and simulated exposure difference
+  directly; the plot is compact, with exact money and a table key. Plan quantities
+  are visible before solver detail. The USD 350 premium reduces synthetic exposure
+  by 26.7 points for the documented Q=200 case; it is not a failure probability.
+- **Scenarios:** one composer supports the five existing types, original supplier
+  terms, draft changes and specific validation errors. Draft inputs reset on a
+  supplier/type change; uncertain saves freeze intent and require explicit replay.
+  Saved base/scenario comparisons appear before the form. Demand changes retain
+  the different-total-quantities warning; infeasibility fabricates no metrics.
+- **Supplier explanation:** rounded branch conditions lead to the saved class;
+  exact float32 values/thresholds, model identity and provenance remain available.
+  The training explanation documents generated histories, two features, the
+  next-30-day label, separated supplier/time partitions and uncalibrated leaf score.
+- **Maintenance:** `frontend/app.py` is an 11-line composition root. The RFQ ledger
+  lives in `frontend/rfq_page.py`; shared colors in `frontend/theme.py`; planning
+  state, input forms, scenarios, results, audit and page composition are separate
+  modules in `frontend/planning/`. The redundant outage handler was removed;
+  regression tests use the unified composer. No dependency or backend/migration
+  change was required.
+
+**Verified final source:** 521 fast tests passed, 45 service/E2E tests deselected,
+one existing upstream Starlette/httpx deprecation warning (final run: 61.01s). Actual offline
+training/reload/inference and CBC execute. Ruff format (166 files)/lint, compileall,
+pip check and quiet Compose configuration pass. The initial Compose probe lacked
+the provider on PATH; the existing project-local provider resolves it.
+
+**Browser and database evidence:** built-in browser on isolated 3111/8211 and
+API 8111, retaining user 3000/8001/8000 and the Podman tunnel. Fresh Odoo creation
+re-reads group/currency and saves USD 1,850/2,200 with synthetic ML history. All
+five scenarios and demand-500 infeasibility were exercised through PostgreSQL.
+Acquisition/inference were forbidden during the scenario stage. Independent GET
+through user API 8000 verifies nine snapshots, original parents, unchanged base
+hash and saved facts/assessments. Mobile Plans/What-if/Audit have document width
+375px in a 390px viewport; override restored. RFQs still show 13 quotations and
+8 vendors. Browser screenshots and verification output are ignored under
+`.artifacts/t16-revamp/`. Full-page capture was unavailable; viewport screenshots
+were inspected instead.
+
+Production `reflex export --frontend-only --no-zip` passes all four build stages
+in the isolated generated cache (compilation only). The shared service token is
+absent from 39 generated client/export files. Stopping only the agent API produces
+the safe service-unavailable message and clears the previous case/plot. Agent
+preview processes/tabs are closed; user 3000/8001/8000, the Podman containers and
+forwarding tunnel remain running. No resetting persistence suite was run against
+the manual database. Hosted CI for this uncommitted diff remains unverified.
+
+Pure synthetic browser creation also saves EUR 102/109 using the separately
+configured synthetic model, without Odoo acquisition. Final runtime review caught
+Reflex's number-event conversion; numeric text fields now retain exact draft
+strings, including clean empty values, without new state type warnings.
+Synthetic case: `3218a3fa-2c8b-4292-b5c5-ffa5c85b1264`.
+
+Fresh base: `400a2b2f-7625-4876-a1e5-7f2eb7e255c7`, hash
+`3d0cad9b260f6b6534e5f3c3cc036810ab63293d643eb1460100b1bab3e7c9d0`.
+The original `e183f917-fc33-4e28-a7a8-0aea22679176` retains hash
+`c25ff724c228409eb19287cf49776c634cc8a90d5db6726372398c0e1b3d98ce`.
+The local test IDs/expected values are in the runbook and ignored `ids.json`.
+
+**Boundary:** user acceptance/publication and new-diff hosted CI remain pending.
+Changes are unstaged/uncommitted/unpushed on the existing T16 branch; Drive is
+unchanged. Saved snapshots contain canonical IDs, not supplier/product business
+names, so the UI uses neutral Supplier 51 / Product 54 labels with exact identity
+in Audit. Mock data inside Odoo would still be synthetic; observed dataset/model
+promotion requires a separate documented extraction/label/evaluation increment.
+No Odoo writes, training in HTTP/Reflex, arbitrary quotation discovery, approval
+or PDF were added. After user acceptance: synchronize relevant Hungarian Drive
+status, then plan T17 approval/PDF with these limits explicit.
+
+## Historical functional acceptance — 2026-10-08, before usability feedback
 
 The controlled cockpit implementation is complete and local functional acceptance
 passes. User testing, publication of this final diff and its exact-HEAD CI remain

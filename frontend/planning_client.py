@@ -186,6 +186,8 @@ def _ratio(value: dict) -> Decimal:
 
 
 def _supplier_label(identity: str) -> str:
+    if identity.startswith("odoo:res.partner:"):
+        return "Supplier " + identity.removeprefix("odoo:res.partner:")
     return (
         "Demo supplier " + identity.removeprefix("synthetic-")
         if identity.startswith("synthetic-")
@@ -229,7 +231,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         raise ValueError("Unknown planning status")
     kinds = {
         "controlled_synthetic": "Controlled synthetic inputs and ML history",
-        "odoo_quotations_synthetic_history": "Live Odoo quotations; synthetic ML history",
+        "odoo_quotations_synthetic_history": "Captured Odoo quotations; synthetic ML history",
     }
     currency = _required_string(requirement, "currency")
     parent = payload["parent_id"]
@@ -320,6 +322,11 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         "alternative_notice": "",
         "chart_min_cost": "",
         "chart_max_cost": "",
+        "product_label": "Product "
+        + requirement["product_id"].removeprefix("odoo:product.product:")
+        if requirement["product_id"].startswith("odoo:product.product:")
+        else requirement["product_id"],
+        "decision_summary": "",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
     }
     comparison = snapshot["comparison"]
@@ -384,9 +391,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     if scenario is not None:
         assumptions = []
         if scenario["approved_quantity"] is not None:
-            assumptions.append(
-                f"Demand: {scenario['approved_quantity']} {requirement['quantity_unit']}"
-            )
+            assumptions.append(f"Demand: {scenario['approved_quantity']} ordered units")
         for change in scenario["suppliers"]:
             name = _supplier_label(_required_string(change, "supplier_id"))
             if change["available"] is False:
@@ -420,6 +425,21 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 else "No distinct alternative was found within the recorded cost allowances."
                 if policy["epsilons"]
                 else "No alternatives were requested for this case."
+            )
+        else:
+            alternative = min(recorded[1:], key=lambda p: _ratio(p["risk_exposure"]))
+            reduction = (
+                _ratio(minimum["risk_exposure"]) - _ratio(alternative["risk_exposure"])
+            ) * 100
+            additional_cost = _decimal(alternative["total_cost"]) - _decimal(minimum["total_cost"])
+            change = (
+                f"reduces simulated exposure by {reduction:.1f} points"
+                if reduction > 0
+                else f"changes simulated exposure by {-reduction:+.1f} points"
+            )
+            details["decision_summary"] = (
+                f"The lowest-exposure saved alternative costs {additional_cost:,f} {currency} "
+                f"more and {change}. Compare its supplier split before choosing a plan."
             )
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
@@ -510,6 +530,23 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                     f"{step['operator']} {step['threshold']}"
                     for step in assessment["path"]
                 ),
+                "readable_path": "\n".join(
+                    f"{index + 1}. "
+                    + (
+                        f"On-time delivery ({step['value_float32']:.2f}%) "
+                        f"is {'at most' if step['operator'] == '<=' else 'above'} "
+                        f"{step['threshold']:.2f}%."
+                        if step["feature"] == "delivery_schedule_adherence"
+                        else f"Completed receipts ({step['value_float32']:g}) "
+                        f"are {'at most' if step['operator'] == '<=' else 'above'} "
+                        f"{step['threshold']:.2f}."
+                        if step["feature"] == "historical_completed_count"
+                        else f"{step['feature']}: {step['value_float32']} "
+                        f"{step['operator']} {step['threshold']}."
+                    )
+                    for index, step in enumerate(assessment["path"])
+                )
+                or "The saved tree classifies at its root; no branch conditions were needed.",
             }
         )
     provenance = [
