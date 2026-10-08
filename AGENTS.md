@@ -41,8 +41,14 @@ Reflex or accept a browser-selected file/artifact. Preserve exact request/key on
 uncertain POST outcomes and require explicit retry. Keep the service token on the
 Reflex server, outside browser state/forms. Show allocations, cost trade-offs and
 class labels first, with exact solver/tree/provenance details available for audit.
-Preserve the RFQ ledger and synthetic/observed provenance distinction. Odoo
-creation UI, other scenario controls and full T16/V2 acceptance remain open;
+The 2026-10-08 extension also authorizes creating from the fixed offline-prepared
+Odoo comparison through existing `/from-odoo`: show captured quotation expectations,
+edit explicit demand/date/capacity/MOQ/promised-date terms, and let FastAPI re-read
+Odoo before saving. Do not imply that loading the local preview refreshes Odoo.
+Keep its separately synthetic history and owner-configured matching model; do not
+add arbitrary quotation discovery or browser-selected models. Preserve the RFQ
+ledger and synthetic/observed provenance distinction. Other scenario controls,
+arbitrary Odoo selection and full T16/V2 acceptance remain open;
 approval/PDF belongs to T17. See `docs/T16_HANDOFF.md`. Earlier frontend exclusions
 below describe those historical increments.
 

@@ -1,6 +1,91 @@
 # T16: controlled procurement workspace
 
-## Current status — 2026-10-07, creation / outage / UX increment
+## Current status — 2026-10-08, prepared Odoo creation
+
+PR [#18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
+is open at `de7ac92820e367e28b79dd0f7073f5b8c4191397`. Its
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212085)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212092)
+runs are completed/success, independently verified on 2026-10-08. These checks
+cover the published synthetic creation/outage workspace, not the following local
+diff. No commit, push, merge or Drive edit was performed. Historical records below
+retain the scope and limitations of their dates.
+
+### Capability and boundary
+
+At `/planning`, **Plan from Odoo** loads the fixed owner-prepared three-quotation
+comparison. The buyer reviews captured Odoo price/context expectations and enters
+explicit demand, required date, supplier capacity, MOQ and promised dates. Blank
+MOQ explicitly means none. Policy, availability, applicability ranges and synthetic
+history retain the prepared values. Prices and identities cannot be edited in the
+form. Capacity is a controlled limit, not stock; quotation quantity is not demand
+approval. The controlled authority reference is not T17 human plan approval.
+
+Loading this preview reads local JSON only. Creation uses the existing authenticated
+`/from-odoo` route: FastAPI independently reads Odoo/currency, checks expectations,
+loads the matching trusted saved Decision Tree, runs unchanged MILP and persists
+an immutable case. Changed quotations fail closed without silently substituting
+prices. The browser chooses neither files/models nor arbitrary comparison groups.
+No new backend contract, infrastructure, migration or dependency was added.
+
+New UI terms receive `controlled_business_terms` / `t16-ui-odoo-terms-v1` attribution
+and a server timestamp. Odoo identity/price provenance and separately synthetic
+history remain distinct. The Decision Tree is real; its training/history here are
+synthetic, so its output is an uncalibrated exposure proxy. This does not establish
+observed supplier-model validity. Training remains offline. One configured model
+serves one compatible domain; switch/restart FastAPI between pure synthetic and
+Odoo-domain creation. Saved GET/outage flows need neither model nor Odoo.
+
+Existing uncertainty handling retains the exact body/key, blocks changed intent
+and requires explicit retry. A successful response must identify the requested
+Odoo comparison and hybrid input kind. Shared authentication stays on the Reflex
+server; recovery JSON contains no token. Recovery remains session-scoped.
+
+### Verification
+
+| Check | Actual result |
+| --- | --- |
+| New focused checks | 15 passed: real saved tree/CBC through ASGI; edited-term attribution; changed Odoo price rejects before persistence; invalid terms never POST; source/group mismatch fails closed; lost response after commit recovers the same row without Odoo/inference, then outage/GET reuse stored inputs. |
+| Required Python 3.11 checks | 480 passed, 45 integration/E2E tests deselected, one upstream Starlette/httpx warning, 46.28s. Ruff format/lint, compileall, pip check and diff whitespace pass. |
+| Real browser/Odoo/API/PostgreSQL | Base `e183f917-fc33-4e28-a7a8-0aea22679176`: USD 1,850 and USD 2,200; allocations 50/0/150 and 100/100/0. Supplier 53 outage `71958fa0-8583-4393-a787-39c1f7bee1f5`: USD 2,200 and +350 USD. Stored base reopening returns USD 1,850/2,200. Independent GET confirms lineage, reused assessments and separate Odoo/controlled/synthetic provenance. |
+| Browser failure/layout | Stopped FastAPI produces the safe unavailable-service message and clears previous results. At a 390px viewport override, the new supplier grid has one column and no horizontal page overflow; override reset. No visible framework connection notice or console warning/error at successful retrieval. |
+| Frontend export | Production frontend-only export passed all four build stages; compilation only. |
+| Credential boundary | Shared service token absent from 41 generated client/export files and from public state/recovery JSON. |
+| Unrun gates | Hosted checks for this new diff, the resetting database suite and observed-model promotion were not run. Existing user cases/volumes were preserved. No Odoo writes occurred. |
+
+The first sandbox pytest invocation stalled without output and was stopped; a
+fresh ignored basetemp under the normal Windows identity ran successfully. Early
+test assertions were corrected for formatted money, streamed ASGI responses and
+canonical JSON snapshot storage. No application workaround weakened those contracts.
+
+Live verification prepared matching Python 3.11 assets under ignored
+`.artifacts/t16-odoo-check/live/`, preserving default demo artifacts. Preview
+FastAPI ran on 8109; Reflex ran on 3109/8209 using the existing frontend environment
+(Python 3.14.7 / Reflex 0.9.11.post1). Validation remains Python 3.11.16 / Reflex
+0.9.12. The stopped existing Podman machine/containers were started; healthy
+containers needed a localhost SSH tunnel because Windows forwarding failed.
+No database-reset test ran against the manual planning database.
+
+Ignored evidence: `.artifacts/t16-odoo-check/cases.json` and
+`stored-odoo-plan.jpg`. Preview processes/tab were stopped; runtime cleanup is
+recorded in the implementation log. The saved controlled cases remain available.
+
+### User review and next capability
+
+Follow the [Odoo workspace procedure](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace):
+prepare group 2 offline, configure its matching model, restart FastAPI/Reflex,
+review terms, create USD 1,850/2,200, run supplier 53's outage and reopen both IDs.
+The existing read-only Odoo key is sufficient; no new credential or Odoo entry is
+needed for the verified fixture. Commit/publication/merge remain with the user;
+CI must run for the resulting SHA.
+
+T16 is still partial: arbitrary quotation discovery, other scenario controls and
+full acceptance remain open. The next small buyer capability is another existing
+stress scenario control with stored base comparison. Observed Odoo history/model
+promotion remains separate; approval/PDF belongs to T17. Drive remains unchanged
+until explicitly requested.
+
+## Prior creation / outage / UX increment — 2026-10-07
 
 The first stored-view slice is committed as `b9987df`; the following addition is
 local, unstaged and uncommitted on `feature/T16-reflex-frontend-implementation`.

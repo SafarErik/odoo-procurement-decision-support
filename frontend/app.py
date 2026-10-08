@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import uuid4
@@ -408,11 +409,18 @@ class PlanningState(rx.State):
     demo_policy: str = ""
     demo_quantity: str = "10"
     demo_offers: list[dict[str, str]] = []
+    odoo_ready: bool = False
+    odoo_details: str = ""
+    odoo_policy: str = ""
+    odoo_quantity: str = "200"
+    odoo_required_date: str = ""
+    odoo_offers: list[dict[str, str]] = []
     has_pending: bool = False
     request_key: str = ""
     recovery_json: str = ""
     notice: str = ""
     _demo_payload: dict = {}
+    _odoo_payload: dict = {}
     # ponytail: recovery intent lives in the Reflex session; copy JSON before leaving.
     _pending: dict = {}
 
@@ -474,6 +482,122 @@ class PlanningState(rx.State):
                 "The controlled demo is missing or invalid. Run the offline T15 prepare "
                 "command before using this form."
             )
+
+    @rx.event
+    def prepare_odoo(self):
+        if self.is_loading or self.has_pending:
+            return
+        self.error_message = ""
+        self.odoo_ready = False
+        self._odoo_payload = {}
+        try:
+            path = settings.controlled_odoo_file
+            if path.stat().st_size > 256 * 1024:
+                raise ValueError("Oversized comparison")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            facts = data["controlled_input"]
+            group = data["purchase_group_id"]
+            if type(group) is not int or group <= 0 or facts["source_type"] != "t14_synthetic":
+                raise ValueError("Unsupported comparison")
+            suppliers = facts["suppliers"]
+            if len(suppliers) != 3 or len({s["supplier_id"] for s in suppliers}) != 3:
+                raise ValueError("Expected the prepared three-supplier comparison")
+            r = facts["requirement"]
+            self.odoo_offers = [
+                {
+                    "supplier": s["supplier_id"],
+                    "offer": s["offer_id"],
+                    "price": f"{s['unit_price']} {r['currency']}",
+                    "capacity": str(s["capacity"]),
+                    "moq": ""
+                    if s["minimum_order_quantity"] is None
+                    else str(s["minimum_order_quantity"]),
+                    "promised_date": s["promised_date"],
+                    "ranges": (
+                        f"Price applies to {s['price_quantities']['minimum']}–"
+                        f"{s['price_quantities']['maximum']} units; delivery applies to "
+                        f"{s['delivery_quantities']['minimum']}–"
+                        f"{s['delivery_quantities']['maximum']} units."
+                    ),
+                }
+                for s in suppliers
+            ]
+            self.odoo_details = (
+                f"Comparison group {group} · {facts['company_id']} · {r['product_id']} "
+                f"· {r['quantity_unit']} · {r['currency']} · captured {facts['as_of'][:10]}"
+            )
+            self.odoo_quantity = str(r["approved_quantity"])
+            self.odoo_required_date = r["required_date"]
+            policy = facts["policy"]
+            share = policy["concentration_limit"]
+            self.odoo_policy = (
+                f"Maximum suppliers: {policy['max_suppliers']}. "
+                + (
+                    "No share limit. "
+                    if share is None
+                    else f"At most {Decimal(share) * 100:g}% from one supplier. "
+                )
+                + "Alternative cost allowances: "
+                + ", ".join(f"{Decimal(e) * 100:g}%" for e in policy["epsilons"])
+                + ". Prepared suppliers remain available; policy, applicability ranges "
+                "and synthetic history stay fixed."
+            )
+            self._odoo_payload = data
+            self.odoo_ready = True
+        except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
+            self.error_message = (
+                "The prepared Odoo comparison is missing or invalid. Run the offline "
+                "Odoo prepare command and configure its matching saved model on FastAPI."
+            )
+
+    @rx.event
+    async def create_odoo(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending:
+            return
+        try:
+            if not self.odoo_ready:
+                raise ValueError("Prepare the comparison first")
+            payload = deepcopy(self._odoo_payload)
+            facts = payload["controlled_input"]
+            quantity = _bounded_form_integer(form_data.get("odoo_quantity"), minimum=1)
+            required = _form_date(form_data.get("odoo_required_date"))
+            now = datetime.now(UTC)
+            if date.fromisoformat(required) < now.date():
+                raise ValueError("Required date must be today or later")
+            facts["as_of"] = now.isoformat()
+            facts["requirement"]["approved_quantity"] = quantity
+            facts["requirement"]["required_date"] = required
+            facts["approval_reference"] = f"controlled-demand-{quantity}-t16-odoo-v1"
+            source = {
+                "source_type": "controlled_business_terms",
+                "source_reference": "t16-ui-odoo-terms-v1",
+                "observed_at": facts["as_of"],
+            }
+            facts["requirement_source"] = source.copy()
+            for supplier in facts["suppliers"]:
+                prefix = supplier["supplier_id"]
+                supplier["capacity"] = _bounded_form_integer(
+                    form_data.get(prefix + "_capacity"), minimum=0
+                )
+                moq = form_data.get(prefix + "_moq")
+                supplier["minimum_order_quantity"] = (
+                    None if moq == "" else _bounded_form_integer(moq, minimum=1)
+                )
+                supplier["promised_date"] = _form_date(form_data.get(prefix + "_promised_date"))
+                supplier["source"] = source.copy()
+        except (ValueError, TypeError, KeyError):
+            self.error_message = (
+                "Load the comparison and review every term: demand and MOQ 1–1,000 "
+                "(blank MOQ means none), capacity 0–1,000, valid dates and a required date "
+                "of today or later."
+            )
+            return
+        self._prepare_request(settings.planning_cases_url + "/from-odoo", payload)
+        yield
+        try:
+            await self._send_pending()
+        finally:
+            self.is_loading = False
 
     async def _send_pending(self, *, recovering: bool = False):
         result, self.error_message, uncertain = await submit_planning_request(
@@ -593,6 +717,24 @@ class PlanningState(rx.State):
                 self._show(result)
         finally:
             self.is_loading = False
+
+
+def _bounded_form_integer(value: Any, *, minimum: int) -> int:
+    if (
+        not isinstance(value, str)
+        or not value.isascii()
+        or not value.isdecimal()
+        or len(value) > 4
+        or not minimum <= int(value) <= 1000
+    ):
+        raise ValueError("Invalid quantity")
+    return int(value)
+
+
+def _form_date(value: Any) -> str:
+    if not isinstance(value, str) or date.fromisoformat(value).isoformat() != value:
+        raise ValueError("Invalid date")
+    return value
 
 
 def _allocation_bar(row: rx.Var[dict[str, str]]) -> rx.Component:
@@ -954,13 +1096,163 @@ def _recorded_case() -> rx.Component:
     )
 
 
+def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
+    busy = PlanningState.is_loading | PlanningState.has_pending
+    return rx.box(
+        rx.text(row["supplier"], font_weight="650", size="2"),
+        rx.text(row["price"], " per unit · ", row["offer"], size="2", color=MUTED),
+        rx.text("Captured Odoo price; checked again when saving.", size="1", color=MUTED),
+        rx.text(row["ranges"], size="1", color=MUTED, margin_y="0.5rem"),
+        rx.el.label(
+            "Capacity (explicit limit)", html_for=row["supplier"] + "_capacity", display="block"
+        ),
+        rx.input(
+            id=row["supplier"] + "_capacity",
+            name=row["supplier"] + "_capacity",
+            type="number",
+            min="0",
+            max="1000",
+            step="1",
+            required=True,
+            default_value=row["capacity"],
+            disabled=busy,
+            width="100%",
+        ),
+        rx.el.label(
+            "MOQ (blank means none)",
+            html_for=row["supplier"] + "_moq",
+            display="block",
+            margin_top="0.75rem",
+        ),
+        rx.input(
+            id=row["supplier"] + "_moq",
+            name=row["supplier"] + "_moq",
+            type="number",
+            min="1",
+            max="1000",
+            step="1",
+            default_value=row["moq"],
+            disabled=busy,
+            width="100%",
+        ),
+        rx.el.label(
+            "Promised date",
+            html_for=row["supplier"] + "_promised_date",
+            display="block",
+            margin_top="0.75rem",
+        ),
+        rx.input(
+            id=row["supplier"] + "_promised_date",
+            name=row["supplier"] + "_promised_date",
+            type="date",
+            required=True,
+            default_value=row["promised_date"],
+            disabled=busy,
+            width="100%",
+        ),
+        padding="1rem",
+        border=f"1px solid {HAIRLINE}",
+        border_radius="8px",
+    )
+
+
+def _odoo_creation_controls() -> rx.Component:
+    busy = PlanningState.is_loading | PlanningState.has_pending
+    return rx.tabs.content(
+        rx.text(
+            "Use the prepared Odoo quotation comparison. FastAPI reads Odoo again before saving. "
+            "You supply demand and supplier limits; the Decision Tree uses synthetic history, "
+            "so this is a controlled demonstration, not an observed supplier assessment.",
+            color=MUTED,
+            size="2",
+            max_width="75ch",
+            margin_bottom="1rem",
+        ),
+        rx.button(
+            "Load prepared Odoo comparison",
+            on_click=PlanningState.prepare_odoo,
+            disabled=busy,
+            variant="soft",
+        ),
+        rx.cond(
+            PlanningState.odoo_ready,
+            rx.box(
+                rx.text(PlanningState.odoo_details, size="2", color=MUTED, margin_y="1rem"),
+                rx.el.form(
+                    rx.flex(
+                        rx.box(
+                            rx.el.label(
+                                "Demand quantity", html_for="odoo-quantity", display="block"
+                            ),
+                            rx.input(
+                                id="odoo-quantity",
+                                name="odoo_quantity",
+                                type="number",
+                                min="1",
+                                max="1000",
+                                step="1",
+                                required=True,
+                                default_value=PlanningState.odoo_quantity,
+                                disabled=busy,
+                            ),
+                        ),
+                        rx.box(
+                            rx.el.label(
+                                "Required date", html_for="odoo-required-date", display="block"
+                            ),
+                            rx.input(
+                                id="odoo-required-date",
+                                name="odoo_required_date",
+                                type="date",
+                                required=True,
+                                default_value=PlanningState.odoo_required_date,
+                                disabled=busy,
+                            ),
+                        ),
+                        gap="1rem",
+                        flex_wrap="wrap",
+                        margin_bottom="1rem",
+                    ),
+                    rx.text("Your business terms", font_weight="650", margin_bottom="0.5rem"),
+                    rx.text(
+                        "Capacity and MOQ are supplied limits, not Odoo stock or quotation "
+                        "quantities. Review every promised date.",
+                        size="2",
+                        color=MUTED,
+                        margin_bottom="1rem",
+                    ),
+                    rx.grid(
+                        rx.foreach(PlanningState.odoo_offers, _odoo_supplier_terms),
+                        columns={"initial": "1", "md": "3"},
+                        spacing="3",
+                    ),
+                    rx.text(
+                        PlanningState.odoo_policy,
+                        size="2",
+                        color=MUTED,
+                        max_width="75ch",
+                        margin_y="1rem",
+                    ),
+                    rx.button("Create and save Odoo plan", type="submit", disabled=busy, size="3"),
+                    on_submit=PlanningState.create_odoo,
+                    reset_on_submit=False,
+                ),
+            ),
+        ),
+        value="odoo",
+        padding_top="1.25rem",
+    )
+
+
 def _planning_controls() -> rx.Component:
     busy = PlanningState.is_loading | PlanningState.has_pending
     return rx.tabs.root(
         rx.tabs.list(
             rx.tabs.trigger("Create a demo plan", value="create"),
+            rx.tabs.trigger("Plan from Odoo", value="odoo"),
             rx.tabs.trigger("Open a saved case", value="stored"),
         ),
+        _odoo_creation_controls(),
         rx.tabs.content(
             rx.text(
                 (

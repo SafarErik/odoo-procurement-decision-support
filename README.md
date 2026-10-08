@@ -27,7 +27,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 
-## Current capability — verified 2026-10-07
+## Current capability — verified 2026-10-08
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
@@ -35,17 +35,19 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
-| Buyer-facing planning workflow | T16 locally creates a controlled synthetic case, runs one supplier outage and reopens stored results at `/planning`. Allocation bars, cost premiums, schedule classes and progressive audit details support comparison. Odoo creation UI, other scenario controls and broader charts remain open; approval/PDF belongs to T17. |
+| Buyer-facing planning workflow | T16 creates synthetic cases or uses the prepared Odoo quotation comparison with editable explicit demand/supplier terms at `/planning`. FastAPI re-reads Odoo prices/context before saving; ML history remains synthetic. Allocation/cost/class comparison, one outage and stored retrieval work. Arbitrary quotation discovery, other scenario controls and full T16 acceptance remain open; approval/PDF belongs to T17. |
 
 **Publication:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
 merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
 and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141222)
-checks passed. The first T16 stored-view slice is committed locally as `b9987df`.
-The new creation/outage/UX changes are uncommitted on
-`feature/T16-reflex-frontend-implementation`; new hosted checks have not been verified
-for this increment. T15 main results do not cover T16.
+checks passed. T16 [PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
+is open at `de7ac92820e367e28b79dd0f7073f5b8c4191397`; its
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212085)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37753212092)
+checks passed. The following prepared-Odoo UI extension is local and uncommitted
+on the same branch; those hosted checks do not cover this new diff.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
@@ -70,6 +72,13 @@ outage. The model was prepared offline in Python 3.11; no live Odoo acquisition
 was performed. See the dated [T16 handoff](docs/T16_HANDOFF.md) for scope,
 request-recovery checks and the compatible-model setup requirement.
 
+The 2026-10-08 extension verifies the real Reflex -> FastAPI -> read-only Odoo ->
+saved synthetic model -> MILP -> PostgreSQL flow: USD 1,850/2,200 base plans,
+USD 2,200 after Supplier C's outage and stored base reopening. The form uses a
+fixed prepared comparison, with captured prices checked again during creation;
+it is not arbitrary live quotation discovery. See the
+[Odoo UI walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace).
+
 ## Architecture and code map
 
 | Area | Responsibility |
@@ -81,7 +90,7 @@ request-recovery checks and the compatible-model setup requirement.
 | `optimization_adapter/` | PuLP/CBC implementation behind that port |
 | `persistence/`, `migrations/` | Own PostgreSQL snapshots and explicit Alembic migrations |
 | `backend/` | FastAPI contracts, errors and dependency composition |
-| `frontend/` | Separate Reflex API clients; RFQ ledger and stored planning display |
+| `frontend/` | Separate Reflex API clients; RFQ ledger and controlled create/outage/retrieval workspace |
 | `tests/`, `.github/workflows/` | Fast, database/service and controlled-live verification |
 | `infra/` | Odoo stack/addon and separate disposable persistence-test service |
 | `docs/`, `tools/` | Designs/evidence and isolated non-runtime evaluation tooling |
@@ -122,10 +131,10 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the controlled creation/outage workspace using the linked walkthrough,
-   then publish under the user's control and verify CI for that exact SHA.
-2. Add read-only Odoo quotation selection with explicit supplemental terms, reusing
-   `/from-odoo`; extend the existing scenario UI and comparisons in small increments.
+1. Review the prepared-Odoo creation/outage/retrieval workflow, then commit and
+   publish under the user's control; verify CI for the resulting exact SHA.
+2. Extend the other existing scenario controls and comparisons in small increments.
+   Arbitrary Odoo quotation discovery is not implemented by this prepared flow.
    [The compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains live
    Odoo quotations plus synthetic ML history with independent provenance; matching
    observed receipts/model promotion stays separately open.

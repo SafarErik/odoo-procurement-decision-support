@@ -64,6 +64,16 @@ async def submit_planning_request(
             413: "The prepared request exceeds the API size limit.",
         }
         if response.status_code in errors:
+            if response.status_code == 422 and url.endswith("/from-odoo"):
+                return (
+                    None,
+                    (
+                        "Odoo quotations or planning terms no longer match the prepared inputs. "
+                        "Review the terms and re-prepare changed quotations offline; check the "
+                        "matching saved model."
+                    ),
+                    False,
+                )
             return None, errors[response.status_code], False
         if response.status_code not in (200, 201):
             raise ValueError("Uncertain response")
@@ -76,6 +86,12 @@ async def submit_planning_request(
             raise ValueError("Unexpected parent")
         if not url.endswith("/scenarios") and data["parent_id"] is not None:
             raise ValueError("Unexpected base")
+        if url.endswith("/from-odoo") and (
+            data["snapshot"]["facts"]["input_kind"] != "odoo_quotations_synthetic_history"
+            or data["snapshot"]["facts"]["comparison_case_id"]
+            != f"odoo:purchase.order.group:{payload['purchase_group_id']}"
+        ):
+            raise ValueError("Unexpected Odoo comparison")
         return display, "", False
     except (
         httpx.HTTPError,

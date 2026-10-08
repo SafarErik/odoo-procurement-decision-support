@@ -35,5 +35,10 @@ class FrontendSettings(BaseSettings):
         """Reuse the existing offline demo; browsers cannot choose files or models."""
         return PROJECT_ROOT / ".artifacts/t15-demo/create-request.json"
 
+    @property
+    def controlled_odoo_file(self) -> Path:
+        # ponytail: one prepared comparison; add discovery with matched-model support.
+        return PROJECT_ROOT / ".artifacts/t15-odoo-demo/create-request.json"
+
 
 settings = FrontendSettings()

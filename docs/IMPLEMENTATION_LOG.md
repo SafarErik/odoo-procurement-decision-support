@@ -1,5 +1,69 @@
 # Implementation log
 
+## Prepared Odoo creation in the buyer workspace (2026-10-08)
+
+**Problem -> decision -> behavior:** Reflex could create only synthetic-domain
+cases although the Odoo planning API existed. Reuse the fixed offline-prepared
+comparison and existing `/from-odoo` route. **Plan from Odoo** shows captured
+quotation expectations and edits explicit demand/date/capacity/MOQ/promised-date
+terms. FastAPI independently reads Odoo/currency, checks expectations, loads the
+matching saved Decision Tree, runs unchanged CBC MILP and persists an immutable
+case. New terms carry `t16-ui-odoo-terms-v1` attribution; Odoo prices/identities and
+synthetic receipts remain distinct. Exact request/key recovery, outage and stored
+GET are reused. Responses must match the hybrid input kind and prepared group.
+No backend contract, migration, dependency, Odoo write or observed-model bypass
+was introduced. See the current T16 handoff and Odoo workspace runbook.
+
+**Published status:** authenticated GitHub reads verify PR #18 is open at
+`de7ac92820e367e28b79dd0f7073f5b8c4191397`; Quality `37753212085` and Container/API
+`37753212092` completed successfully. This extension remains local, unstaged,
+uncommitted and unpublished; those checks do not cover it. No commit, push, merge
+or Drive synchronization occurred. Historical records below remain unchanged.
+
+**Checks:** 15 new focused tests pass. Python 3.11.16 required fast suite:
+480 passed / 45 integration/E2E deselected / one upstream Starlette/httpx warning,
+46.28s. Actual training/reload/inference and CBC execute. Ruff format (154 files),
+lint, compileall, pip check, diff whitespace and production frontend-only export
+(four build stages) pass. Odoo Compose config passes with the installed local
+provider. The shared service token is absent from 41 generated client/export files
+and public state/recovery JSON. The first Compose attempt lacked the
+provider on PATH. A sandbox pytest run
+stalled without output and was stopped; a fresh basetemp under the normal Windows
+identity completed. Early assertion errors for formatted money, streamed ASGI
+responses and canonical JSON storage were corrected without changing those contracts.
+
+**Live evidence:** the existing stopped Podman machine and Odoo/planning containers
+were started without resetting data. Windows forwarding failed despite healthy
+containers; one localhost SSH tunnel supplied 8069 and 55433. Read-only group-2
+acquisition prepared isolated matching Python 3.11 assets in
+`.artifacts/t16-odoo-check/live/`, preserving default assets. Real Reflex -> FastAPI
+-> Odoo -> saved model/CBC -> PostgreSQL: base `e183f917-fc33-4e28-a7a8-0aea22679176`,
+USD 1,850/2,200, allocations 50/0/150 and 100/100/0; supplier 53 outage
+`71958fa0-8583-4393-a787-39c1f7bee1f5`, USD 2,200 and +350 USD. Browser reopening
+and independent GET verify lineage, assessment reuse and separate provenance.
+Stopped-API retrieval clears old plans and shows the safe unavailable-service
+message. The 390px viewport override gives one supplier column without horizontal
+page overflow; reset afterward. No visible connection notice or console warnings/
+errors during successful retrieval. Ignored evidence: `cases.json` and
+`stored-odoo-plan.jpg` under `.artifacts/t16-odoo-check/`.
+
+**Runtime/cleanup:** validation uses Python 3.11/Reflex 0.9.12; browser/export reuse
+Python 3.14.7/Reflex 0.9.11.post1. Backend/ML remain Python 3.11. Agent preview
+ports 3109/8209/8109, tab and temporary SSH tunnel were stopped; existing Podman
+services and saved cases/volumes remain. Subsequent Windows manual review needs
+the documented localhost tunnel. No tracked lockfile, default artifact or ignored
+environment value changed; no resetting database test ran against manual cases.
+
+**Limit -> next -> chapter relevance:** preview is captured, not live discovery;
+IDs are shown without newly acquired supplier/product names. One model serves a
+compatible domain at a time. Synthetic history/model exposure is not observed
+supplier validation. Other scenario controls, arbitrary discovery and full T16/V2
+acceptance remain open; approval/PDF belongs to T17. Hosted CI for this diff and
+the resetting suite were not run. User reviews the Odoo walkthrough and controls
+commit/publication/merge; the next small capability can expose another existing
+stress scenario with stored comparison. Relevant to architecture, integration,
+provenance, implementation, usability and testing chapters.
+
 ## Controlled Odoo quotations, synthetic model and immutable V2 completion (2026-10-07)
 
 **Problem and decision:** the history credential was renewed, but the three selected

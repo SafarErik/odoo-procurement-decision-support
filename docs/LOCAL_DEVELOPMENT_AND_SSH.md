@@ -326,7 +326,7 @@ needed for synthetic creation, scenarios or stored GET.
    Python 3.11 remains the backend/ML/CI compatibility baseline; this command reuses
    the user's already verified frontend-only environment. Open
    <http://localhost:3000/planning>. Both servers read the same service token from
-   the ignored root `.env`; clear stale process overrides before restarting.
+the ignored root `.env`; clear stale process overrides before restarting.
 
 4. Choose **Create a demo plan**, then **Load demo inputs**. Read the supplier
    prices/capacities and policy. Keep demand **10**, then **Create and save plan**.
@@ -370,6 +370,109 @@ process-only model setting with
 `Remove-Item Env:T15_TRUSTED_MODEL_DIRECTORY -ErrorAction SilentlyContinue`.
 Follow the persistence guide for database/tunnel cleanup when finished. Keep saved
 case IDs/evidence. No Odoo writes, approval or PDF are performed by this slice.
+
+## Controlled Odoo planning workspace
+
+Added 2026-10-08. This uses the prepared three-quotation comparison from T15,
+not a general quotation selector. **Load prepared Odoo comparison** reads a fixed
+local JSON preview; it does not refresh Odoo. **Create and save Odoo plan** calls
+`POST /api/v2/procurement/planning-cases/from-odoo`; FastAPI independently reads
+the comparison and currency, checks expectations, runs the matching saved model
+and unchanged MILP, then saves an immutable snapshot. There are no Odoo writes.
+
+Prerequisites: the existing Podman machine, running Odoo and a separate planning
+database with migrations applied, working localhost forwarding, the existing
+read-only Odoo key/database/URL, and the same server-side service token for FastAPI
+and Reflex. Use the earlier service procedures and the persistence guide; do not
+reset the database holding your saved cases. No new Odoo API key is required if
+the existing read-only configuration works.
+
+If both containers are healthy but Windows refuses 8069 and 55432, use one
+foreground tunnel terminal for both services (only if local 8069/55433 are free):
+
+```powershell
+$taskMachine = (podman machine inspect podman-machine-default | ConvertFrom-Json)[0]
+ssh.exe -i $taskMachine.SSHConfig.IdentityPath -p $taskMachine.SSHConfig.Port `
+  -o BatchMode=yes -o ExitOnForwardFailure=yes -N `
+  -L 127.0.0.1:8069:127.0.0.1:8069 -L 127.0.0.1:55433:127.0.0.1:55432 `
+  "$($taskMachine.SSHConfig.RemoteUsername)@127.0.0.1"
+```
+
+Expected: the command stays running; Odoo is reachable at 8069 and the existing
+planning database at 55433. `DECISION_DATABASE_URL` must use that local database
+port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
+
+1. Stop FastAPI before re-preparing its model/request files. With Odoo reachable,
+   from the repository root run:
+
+   ```powershell
+   .\.venv\t13-check\Scripts\python.exe -m tools.t15_odoo_demo prepare --group-id 2
+   ```
+
+   This reads the controlled development quotations and generates synthetic
+   history plus a compatible Decision Tree **offline** under the ignored
+   `.artifacts/t15-odoo-demo/`. It replaces that directory's prepared request/model
+   files; preserve earlier artifacts first if you need their exact evidence.
+   It does not create a case or modify Odoo. Group 2 is the verified T6 fixture:
+   suppliers 51/52/53, prices 10/12/9 USD, product 54, company 1 and UoM 1.
+   Preparation fails if the supported comparison assumptions no longer hold.
+
+2. Select this comparison's matching model in the FastAPI terminal:
+
+   ```powershell
+   $env:T15_TRUSTED_MODEL_DIRECTORY = (Resolve-Path .artifacts/t15-odoo-demo/model).Path
+   .\.venv\t13-check\Scripts\python.exe -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+   Keep the existing ignored `.env` database and service-token settings. The API
+   has one owner-configured model: this Odoo-domain model cannot create the pure
+   synthetic-domain demo. Switch back to `.artifacts/t15-demo/model` and restart
+   FastAPI for that form. Stored GET and scenarios need neither model nor Odoo.
+   Do not rename history source types to bypass the compatibility gate.
+
+3. Restart Reflex with the same shared service token and backend URL:
+
+   ```powershell
+   $env:BACKEND_BASE_URL = "http://127.0.0.1:8000"
+   Push-Location frontend
+   ../.venv/Scripts/reflex.exe run --backend-host 127.0.0.1
+   Pop-Location
+   ```
+
+   Open <http://localhost:3000/planning>, choose **Plan from Odoo**, then
+   **Load prepared Odoo comparison**. Inspect the captured prices/context and
+   dates. Supplier IDs identify the prepared suppliers; display names are not
+   acquired by this form. Never enter either API credential in the browser.
+
+4. Review demand **200**, capacities **120/100/160**, MOQ **50/100/150**, and the
+   generated required/promised dates. These are explicit controlled business
+   terms, not Odoo stock or approved demand inferred from quotation quantities.
+   Demand/MOQ accept integers 1–1,000; blank MOQ explicitly means none; capacity
+   accepts 0–1,000. Required date must be today or later. Policy, availability,
+   applicability ranges and synthetic history remain the prepared values.
+   Click **Create and save Odoo plan**. Expect USD 1,850 with allocations 50/0/150,
+   and USD 2,200 with allocations 100/100/0 (+350 USD, approximately 18.9%).
+   Keep the case UUID. The source banner must say **Live Odoo quotations;
+   synthetic ML history**. The ML assessments are not observed supplier evidence.
+
+5. Select **odoo:res.partner:53** under **Unavailable supplier** and run the
+   outage. Expect a new child UUID, USD 2,200 and +350 USD against the original
+   base. **View base case** or **Open a saved case** returns USD 1,850/2,200
+   without acquiring Odoo facts or refreshing scores. Editable terms change only
+   new cases; saved base/scenario inputs remain immutable.
+
+6. Changed quotation prices/context or unsupported terms return a safe rejection.
+   Review the terms; re-prepare changed quotations offline, restart FastAPI with
+   the matching model and reload the comparison before a new attempt. Nothing
+   silently substitutes fresh prices. For an uncertain POST outcome, preserve
+   the exact request/key and use the earlier **Retry the same request** procedure
+   first. Do not replace pending intent with refreshed inputs.
+
+Stop your FastAPI/Reflex/tunnel processes with Ctrl+C when finished; remove the
+process-only model setting as above. Keep saved UUIDs/evidence and named volumes.
+This demonstrates live quotation acquisition with synthetic ML history. Arbitrary
+comparison discovery, observed receipt/model promotion, other scenario controls,
+approval/PDF and full V2 acceptance remain separate work.
 
 ### Missing generated route configuration at Reflex startup
 
