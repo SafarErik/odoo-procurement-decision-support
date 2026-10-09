@@ -2111,3 +2111,111 @@ and export use existing Python 3.14.7 / Reflex 0.9.11.post1, with real FastAPI/m
 on Python 3.11. Agent preview ports 3108/8208/8108 and browser tab were stopped;
 user ports 3000/8001/8000 and database/tunnel 55433 remain available. No tracked
 lockfile, default demo artifact, dependency or user environment value changed.
+
+## 2026-10-09 - Matt Pocock skills aligned to the thesis baseline
+
+Problem: installed engineering skills had no repository-specific issue tracker,
+triage vocabulary or domain-document routing. Their generic defaults also needed
+the official task, accepted Drive requirements and thesis evidence boundaries.
+
+Decision: the user selected GitHub Issues and the five default triage labels,
+reviewed the full setup draft, and approved applying it. Preserve the existing
+AGENTS rules and canonical Drive FR-V2/NFR-V2/AC-V2 and ADR identifiers. Use one
+domain context without creating an empty glossary or a competing ADR register.
+
+Implemented: one appended Agent skills section; docs/agents/issue-tracker.md,
+triage-labels.md, domain.md and project-baseline.md; README entry point. The
+alignment guide maps every substantive official task clause to requirements,
+evidence routes and thesis chapters. It distinguishes fixed principles from
+replaceable implementation choices and preserves open V2 acceptance gates.
+The user reaffirmed that all project living documentation and thesis material
+on Drive stays Hungarian; repository engineering artifacts stay English. Each
+increment records problem -> decision -> implemented behavior -> evidence ->
+limitation -> chapter relevance. Future skills must refresh relevant sources.
+
+Source review: supplied task sheet (423.589/25/140, dated 2026-09-22) extracted
+and visually checked; current Drive 00/01/02/03/04/05/06/07/08/99 baseline and
+relevant evidence sections reviewed, with departmental guidance for writing
+context. This is requirements routing, not a completed thesis/prose audit or
+an independent rerun of all historical acceptance evidence.
+
+GitHub readback: PR #18 merged on 2026-10-09; local and remote main agree at
+979b9b89e8517c65daefcf7e533c8b3f9c2c0ccd. Exact-SHA
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37923795850)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37923795924)
+succeeded. Drive's 2026-10-08 status and repository pre-merge publication text
+retain older statements; the alignment guide records the discrepancy. No Drive
+correction or new hosted check was performed during this setup.
+
+Label verification: GitHub already had wontfix. With gh unavailable in this
+shell and the connector's generic label endpoint unsupported, the authenticated
+GitHub browser UI created only needs-triage, needs-info, ready-for-agent and
+ready-for-human. Readback verified all five labels; existing labels were retained.
+No issues, comments or pull requests were created.
+
+Local checks: Python 3.11.16; Ruff format (170 files), Ruff lint, compileall, pip
+check, configuration/link assertions and git diff --check passed. Required fast
+suite: 521 passed / 45 deselected / one existing Starlette-httpx deprecation
+warning, 39.82 s. Two sandboxed test attempts stalled at the first FastAPI
+TestClient test and were interrupted; sandbox escalation allowed completion.
+These attempts are not passing suite results. No application logic changed;
+no passing application checks were repeated after documentation-only edits.
+
+Compose limitation: the initial guessed system installation path was absent;
+Podman was subsequently found in the user's local Programs directory. The
+sandboxed standalone provider check produced no result and was interrupted.
+The documented podman compose config command failed on the local socket:
+sandbox access was forbidden; outside the sandbox the existing endpoint
+127.0.0.1:64087 refused the connection. Compose configuration acceptance is
+therefore BLOCKED, not PASS. No machine/container was started and no database
+was reset. Service/live/browser application checks were not run for this
+documentation-only change; GitHub browser label verification is a separate scope.
+
+Limitation and next capability: setup enables aligned skill use, not 100% thesis
+completion. V2 plan approval/no-award, approved-snapshot PDF and full-flow
+acceptance (AC-V2-11/12/13) remain open. Observed-model promotion and broader
+quotation selection retain separate boundaries. The next buyer-visible step is
+finalizing a saved valid plan and downloading its approved PDF, after its own
+implementation authorization. Thesis relevance: chapter 3 requirements and
+traceability, chapter 4 decisions, chapters 6/7 implementation and evidence,
+chapters 8/9 conclusions and further development. No Odoo or Drive writes,
+application dependencies, commit, push or merge were made.
+
+## 2026-10-09 - V2 approval/PDF plan confirmed and implementation tickets published
+
+Problem: saved V2 plans stop before human finalization and approved PDF; historical
+V1 offer finalization does not satisfy the V2 allocation requirements.
+
+Decision: use the explicitly invoked grill-with-docs, to-spec and to-tickets skills.
+The user accepted base-only finalization, retained proven plans with incomplete-
+comparison warnings, and labelled historical-demo approval with separate current
+server-recorded decision time. Preserve official task 423.589/25/140, existing
+FR/AC identifiers and accepted ADRs; no new accepted ADR was created.
+
+Delivered: root glossary, confirmed T17 investigation/plan, complete specification,
+approved ticket breakdown and [planning handoff](T17_PLANNING_HANDOFF.md).
+[Specification #19](https://github.com/SafarErik/odoo-procurement-decision-support/issues/19)
+and implementation issues
+[#20](https://github.com/SafarErik/odoo-procurement-decision-support/issues/20) ->
+[#21](https://github.com/SafarErik/odoo-procurement-decision-support/issues/21) ->
+[#22](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
+are published ready-for-agent. Bodies, labels, open states and explicit parent/
+blocker links were read back and verified. Parent body/state/labels were unchanged
+during ticket publication. Native relationship operations are unavailable; these
+are text links, not native GitHub sub-issue or dependency objects.
+
+Verification PASS: eight handoff files, 91 local links, 32 stories, three ticket
+templates, source identifiers, dependency order and whitespace. Local spec/ticket
+bodies match published content; git diff --check passed. No application tests were repeated after
+documentation-only edits; the earlier 521-pass setup evidence above is historical.
+No services, live Odoo or application browser checks ran, and the earlier blocked
+Compose configuration gate is not resolved. New-commit hosted CI awaits user
+publication. No procurement implementation, dependency/schema change, model
+training, Odoo/Drive write, stage, commit, push, PR or merge was performed.
+
+Next: review and commit the eight handoff artifacts on the existing skills branch,
+publish/review its PR and verify exact-SHA CI under user control. After merge,
+authorize #20 on updated main. Approval/PDF and AC-V2-11/12/13 remain open; observed
+Odoo-history training, broader quotation selection and T18 evaluation are separate.
+Thesis evidence: problem -> decision -> work definition/publication -> verified
+issue/doc evidence -> implementation/runtime limits -> chapters 3/4/5 and later 6/7/8/9.

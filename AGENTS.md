@@ -215,3 +215,25 @@ reading multiple code files. Prefer the returned current source and dependency
 paths to conserve context and tokens. Fall back to `rg` for exact text, non-code
 files, or details CodeGraph does not return. Do not rebuild or replace the index
 unless the user explicitly asks.
+
+## Agent skills
+
+Before planning, specification, domain modeling, research, implementation or review,
+read docs/agents/project-baseline.md and refresh the task-relevant primary sources.
+Map the work to the official task and existing V2 FR/AC identifiers. Resolve source
+conflicts explicitly; skill suggestions do not change accepted requirements or ADRs.
+
+### Issue tracker
+
+GitHub Issues in SafarErik/odoo-procurement-decision-support. See
+docs/agents/issue-tracker.md.
+
+### Triage labels
+
+Use needs-triage, needs-info, ready-for-agent, ready-for-human and wontfix. See
+docs/agents/triage-labels.md.
+
+### Domain docs
+
+Single context: root GLOSSARY.md and docs/adr/ when needed; Drive remains the
+canonical accepted ADR register. See docs/agents/domain.md.

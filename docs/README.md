@@ -27,11 +27,12 @@ explicitly supersedes them. They are not a second live dashboard.
 | Offline Decision Tree and saved supplier evaluation | [T14 ML](T14_ML_DESIGN.md) | [T14 handoff](T14_HANDOFF.md), [controlled metrics](T14_EVALUATION.json) |
 | Controlled assembly -> inference -> MILP -> scenarios -> immutable storage | [Reviewed T15 plan](T15_IMPLEMENTATION_PLAN.md) | [T15 handoff](T15_HANDOFF.md) |
 | Create a synthetic or prepared-Odoo plan, run all supported stress scenario types and compare stored results | [Synthetic workspace](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test), [Odoo workspace](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace), [Scenario controls](LOCAL_DEVELOPMENT_AND_SSH.md#what-if-scenarios-and-stored-comparisons) | [T16 handoff](T16_HANDOFF.md) |
+| Planned human approval/no-award -> approved snapshot PDF -> full controlled demonstration | [Confirmed plan](T17_APPROVAL_PDF_PLAN.md), [specification](T17_APPROVAL_PDF_SPEC.md), [published tickets](T17_TICKET_BREAKDOWN.md) | [T17 planning handoff](T17_PLANNING_HANDOFF.md); implementation and AC-V2-11/12/13 remain open |
 
 T15 supports synthetic inputs and a controlled hybrid: live Odoo quotations with
 separately synthetic ML history. See [compatibility boundary](T15_ODOO_COMPATIBILITY_PLAN.md)
 and the Odoo section of [the terminal demo](T15_DEMO.md). The complete observed Odoo/model
-integration, arbitrary quotation selection, broader combined controls/charts, approval/PDF and full acceptance
+integration, arbitrary quotation selection, broader combined scenarios, approval/PDF and full acceptance
 remain open. The accepted thesis/technology baseline is unchanged.
 
 ## Historical foundations: consult when their behavior matters
