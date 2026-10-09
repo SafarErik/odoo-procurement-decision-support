@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 frontend = [
     "reflex>=0.8,<1.0",
+    "sqlalchemy[asyncio]>=2.0,<3.0",
 ]
 dev = [
     "podman-compose>=1.6,<2.0",

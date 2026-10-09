@@ -1,5 +1,302 @@
 # Implementation log
 
+## T16 procurement cockpit usability and decomposition (2026-10-08)
+
+**Problem:** functional success left buyers interpreting raw IDs, long tree/solver
+records, sparse chart points and a generic scenario rejection. The single Reflex
+module also mixed the RFQ ledger, HTTP state and all planning components.
+
+**Decision:** revise the buyer workflow within the existing controlled scope.
+Use separate Plans / What-if / Suppliers / Audit views, full-width Odoo input
+review, direct cost/exposure wording, original-value scenario validation and an
+embedded reproducible test guide. Split source by responsibility rather than
+introducing a frontend framework, chart dependency or backend abstraction.
+
+**Implemented behavior:** `frontend/app.py` composes pages; `rfq_page.py` owns the
+ledger; `planning/` owns state, inputs, scenarios, saved results, audit and layout.
+The unified composer includes outage and preserves original-base targeting,
+immutable children and exact uncertain-request recovery. Supplier conditions are
+readable while exact branch records remain available. Captured Odoo quotations
+are labelled as captured; synthetic history/model provenance remains explicit.
+
+**Evidence:** final Python 3.11 fast suite 521 passed / 45 deselected, one existing
+Starlette/httpx deprecation warning, final run 61.01s; actual ML/CBC execute. Ruff format/lint,
+compileall, pip check and Compose config pass. A failed initial fixture-temp probe
+lacked its parent directory; focused checks pass after creating the documented
+isolated directory. The Compose provider initially lacked PATH and passes using
+the existing local environment. Browser critique caught and corrected stacked
+desktop plan cards, a premature uncertain-save notice, comparison placement and
+Reflex numeric event types; final draft inputs retain exact text without new warnings.
+Actual read-only Odoo creation saves USD 1,850/2,200; all five scenarios and
+infeasibility pass through the original-base PostgreSQL flow with acquisition and
+inference forbidden. Independent HTTP retrieval verifies eight cases and unchanged
+base evidence across nine cases; separate synthetic browser creation saves EUR
+102/109, mobile layouts do not overflow and the RFQ ledger still works.
+Production frontend export passes four stages; shared token absent from 39
+generated client/export files. The stopped-agent-backend browser check clears the
+previous result and shows the safe service error. Only agent previews were closed;
+the user's services, containers, tunnel and saved records remain available.
+See [T16 handoff](T16_HANDOFF.md) for exact scope, IDs and remaining gates.
+
+**Limitations / thesis relevance:** this strengthens the implemented web interface,
+explanation and reproducible decision-process evaluation (FR-V2-07/08/09/10), not
+observed ML validity or full V2 acceptance. Snapshot business names are absent;
+neutral readable labels retain exact identities for audit. Odoo mock receipts
+would still be synthetic evidence. User acceptance, publication/new-diff CI and
+Hungarian Drive synchronization remain pending; T17 approval/PDF follows planning.
+No Odoo writes, observed-model promotion, commit, push or merge occurred.
+
+## Repeated local planning unavailability: machine/container/tunnel recovery (2026-10-08)
+
+**Problem -> cause:** the user's stored-case view reports planning data unavailable.
+FastAPI/Reflex still listen on 8000/8001/3000, but the existing Podman machine is
+stopped, all three development containers are exited, and Windows 8069/55433 have
+no listeners. Health returns 200 while RFQs return 503 and planning GET times out;
+health alone does not establish dependency readiness. Machine startup again reports
+the recurring `win-sshproxy.exe` failure.
+
+**Decision -> recovery:** start `podman-machine-default` and the existing Odoo DB,
+planning DB and Odoo containers without recreating them. Verify planning
+`pg_isready` and Odoo HTTP 200 inside the VM. Restore one localhost-only SSH tunnel
+from current machine SSH configuration for 8069 -> VM 8069 and 55433 -> VM 55432.
+Leave it running for the user's application session (observed process 26708;
+the PID is session-specific, not a reusable command).
+
+**Evidence:** both Windows ports become reachable; actual FastAPI health, RFQs and
+GET of `e183f917-fc33-4e28-a7a8-0aea22679176` return 200. Stored minimum cost is
+still USD 1,850. No credentials, schema, saved cases, volumes or application code
+were changed. Add the ordered startup/readiness/forwarding/API-verification and
+cleanup procedure to [local development](LOCAL_DEVELOPMENT_AND_SSH.md#planning-data-unavailable-recover-the-local-stack)
+and link it from README. Earlier recovery/acceptance evidence below is historical.
+The actual user Reflex service on 3000 reloads the selected case as **Plans ready**,
+USD 1,850/2,200, with the previous error absent. Screenshot:
+`.artifacts/t16-runtime-recovery/repeated-restored-planning.jpg`. The documented
+PowerShell authenticated GET succeeds, all six new command blocks parse, and
+patch whitespace checks pass.
+
+**Limit -> chapter relevance:** this restores a development session, not Podman's
+native Windows proxy. The machine/containers/tunnel must remain running; a restart
+requires repeating the checklist. No new full suite or hosted CI was run for this
+runtime/documentation-only change. The record supports reproducibility and local
+integration troubleshooting; T16 scope and synthetic-model limitations are unchanged.
+
+## Controlled T16 cockpit completion and local acceptance (2026-10-08)
+
+**Problem:** creation, five scenarios and retrieval were available, but the cockpit
+lacked the required cost/exposure chart, an explicit single-plan outcome and a
+consolidated requirements-to-evidence record. Saved cases also needed a clear view
+of the actual terms/policy used, independently of the original-base scenario controls.
+
+**Decision -> behavior:** reuse native Reflex/HTML/CSS and the existing saved API
+response. Add a numbered cost-versus-exposure plot/key with exact decimal costs,
+approximate positions and fixed 0–100 exposure scale. Preserve exact fractions in
+solver details; do not recalibrate/recompute model scores or plans. Distinguish no
+distinct alternative, no requested alternatives and incomplete alternative search.
+Infeasibility produces no chart/fabricated zero values. The audit shows saved price,
+capacity, MOQ, promised date, availability, applicability and policy; selectors
+retain original base terms. Validate the saved supplier join and exposure bounds.
+No endpoint, dependency, migration, model/solver algorithm or Odoo write was added.
+
+**Evidence:** required Python 3.11 fast suite **516 passed, 45 integration/E2E
+deselected**, one upstream Starlette/httpx warning, 74.58s; actual offline training,
+saved reload/inference and bundled CBC execute. Ruff format/lint, compileall,
+pip check, quiet Odoo Compose config and patch whitespace pass. The first focused
+run caught four stale test assertions equating all displayed child terms with base
+terms; assertions now separately check unchanged controls and actual saved child
+inputs. Focused follow-ups pass; the final full suite covers the corrected tests.
+Production frontend-only export passes four stages. Shared token absent from 41
+generated client/export files, with public state/recovery boundary checks passing.
+
+Fresh real browser/API/PostgreSQL acceptance creates the Odoo quotation base
+`233b8b59-10cf-43ee-aaa0-61eef4a00a30`: USD 1,850/2,200, exposure 75.0/48.3 out of
+100. Odoo is read-only; business terms and synthetic ML history retain independent
+provenance. Restarting the agent API with acquisition/inference forbidden still
+saves all five children: outage 2,200; capacity 100 -> 2,200; demand 220 -> 2,040;
+price 11.00 -> 2,150; combined demand 220 + capacity 100 -> 2,400 USD. Demand 500
+is stored infeasible without fabricated comparisons/chart. One-change combined
+input is rejected before POST. Independent GET verifies original parents, identical
+saved facts/assessments and unchanged base hash. Existing user API on 8000 reopens
+the fresh base with HTTP 200 and matching hash. Pure synthetic browser creation
+with its matching model gives EUR 102/109, base `a8723891-cf95-45d2-b046-0246bdb6ee70`.
+
+Browser evidence covers chart/key, actual tree path, saved input/provenance audit,
+single-plan message, loading/disabled controls, stored reopening and unavailable
+API clearing prior results. At 390px there is no horizontal document overflow;
+viewport restored. No visible framework connection notice or final console
+warning/error. Existing RFQ ledger still reads 13 RFQs / 8 vendors. UUIDs, snapshots
+and screenshots are ignored in `.artifacts/t16-closure/`; the
+[T16 handoff](T16_HANDOFF.md) owns the acceptance matrix and full case list.
+
+**Publication/runtime:** open PR #18 at `0a2cafbacef4adf45f97902df56d7aace21d8786`
+has independently verified successful Quality `37806351589` and Container/API
+`37806351546`. They cover the earlier published scenario workflow, not this local
+closure diff. No staging, commit, push, merge or Drive edit occurred. Validation
+uses Python 3.11.16 / Reflex 0.9.12; browser/export reuse Python 3.14.7 / Reflex
+0.9.11.post1. Agent previews on 3111/8211/8111 are stopped; user services and
+forwarding tunnel 2876 remain running. Existing configuration, generated user
+cache, Odoo data and volumes are preserved. Eight new own planning snapshots were
+saved; no reset suite was run against manual cases.
+
+**Limit -> next -> chapter relevance:** controlled T16 implementation and local
+AC-V2-09 acceptance are complete, pending user validation/publication/new-HEAD CI.
+FR-V2-09 approval/PDF and AC11/12/13 remain open. Arbitrary discovery, broader
+combinations and observed dataset/model promotion remain separate unimplemented
+capabilities; synthetic exposure is not a calibrated failure probability. No
+production browser run or formal accessibility audit is claimed. The full visual
+revamp stays later. User validation -> explicit Hungarian Drive synchronization ->
+T17 approval/no-award and approved-snapshot PDF planning. This record supports
+frontend/integration architecture, explainability, verification and limitations
+chapters; historical status/checks below remain unchanged.
+
+## User-session localhost recovery (2026-10-08)
+
+The user's FastAPI starts successfully, but RFQ GET returns 503 and stored planning
+retrieval is unavailable. Both existing Podman services are healthy: Odoo responds
+HTTP 200 inside the VM and planning PostgreSQL passes pg_isready. Windows has no
+listeners on configured 8069/55433; the temporary verification tunnel had been
+stopped. Restore one localhost-only SSH tunnel using the existing machine/key,
+without changing settings, credentials, containers or data. The user's existing
+API now returns HTTP 200 for health, RFQs and the stored hybrid base; actual Reflex
+on 3000 loads USD 1,850/2,200 without a connection warning. Odoo RFQs and planning
+GET use separate upstream dependencies; successful health alone proves neither.
+The recovery tunnel is left running for the user's testing, with process cleanup
+instructions provided in the handoff reply. This is a temporary Windows forwarding
+workaround, not a repaired Podman proxy. No application code change or repeated
+full suite was needed. Screenshot evidence is ignored under
+`.artifacts/t16-runtime-recovery/restored-planning.jpg`.
+
+## What-if scenario controls and stored base comparisons (2026-10-08)
+
+**Problem -> decision -> behavior:** the buyer could run only an outage through
+Reflex, while T15 already supported other disturbances. Reuse the existing scenario
+API and recovery path. Add capacity reduction, demand increase, price increase
+and a bounded combined form (at least two changes among demand and one supplier's
+capacity/price). All scenarios target the original base, including from a child.
+Original saved terms support strict-change validation. Simulated prices are
+what-if assumptions; they never refresh/update Odoo quotations. Assessments and
+historical facts stay stored. No backend contract, migration, algorithm, service,
+dependency or Odoo write was introduced.
+
+**Comparison:** render original/scenario feasibility, quantities, minimum cost,
+exposure and per-supplier allocation changes from existing saved results/deltas.
+Base cost/exposure are reconstructed from scenario values and recorded deltas;
+display does not solve or score. Demand-total differences are explicitly not
+like-for-like savings. Missing proven minima produce unavailable comparison cells,
+not fabricated zero allocations. Solver failure is distinct from infeasibility.
+Supplier joins, totals and scenario/result allocation agreement fail closed.
+Exact fractions and audit notes remain available. Recovery retains exact body/key,
+blocks changed intent and does not rescore/resolve sources on replay.
+
+**Publication:** PR #18 is open at published prepared-Odoo commit
+`ad8aeb2358470fba2fa386851bd140b70f72dbfb`; independently verified successful
+Quality `37779183516` and Container/API `37779183536` cover that SHA. README and
+handoff current status now reflect its publication; prior dated records retain
+their original evidence/limitations. This scenario extension remains unstaged,
+uncommitted and unpublished. No commit, push, merge or Drive edit occurred.
+
+**Checks:** existing frontend regressions 47 passed; initial new focused suite
+28 passed. Added allocation/result mismatch regression is covered by the final
+full suite: 509 passed, 45 integration/E2E deselected, one upstream Starlette/httpx
+warning, 55.58s. There are 29 new scenario tests; actual saved tree/CBC paths run.
+Ruff format (155 files)/lint, compileall, pip check, diff whitespace and Odoo
+Compose config pass. Production frontend-only export passes four build stages.
+Shared service token is absent from 41 generated client/export files and public
+state/recovery JSON. Missing services are not replaced with skipped runtime gates.
+
+**Live evidence:** use existing healthy Podman/planning database, with temporary
+localhost 55433 SSH forwarding. Preview FastAPI 8110 forbids Odoo acquisition and
+inference; Reflex 3110/8210 creates real PostgreSQL children from hybrid base
+`e183f917-fc33-4e28-a7a8-0aea22679176`. Capacity 100 -> USD 2,200; demand 220 ->
+USD 2,040; price 11.00 -> USD 2,150; demand 220 + capacity 100 -> USD 2,400;
+demand 500 -> saved infeasible. Independent GET confirms all parent links,
+identical assessments/historical facts and unchanged original USD 1,850 base
+snapshot/hash. UUIDs are in the T16 handoff; ignored `cases.json` and
+`comparison.jpg` are under `.artifacts/t16-scenarios-check/`.
+
+**Browser/runtime:** final combined-case reopening shows readable status and
+cost/quantity/exposure/allocation comparison. A one-change combined form is
+rejected before POST. Stopped API gives a safe service error and clears the old
+comparison. At the 390px viewport override, page has no horizontal overflow;
+override reset. Final successful rendering has no visible connection notice or
+console warnings/errors. Validation uses Python 3.11.16/Reflex 0.9.12; browser/
+export reuse Python 3.14.7/Reflex 0.9.11.post1. Agent preview ports/tab/tunnel were
+stopped; existing Podman services, volumes and saved cases remain. No resetting
+database test ran against manual cases. No default artifact, tracked lockfile or
+ignored environment value changed.
+
+**Limit -> next -> chapter relevance:** all five existing scenario types are
+accessible through bounded controls, but arbitrary multi-supplier combinations,
+quotation discovery, observed-model promotion and full T16/V2 acceptance remain
+open. New hosted CI and the resetting suite were not run. No new credential or
+manual Odoo operation is needed. User controls publication/merge, then assess the
+controlled workflow against T16 acceptance before claiming closure; T17 approval/
+PDF remains separate. Relevant to implementation, integration, usability,
+provenance and testing chapters. Historical records below remain dated evidence.
+
+## Prepared Odoo creation in the buyer workspace (2026-10-08)
+
+**Problem -> decision -> behavior:** Reflex could create only synthetic-domain
+cases although the Odoo planning API existed. Reuse the fixed offline-prepared
+comparison and existing `/from-odoo` route. **Plan from Odoo** shows captured
+quotation expectations and edits explicit demand/date/capacity/MOQ/promised-date
+terms. FastAPI independently reads Odoo/currency, checks expectations, loads the
+matching saved Decision Tree, runs unchanged CBC MILP and persists an immutable
+case. New terms carry `t16-ui-odoo-terms-v1` attribution; Odoo prices/identities and
+synthetic receipts remain distinct. Exact request/key recovery, outage and stored
+GET are reused. Responses must match the hybrid input kind and prepared group.
+No backend contract, migration, dependency, Odoo write or observed-model bypass
+was introduced. See the current T16 handoff and Odoo workspace runbook.
+
+**Published status:** authenticated GitHub reads verify PR #18 is open at
+`de7ac92820e367e28b79dd0f7073f5b8c4191397`; Quality `37753212085` and Container/API
+`37753212092` completed successfully. This extension remains local, unstaged,
+uncommitted and unpublished; those checks do not cover it. No commit, push, merge
+or Drive synchronization occurred. Historical records below remain unchanged.
+
+**Checks:** 15 new focused tests pass. Python 3.11.16 required fast suite:
+480 passed / 45 integration/E2E deselected / one upstream Starlette/httpx warning,
+46.28s. Actual training/reload/inference and CBC execute. Ruff format (154 files),
+lint, compileall, pip check, diff whitespace and production frontend-only export
+(four build stages) pass. Odoo Compose config passes with the installed local
+provider. The shared service token is absent from 41 generated client/export files
+and public state/recovery JSON. The first Compose attempt lacked the
+provider on PATH. A sandbox pytest run
+stalled without output and was stopped; a fresh basetemp under the normal Windows
+identity completed. Early assertion errors for formatted money, streamed ASGI
+responses and canonical JSON storage were corrected without changing those contracts.
+
+**Live evidence:** the existing stopped Podman machine and Odoo/planning containers
+were started without resetting data. Windows forwarding failed despite healthy
+containers; one localhost SSH tunnel supplied 8069 and 55433. Read-only group-2
+acquisition prepared isolated matching Python 3.11 assets in
+`.artifacts/t16-odoo-check/live/`, preserving default assets. Real Reflex -> FastAPI
+-> Odoo -> saved model/CBC -> PostgreSQL: base `e183f917-fc33-4e28-a7a8-0aea22679176`,
+USD 1,850/2,200, allocations 50/0/150 and 100/100/0; supplier 53 outage
+`71958fa0-8583-4393-a787-39c1f7bee1f5`, USD 2,200 and +350 USD. Browser reopening
+and independent GET verify lineage, assessment reuse and separate provenance.
+Stopped-API retrieval clears old plans and shows the safe unavailable-service
+message. The 390px viewport override gives one supplier column without horizontal
+page overflow; reset afterward. No visible connection notice or console warnings/
+errors during successful retrieval. Ignored evidence: `cases.json` and
+`stored-odoo-plan.jpg` under `.artifacts/t16-odoo-check/`.
+
+**Runtime/cleanup:** validation uses Python 3.11/Reflex 0.9.12; browser/export reuse
+Python 3.14.7/Reflex 0.9.11.post1. Backend/ML remain Python 3.11. Agent preview
+ports 3109/8209/8109, tab and temporary SSH tunnel were stopped; existing Podman
+services and saved cases/volumes remain. Subsequent Windows manual review needs
+the documented localhost tunnel. No tracked lockfile, default artifact or ignored
+environment value changed; no resetting database test ran against manual cases.
+
+**Limit -> next -> chapter relevance:** preview is captured, not live discovery;
+IDs are shown without newly acquired supplier/product names. One model serves a
+compatible domain at a time. Synthetic history/model exposure is not observed
+supplier validation. Other scenario controls, arbitrary discovery and full T16/V2
+acceptance remain open; approval/PDF belongs to T17. Hosted CI for this diff and
+the resetting suite were not run. User reviews the Odoo walkthrough and controls
+commit/publication/merge; the next small capability can expose another existing
+stress scenario with stored comparison. Relevant to architecture, integration,
+provenance, implementation, usability and testing chapters.
+
 ## Controlled Odoo quotations, synthetic model and immutable V2 completion (2026-10-07)
 
 **Problem and decision:** the history credential was renewed, but the three selected
@@ -1668,3 +1965,149 @@ retry semantics remain unchanged. No new Odoo assembly/API, database migration,
 Reflex integration, approval/PDF path or Odoo mutation was added. Changes are local,
 uncommitted and unmerged. Design, exact evidence, file map and T14 questions are
 recorded in `docs/T13_V2_MILP_DESIGN.md` and `docs/T13_HANDOFF.md`.
+
+## T16 first increment — stored planning display (2026-10-07)
+
+Problem: T15 results were accessible through the terminal/API but not a buyer-facing
+planning page. Decision: reuse authenticated stored-only GET before adding creation
+or scenario controls. Implemented `/planning` in the existing Reflex app, with saved
+plans/allocations, exact money and rational exposure, explanations/tree paths,
+parent lineage, provenance and safe loading/error/recovery. The shared credential
+stays in Reflex server settings; synthetic ML remains clearly labelled.
+
+Starting branch `feature/T16-reflex-frontend-implementation` at T15 merge
+`3c19890bd17cd89ffd6d4fbdfca3152d07898f55`. Post-merge main Quality run
+`37653141549` and Container/API run `37653141222` were rechecked successful for that
+exact SHA. This supersedes older current-publication statements only; historical
+local/hosted/live evidence and limitations above remain intact. T16 is uncommitted
+and has no hosted result. The preceding user-requested Hungarian Drive sync on
+2026-10-07 recorded merged T15 and controlled hybrid acceptance; no Drive write was
+performed for this frontend increment.
+
+Evidence: final Python 3.11 fast suite **451 passed, 45 deselected**, one upstream
+warning, 41.33s; Ruff format/lint, compileall, pip check, whitespace, Odoo Compose
+configuration and final production Reflex export passed. Actual browser checks
+used Reflex/FastAPI with verified prior synthetic/hybrid snapshots in an isolated
+memory repository, with upstream/model/solver disabled. Costs, scenario delta,
+explanations/provenance, validation/missing/unavailable errors and recovery passed.
+State/generated-browser-file checks excluded the service token. Browser checks
+revealed and fixed paragraph nesting and a missing SQLAlchemy asyncio runtime
+extra. A fresh ignored web/temp directory avoided the earlier Windows cache
+permission failure. No new service was introduced.
+
+Limitation: this is stored-case presentation and partial T16, not new live
+Odoo/PostgreSQL browser acceptance, observed-model promotion or full V2. Creation,
+scenario controls and charts remain T16 work; approval/PDF remains T17. Chapter
+relevance: architecture (4), implementation (6), testing (7). Detailed boundary,
+verification and next capability are in `docs/T16_HANDOFF.md`; executable terminal
+steps are in `docs/LOCAL_DEVELOPMENT_AND_SSH.md`. User retains commit/push/merge control.
+
+### T16 user startup recovery — 2026-10-07
+
+The user's root `.venv` frontend run reported missing `app/routes.ts`, followed by
+a cleanup `NoSuchProcess`. Inspection found an incomplete generated cache: Reflex's
+actual `app/routes.js` and its generated Radix theme component were missing.
+Restoring one template file removed startup failure but exposed an HTTP 500; the
+complete cache was therefore preserved in ignored artifacts and regenerated by
+the user's installed Reflex. Development startup, `/planning` HTTP 200 and browser
+form rendering without console errors passed on Python 3.14.7 / Reflex 0.9.11.post1 /
+Node 24.20.0, using temporary isolated ports. This does not alter the Python 3.11
+ML/CI baseline or establish a new database acceptance. No application source,
+dependency, tracked lockfile or business data changed; recovery procedures were
+added to the terminal runbook. See the T16 handoff for the preserved cache path.
+
+### T16 user stored-case connection recovery — 2026-10-07
+
+Live FastAPI health returned 200, but authenticated planning GET returned 503:
+the database URL was missing and the separate existing planning container was
+stopped. Restarted that container without resetting/recreating it; its schema and
+saved cases remained intact. Healthy PostgreSQL was still unreachable on Windows
+55432, so the documented localhost-only 55433 SSH tunnel was started. Filled only
+the empty ignored `.env` connection value with existing credentials, without
+printing them or changing Odoo/configuration source.
+
+A fresh in-process FastAPI stored GET -> actual PostgreSQL -> frontend mapper
+verified the existing synthetic EUR 102/109 base and EUR 106 scenario with parent
+lineage and EUR 4 delta. No training, Odoo read/write, migration or new case was
+required. Database/tunnel remain running for user validation; the already running
+FastAPI process needs a restart to load its settings. Its post-restart browser
+acceptance remains pending. See `docs/T16_HANDOFF.md` for evidence/cleanup and the
+terminal runbook for shared `.env` configuration and the forwarding procedure.
+
+### T16 post-restart stored-display confirmation — 2026-10-07
+
+The user confirmed the Reflex page now works. Independent live authenticated API
+GET returned 200 against actual PostgreSQL for the EUR 102 synthetic base; its
+stored provenance confirms controlled synthetic inputs and synthetic ML history.
+Browser display is user-confirmed; live API/source provenance was agent-verified.
+The prior hybrid report's UUID returned 404 in the current demo database. Historical
+hybrid acceptance is retained without claiming that case is currently available.
+This closes the local stored-display setup gap, not the remaining T16 creation,
+scenario controls/charts, observed-model promotion or full V2 acceptance.
+
+
+## 2026-10-07 — T16 controlled creation, supplier outage and buyer explanations
+
+Problem: the first stored-view page exposed rational values and solver codes before
+buyer quantities/trade-offs, while creation/scenarios required the terminal.
+Decision: reuse the fixed offline T15 demo, existing authenticated POST/GET routes,
+Reflex tabs/forms and CSS bars. No new backend contract, solver/model algorithm,
+service, dependency, Odoo operation or broad restructuring was required.
+
+Implemented: controlled synthetic demand creation, independent supplier-outage
+children, base navigation, stored retrieval, quantity bars, exact cost/premium
+presentation, schedule classes and receipt-history summaries. Expandable audit
+sections preserve exact fractions, tree conditions, raw solver explanations,
+identity and provenance. Tree conditions are not historical receipt rows; model
+scores remain synthetic uncalibrated schedule-watch exposure. UI-edited demand has
+an explicit controlled authority and source reference, retaining original commercial
+terms/policy/history attribution. Human operational approval remains outside T16.
+
+Trust/recovery: no token or artifact selector in browser state/forms; no training
+in HTTP. Each action retains an exact payload/UUID key. Interrupted responses block
+changed intent and require explicit recovery. An authentication failure during
+recovery cannot discard earlier uncertainty. Copyable read-only JSON provides
+manual recovery before the Reflex session ends; no durable request queue was added.
+
+Evidence: focused suite 32 passed. Required Python 3.11 fast suite 465 passed /
+45 deselected, one upstream Starlette/httpx warning; format/lint, compileall, pip
+check and whitespace passed. Initial focused invocation lacked its basetemp parent
+(WinError 3); creating a fresh ignored run parent fixed setup. A format-only mixed
+line-ending check was corrected with Ruff. Later provenance/recovery logic changes
+received focused checks and the required suite again; historical runs are retained.
+
+Real isolated browser/API/PostgreSQL acceptance: base EUR 102/109
+`8b64062b-b695-4ed9-b49c-52f43064c835`; S226-outage EUR 106 / +4 EUR
+`ed2e23c1-c4e2-4c7a-90e0-0b3a6a1c6463`; edited demand 25 infeasible
+`1e9c3368-d5db-4307-b7b9-1d2910199e31`. Independent stored GET verifies parent,
+reused assessments and edited-demand references. Browser verifies constraint notes,
+base navigation, service-down clear/recovery, disabled actions and exact-request
+copy. 390px layout has one plan column and no page overflow; viewport restored.
+Evidence files: `.artifacts/t16-next-browser/cases.json` and
+`desktop-comparison.jpg`. Current manual cases/database were retained; no resetting
+integration test or Odoo action was run against user data.
+
+Runtime finding: default saved model failed the Python 3.11 manifest gate. A fresh
+owner-generated model was prepared offline in the isolated verification folder;
+its initial request equals the existing fixture. Original artifacts remained
+unchanged. The preview API's process-only model setting was corrected; explicit
+same-request retry recovered from 503. An unconfirmed in-app browser download was
+replaced with native copy/read-only recovery JSON. Final browser inspection confirms the framework connection notice is hidden,
+console warnings/errors are absent and requests succeed after reload. These are
+local findings, not new hosted or production/browser automation acceptance.
+
+Limit/next: controlled creation and one outage UI are complete locally; Odoo
+quotation selection, other scenario controls and broader comparisons remain T16
+work. Observed model promotion, approval/PDF and full V2 remain separate. No new
+hosted CI was verified. First slice is committed as `b9987df`; this addition stays
+unstaged/uncommitted/unpushed under user review. No Drive edits. Thesis relevance:
+architecture, implementation, usability, provenance and testing chapters.
+
+Final handoff checks: required suite 465 passed / 45 deselected / one warning in
+45.85s after the final recovery fix; Ruff format/lint, compileall, pip check and
+whitespace passed. Production frontend export passed all four build stages in the
+isolated cache. Python 3.11.16 / Reflex 0.9.12 validates the baseline; live frontend
+and export use existing Python 3.14.7 / Reflex 0.9.11.post1, with real FastAPI/model
+on Python 3.11. Agent preview ports 3108/8208/8108 and browser tab were stopped;
+user ports 3000/8001/8000 and database/tunnel 55433 remain available. No tracked
+lockfile, default demo artifact, dependency or user environment value changed.

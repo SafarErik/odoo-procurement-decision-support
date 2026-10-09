@@ -34,6 +34,41 @@
 
 ## Current V2 scope and historical increments
 
+The 2026-10-08 user-authorized T16 usability revision decomposes Reflex into
+`frontend/planning/` state, input, scenario, result, audit and page modules, with
+`frontend/app.py` as composition root. Preserve the separate Plans/What-if/Suppliers/
+Audit workflow, readable explanations with exact saved values available, scenario
+drafts and original-base validation. Verify visual changes in the built-in browser,
+including mobile and errors. Keep synthetic model evidence explicit; frontend
+work does not authorize populating Odoo or promoting an observed model.
+
+T16 now authorizes controlled synthetic case creation, all five existing stress
+scenario types and stored-only retrieval in Reflex at `/planning`, through existing HTTP
+routes. Reuse the offline prepared demo request; never train or load a model in
+Reflex or accept a browser-selected file/artifact. Preserve exact request/key on
+uncertain POST outcomes and require explicit retry. Keep the service token on the
+Reflex server, outside browser state/forms. Show allocations, cost trade-offs and
+class labels first, with exact solver/tree/provenance details available for audit.
+The 2026-10-08 extension also authorizes creating from the fixed offline-prepared
+Odoo comparison through existing `/from-odoo`: show captured quotation expectations,
+edit explicit demand/date/capacity/MOQ/promised-date terms, and let FastAPI re-read
+Odoo before saving. Do not imply that loading the local preview refreshes Odoo.
+Keep its separately synthetic history and owner-configured matching model; do not
+add arbitrary quotation discovery or browser-selected models. Preserve the RFQ
+ledger and synthetic/observed provenance distinction. The scenario UI adds capacity
+reduction, demand increase, price increase and a bounded combination of demand
+and one supplier's capacity/price. Compare stored original-base allocations, cost,
+exposure and feasibility; do not present simulated prices as fresh Odoo facts or
+demand-total differences as like-for-like savings. Scenarios always target the
+original base, including from a child. The final 2026-10-08 increment adds a
+stored-only cost/exposure chart, explicit single-plan outcome and saved input/policy
+audit. Controlled T16 implementation and local functional acceptance are complete;
+user validation, publication and new-HEAD CI remain pending. Arbitrary Odoo
+selection, broader combined changes, observed-model promotion and full V2 acceptance
+remain separate open capabilities; approval/PDF belongs to T17. Preserve exact
+money/fractions alongside approximate plotting coordinates. See `docs/T16_HANDOFF.md`. Earlier frontend exclusions
+below describe those historical increments.
+
 The 2026-10-07 user-authorized T15 extension supports controlled live Odoo quotations
 with separately synthetic ML evidence through `/api/v2/procurement/planning-cases/from-odoo`.
 The server independently reads the selected group/currency and checks caller
