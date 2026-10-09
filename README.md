@@ -27,6 +27,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How can I create, compare and reopen a plan in Reflex? | [Planning workspace walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test), [T16 handoff](docs/T16_HANDOFF.md) |
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
+| How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
 
 ## Current capability — verified 2026-10-08
 
