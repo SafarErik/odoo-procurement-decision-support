@@ -28,6 +28,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
+| What is ready for V2 approval/PDF implementation? | [T17 planning handoff](docs/T17_PLANNING_HANDOFF.md), [published tickets](docs/T17_TICKET_BREAKDOWN.md) |
 
 ## Current capability — verified 2026-10-08
 
@@ -39,7 +40,19 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
 | Buyer-facing planning workflow | T16 now presents a procurement cockpit with separate Plans, What-if, Suppliers and Audit views, a direct cost/exposure trade-off, draft scenario assumptions, original-value validation and an in-app test guide. Synthetic/prepared-Odoo creation, five stress types and stored retrieval retain the existing API. User acceptance/publication of the usability revision remain pending. Observed-model promotion and arbitrary quotation discovery remain separate; approval/PDF belongs to T17. |
 
-**Publication:** T13/T14/T15 are merged. T15
+**2026-10-09 update:** T16 is merged through
+[PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
+at `979b9b89e8517c65daefcf7e533c8b3f9c2c0ccd`. The approval/PDF
+[specification #19](https://github.com/SafarErik/odoo-procurement-decision-support/issues/19)
+and linked implementation issues
+[#20](https://github.com/SafarErik/odoo-procurement-decision-support/issues/20) ->
+[#21](https://github.com/SafarErik/odoo-procurement-decision-support/issues/21) ->
+[#22](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
+are published as ready-for-agent. They define work; approval/PDF and AC-V2-11/12/13
+remain unimplemented/open. The current skills/planning branch is not published
+or merged by this handoff. See [verification and next-chat instructions](docs/T17_PLANNING_HANDOFF.md).
+
+**Historical publication record, superseded by the update above:** T13/T14/T15 are merged. T15
 [PR #17](https://github.com/SafarErik/odoo-procurement-decision-support/pull/17)
 merged into main `3c19890bd17cd89ffd6d4fbdfca3152d07898f55`;
 its post-merge [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37653141549)
@@ -153,30 +166,30 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Repeat the short T16 validation sequence, then commit and publish the final diff
-   under the user's control; verify CI for the resulting exact SHA before merge.
-2. Synchronize the Hungarian Drive status on explicit request after user validation,
-   then plan T17 human approval/no-award and approved-snapshot PDF.
-   Arbitrary Odoo quotation discovery is not implemented by the prepared flow;
-   do not silently treat it or observed-model promotion as accepted.
-   [The compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains live
-   Odoo quotations plus synthetic ML history with independent provenance; matching
-   observed receipts/model promotion stays separately open.
-3. Implement T17 and complete the local demonstration. Keep unresolved observed
-   history/model integration dependencies visible; the full UI revamp comes later.
-4. Complete T18 system evaluation and T19 thesis closure against the accepted
-   requirements. Plan the next small capability in detail; later work stays indicative.
+1. Review and commit the skills/planning branch, publish its PR under the user's
+   control, and verify CI for the exact resulting SHA before merge.
+2. From updated main, implement [#20: saved human approval/no-award](https://github.com/SafarErik/odoo-procurement-decision-support/issues/20)
+   after its own implementation authorization. Then deliver
+   [#21: approved PDF](https://github.com/SafarErik/odoo-procurement-decision-support/issues/21)
+   and [#22: reproducible full demonstration](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
+   in dependency order. See the [confirmed plan](docs/T17_APPROVAL_PDF_PLAN.md).
+3. Complete the separate T18 integrated evaluation and T19 thesis closure against
+   the accepted requirements. Observed-history/model promotion, arbitrary quotation
+   selection and broader combined scenarios remain separate capabilities;
+   [the controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md)
+   is Odoo quotations plus separately synthetic ML history.
+4. Synchronize affected Hungarian Drive records only on explicit request, using
+   reviewed repository evidence. Published specifications alone are not PASS evidence.
 
 ## Documentation responsibilities
 
 The repository owns executable behavior, terminal procedures and dated technical
 evidence. Drive owns the Hungarian thesis requirements, architecture decisions,
-roadmap and writing material. On the user's explicit request, nine affected
-Hungarian living documents were synchronized on 2026-10-07: T15 merged with
-post-merge CI, controlled hybrid acceptance, remaining observed-model/full V2 gates,
-and the next T16/T17 capabilities. Native structure and historical evidence were
-preserved; the writing guide was checked and retained. This new T16 implementation
-has not been synchronized to Drive. Further Drive edits require an explicit request.
+roadmap and writing material. The earlier 2026-10-07 synchronization covered T15
+and its controlled hybrid evidence. The 2026-10-08 Drive records reviewed during
+this planning session include T16 local evidence, but retain pre-merge publication
+wording. No Drive correction or T17 planning synchronization was performed here.
+Further Drive edits require an explicit request.
 
 Update current status here; link detailed evidence instead of repeating execution
 logs. Historical handoffs/spikes retain their dated boundaries. Use the
