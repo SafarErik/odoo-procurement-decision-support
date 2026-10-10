@@ -50,6 +50,7 @@ class PlanningState(rx.State):
     request_key: str = ""
     recovery_json: str = ""
     notice: str = ""
+    final_choice: str = ""
     _demo_payload: dict = {}
     _odoo_payload: dict = {}
     # shortcut: recovery is session-local; copy JSON before leaving until durable recovery exists.
@@ -88,6 +89,7 @@ class PlanningState(rx.State):
         self.input_mode = "stored"
         self.view = "plans" if self.details["parent_id"] == "Base case" else "whatif"
         self.stress_supplier = ""
+        self.final_choice = ""
         self.stress_capacity = self.stress_quantity = self.stress_price = ""
 
     @rx.var
@@ -312,7 +314,11 @@ class PlanningState(rx.State):
             self._pending = {}
         if result is not None:
             self._show(result)
-            self.notice = "Case saved. Keep its case ID to reopen this exact result."
+            self.notice = (
+                "Final decision saved. Reopening preserves its selected plan and audit."
+                if self.details["final_outcome"]
+                else "Case saved. Keep its case ID to reopen this exact result."
+            )
 
     def _prepare_request(self, url: str, payload: dict):
         self.request_key = str(uuid4())
@@ -322,6 +328,63 @@ class PlanningState(rx.State):
         self.error_message = ""
         self.notice = ""
         self.is_loading = True
+
+    @rx.event
+    def choose_final_plan(self, value: str):
+        if not self.is_loading and not self.has_pending:
+            self.final_choice = value
+
+    @rx.event
+    async def finalize_case(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending:
+            return
+        self.error_target = ""
+        try:
+            if (
+                not self.has_case
+                or self.details["parent_id"] != "Base case"
+                or self.details["final_outcome"]
+            ):
+                raise ValueError("Only an undecided original base can be finalized.")
+            choice = form_data.get("choice", "")
+            actor = form_data.get("actor", "")
+            reason = form_data.get("reason", "")
+            if choice not in [p["label"] for p in self.plans] + ["No-award"]:
+                raise ValueError("Explicitly choose a saved plan or No-award.")
+            index = next((i for i, p in enumerate(self.plans) if p["label"] == choice), None)
+            if not isinstance(actor, str) or not 1 <= len(actor.strip()) <= 255:
+                raise ValueError("Enter an actor audit reference (1–255 characters).")
+            if (
+                not isinstance(reason, str)
+                or len(reason) > 2000
+                or (index != 0 and not reason.strip())
+            ):
+                raise ValueError(
+                    "Alternative approval and No-award need a reason (up to 2,000 characters)."
+                )
+            if form_data.get("demonstration") != "on":
+                raise ValueError(
+                    "Acknowledge this controlled demonstration and synthetic ML evidence."
+                )
+            payload = {
+                "snapshot_hash": self.details["snapshot_hash"],
+                "outcome": "no_award" if choice == "No-award" else "approve",
+                "plan_index": index,
+                "actor_reference": actor,
+                "rationale": reason or None,
+                "demonstration_acknowledged": True,
+            }
+        except (ValueError, KeyError) as error:
+            self.error_message = str(error)
+            return
+        self._prepare_request(
+            f"{settings.planning_cases_url}/{self.details['case_id']}/final-decision", payload
+        )
+        yield
+        try:
+            await self._send_pending()
+        finally:
+            self.is_loading = False
 
     @rx.event
     async def create_demo(self, form_data: dict[str, Any]):

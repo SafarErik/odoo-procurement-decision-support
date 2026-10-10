@@ -18,6 +18,7 @@ containers/projects are not separate Podman machines.
 | Odoo/RFQ ledger or controlled live contracts | Odoo + its internal `db`; FastAPI/Reflex only for their flows | Documented read-only mappings or the existing RFQ UI |
 | Manual T15 API inspection | FastAPI + own planning database + trusted saved model | Controlled HTTP planning/scenario/stored retrieval; Odoo/Reflex unnecessary |
 | Stored planning view | FastAPI + database containing saved cases + Reflex | Recorded base/scenario display; no Odoo or configured ML model needed for GET |
+| Saved human decision | FastAPI + migrated planning database + Reflex | Original-base approval/No-award and stored audit/retry; no Odoo, model or solver required |
 
 The Odoo Compose project stores ERP data in named volumes. The planning-test project
 is disposable and has no named volume. Its tests reset the schema. Keep them separate;
@@ -791,6 +792,56 @@ existing containers were stopped, and Windows 8069/55433 had no listeners.
 Starting those existing services and one localhost-only tunnel restored health,
 RFQ and the selected stored-case requests to HTTP 200 without changing credentials
 or saved data. See the dated [implementation log](IMPLEMENTATION_LOG.md).
+
+## Saved human decision
+
+T17 issue #20 extends the existing `/planning` workspace. First activate the
+Python 3.11 environment, apply revision `20261009_01` to the intended helper
+database as described in the [persistence guide](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations),
+and start the documented FastAPI/Reflex services with matching server-side
+`T12_TRUSTED_CALLER_TOKEN`. This migration creates the separate final-decision
+table; it preserves saved planning rows. Do not run resetting tests against this
+application database. Odoo, a model artifact and CBC are unnecessary for deciding
+or reopening an already stored case; new case creation retains its existing prerequisites.
+
+1. Open `/planning`, enter a saved **original-base** UUID and choose **Load stored
+   case**, then **Plans**. Check allocations, exact costs, supplier classes and
+   saved dates. Scenario children explain their analytical restriction and have
+   no finalization action; open their original base instead.
+2. In **Record the final decision**, explicitly select **Minimum cost**, a saved
+   alternative, or **No-award**. There is no selected default. Enter **Actor audit
+   reference**; enter **Reason** for an alternative or No-award. No-award is also
+   available on a base with no proven plan.
+3. Acknowledge the controlled demonstration and synthetic ML evidence, then
+   choose **Finalize this base**. The decision is one-time. The entered actor is
+   audit text, not authenticated buyer identity. A retained proven plan can be
+   approved after later comparison failure; the limitation accompanies approval.
+4. Expect the saved outcome, selected plan, reason and server UTC **Recorded at**.
+   **Audit** contains the exact human decision and approved-content hash.
+   Saved simulation dates are separate. Reopen the UUID and check the same values.
+   Approval produces immutable content for the next PDF increment; this slice
+   has no PDF view/download. No-award creates no approved document content.
+5. On an uncertain save response, preserve **Recovery data** and use **Retry same
+   request** explicitly. The pending payload and key remain unchanged and block
+   replacement submission. If the response was lost after commit, retry recovers
+   the original decision/time. Restoring connectivity does not justify a new key.
+   Recovery JSON contains no service token. After losing the Reflex session,
+   reopen the case UUID to inspect its saved outcome; JSON-based resubmission is
+   a server-side HTTP operation, not a browser token entry flow.
+
+Backend contract: `POST /api/v2/procurement/planning-cases/{case_id}/final-decision`
+uses the existing trusted caller gate and a UUID `Idempotency-Key`, separate from
+creation keys. Its JSON fields are `snapshot_hash`, `outcome` (`approve` or
+`no_award`), `plan_index` (0 = minimum, 1.. = saved alternative; null for
+No-award), `actor_reference`, optional/required `rationale` and
+`demonstration_acknowledged: true`. No client timestamp is accepted. A new decision
+returns 201, exact retry 200, conflicting decision/key 409, invalid intent or
+scenario 422, missing case 404, unavailable/invalid persisted evidence 503.
+GET and creation replay include the additive `final_decision` field.
+
+Stop these foreground services with Ctrl+C when finished. Only migrate the
+database you intentionally selected; no Odoo write/configuration is part of
+this walkthrough. See [local acceptance evidence](T17_HANDOFF.md).
 
 ## Windows forwarding troubleshooting and cleanup
 

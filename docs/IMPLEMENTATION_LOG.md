@@ -2219,3 +2219,87 @@ authorize #20 on updated main. Approval/PDF and AC-V2-11/12/13 remain open; obse
 Odoo-history training, broader quotation selection and T18 evaluation are separate.
 Thesis evidence: problem -> decision -> work definition/publication -> verified
 issue/doc evidence -> implementation/runtime limits -> chapters 3/4/5 and later 6/7/8/9.
+
+## 2026-10-09 - Saved V2 human approval and No-award (issue #20)
+
+Problem: the buyer could compare immutable plans but could not record the final
+allocation choice or reasoned No-award. A historical V1 single-offer decision
+does not satisfy V2 allocation approval.
+
+Decision: implement the first unblocked vertical slice from the user-supplied
+[T17 planning handoff](T17_PLANNING_HANDOFF.md) on `feature/T17-implementation`,
+starting at planning merge `f0c5552`. Reuse the HTTP recovery pipeline and
+PostgreSQL transaction/locking patterns. Store human decision and versioned
+approved content separately; preserve original planning rows and exact hashes.
+No new dependency, accepted ADR, arbitrary Odoo selection or observed-model
+promotion was introduced. Ponytail and Reflex documentation skills guided this slice.
+
+Implemented behavior: explicit original-base minimum/alternative approval or
+reasoned No-award, bounded non-authenticated actor audit text, explicit historical
+demo acknowledgement, one server UTC decision time, pure saved-proof/constraint/
+provenance checks, immutable canonical approved content, same-key semantic replay,
+conflict protection and saved GET/creation recovery. Retained proven minimum and
+earlier alternative remain eligible after later calculation failure with recorded
+incomplete comparison. Stress children remain analytical. No-award creates no
+approved content. The application does no Odoo acquisition, model load/inference,
+training or solver execution during finalization/reopening/retry.
+
+Migration `20261009_01` adds the base-linked `planning_final_decisions` table,
+unique finalization keys, base-only insertion and UPDATE/DELETE protection.
+Only a separate disposable database was migrated; applying the revision to the
+user's helper database remains an explicit local setup step. Downgrade removes
+human decisions/approved content. See [T17 handoff](T17_HANDOFF.md) and the
+[decision walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#saved-human-decision).
+
+Verification PASS on Python 3.11.16:
+
+- Required fast suite: **562 passed, 54 deselected**, 48.08 s. Actual offline
+  Decision Tree training/reload/inference and bundled CBC ran. One existing
+  Starlette/httpx deprecation warning remains.
+- Focused final API/Reflex/hybrid checks: **51 passed**, 8.03 s. Saved hybrid
+  approval and creation recovery use a mocked read-only Odoo adapter for creation,
+  then forbidden Odoo/model/solver dependencies during stored operations. One
+  cache permission warning accompanied this passing run; final suites used a
+  precreated cache directory and had no cache warning.
+- Combined real PostgreSQL selection: **31 passed**, 35.38 s (V1, T15 and T17).
+  Two requests genuinely wait on PostgreSQL advisory locks before release;
+  identical intents return 201/200 and competing intents 201/409 with one row.
+  Atomic rollback and direct immutable/base-only/unique-key enforcement passed.
+- Ruff format (183 files), Ruff lint, compileall, pip check, Reflex production
+  export, both Compose configs with `--quiet`, and patch whitespace passed.
+  Export is compilation only; generated Reflex dependency-lock changes were
+  restored to the clean starting versions, with no dependency update intended.
+- Built-in browser -> real Reflex/FastAPI/PostgreSQL: minimum/alternative
+  approval, mandatory reason, both No-award cases, stored reload, scenario
+  restriction, desktop/mobile and uncertain-save recovery passed. The synthetic
+  fixture yields EUR 102/109 plans. Mobile 390x844 showed no horizontal overflow.
+  A test-only response wrapper returned 503 after successful commit; UI retained
+  identical recovery JSON while FastAPI was subsequently stopped, and explicit
+  retry after restart recovered the original timestamp/content hash with model
+  configuration absent and acquisition/inference/solver sentinels enabled.
+  Database evidence and screenshots were saved under ignored `.artifacts/t17/`.
+
+Nonpassing attempts retained as limitations: sandbox TestClient stalled and was
+interrupted before elevated execution; one focused invocation omitted its parent
+temporary directory and produced setup errors, corrected before executing tests;
+the initial concurrency observation reused PostgreSQL's cached statistics and
+failed the waiter assertion, fixed with `pg_stat_clear_snapshot()` before the
+passing contention checks. These attempts are not PASS evidence.
+
+Runtime boundary: reused the existing Podman machine, with all existing Odoo and
+helper/demo containers untouched/stopped. A separate
+`procurement-decision-support-t17-acceptance` PostgreSQL container used VM 55434.
+The Windows proxy failed; a created localhost-only SSH tunnel exposed host 55435.
+Only this disposable database was reset. Acceptance servers, container and tunnel
+were stopped/removed after verification; the initially stopped machine was
+returned to stopped state. Local artifact evidence remains for inspection.
+
+Limitation and next capability: this supplies local controlled FR-V2-09/10/11 and
+AC-V2-11 evidence, plus AC-V2-10/V1 regression. Historical/synthetic inputs do not
+establish current operational validity or production buyer authentication. PDF
+render/download (issue #21 / AC-V2-12), the complete local hybrid demonstration
+(#22 / AC-V2-13), user review and exact-new-SHA hosted CI remain open. GitHub
+issues remain open. No Odoo/Drive writes, stage, commit, push, PR or merge were
+performed. Next: render the immutable approved content without reacquisition or
+approval mutation. Thesis relevance: chapters 3/4/5/6/7; later evaluation and
+conclusions retain the synthetic/local scope limitation.

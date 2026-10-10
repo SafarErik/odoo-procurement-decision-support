@@ -98,7 +98,7 @@ def test_clean_database_migration_creates_versioned_immutable_schema(postgres_ru
     }
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "20261005_01"
+            "20261009_01"
         )
 
 

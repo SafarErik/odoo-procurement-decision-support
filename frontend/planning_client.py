@@ -1,5 +1,7 @@
 """Planning HTTP boundary and presentation; no local inference or optimization."""
 
+import hashlib
+import json
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
@@ -66,6 +68,18 @@ async def submit_planning_request(
             413: "The prepared request exceeds the API size limit.",
         }
         if response.status_code in errors:
+            if url.endswith("/final-decision") and response.status_code in (409, 422):
+                return (
+                    None,
+                    (
+                        "The case is already finalized or the finalization key conflicts. "
+                        "Reopen it to review the recorded decision."
+                        if response.status_code == 409
+                        else "Finalization was rejected. Review the explicit plan, actor, reason, "
+                        "saved hash and demo acknowledgement."
+                    ),
+                    False,
+                )
             if response.status_code == 422 and url.endswith("/from-odoo"):
                 return (
                     None,
@@ -84,6 +98,16 @@ async def submit_planning_request(
         if str(UUID(case_id)) != case_id:
             raise ValueError("Invalid response identity")
         display = _map_case(data, case_id)
+        if url.endswith("/final-decision"):
+            intent = dict(payload)
+            intent["actor_reference"] = intent["actor_reference"].strip()
+            intent["rationale"] = (intent.get("rationale") or "").strip() or None
+            if (
+                case_id != url.split("/")[-2]
+                or data["final_decision"]["intent"] != intent
+                or data["final_decision"]["idempotency_key"] != key
+            ):
+                raise ValueError("Final decision response does not match pending intent")
         if url.endswith("/scenarios") and display.details["parent_id"] != url.split("/")[-2]:
             raise ValueError("Unexpected parent")
         if not url.endswith("/scenarios") and data["parent_id"] is not None:
@@ -107,7 +131,8 @@ async def submit_planning_request(
         return (
             None,
             (
-                "The outcome is unconfirmed. The API may have saved the case. Retry the "
+                "The outcome is unconfirmed. The API may have saved the case or decision. "
+                "Retry the "
                 "same request to recover it; do not create a replacement."
             ),
             True,
@@ -558,6 +583,68 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         }
         for entry in snapshot["provenance"]["entries"]
     ]
+    details.update(_final_decision_details(payload, recorded))
     return PlanningDisplay(
         details, plans, allocations, assessments, provenance, scenario_suppliers, comparison_rows
     )
+
+
+def _final_decision_details(payload, plans):
+    decision = payload.get("final_decision")
+    details = {
+        "final_outcome": "",
+        "final_plan": "",
+        "final_actor": "",
+        "final_reason": "",
+        "final_recorded_at": "",
+        "final_content_hash": "",
+        "final_audit": "",
+    }
+    if decision is None:
+        return details
+    intent, audit = decision["intent"], decision["audit"]
+    if (
+        payload["parent_id"] is not None
+        or decision["decision_version"] != "t17-final-decision-v1"
+        or decision["case_id"] != payload["case_id"]
+        or intent["snapshot_hash"] != payload["snapshot_hash"]
+        or intent["outcome"] not in {"approve", "no_award"}
+        or intent["demonstration_acknowledged"] is not True
+        or any(
+            audit[k] != intent[k] for k in ("outcome", "plan_index", "actor_reference", "rationale")
+        )
+    ):
+        raise ValueError("Unsupported final decision")
+    content = decision["approved_content"]
+    index = intent["plan_index"]
+    if intent["outcome"] == "approve":
+        if (
+            type(index) is not int
+            or not 0 <= index < len(plans)
+            or content["content_version"] != "t17-approved-planning-v1"
+            or content["case_id"] != payload["case_id"]
+            or content["snapshot_hash"] != payload["snapshot_hash"]
+            or content["plan_index"] != index
+            or content["selected_plan"] != plans[index]
+            or content["planning_snapshot"] != payload["snapshot"]
+            or content["human_decision"] != audit
+            or hashlib.sha256(
+                json.dumps(content, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+            ).hexdigest()
+            != decision["approved_content_hash"]
+        ):
+            raise ValueError("Invalid approved content")
+        details["final_plan"] = "Minimum cost" if index == 0 else f"Alternative {index}"
+    elif index is not None or content is not None or decision["approved_content_hash"] is not None:
+        raise ValueError("Invalid no-award content")
+    else:
+        details["final_plan"] = "None (No-award)"
+    details.update(
+        final_outcome="Approved" if intent["outcome"] == "approve" else "No-award",
+        final_actor=_required_string(audit, "actor_reference"),
+        final_reason=audit["rationale"] or "No reason required for minimum-cost approval",
+        final_recorded_at=_parse_datetime(audit["recorded_at"]).isoformat(),
+        final_content_hash=decision["approved_content_hash"] or "No approved content",
+        final_audit=json.dumps(decision, indent=2, ensure_ascii=False),
+    )
+    return details

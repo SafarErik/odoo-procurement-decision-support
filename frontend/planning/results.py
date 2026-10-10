@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from frontend.planning.decision import decision_view
 from frontend.planning.state import PlanningState
 from frontend.theme import ACCENT, HAIRLINE, INK, MUTED, SURFACE
 
@@ -295,6 +296,7 @@ def plans_view() -> rx.Component:
             PlanningState.details["alternative_notice"] != "",
             rx.callout(PlanningState.details["alternative_notice"], color_scheme="gray"),
         ),
+        decision_view(),
         align="stretch",
         spacing="4",
         width="100%",

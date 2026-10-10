@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from frontend.planning.decision import saved_decision
 from frontend.planning.results import _recorded_sources
 from frontend.planning.state import PlanningState
 from frontend.theme import HAIRLINE
@@ -11,6 +12,28 @@ def audit_view() -> rx.Component:
     return rx.el.details(
         rx.el.summary("Audit details and sources", cursor="pointer", font_weight="650"),
         rx.vstack(
+            rx.cond(
+                PlanningState.details["final_outcome"] != "",
+                rx.box(
+                    saved_decision(),
+                    rx.text(
+                        "Approved content hash: ",
+                        PlanningState.details["final_content_hash"],
+                        overflow_wrap="anywhere",
+                    ),
+                    rx.el.details(
+                        rx.el.summary(
+                            "Exact final decision and approved content", cursor="pointer"
+                        ),
+                        rx.text(
+                            PlanningState.details["final_audit"],
+                            white_space="pre-wrap",
+                            overflow_wrap="anywhere",
+                            size="1",
+                        ),
+                    ),
+                ),
+            ),
             rx.text("Case ID: ", PlanningState.details["case_id"], overflow_wrap="anywhere"),
             rx.text(
                 "Base / parent: ", PlanningState.details["parent_id"], overflow_wrap="anywhere"

@@ -57,7 +57,7 @@ def _recovery() -> rx.Component:
             rx.heading("Confirm the pending save before continuing", as_="h2", size="3"),
             rx.text(
                 "The response is uncertain. Retry the identical request; changing "
-                "inputs could create another case.",
+                "inputs could create another case or conflict with a recorded decision.",
                 size="2",
                 margin_y="0.75rem",
             ),
@@ -238,7 +238,8 @@ def planning_page() -> rx.Component:
                             margin_top="0.5rem",
                         ),
                         rx.text(
-                            "Human approval and PDF follow in T17.",
+                            "Original bases support saved human approval or No-award. "
+                            "PDF follows next.",
                             size="2",
                             color=MUTED,
                             margin_top="0.5rem",
