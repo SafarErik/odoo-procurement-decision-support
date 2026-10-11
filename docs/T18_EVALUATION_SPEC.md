@@ -1,11 +1,13 @@
 # Integrated procurement evaluation and buyer usability — T18 specification
 
-Status: **PUBLISHED — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25), `ready-for-agent`; [#26 is locally implemented/verified](T18_26_HANDOFF.md), overall T18 remains in progress.**
+Status: **PUBLISHED — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25), `ready-for-agent`; [#26](T18_26_HANDOFF.md) and [#27](T18_27_HANDOFF.md) have local results; #27's T7-S/T8 credential gate passed after user key renewal, with the initial failures retained. Overall T18 remains in progress.**
 Prepared 2026-10-11 from the user-confirmed T18 plan. This specifies work,
 not measured results or complete V2/thesis acceptance.
 
 Approved [delivery tickets #26–#30](T18_TICKET_BREAKDOWN.md) are published;
-#26's local results await user publication/review before continuing to #27.
+#26 is committed at `97afe03`; the user authorized #27, whose measured results
+and limitations are recorded separately. This specification's agreed contract
+is unchanged; #28–#30 and hosted checks retain their own gates.
 The parent issue body remains unchanged.
 
 ## Problem Statement

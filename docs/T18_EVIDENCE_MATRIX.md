@@ -14,6 +14,32 @@ commit; [its handoff](T18_26_HANDOFF.md) and [measurement evidence](T18_26_EVALU
 record new local checks and hashes of the uncommitted evaluator. Hosted checks
 for a later user-published implementation SHA remain pending.
 
+## 2026-10-11 continuation — #27
+
+[#27's handoff](T18_27_HANDOFF.md), [six-workload export](T18_27_EVALUATION.json)
+and [separate live record](T18_27_LIVE_VALIDATION.json) supersede the initial
+inventory's future-#27 wording below. All six 3/5/10 × 1/3 workloads, five stress
+types and bounded infeasibility passed: 2,160 measured/144 warm-up operations,
+72 unchanged target gates. Exact returned constraints/metrics, all epsilon-run
+references, original-base lineage, deltas/provenance/comparisons and actual
+PostgreSQL readback are verified; the independent T13 oracle remains in the
+591-pass fast suite. Requested epsilons and deduplicated plans stay separate.
+
+The fixed three-supplier read-only Odoo/synthetic-model/approval/PDF/No-award
+chain and unavailable-Odoo/unconfigured-model stored reopening passed. Relevant
+PostgreSQL contracts passed 36 checks, primary live Odoo 18. The initial run's
+**two T7-S/T8 HTTP 401 failures are retained**. After the user renewed the dedicated
+key, a separate focused rerun passed both checks (2 passed, no failures/skips).
+Current history/security validation is PASS; this is 54 initial passes plus
+2 later passes, not one 56-pass execution. Earlier history/projection proof
+remains dated evidence; neither it nor this rerun promotes an observed model.
+
+FR/AC-V2-01–08/10–13 and NFR/RQ routes below now have the linked #27 contribution;
+NFR-V2-05 has fresh bounded projection/direct-access-denial evidence; short-lived credentials remain an operational prerequisite. #28/#29 browser/buyer assessment
+and #30 consolidated acceptance remain separate. Unfamiliar-buyer usability
+is NOT ASSESSED. Local warmed sequential targets are not production SLAs or
+arbitrary-instance scaling evidence. This continuation adds no Drive change.
+
 ## Functional and acceptance routes
 
 | Canonical identifiers | Existing evidence and scope | #26 contribution / later gate |

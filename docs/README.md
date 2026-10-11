@@ -18,6 +18,8 @@ explicitly supersedes them. They are not a second live dashboard.
   Odoo acquisition, all stress types, approval/PDF, No-award and stored reopening.
 - [T18 #26 repeated HTTP evaluation](T18_26_EVALUATION_RUNBOOK.md): offline matched
   preparation, isolated database/API, two warm-ups, 30 observations and safe cleanup.
+- [T18 #27 workload/stress and separate live evaluation](T18_27_EVALUATION_RUNBOOK.md):
+  six supported workloads, all stress types/infeasibility and fixed live/stored-only checks.
 - [Agent development guidance](../AGENTS.md): scope, architecture, testing and
   followable handoff principles inherited by repository work in future chats.
 - [Implementation log](IMPLEMENTATION_LOG.md): dated technical decisions and
@@ -34,7 +36,7 @@ explicitly supersedes them. They are not a second live dashboard.
 | Saved human approval/no-award -> approved snapshot PDF -> full controlled demonstration | [Confirmed plan](T17_APPROVAL_PDF_PLAN.md), [specification](T17_APPROVAL_PDF_SPEC.md), [published tickets](T17_TICKET_BREAKDOWN.md) | [Approval handoff](T17_HANDOFF.md) preserves #20 evidence; [PDF handoff](T17_PDF_HANDOFF.md) records #21. [Planning handoff](T17_PLANNING_HANDOFF.md) preserves the earlier scope. |
 | View/download the approved document without reacquiring facts or changing approval | [Closed PDF spike](T17_PDF_SPIKE.md), [PDF walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#approved-pdf-view-and-download) | [PDF handoff](T17_PDF_HANDOFF.md) preserves #21/local AC-V2-12 evidence; the full-flow row below records the newer #22 status |
 | Complete controlled procurement-to-approved-PDF flow, with separate No-award | [Reproduction guide](T17_FULL_FLOW_DEMO.md) | [Full-flow handoff](T17_FULL_FLOW_HANDOFF.md): dated #22 / controlled AC-V2-13 evidence; T17 is now merged with post-merge CI and closed issues, as recorded in README |
-| Integrated evaluation and buyer usability | [Confirmed T18 plan](T18_EVALUATION_PLAN.md), [specification](T18_EVALUATION_SPEC.md), [published delivery tickets](T18_TICKET_BREAKDOWN.md) | [#26 local handoff](T18_26_HANDOFF.md), [raw timing/identity evidence](T18_26_EVALUATION.json), [initial FR/AC/NFR/RQ inventory](T18_EVIDENCE_MATRIX.md); three-supplier targets passed locally, broader #27–#30 gates remain; substantial UX/UI improvement follows before final acceptance |
+| Integrated evaluation and buyer usability | [Confirmed T18 plan](T18_EVALUATION_PLAN.md), [specification](T18_EVALUATION_SPEC.md), [published delivery tickets](T18_TICKET_BREAKDOWN.md) | [#27 handoff](T18_27_HANDOFF.md), [six-workload timings](T18_27_EVALUATION.json), [separate live evidence](T18_27_LIVE_VALIDATION.json), [FR/AC/NFR/RQ inventory](T18_EVIDENCE_MATRIX.md); local targets/live quotation flow passed, two current history/security checks blocked by credential 401; #28–#30 and substantial UX/UI improvement remain. [#26](T18_26_HANDOFF.md) retains the earlier smaller measurement. |
 
 T15 supports synthetic inputs and a controlled hybrid: live Odoo quotations with
 separately synthetic ML history. See [compatibility boundary](T15_ODOO_COMPATIBILITY_PLAN.md)

@@ -39,6 +39,13 @@ def test_summary_includes_failures_missing_timings_and_nearest_rank():
     assert summary["approval"]["gate"] == "FAIL"  # Successes can still miss latency.
 
 
+@pytest.fixture(params=[(3, 1), (3, 3), (5, 1), (5, 3), (10, 1), (10, 3)])
+def workload(tmp_path, request):
+    directory = tmp_path / "evaluation"
+    evaluation.prepare(directory, *request.param)
+    return directory
+
+
 @pytest.fixture
 def prepared(tmp_path):
     directory = tmp_path / "evaluation"
@@ -53,7 +60,8 @@ def test_preparation_preserves_existing_owner_artifacts(prepared):
     assert (prepared / "model/tree.joblib").read_bytes() == before
 
 
-def test_one_complete_evaluation_validates_saved_flow_and_pdf(prepared, monkeypatch):
+def test_one_complete_evaluation_validates_saved_flow_and_pdf(workload, monkeypatch):
+    prepared = workload
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     monkeypatch.setattr(settings, "t15_trusted_model_directory", prepared / "model")
@@ -73,16 +81,48 @@ def test_one_complete_evaluation_validates_saved_flow_and_pdf(prepared, monkeypa
     minimum = rows["create"]["response"]["result"]["minimum_cost_plan"]
     outage = rows["supplier_outage"]["response"]["result"]["minimum_cost_plan"]
     assert minimum["total_cost"] == "102" and outage["total_cost"] == "106"
+    assert rows["infeasible"]["response"]["result"]["status"] == "infeasible"
+    assert len(rows["create"]["response"]["result"]["runs"]) == len(report["contract"]["epsilons"])
+    assert (
+        len({s["supplier_id"] for s in rows["create"]["payload"]["suppliers"]})
+        == report["contract"]["suppliers"]
+    )
     assert rows["exact_replay"]["key"] == rows["create"]["key"]
     assert (
         rows["exact_replay"]["response"]["final_decision"]
         == (rows["approval"]["response"]["final_decision"])
     )
     assert rows["first_pdf"]["document"] == rows["cached_pdf"]["document"]
-    assert len(uow.rows) == 2 and len(uow.decisions.rows) == len(uow.documents.rows) == 1
+    assert len(uow.rows) == 7 and len(uow.decisions.rows) == len(uow.documents.rows) == 1
     assert len(list(prepared.glob("evaluation-*.pdf"))) == 1
     assert "t18-test-token" not in path.read_text()
     assert json.loads(path.read_text()) == report
+
+    base = client_value = None
+    for case in uow.rows.values():
+        value = {
+            "case_id": case.case_id,
+            "parent_id": case.parent_id,
+            "snapshot_hash": case.snapshot_hash,
+            "snapshot": json.loads(case.snapshot),
+        }
+        if case.parent_id is None:
+            base = value
+        elif value["snapshot"]["scenario"]["kind"] == "combined":
+            client_value = value
+    delta = rows["combined"]["payload"]
+    manifest = report["environment"]["model_manifest"]
+    for field in ("provenance", "comparison", "scenario"):
+        changed = deepcopy(client_value)
+        changed["snapshot"][field] = {}
+        changed["snapshot_hash"] = evaluation.digest(changed["snapshot"])
+        with pytest.raises((ValueError, KeyError)):
+            evaluation.verify_scenario(changed, base, delta, manifest)
+    changed = deepcopy(base)
+    changed["snapshot"]["result"]["runs"] = []
+    changed["snapshot_hash"] = evaluation.digest(changed["snapshot"])
+    with pytest.raises(ValueError, match="epsilons"):
+        evaluation.verify_plan_case(changed, None, manifest)
 
 
 def test_uncertain_write_is_recorded_without_retry_and_blocks_dependents(prepared):

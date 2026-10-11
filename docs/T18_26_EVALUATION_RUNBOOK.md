@@ -1,5 +1,12 @@
 # Repeatable three-supplier HTTP evaluation — #26
 
+**2026-10-11 continuation:** #27 extends the current evaluator to six workloads
+and all stress types. The default preparation still produces 3 suppliers/1
+epsilon, but current `run` executes 12 operations. The seven-operation results
+below and in [#26's handoff](T18_26_HANDOFF.md) remain historical evidence from
+the #26 implementation. Use [#27's runbook](T18_27_EVALUATION_RUNBOOK.md) for the
+current measurement contract and supported matrix.
+
 This procedure measures fresh synthetic creation, supplier outage, explicit
 minimum-plan approval, stored GET, exact creation replay, first PDF and cached
 PDF through actual FastAPI/CBC/helper PostgreSQL. It is the first T18 evaluation

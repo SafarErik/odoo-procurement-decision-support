@@ -2654,3 +2654,72 @@ Odoo result is claimed. Task-owned API/tunnel and disposable Compose database we
 stopped/removed; generated secret files deleted. No other containers were running,
 so the Podman machine returned to its initially stopped state. #26's local scope
 is complete; implementation changes remain unstaged/uncommitted for user review.
+
+## 2026-10-11 — Supported workload/stress and separate live evaluation (#27)
+
+Problem: repeated #26 evidence covered only three suppliers/one epsilon and
+outage. Decision: extend the existing offline helper/HTTP evaluator to all six
+supported sizes, five stress types and controlled infeasibility; reuse production
+rules/contracts and the fixed live demo. Behavior: every epsilon/run reference,
+exact allocation/cost/premium/exposure, original-base link, saved delta/provenance
+and changed-demand comparison is validated. No new API, schema, dependency or
+frontend behavior was introduced. Default T15 preparation remains compatible.
+
+Evidence: all 2,160 measured and 144 warm-up operations succeeded; all 72 fixed
+p95 gates passed. Highest p95 2.791729 s (10/3 price increase, target 5 s).
+[Raw/summary export](T18_27_EVALUATION.json) retains observations, templates,
+hashes and environment; [handoff](T18_27_HANDOFF.md) interprets them and links the
+[runbook](T18_27_EVALUATION_RUNBOOK.md). The earlier #26 report remains historical.
+The separate [live record](T18_27_LIVE_VALIDATION.json) reproduces fixed read-only
+Odoo quotations plus synthetic ML, all stress types, alternative approval/PDF,
+separate No-award and stored-only reopening with Odoo stopped/model unset.
+Readback matched 1,352 evaluation cases/194 decisions/193 documents exactly;
+three earlier integration-fixture cases and one decision/document are separated.
+
+Verification: 591 fast tests/59 deselected; actual CBC/ML and independent T13
+oracle executed. Ruff 0.17.0 formatting/lint, compileall, pip check, both safe
+Compose config checks, whitespace, export/source identity and document links
+passed. The existing Starlette TestClient deprecation remains. Real PostgreSQL
+contracts passed 36 checks and primary live Odoo 18. The two previously disabled
+T7-S/T8 gates were executed and failed HTTP 401 for the dedicated key: **current
+history/security validation remains BLOCKED**, with earlier bounded-history
+acceptance retained and no observed-model promotion or broader permissions.
+The user was asked to renew only the existing dedicated key; no key, Odoo UI,
+role, fixture or owner `.env` mutation was performed by the agent.
+
+Limitations: deterministic fixture, warmed sequential HTTP, fixed execution order
+and accumulating database; not arbitrary scaling, concurrent SLA, cold startup,
+observed prediction/calibration or real business savings. Browser/participant
+gates are separate; novice usability NOT ASSESSED. Initial focused source-type,
+Compose-provider and local guard/report-path errors were corrected before their
+dependent evidence; no hidden workflow retry or target relaxation occurred.
+Owned runtime/secret cleanup restored initially stopped Odoo/Podman and preserved
+owner artifacts/volumes. Changes remain uncommitted; no Drive/issue/PR/publication
+mutation. Next: independent #28 browser smoke/recovery, then #29/#30 and later
+substantial UX/UI reassessment. Chapter 7 owns measurements/limits; chapters
+3/4/6 and conclusions use only the supported integration and traceability results.
+
+
+## 2026-10-11 — #27 history/security credential gate resolved
+
+Problem: the initial service run's two dedicated T7-S/T8 checks failed HTTP 401.
+The user renewed the existing dedicated key in ignored local `.env`. Decision:
+rerun only those two affected read-only contracts with process-local opt-in flags;
+retain the original failure and all already passing measurements/tests.
+
+Evidence: **2 passed in 2.21 s, no failures/skips**, using Python 3.11.16 and the
+existing Odoo loopback listener on 8069. Bounded method-only projection, denied
+generic CRUD/direct stock/cross-company access and invalid bounds passed. The
+production history/KPI slice verified 33.33% adherence, sample 3, controlled
+backorder relationships and supplier-return exclusion. The [live evidence](T18_27_LIVE_VALIDATION.json)
+binds the rerun log/XML/source hashes separately from the original 54-pass/2-fail
+run. [#27's handoff](T18_27_HANDOFF.md) now records all scoped local gates complete.
+
+Limitations: no observed-model promotion or new supplier-promise semantics; keys
+remain short-lived operational prerequisites. No code, .env, Odoo UI, ACL, fixture
+or database mutation was performed by the agent. The user's already running
+Podman/Odoo/listener were preserved; no helper process/service needed cleanup.
+Previously passing quality/matrix/database checks were not repeated after this
+credential-only change. Hosted CI, browser and novice usability remain separate.
+No commit, publication, issue closure or Drive update. Chapter 7 gains fresh
+controlled history/security evidence; next capability remains #28 browser smoke.
