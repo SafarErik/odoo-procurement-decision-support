@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from frontend.planning.pdf import ApprovedPDFViewer
 from frontend.planning.state import PlanningState
 from frontend.theme import HAIRLINE, MUTED, SURFACE
 
@@ -19,6 +20,45 @@ def saved_decision() -> rx.Component:
             "from the decision record time.",
             color=MUTED,
             size="2",
+        ),
+        rx.cond(
+            PlanningState.details["final_outcome"] == "Approved",
+            rx.vstack(
+                rx.flex(
+                    rx.button(
+                        "View approved PDF",
+                        on_click=PlanningState.request_pdf,
+                        disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    ),
+                    wrap="wrap",
+                    gap="0.75rem",
+                ),
+                rx.cond(
+                    PlanningState.pdf_error != "",
+                    rx.callout(PlanningState.pdf_error, color_scheme="amber"),
+                ),
+                rx.cond(
+                    PlanningState.pdf_data_url != "",
+                    rx.vstack(
+                        rx.text(
+                            "The PDF is ready. Use Download approved PDF "
+                            "to save this exact document.",
+                            size="2",
+                            color=MUTED,
+                        ),
+                        ApprovedPDFViewer.create(
+                            data=PlanningState.pdf_data_url,
+                            filename=PlanningState.pdf_filename,
+                        ),
+                        align="stretch",
+                        width="100%",
+                    ),
+                ),
+                align="stretch",
+                spacing="3",
+                width="100%",
+            ),
+            rx.text("No-award has no approved procurement PDF.", size="2", color=MUTED),
         ),
         align="stretch",
         spacing="3",
@@ -111,7 +151,8 @@ def decision_view() -> rx.Component:
                             rx.text(
                                 "Actor attribution is audit text, not authenticated buyer identity."
                                 " "
-                                "PDF is the next implementation slice.",
+                                "Approval enables viewing and downloading "
+                                "its saved procurement PDF.",
                                 size="2",
                                 color=MUTED,
                             ),

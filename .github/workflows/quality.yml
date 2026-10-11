@@ -41,7 +41,7 @@ jobs:
         run: ruff check .
 
       - name: Compile Python sources
-        run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
+        run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter document_adapter supplier_evaluation persistence migrations
 
       # Unmarked T13/T14 runtime tests execute real CBC and ML in this same suite.
       # Missing runtimes fail; do not repeat the included tests in separate steps.

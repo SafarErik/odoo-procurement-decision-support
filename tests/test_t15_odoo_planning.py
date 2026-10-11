@@ -175,6 +175,19 @@ def test_hybrid_final_decision_and_creation_recovery_use_only_saved_evidence(
         assert recovered.status_code == 200, recovered.text
         assert recovered.json()["final_decision"] == approved.json()["final_decision"]
         assert recovered.json()["snapshot"] == case["snapshot"] and calls == before
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
+        pdf = client.get(
+            f"{BASE}/{case['case_id']}/approved-pdf/"
+            + approved.json()["final_decision"]["approved_content_hash"],
+            headers=headers(),
+        )
+        assert pdf.status_code == 200, pdf.text
+        text = "\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf.content)).pages)
+        assert "2200 USD" in text and "odoo_json2" in text and "t14_synthetic" in text
+        assert calls == before
 
 
 @pytest.mark.parametrize(

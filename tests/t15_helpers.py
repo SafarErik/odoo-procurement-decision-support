@@ -18,10 +18,12 @@ class MemoryPlanningUnitOfWork:
         self.rows = {}
         self.cases = self
         self.decisions = MemoryPlanningDecisions()
+        self.documents = MemoryPlanningDocuments()
 
     def __enter__(self):
         self.before = self.rows.copy()
         self.before_decisions = self.decisions.rows.copy()
+        self.before_documents = self.documents.rows.copy()
         self.committed = False
         return self
 
@@ -29,6 +31,7 @@ class MemoryPlanningUnitOfWork:
         if not self.committed:
             self.rows = self.before
             self.decisions.rows = self.before_decisions
+            self.documents.rows = self.before_documents
 
     def commit(self):
         self.committed = True
@@ -63,3 +66,18 @@ class MemoryPlanningDecisions:
     def add(self, decision):
         assert decision.case_id not in self.rows and self.by_key(decision.idempotency_key) is None
         self.rows[decision.case_id] = decision
+
+
+class MemoryPlanningDocuments:
+    def __init__(self):
+        self.rows = {}
+
+    def lock(self, case_id):
+        pass
+
+    def get(self, case_id):
+        return self.rows.get(case_id)
+
+    def add(self, document):
+        assert document.case_id not in self.rows
+        self.rows[document.case_id] = document

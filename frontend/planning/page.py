@@ -239,7 +239,7 @@ def planning_page() -> rx.Component:
                         ),
                         rx.text(
                             "Original bases support saved human approval or No-award. "
-                            "PDF follows next.",
+                            "Approved plans have a viewable and downloadable PDF.",
                             size="2",
                             color=MUTED,
                             margin_top="0.5rem",

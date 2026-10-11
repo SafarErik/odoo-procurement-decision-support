@@ -17,10 +17,12 @@ from application.planning_decisions import (
     finalize_planning_case,
     retrieve_planning_case,
 )
+from application.planning_documents import approved_document
 from backend.app.dependencies import (
     get_planning_unit_of_work,
     infer_planning_features,
     planning_solver_factory,
+    render_approved_document,
     resolve_odoo_planning_input,
 )
 from backend.app.planning_case_schemas import (
@@ -78,6 +80,7 @@ def _error(error):
         "planning_case_not_found": 404,
         "idempotency_key_conflict": 409,
         "planning_case_already_finalized": 409,
+        "approved_content_hash_mismatch": 409,
     }.get(code, 422)
     raise HTTPException(
         status, detail={"code": code, "message": "The planning request could not be accepted."}
@@ -192,4 +195,36 @@ def post_final_decision(
         response.status_code = 200 if replay else 201
         return _response(case, replay, decision)
     except (PlanningCaseError, RepositoryError, ValueError) as error:
+        _error(error)
+
+
+@router.get("/{case_id}/approved-pdf/{content_hash}")
+def get_approved_pdf(case_id: str, content_hash: str, download: bool = False):
+    try:
+        document = approved_document(
+            get_planning_unit_of_work(), case_id, content_hash, render_approved_document
+        )
+        disposition = "attachment" if download else "inline"
+        return Response(
+            document.pdf,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{document.filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "X-Approved-Content-Hash": document.content_hash,
+                "X-Content-Version": document.content_version,
+                "X-PDF-Reference": document.reference,
+                "X-PDF-SHA256": document.pdf_hash,
+            },
+        )
+    except RepositoryError as error:
+        raise HTTPException(
+            503,
+            detail={
+                "code": "approved_pdf_unavailable",
+                "message": "The approved PDF is unavailable; approval remains saved.",
+            },
+        ) from error
+    except (PlanningCaseError, ValueError) as error:
         _error(error)

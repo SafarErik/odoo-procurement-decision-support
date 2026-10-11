@@ -3,11 +3,13 @@
 import json
 from dataclasses import replace
 from datetime import UTC, datetime
+from io import BytesIO
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from pypdf import PdfReader
 
 from application.decision_cases import RepositoryError
 from application.planning_serialization import snapshot_json
@@ -278,6 +280,12 @@ def test_retained_proven_plan_after_later_failure_is_approvable(configured, inde
     decision = response.json()["final_decision"]
     assert decision["audit"]["incomplete_comparison"] is True
     assert decision["approved_content"]["planning_snapshot"]["result"]["status"] == "solver_error"
+    pdf = client.get(
+        f"{BASE}/{row.case_id}/approved-pdf/{decision['approved_content_hash']}",
+        headers=headers(),
+    )
+    assert pdf.status_code == 200, pdf.text
+    assert "INCOMPLETE COMPARISON" in PdfReader(BytesIO(pdf.content)).pages[0].extract_text()
 
 
 def test_transaction_failure_leaves_no_partial_approval(configured, monkeypatch):

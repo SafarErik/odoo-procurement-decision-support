@@ -796,7 +796,7 @@ or saved data. See the dated [implementation log](IMPLEMENTATION_LOG.md).
 ## Saved human decision
 
 T17 issue #20 extends the existing `/planning` workspace. First activate the
-Python 3.11 environment, apply revision `20261009_01` to the intended helper
+Python 3.11 environment, apply current revision `20261010_01` to the intended helper
 database as described in the [persistence guide](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations),
 and start the documented FastAPI/Reflex services with matching server-side
 `T12_TRUSTED_CALLER_TOKEN`. This migration creates the separate final-decision
@@ -819,8 +819,8 @@ or reopening an already stored case; new case creation retains its existing prer
 4. Expect the saved outcome, selected plan, reason and server UTC **Recorded at**.
    **Audit** contains the exact human decision and approved-content hash.
    Saved simulation dates are separate. Reopen the UUID and check the same values.
-   Approval produces immutable content for the next PDF increment; this slice
-   has no PDF view/download. No-award creates no approved document content.
+   Approval produces immutable content for the PDF below. No-award creates no
+   approved document content.
 5. On an uncertain save response, preserve **Recovery data** and use **Retry same
    request** explicitly. The pending payload and key remain unchanged and block
    replacement submission. If the response was lost after commit, retry recovers
@@ -842,6 +842,60 @@ GET and creation replay include the additive `final_decision` field.
 Stop these foreground services with Ctrl+C when finished. Only migrate the
 database you intentionally selected; no Odoo write/configuration is part of
 this walkthrough. See [local acceptance evidence](T17_HANDOFF.md).
+
+## Approved PDF view and download
+
+Issue #21 uses the existing FastAPI/database/Reflex processes above. Refresh the
+Python environment with `python -m pip install -e ".[frontend,dev]"` to install
+the declared renderer and test extractor. Apply `alembic upgrade head` to the
+intended helper database and confirm `20261010_01`; this adds the separate PDF
+table and leaves existing cases/approvals unchanged. The database URL must be
+exported for Alembic. Never select that application database for resetting tests.
+Restart the servers after code/settings changes. Reflex installs its declared
+React-PDF viewer/worker during compilation; use the documented Node.js 22.22
+toolchain. There is no additional service or Odoo/model/solver prerequisite for
+already approved content.
+
+1. Load an **approved original base**, then open **Plans** or **Audit**. Its saved
+   human outcome, selected plan and original UTC decision time remain visible.
+2. Choose **View approved PDF**. FastAPI validates the saved content and either
+   atomically stores its first rendered artifact or serves the existing one.
+   Expect the document pages and **Download approved PDF** link. The viewer
+   displays backend PDF bytes, with selectable text; it generates no document.
+3. Check product/demand, saved dates, exact selected allocation/prices/cost,
+   simulation label and actor/reason. Supporting source/model/policy references
+   and exact case/content hashes follow. The document approves only the original
+   base; stress results are analytical. An incomplete comparison warning appears
+   when later calculations failed after the selected plan was proven.
+4. Use **PDF zoom** for fit-width, 150%, 200% or 300% viewing. The document region
+   scrolls independently, including horizontal scrolling when zoomed. It is
+   keyboard-focusable; Page Up/Down and arrow keys navigate. Mobile layout retains
+   the download/zoom controls without expanding the whole page horizontally.
+5. Choose the **Download approved PDF** link to save the exact displayed bytes.
+   The safe filename contains case UUID and approved-content hash prefix. This
+   explicit browser link avoids depending on a scripted download or native PDF
+   plugin. The service token remains on the Reflex server and is absent from
+   document URLs, browser state and the file.
+6. On **PDF unavailable**, the saved approval stays visible. Restore the backend
+   or renderer dependency, then choose **View approved PDF** explicitly again.
+   Do not finalize again or replace its key/content. No-award, unapproved bases
+   and stress children have no approved-PDF action and are rejected by the API.
+
+Backend contract:
+`GET /api/v2/procurement/planning-cases/{case_id}/approved-pdf/{approved_content_hash}`
+uses the existing trusted caller gate. Default delivery is `inline`;
+`?download=true` returns an `attachment`. Headers identify approved content
+version/hash, stable PDF reference and binary SHA-256. Unknown case = 404,
+ineligible/invalid identity = 422, mismatched approved-content hash = 409,
+unavailable rendering/storage = sanitized 503. Rendering failure stores no
+partial artifact. Existing PDF retrieval needs no renderer execution.
+
+The bundled font covers verified Latin/Hungarian, Greek and Cyrillic examples.
+Unsupported glyphs fail safely; arbitrary scripts/emoji are not promised. The
+artifact is bounded to 2 MiB. Simulation evidence, dates and non-authenticated
+actor attribution remain explicit; this is not a legally complete external
+Purchase Order. See [closed spike](T17_PDF_SPIKE.md) and
+[PDF acceptance evidence](T17_PDF_HANDOFF.md).
 
 ## Windows forwarding troubleshooting and cleanup
 
@@ -876,7 +930,7 @@ Do not use `down --volumes` against the Odoo project during testing.
 ```powershell
 ruff format --check .
 ruff check .
-python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter supplier_evaluation persistence migrations
+python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter document_adapter supplier_evaluation persistence migrations
 $taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $taskRun | Out-Null
 python -m pytest -m "not integration and not e2e" -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"

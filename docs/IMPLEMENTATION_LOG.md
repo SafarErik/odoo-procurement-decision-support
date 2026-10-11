@@ -2303,3 +2303,88 @@ issues remain open. No Odoo/Drive writes, stage, commit, push, PR or merge were
 performed. Next: render the immutable approved content without reacquisition or
 approval mutation. Thesis relevance: chapters 3/4/5/6/7; later evaluation and
 conclusions retain the synthetic/local scope limitation.
+
+## 2026-10-10 — View and download the immutable approved PDF (#21)
+
+Problem: an approved plan had an immutable content snapshot but no buyer-visible
+document. Decision: render that exact content in the backend, store one PDF with
+its approved-content reference/hash, and expose bounded authenticated retrieval
+through the existing API-only Reflex workspace. This implements FR-V2-09/10/12
+and supplies local AC-V2-12 evidence; #22/AC-V2-13 remains separate. The starting
+branch was `feature/T17-implementation` at `294b312`, with #20 already committed.
+The user's report that prior CI looked fine is not new-PDF CI evidence.
+
+Implemented behavior: ReportLab 4.4.10 plus packaged DejaVu Sans produces paginated
+allocations, exact money/currency and exposure, saved business terms, provenance,
+human decision and audit identities. Synthetic/model/date and incomplete-comparison
+limitations remain explicit. Migration `20261010_01` adds immutable binary PDF
+artifacts linked to exact approved content. Advisory locking gives one artifact
+under contention; rendering/storage failure preserves approval and leaves no
+partial artifact. Stored retrieval does not reacquire Odoo data, load/train/infer
+a model, optimize, render again or modify approval. No-award, unapproved bases
+and scenario children have no approved-PDF action and are denied by the API.
+
+Reflex retrieves and checks bounded MIME/identity/hash/bytes on its server. A
+React-PDF 10.2.0 component displays these bytes with selectable text, fit-width,
+zoom and keyboard scrolling, using a locally bundled worker. A native Blob link
+saves the exact document; no browser token or document generation is introduced.
+Frontend locks retain the viewer and current Reflex-generated requirements.
+See [the closed dependency/storage spike](T17_PDF_SPIKE.md) and
+[the PDF handoff](T17_PDF_HANDOFF.md) for decisions, artifacts and procedures.
+
+Executed evidence:
+
+- Required fast selection: **577 passed, 59 deselected**, 124.69 s. Actual CBC
+  and ML runtime gates executed. One existing Starlette TestClient deprecation
+  warning remains. Focused PDF/hybrid checks earlier passed **19 tests** (18.02 s).
+- Real isolated PostgreSQL PDF acceptance: **5 passed**, 20.83 s. Genuinely
+  contending requests wait before lock release, then one render/row serves both.
+  Direct UPDATE/DELETE, wrong-content insertion, renderer failure, post-flush
+  rollback and exact retry are tested. V1/T15/T17 PostgreSQL regressions:
+  **31 passed**, 53.75 s.
+- Ruff format (194 files), lint, compileall including `document_adapter`, pip
+  check, both Compose configurations with `--quiet`, and patch whitespace passed.
+  Built wheel contains the font and its upstream license.
+- Production Reflex export passed after replacing a static React-PDF import
+  with a client-effect import. Static import failed server prerendering; this
+  failed attempt is not PASS evidence. Final focused PDF/frontend checks after
+  that correction: **21 passed**, 18.43 s, with the same existing warning.
+  Export is compilation evidence; the final browser view also rendered all five
+  pages with stored retrieval and a forbidden renderer.
+- Built-in browser -> real Reflex/FastAPI/PostgreSQL: minimum EUR 102 and
+  alternative EUR 109 document views, actual desktop/mobile downloads, retained
+  approval through renderer/backend failure, explicit same-content retry,
+  forbidden-renderer cache retrieval, No-award/scenario restrictions, keyboard
+  Page Down and 390x844 mobile zoom without outer overflow passed. Both actual
+  downloaded files equal persisted bytes/SHA-256. Original case hashes and
+  final-decision JSON remain identical. Evidence is ignored under `.artifacts/t21/`.
+- All five standard and ten long/Unicode pages were rendered with Poppler and
+  inspected for clipping, overlap, table wrapping, footers and pagination.
+  Latin/Hungarian, Greek and Cyrillic content extracts correctly. Unsupported
+  glyphs fail rendering rather than silently producing missing-glyph boxes.
+
+Initial native iframe previews and scripted downloads failed browser acceptance;
+the local display component/native download link replaced them. An initial
+database invocation stalled before Windows tunnel recovery and was interrupted;
+fresh connected runs provide the PostgreSQL PASS evidence. The final focused
+selection was confirmed again because its earlier session output was unavailable.
+
+Runtime cleanup: only a separate disposable
+`procurement-decision-support-t21-acceptance` database was migrated/reset. Existing
+Odoo and helper/demo containers stayed stopped and untouched. Windows forwarding
+required a task-created localhost-only SSH tunnel (host 55435 -> VM 55434).
+Acceptance servers, test container/network, verified tunnel and temporary browser
+tab were stopped/removed; the initially stopped Podman machine is stopped again.
+Synthetic downloaded PDFs and ignored evidence remain for review.
+
+Limitations/user action: install declared dependencies and apply migration
+`20261010_01` to the deliberately selected helper database before user validation;
+no user application migration was performed. PDFs are controlled procurement-plan
+records, not legally complete external Purchase Orders or calibrated real-world
+supplier predictions. The two-MiB bound and bundled-font glyph coverage are
+intentional. No fresh live-Odoo or hosted CI result is claimed. New hosted CI,
+user review and #22/full AC-V2-13 remain open. GitHub issues stay open; no stage,
+commit, push, PR, merge, Odoo UI/write, direct Odoo database access or Drive write
+was performed. Thesis relevance: chapters 3/4/5/6/7; the next capability is the
+reproducible controlled hybrid acquisition -> ML -> MILP -> stress -> base human
+decision -> stored PDF demonstration.

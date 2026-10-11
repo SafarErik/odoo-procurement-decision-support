@@ -28,7 +28,9 @@ def configured(postgres_runtime, stored_cases, monkeypatch):
     engine, factory = postgres_runtime
     memory, base, child, _ = stored_cases
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE planning_final_decisions, planning_cases"))
+        connection.execute(
+            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
+        )
     with SqlAlchemyPlanningUnitOfWork(factory) as uow:
         for row in memory.rows.values():
             uow.cases.add(row)

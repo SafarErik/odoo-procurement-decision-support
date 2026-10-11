@@ -2,6 +2,7 @@
 
 import json
 import re
+from base64 import b64encode
 from copy import deepcopy
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
@@ -12,6 +13,7 @@ import reflex as rx
 
 from frontend.config import settings
 from frontend.planning_client import _supplier_label, fetch_planning_case, submit_planning_request
+from frontend.planning_pdf_client import fetch_planning_pdf
 
 
 class PlanningState(rx.State):
@@ -51,6 +53,10 @@ class PlanningState(rx.State):
     recovery_json: str = ""
     notice: str = ""
     final_choice: str = ""
+    pdf_data_url: str = ""
+    pdf_error: str = ""
+    pdf_reference: str = ""
+    pdf_filename: str = ""
     _demo_payload: dict = {}
     _odoo_payload: dict = {}
     # shortcut: recovery is session-local; copy JSON before leaving until durable recovery exists.
@@ -90,7 +96,36 @@ class PlanningState(rx.State):
         self.view = "plans" if self.details["parent_id"] == "Base case" else "whatif"
         self.stress_supplier = ""
         self.final_choice = ""
+        self.pdf_data_url = self.pdf_error = self.pdf_reference = ""
+        self.pdf_filename = ""
         self.stress_capacity = self.stress_quantity = self.stress_price = ""
+
+    @rx.event
+    async def request_pdf(self):
+        if self.is_loading or self.has_pending:
+            return
+        if not self.has_case or self.details.get("final_outcome") != "Approved":
+            self.pdf_error = "Only an approved original base has a procurement PDF."
+            return
+        self.is_loading = True
+        self.pdf_error = ""
+        self.pdf_data_url = ""
+        yield
+        try:
+            document, self.pdf_error = await fetch_planning_pdf(
+                settings.planning_cases_url,
+                self.details["case_id"],
+                self.details["final_content_hash"],
+                settings.t12_trusted_caller_token.get_secret_value(),
+            )
+            if document is not None:
+                self.pdf_reference = document.reference
+                self.pdf_filename = document.filename
+                self.pdf_data_url = "data:application/pdf;base64," + b64encode(
+                    document.data
+                ).decode("ascii")
+        finally:
+            self.is_loading = False
 
     @rx.var
     def selected_terms(self) -> dict[str, str]:

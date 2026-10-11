@@ -100,7 +100,7 @@ not a resolved Windows forwarding defect. Do not expose the service beyond local
 ```powershell
 $taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $taskRun | Out-Null
-python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py tests/integration/test_t17_decisions_postgres.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
+python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py tests/integration/test_t17_decisions_postgres.py tests/integration/test_t21_documents_postgres.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 ```
 
 The fixtures create/reset the schema themselves. Expect tests to execute and pass;
@@ -111,6 +111,8 @@ conflicting reuse and atomic rollback. Real controlled inference/CBC are exercis
 T17 additionally verifies genuinely contending finalization transactions,
 one linked decision per original base, unique finalization keys, atomic approved
 content and database-enforced UPDATE/DELETE and scenario-finalization protection.
+The PDF selection adds concurrent render-once storage, exact approval binding,
+artifact UPDATE/DELETE protection and post-flush rollback with approval intact.
 The initial T15 implementation recorded 21 passing database tests; newer execution
 results belong to their own dated log entry rather than overwriting that evidence.
 
@@ -145,7 +147,7 @@ python -m alembic upgrade head
 python -m alembic current
 ```
 
-Expect current revision `20261009_01`. The migration chain is:
+Expect current revision `20261010_01`. The migration chain is:
 
 | Revision | Behavior |
 | --- | --- |
@@ -153,6 +155,7 @@ Expect current revision `20261009_01`. The migration chain is:
 | `20260922_02` | V1 creation keys/fingerprints, atomic mapping and advisory locking |
 | `20261005_01` | V2 planning/scenario JSONB snapshots; shared creation-key namespace; UPDATE/DELETE protection |
 | `20261009_01` | Separate V2 human-decision JSONB records; base-only insertion, unique finalization keys and UPDATE/DELETE protection; original snapshots unchanged |
+| `20261010_01` | Separate approved PDF BYTEA/reference/hash records; exact approved-content insertion guard, size bound and UPDATE/DELETE protection |
 
 For an existing application database, deliberately export its own
 `DECISION_DATABASE_URL` and run only `alembic upgrade head` / `alembic current`.
@@ -160,6 +163,10 @@ Do not point the resetting pytest fixtures at it. T17 adds a table and triggers;
 it does not rewrite existing case rows. Downgrading this revision removes human
 decisions and approved content, so retain a database backup before any deliberate
 rollback. This implementation session migrated only its disposable database.
+Downgrading only `20261010_01` discards rendered PDF artifacts/references while
+preserving approved content and human decisions in `20261009_01`; re-upgrading
+can render again from that same content. Do not use downgrade as routine cleanup
+against an application database.
 
 Application startup and requests never migrate. For an already configured own
 application database, export its URL before Alembic, as documented in

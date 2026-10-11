@@ -31,7 +31,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
 | What is ready for V2 approval/PDF implementation? | [T17 planning handoff](docs/T17_PLANNING_HANDOFF.md), [published tickets](docs/T17_TICKET_BREAKDOWN.md) |
 
-## Current capability — updated 2026-10-09
+## Current capability — updated 2026-10-10
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
@@ -40,9 +40,20 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
 | Buyer-facing planning workflow | The merged T16 cockpit has separate Plans, What-if, Suppliers and Audit views, a cost/exposure chart, scenario drafts and stored retrieval. Synthetic/prepared-Odoo creation and five stress types retain the existing API. Observed-model promotion and arbitrary quotation discovery remain separate. |
-| Human decision | T17 issue #20 is implemented locally: explicit original-base plan approval or reasoned No-award, immutable human audit/approved content, stored reopening and exact uncertain-response recovery. Local verification is recorded in the T17 handoff. User review, publication and new-SHA CI remain pending; PDF and the complete controlled demonstration are next. |
+| Human decision | Issue #20 is committed: explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its local evidence. Complete controlled demonstration remains separate. |
+| Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 
-**2026-10-09 implementation update:** the supplied `feature/T17-implementation`
+**2026-10-10 update:** #20 is committed at `294b312` on
+`feature/T17-implementation`; the user reports its CI looks fine. #21 is now
+implemented on the same branch, with new local changes awaiting publication/CI.
+Migrate the intended helper database to `20261010_01`, then follow
+[PDF viewing/download instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#approved-pdf-view-and-download).
+See [PDF evidence and handoff](docs/T17_PDF_HANDOFF.md) and the
+[closed renderer/storage spike](docs/T17_PDF_SPIKE.md). GitHub issues remain open.
+Complete controlled demonstration (#22 / AC-V2-13) remains next; this does not
+establish observed-model promotion or full V2 acceptance.
+
+**Earlier 2026-10-09 implementation record, superseded above:** the supplied `feature/T17-implementation`
 branch starts at planning merge `f0c5552`. Issue #20 now supplies the saved human
 decision capability and local AC-V2-11 evidence. The application database must
 be migrated to `20261009_01` before running this branch. See the
@@ -79,7 +90,7 @@ records 516 passing fast tests and fresh browser/API/PostgreSQL evidence.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
-probability. Odoo-derived ML history/model promotion, approved PDF and
+probability. Odoo-derived ML history/model promotion and
 full V2 demonstration/evaluation remain open. Historical checks, Podman forwarding failures
 and skipped live/browser gates remain in the [implementation log](docs/IMPLEMENTATION_LOG.md)
 and handoffs. Fresh PostgreSQL and loopback HTTP demo verification now covers the
@@ -132,6 +143,7 @@ in the handoff. Approval/PDF and full V2 acceptance remain open. Drive remains u
 | `supplier_evaluation/` | Offline Decision Tree pipeline and trusted saved inference |
 | `decision_core/planning/` | ERP-neutral planning contracts, rules and solver port |
 | `optimization_adapter/` | PuLP/CBC implementation behind that port |
+| `document_adapter/` | Backend PDF renderer with bundled Unicode font; consumes immutable approved content |
 | `persistence/`, `migrations/` | Own PostgreSQL snapshots and explicit Alembic migrations |
 | `backend/` | FastAPI contracts, errors and dependency composition |
 | `frontend/` | Separate Reflex API clients; RFQ ledger and controlled creation/scenario/comparison/retrieval workspace |
@@ -175,13 +187,11 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the local [#20 human-decision implementation](docs/T17_HANDOFF.md),
-   migrate the intended application database and validate the buyer workflow.
-   Commit/publication/merge remain under user control; verify exact-SHA CI.
-2. Build on the saved approved-content contract to deliver
-   [#21: approved PDF](https://github.com/SafarErik/odoo-procurement-decision-support/issues/21)
-   and [#22: reproducible full demonstration](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
-   in dependency order. See the [confirmed plan](docs/T17_APPROVAL_PDF_PLAN.md).
+1. Review the [#21 approved-PDF implementation](docs/T17_PDF_HANDOFF.md),
+   migrate the intended helper database and validate view/download. Commit,
+   publication and merge remain under user control; verify CI for the new SHA.
+2. Deliver [#22: reproducible full controlled demonstration](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
+   after the PDF slice. See the [confirmed plan](docs/T17_APPROVAL_PDF_PLAN.md).
 3. Complete the separate T18 integrated evaluation and T19 thesis closure against
    the accepted requirements. Observed-history/model promotion, arbitrary quotation
    selection and broader combined scenarios remain separate capabilities;
