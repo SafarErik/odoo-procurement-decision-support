@@ -29,7 +29,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
-| What is ready for V2 approval/PDF implementation? | [T17 planning handoff](docs/T17_PLANNING_HANDOFF.md), [published tickets](docs/T17_TICKET_BREAKDOWN.md) |
+| What is specified next? | [T18 evaluation specification](docs/T18_EVALUATION_SPEC.md), [confirmed plan](docs/T18_EVALUATION_PLAN.md) |
 
 ## Current capability — updated 2026-10-11
 
@@ -40,11 +40,28 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
 | Buyer-facing planning workflow | The merged T16 cockpit has separate Plans, What-if, Suppliers and Audit views, a cost/exposure chart, scenario drafts and stored retrieval. Synthetic/prepared-Odoo creation and five stress types retain the existing API. Observed-model promotion and arbitrary quotation discovery remain separate. |
-| Human decision | Issue #20 is committed: explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its local evidence. Complete controlled demonstration remains separate. |
+| Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is recorded; final integrated T18 evaluation remains separate. |
 
-**2026-10-11 update:** #20/#21 are committed at `294b312` / `cf20ada` on
+**2026-10-11 post-merge and planning update:** T17 [PR #24](https://github.com/SafarErik/odoo-procurement-decision-support/pull/24)
+is merged at `ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. Exact post-merge
+[Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/38150351508)
+and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/38150351451)
+passed. The user closed #19–#22; their acceptance checklists now link completion
+evidence and limitations. Controlled AC-V2-11/12/13 are met; this is not complete
+thesis or production acceptance. The existing `feature/T18-implementation` branch
+starts from that merge. [T18 planning](docs/T18_EVALUATION_PLAN.md) evaluates the
+current controlled hybrid, repeated runtime and buyer tasks, fixing evidenced
+blockers. The user confirmed that substantial UX/UI improvement follows as
+another development increment before final acceptance and thesis closure.
+The confirmed scope is now [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25),
+labelled `ready-for-agent`, with a [repository copy](docs/T18_EVALUATION_SPEC.md).
+The [five-slice ticket breakdown](docs/T18_TICKET_BREAKDOWN.md) is approved and
+published as #26–#30 with `ready-for-agent`; T18 implementation and measurements
+have not started. Begin with #26's complete three-supplier HTTP evaluation.
+
+**Earlier 2026-10-11 local record, superseded above:** #20/#21 are committed at `294b312` / `cf20ada` on
 `feature/T17-implementation`. #22 now supplies a repeatable complete controlled
 demonstration, with actual read-only Odoo -> saved ML -> CBC -> PostgreSQL ->
 Reflex approval/PDF and No-award evidence. The defined controlled AC-V2-13 gate
@@ -54,7 +71,7 @@ See [reproduction instructions](docs/T17_FULL_FLOW_DEMO.md) and
 migrated/reset. Drive remains untouched pending the user's review and green light.
 T18 evaluation and observed-model validity remain separate.
 
-**2026-10-11 CI follow-up:** #22 is committed at `06a3876`. Its Quality job
+**Earlier 2026-10-11 CI correction record, superseded above:** #22 is committed at `06a3876`. Its Quality job
 stopped on Ruff 0.17.0 formatting of the reproduction guide's Python example.
 Two missing blank lines are corrected locally; matching-version format/lint
 checks pass. Hosted CI for this unpublished correction remains pending.
@@ -106,8 +123,9 @@ records 516 passing fast tests and fresh browser/API/PostgreSQL evidence.
 
 **Evidence limits:** this is a controlled technical slice, not full V2 acceptance.
 The synthetic score is an uncalibrated exposure proxy, not a supplier-failure
-probability. Odoo-derived ML history/model promotion and
-full V2 demonstration/evaluation remain open. Historical checks, Podman forwarding failures
+probability. Odoo-derived ML history/model promotion, systematic integrated
+evaluation and first-time-buyer usability validation remain open. The defined
+controlled full-flow demonstration is complete. Historical checks, Podman forwarding failures
 and skipped live/browser gates remain in the [implementation log](docs/IMPLEMENTATION_LOG.md)
 and handoffs. Fresh PostgreSQL and loopback HTTP demo verification now covers the
 audit fixes and shared fixture preparation; [T15 handoff](docs/T15_HANDOFF.md)
@@ -122,7 +140,7 @@ not a fresh Odoo acquisition or complete V2 browser flow. The prior hybrid repor
 existed locally, but its case was absent from the database at that earlier recovery.
 That historical limitation is separate from the fresh persisted T16 cases below.
 
-The next T16 slice now also passes a real Reflex -> FastAPI -> PostgreSQL
+The historical T16 creation slice also passed a real Reflex -> FastAPI -> PostgreSQL
 controlled creation/outage flow: EUR 102/109 base plans and EUR 106 after the
 outage. The model was prepared offline in Python 3.11; no live Odoo acquisition
 was performed. See the dated [T16 handoff](docs/T16_HANDOFF.md) for scope,
@@ -148,7 +166,8 @@ service failure and mobile chart checks pass. See the
 [short user validation sequence](docs/LOCAL_DEVELOPMENT_AND_SSH.md#t16-final-user-validation).
 This was the earlier local functional acceptance. User feedback reopened T16 for
 usability and maintainability; the current cockpit revision is recorded separately
-in the handoff. Approval/PDF and full V2 acceptance remain open. Drive remains unchanged.
+in the handoff. At that historical stage approval/PDF and full V2 acceptance were
+open and Drive was unchanged; the current T17/T18 status above supersedes it.
 
 ## Architecture and code map
 
@@ -203,14 +222,14 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the [#22 full-flow implementation and local acceptance](docs/T17_FULL_FLOW_HANDOFF.md)
-   and [repeatable demonstration](docs/T17_FULL_FLOW_DEMO.md). Install dependencies,
-   migrate the intended helper database and follow the buyer walkthrough as needed.
-2. After the user's green light, consolidate thesis-relevant T17 results into
-   affected Hungarian Drive records. Commit/publication/merge and issue closure
-   remain under user control; verify CI for the exact final T17 SHA.
-3. Complete the separate T18 integrated evaluation and T19 thesis closure against
-   the accepted requirements. Observed-history/model promotion, arbitrary quotation
+1. Implement [#26's complete three-supplier evaluation](https://github.com/SafarErik/odoo-procurement-decision-support/issues/26),
+   then follow the [approved delivery dependencies](docs/T18_TICKET_BREAKDOWN.md). Reuse
+   existing tests; add checks for demonstrated gaps rather than repeating coverage.
+2. Evaluate and fix blockers; record which usability claims remain unassessed.
+   Follow with a substantial buyer-focused UX/UI increment and reassess affected
+   behavior before final acceptance and T19 thesis closure.
+3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive
+   records only when authorized. Observed-history/model promotion, arbitrary quotation
    selection and broader combined scenarios remain separate capabilities;
    [the controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md)
    is Odoo quotations plus separately synthetic ML history.
@@ -219,11 +238,12 @@ claimed. Browser milestone procedures are in the runbook.
 
 The repository owns executable behavior, terminal procedures and dated technical
 evidence. Drive owns the Hungarian thesis requirements, architecture decisions,
-roadmap and writing material. The earlier 2026-10-07 synchronization covered T15
-and its controlled hybrid evidence. The 2026-10-08 Drive records reviewed during
-this planning session include T16 local evidence, but retain pre-merge publication
-wording. No Drive correction or T17 planning synchronization was performed here.
-Further Drive edits require an explicit request.
+roadmap and writing material. The user-authorized 2026-10-11 synchronization updated
+nine affected Hungarian documents with T17 results, structure and evidence links.
+It preceded the T17 merge and this T18/UX planning clarification; its publication
+and roadmap wording therefore needs a later scoped correction. No Drive write
+was performed during this planning session. Further Drive edits require an
+explicit request.
 
 Update current status here; link detailed evidence instead of repeating execution
 logs. Historical handoffs/spikes retain their dated boundaries. Use the

@@ -2478,3 +2478,125 @@ README records the publication/correction state. The fix remains unstaged and
 uncommitted; new hosted CI awaits user publication. Drive remains untouched until
 the review boundary is cleared. No service, database, Odoo or GitHub mutation was
 performed during this correction.
+
+## 2026-10-11 — T17 issue evidence and confirmed T18 evaluation planning
+
+The user merged T17 PR #24 and created `feature/T18-implementation` from main
+`ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. GitHub readback confirms the merge;
+exact post-merge Quality 38150351508 and Container/API 38150351451 are SUCCESS.
+The user closed #19–#22. At their explicit request, updated the closed issue
+bodies: #20's 14, #21's 12 and #22's eight acceptance items are checked, and #19
+links its three completed slices. Each retains the specification/exclusions and
+adds pinned handoffs, PR/CI evidence and limitations. Independent readback confirms
+the exact bodies, all intended checkboxes and unchanged closed states.
+
+Used the user-invoked grill-with-docs flow to investigate current evaluation
+coverage and buyer friction. Two read-only fact investigations inspected existing
+tests, code and historical screenshots; no new services, browser interaction or
+tests were started. Existing negative/concurrency tests are substantial. Actual
+gaps include repeated workload measurements, a consolidated AC/NFR/RQ assessment,
+committed browser smoke and evidence about unfamiliar buyers. Source/visual
+observations are not fresh browser defects or participant measurements.
+
+The user confirmed all nine planning answers. [T18 plan](T18_EVALUATION_PLAN.md)
+records the current controlled hybrid, 3/5/10-supplier and 1/3-epsilon workloads,
+two warmups/30 measured attempts and operation-specific local p95 targets;
+local-first Chromium smoke with optional pytest-playwright dependencies; existing
+coverage reuse; agent/user walkthroughs; and fixes for evidenced blockers.
+Unfamiliar-participant usability remains NOT ASSESSED. Substantial UX/UI
+improvement and affected reassessment follow before final acceptance and thesis
+closure; T18 is not treated as the final development increment. The confirmed
+plan preserves accepted FR/AC/ADR meanings and read-only/API-only boundaries.
+
+README/index now expose the actual merged status and plan. Earlier handoffs and
+logs retain their dated evidence. No new glossary concept or substantive ADR was
+needed. Specification/ticket synthesis and granularity review are next; no new
+ticket, application implementation, dependency install, Drive edit, stage,
+commit, push or merge was performed in this planning session. Planning quality
+checks are recorded in the chat handoff; prior application-test evidence is not
+presented as a new run.
+
+## 2026-10-11 — Publish the confirmed T18 evaluation specification
+
+The user explicitly invoked to-spec after confirming Q9. Refreshed the canonical
+requirements, status, roadmap, ADR and research-question records; their pre-merge
+publication wording remains historical and is reconciled with the T17 merged
+baseline and confirmed later UX/UI stage. No accepted FR/AC/NFR/RQ meaning,
+domain vocabulary, ADR or technology baseline changed.
+
+[Specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25)
+is open with `ready-for-agent`; [repository copy](T18_EVALUATION_SPEC.md) contains
+30 user stories, the agreed measurement and local-browser contracts, reused
+HTTP/real-PostgreSQL/browser test boundaries and seven completion criteria.
+Independent GitHub readback confirms the exact published body, state and label.
+Unfamiliar-participant usability remains NOT ASSESSED; substantial UX/UI work
+and reassessment precede final acceptance. Failed targets cannot become PASS
+merely because a report exists.
+
+README/index/plan now link the specification. Delivery-ticket granularity and
+dependencies still need review before child publication. This stage changes
+engineering documents only; no application code, dependencies, services, Drive
+content, stage, commit, push or merge changed. Ruff 0.17.0 whole-repository
+formatting (200 files) and lint pass, as do patch whitespace and local document
+link/specification-structure checks. Application/service/browser tests were not
+rerun for this documentation-only stage; historical runtime evidence stays dated.
+
+## 2026-10-11 — Draft bounded T18 delivery tickets for review
+
+The user invoked to-tickets. Read back the complete live specification #25 and
+open issue list; #25 is the sole open issue, and its state/body were not changed.
+[Draft breakdown](T18_TICKET_BREAKDOWN.md) proposes five independently verifiable
+slices: a complete 3-supplier/1-epsilon HTTP measurement flow; extension to the
+full workload/stress matrix and separate live validation; real-stack local
+Chromium smoke; buyer-task/keyboard/mobile/recovery assessment with bounded
+blocker fixes; and consolidated AC/NFR/RQ conclusions with a UX/UI follow-up.
+
+Only the expanded measurements depend on the first measurement slice. Browser
+smoke and manual assessment can start from the implemented workflow. The final
+report depends on the three evidence-producing branches; measurement slice 1 is
+a transitive blocker through slice 2. No preparatory refactor is justified.
+The earlier four-area plan remains the scope; five tickets refine delivery size.
+No specific code paths, speculative API/schema changes or general cleanup scope
+are introduced in the child descriptions.
+
+The skill requires user review of granularity and blocking edges before issue
+publication, so no child issues have been created. Native sub-issue/dependency
+mutation is not exposed by current connector metadata; if still unavailable at
+publication, child bodies will record parent/blocker links. The skill explicitly
+prohibits changing the parent, so no parent task list is added by this workflow.
+README/index/plan expose the review draft. No implementation, dependency install,
+runtime service, Drive write, stage, commit, push, merge or issue closure occurred.
+Ruff 0.17.0 formatting (201 files), lint, patch whitespace and local draft-link/
+structure checks pass. Application/service/browser gates were not rerun for
+this documentation-only proposal; the ticket outcomes remain planned.
+
+## 2026-10-11 — Publish approved T18 delivery tickets
+
+The user approved all five proposed slices and dependencies. Published open
+`ready-for-agent` children #26–#30 of specification #25 in dependency order.
+#27 is blocked by #26; #30 is blocked by #27/#28/#29. #26, #28 and #29 can start
+independently, with #26 recommended first. Each ticket has a complete behavior,
+bounded acceptance criteria, canonical traceability and inherited safety/scope
+boundaries; no implementation-only horizontal or speculative refactor ticket
+was introduced.
+
+Independent GitHub readback verifies exact bodies/titles, open states, labels,
+parent references and blocker links. Relationships are explicit body links,
+because native mutation is not exposed by the available connector. The parent
+#25 body/state remain unchanged, as required by to-tickets. No issue was closed.
+[Published breakdown](T18_TICKET_BREAKDOWN.md), plan, specification header,
+README and index now show the executable order and actual publication state.
+The earlier draft entry records the pre-approval moment, not a current blocker.
+
+No T18 implementation, runtime measurement, participant result, dependency
+installation, service startup, Drive write, stage, commit, push or merge is
+claimed. Next capability: a complete repeatable three-supplier HTTP evaluation
+through saved approval/PDF with raw timing/outcome evidence. Substantial UX/UI
+improvement and affected reassessment remain later development; unfamiliar-user
+usability stays NOT ASSESSED until real participant evidence exists.
+
+Final documentation verification: Ruff 0.17.0 formatting passes (201 files);
+lint passed for this documentation-only stage. Patch whitespace, published
+ticket/local links and structure pass; the repository specification body still
+matches unchanged parent #25 exactly. Application/service/browser tests were
+not rerun, and no new runtime acceptance is claimed.
