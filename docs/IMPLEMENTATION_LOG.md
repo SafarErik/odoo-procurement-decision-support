@@ -2461,3 +2461,20 @@ Drive edit, stage, commit, push, PR, merge or issue closure was performed. Stop
 before Drive synchronization until the user's green light. Thesis relevance:
 chapters 3/4/5/6/7; summarize T17 human decisions, immutable PDF and full-flow
 evidence in Hungarian only after review, then plan the separate T18 evaluation.
+
+## 2026-10-11 — Correct the Quality job's documentation formatting failure
+
+The user published #22 as `06a3876` and supplied the failing Quality log. The job
+stopped at `ruff format --check .`: CI's Ruff 0.17.0 checks Python examples in
+Markdown, while the previous local Ruff 0.16.9 gate missed two blank lines around
+the function in `T17_FULL_FLOW_DEMO.md`. Tests did not run in that failed job.
+
+Reproduced the exact failure with isolated project-local Ruff 0.17.0, then applied
+its two-line formatting correction. Matching-version whole-repository formatting
+(198 files), lint and patch whitespace pass. The existing environment and project
+dependencies are unchanged. No application code changed, so the previously passing
+579 fast / 57 service tests were not repeated for this documentation-only fix.
+README records the publication/correction state. The fix remains unstaged and
+uncommitted; new hosted CI awaits user publication. Drive remains untouched until
+the review boundary is cleared. No service, database, Odoo or GitHub mutation was
+performed during this correction.

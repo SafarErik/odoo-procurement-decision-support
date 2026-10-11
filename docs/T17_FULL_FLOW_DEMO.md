@@ -152,10 +152,12 @@ from backend.app.routes import planning_cases as routes
 root = Path(__file__).parent
 original = routes.render_approved_document
 
+
 def controlled_render(content):
     if (root / "render-failure").exists():
         raise RuntimeError("Controlled acceptance renderer failure")
     return original(content)
+
 
 routes.render_approved_document = controlled_render
 ```

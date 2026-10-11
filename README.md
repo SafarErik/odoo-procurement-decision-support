@@ -54,6 +54,11 @@ See [reproduction instructions](docs/T17_FULL_FLOW_DEMO.md) and
 migrated/reset. Drive remains untouched pending the user's review and green light.
 T18 evaluation and observed-model validity remain separate.
 
+**2026-10-11 CI follow-up:** #22 is committed at `06a3876`. Its Quality job
+stopped on Ruff 0.17.0 formatting of the reproduction guide's Python example.
+Two missing blank lines are corrected locally; matching-version format/lint
+checks pass. Hosted CI for this unpublished correction remains pending.
+
 **Earlier 2026-10-10 update, superseded above:** #20 is committed at `294b312` on
 `feature/T17-implementation`; the user reports its CI looks fine. #21 is now
 implemented on the same branch, with new local changes awaiting publication/CI.
