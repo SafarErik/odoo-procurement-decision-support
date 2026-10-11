@@ -40,6 +40,25 @@ and #30 consolidated acceptance remain separate. Unfamiliar-buyer usability
 is NOT ASSESSED. Local warmed sequential targets are not production SLAs or
 arbitrary-instance scaling evidence. This continuation adds no Drive change.
 
+## 2026-10-11 continuation — #28
+
+[#28's handoff](T18_28_HANDOFF.md), [browser runbook](T18_28_BROWSER_RUNBOOK.md)
+and [small evidence record](T18_28_BROWSER_EVIDENCE.json) add a local Chromium
+functional smoke through real Reflex/FastAPI/disposable PostgreSQL. Displayed
+plan costs/quantities, explicit alternative approval, model-unconfigured stored
+reopening, rendered PDF and byte/hash-identical download passed. Stopping the
+owned API exercised GET failure/explicit recovery and uncertain create recovery
+with the exact retained payload/key, followed by an idempotent replay.
+
+This contributes to FR-V2-07/09–12, AC-V2-09–13, NFR-V2-02/04–08 and RQ-V2-06/07.
+It establishes this controlled functional browser path; it does not establish
+first-time usability, visual/accessibility conformance or a real buyer's identity.
+Hosted/Ubuntu browser execution and #29 buyer/keyboard/mobile assessment remain
+separate; novice usability stays NOT ASSESSED. The earlier inventory's future-#28
+wording below is historical routing, superseded by this dated contribution.
+Required Quality stays unchanged; large traces/screenshots/logs remain ignored
+local artifacts with hashes in the small report.
+
 ## Functional and acceptance routes
 
 | Canonical identifiers | Existing evidence and scope | #26 contribution / later gate |

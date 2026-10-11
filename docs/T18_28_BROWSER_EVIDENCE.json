@@ -1,0 +1,233 @@
+{
+  "scope": "Issue #28 local Chromium synthetic buyer flow and actual owned FastAPI outage/recovery",
+  "date": "2026-10-11",
+  "branch": "feature/T18-implementation",
+  "base_commit": "6082741e016c2e82dba3a5573e289a3bf8f76380",
+  "implementation": "Uncommitted; exact tested hashes below",
+  "run": {
+    "started_at": "2026-10-11T19:33:28.586375+00:00",
+    "project": "t18-browser-9c9777032b9d",
+    "python": "3.11.16 (main, Sep 29 2026, 14:58:48) [MSC v.1944 64 bit (AMD64)]",
+    "versions": {
+      "reflex": "0.9.12",
+      "pytest-playwright": "0.10.0",
+      "playwright": "1.63.0",
+      "pulp": "3.3.0",
+      "scikit-learn": "1.8.0"
+    },
+    "source_sha256": {
+      "tests\\e2e\\conftest.py": "3bfffbf57d2b92f9179ec1ae6ed6f713ccaa0cff7805ac2e5db8577dd5bf93f5",
+      "tests\\e2e\\test_planning_smoke.py": "202d0cd02e32cf51b5cca5162f0b242221684faecbf8927023c206e8cbed75e5"
+    },
+    "checks": [
+      "Created base; both saved costs and supplier quantities match API",
+      "Explicit alternative approval and unchanged original snapshot",
+      "Model-unconfigured stored reopening; rendered/downloaded exact PDF",
+      "Actual FastAPI outage; visible GET error and explicit identical recovery",
+      "Actual FastAPI outage; exact pending payload/key and explicit idempotent recovery"
+    ],
+    "case_id": "9cc5d1e9-e9f3-4ab8-bdcb-39e5a97d7f60",
+    "approved_content_hash": "66e777b7972a25b666c1abb82261156c457193901ea097d87740f1af3b067985",
+    "pdf_sha256": "b57c0f5f406439aa9ac09f324e34b274885929e65c4e23908623a2319c7b93b4",
+    "recovery_key": "0d83affb-533d-4213-96e4-787e92d942a9",
+    "recovery_case_id": "4f21676b-35a2-44a4-86ef-bf68a28f9ef8",
+    "outcome": "PASS",
+    "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+  },
+  "frontend_source_sha256": {
+    "frontend/app.py": "8971218265714afff2d63fce6801edfef85957192ea797c23f607bdea257475b",
+    "frontend/config.py": "7994d9ca46337512706b55e8423f6c3f886cd8ac22c5e69ef91406d5b5ad8d7c",
+    "frontend/planning_client.py": "afe73b41d7c74940b5fece37705702722f996f4d3b96078dc616e16cfd10a9b3",
+    "frontend/planning_pdf_client.py": "539cd46a0cce3135d5f7dc46829d3f64d36c1ec1a6bde0c6aa0672315f8237aa",
+    "frontend/rfq_client.py": "578bd971c27b5b7c7bbc88366d2b2316612ff2f7679dbcb0a88435df148dff4b",
+    "frontend/rfq_page.py": "126ea230a842fe99a80a6f5290eb45a9231f0f71b2ecdee14e0c108090f41e15",
+    "frontend/rxconfig.py": "9ddfb00986477d71874dac4efbdac30dbbef563706084cef43f1e1837a718f3c",
+    "frontend/theme.py": "59b9358ef92c63a4f2979d0a33e00ff2377a85fe9ccd6a259d772cfcd6e1b6cb",
+    "frontend/planning/audit.py": "25134c9ecbabec5e2eb0a17b2a087f966d65f6d54391b9972382ff061294bfad",
+    "frontend/planning/decision.py": "89999d01718160f54182d6b2035988d6d9907a10282f0784ece18420d862d577",
+    "frontend/planning/inputs.py": "a8a2b325a10392a684099774fbb91557027e7ed8a02afb54cf61d8b7a764e395",
+    "frontend/planning/page.py": "0875fc950dd3b7d3385890615af31cb6e55c39b257cb5a77e1affe934b821adc",
+    "frontend/planning/pdf.py": "d36633d7182bde79e49e782786e70b605c03be66b23509295058743e43a82d10",
+    "frontend/planning/results.py": "aad2044d21e258a85d970685c30ce9f4031aa5da8d46717b879ad2c0083715e6",
+    "frontend/planning/scenarios.py": "b501a63cd2d11297639d745d1aac7e9e17fee6b16eacb98c6ddb2a12191dbccd",
+    "frontend/planning/state.py": "a700c1e5fc9373556234a35ddb1d2b532282de0fb22a2bbc9a2b16fea3965b48",
+    "frontend/planning/__init__.py": "983f4de910390ca04b2037d2462ba363dd5938ead4ee8d67f8749716d644bef2"
+  },
+  "pyproject_sha256": "5a46235fd697a56d8d732302cc32f8da6264de5e9c7daa8ec82e7a966e984e72",
+  "node": "24.20.0 (verified installed executable; process-only PATH workaround)",
+  "database_image": "postgres:16.15-bookworm (existing persistence Compose)",
+  "browser_result": "1 passed in 82.10 seconds, including setup and teardown",
+  "earlier_success_before_timeout_refinement": {
+    "result": "1 passed in 81.73 seconds; retained separately from final source validation",
+    "pytest": {
+      "path": ".artifacts/t18-28-pytest-c48771e1/pytest.txt",
+      "sha256": "d3b79edd0d622b6589fc86da59b30a1f7e0bf5de71e7ef5dfd23ee6cd20792f3"
+    },
+    "run": {
+      "path": ".artifacts/t18-browser-afc4dbb7833f/evidence.json",
+      "sha256": "5f35eff0f6d4d6e72fba47c9fd982f62800e2537060b94aed713359d77172b71"
+    },
+    "trace": {
+      "path": ".artifacts/t18-browser-afc4dbb7833f/trace.zip",
+      "sha256": "f2b8123a790c19979284512a68031db0fda40f93b4c64fe16a95b8a39d5fd1b6"
+    }
+  },
+  "command_timeout_probe": {
+    "run": {
+      "path": ".artifacts/t18-browser-c0271972e1bd/evidence.json",
+      "sha256": "3b46a5fa938f99979c35f9749684b31ab7bbf46071545fbf9dc3b72d728e901a"
+    },
+    "result": "PASS: shorten command wait only in the probe; real owned Windows parent/child process stopped and child localhost listener absent"
+  },
+  "raw_artifacts": [
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/api.log",
+      "sha256": "bd29c6dea57f8df664f5797a85c726851b271ba4a93900f19fee72224f8a844c"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/approved-pdf.png",
+      "sha256": "75b823ae3b54ce653191a0f10e850e0915426a895292ebf70e28a9b9b3916c0b"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/approved.pdf",
+      "sha256": "b57c0f5f406439aa9ac09f324e34b274885929e65c4e23908623a2319c7b93b4"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/browser.png",
+      "sha256": "c81532de43e1b0c69a1fe5831a2e213e9b9fc038d2904fb160a00ed4785edbe0"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/database.log",
+      "sha256": "7d12448151c52ce7ff9422657444e892622906dccd8962f57695f90d201155ae"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/evidence.json",
+      "sha256": "f536ed1647eea0332f703e5dd1a2e687f235c6bb05bf09992018a87fa07a450c"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/migration.log",
+      "sha256": "5655722792a62232b36147f0bb98d8f7dde05e14363c0ab4cf058efce7aed234"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/pending-save.png",
+      "sha256": "f34fc79851f96fd7f341f92cbf3d77eade4e3d83ad77c91a6f9d4be85219750a"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/reflex.log",
+      "sha256": "0dd186e0ae1ad662adf6ca27d3d0eb6f9c1f58acd2d4d6fb3af837c92a6d8908"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/trace.zip",
+      "sha256": "d56766a497b3fda0a92a6a32e1cceb9aee9e353720e111640243dac582d103b0"
+    },
+    {
+      "path": ".artifacts/t18-browser-9c9777032b9d/tunnel.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "pytest_artifacts": [
+    {
+      "path": ".artifacts/t18-28-pytest-6506c05d/pytest.txt",
+      "sha256": "24d6134e39041ec7e54c49ee33de13ae0b6da2327e5a0dee168087008a44bc4a"
+    },
+    {
+      "path": ".artifacts/t18-28-pytest-6506c05d/result.xml",
+      "sha256": "b2918f99849c617d77f5a309ae5b82ba253f812c6dde5e6d71fc5e6537d6c09f"
+    }
+  ],
+  "development_failures": [
+    {
+      "cause": "Test read final-decision outcome outside existing intent envelope",
+      "pytest": {
+        "path": ".artifacts/t18-28-pytest-222c54ec/pytest.txt",
+        "sha256": "975549d37678ad083606b646cabcb9826ee06470845592aa9092ce2f98fc4ede"
+      },
+      "xml": {
+        "path": ".artifacts/t18-28-pytest-222c54ec/result.xml",
+        "sha256": "1eb26d54ee98bd280d1ecf419324cd0df8454126d78a27afa7a98d6e1bd25dc5"
+      },
+      "browser_trace": {
+        "path": ".artifacts/t18-browser-0afb30585a46/trace.zip",
+        "sha256": "40fcb4a7d582a32f70620a80b017bc956d3fbaeb245fc0ef0652c76fb8d90a89"
+      },
+      "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+    },
+    {
+      "cause": "Test expected approved instead of existing approve intent value",
+      "pytest": {
+        "path": ".artifacts/t18-28-pytest-32212e79/pytest.txt",
+        "sha256": "072434b84f59a93f64f75491e2db060763476e72448b163933c1c8be95e2608c"
+      },
+      "xml": {
+        "path": ".artifacts/t18-28-pytest-32212e79/result.xml",
+        "sha256": "277f187a0a80a302964d9d693a00359cc5e8cd9c3d411eb487389ddcfba54e22"
+      },
+      "browser_trace": {
+        "path": ".artifacts/t18-browser-897402ee8db8/trace.zip",
+        "sha256": "2e5eb3e67f8b4d838f0a9e5600f2f45774c9c85a534f637f4763b500766b7364"
+      },
+      "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+    },
+    {
+      "cause": "Test expected uncertain instead of existing unconfirmed alert wording",
+      "pytest": {
+        "path": ".artifacts/t18-28-pytest-e5d3729a/pytest.txt",
+        "sha256": "467b84a346815c9d36d49d67fb7b2e282d913fbd2421c8c90eca42bff1c9ee98"
+      },
+      "xml": {
+        "path": ".artifacts/t18-28-pytest-e5d3729a/result.xml",
+        "sha256": "3b281acc5e571f8c70874e2ff3468448ce62cfc782e7cd0ea44683443642d8a8"
+      },
+      "browser_trace": {
+        "path": ".artifacts/t18-browser-60772ea9255c/trace.zip",
+        "sha256": "adbc73d33b99f846a4f552382b33deef45b98a6559390954ed21c4bf5afab9bb"
+      },
+      "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+    }
+  ],
+  "prerequisite_evidence": {
+    "missing_plugin": {
+      "path": ".artifacts/t18-28-prerequisites-7c9698e7/missing-plugin.txt",
+      "sha256": "97e40b73bd8fa397fed64821672027f88bb047a8923c12f9872e9ddc65b69387"
+    },
+    "fast_collection_without_plugin": {
+      "path": ".artifacts/t18-28-prerequisites-7c9698e7/fast-collection.txt",
+      "sha256": "663b1c0994c6a43722c524935ce25202b6979c0afa32ade9ca65119bbe11e238"
+    },
+    "missing_chromium": {
+      "path": ".artifacts/t18-28-missing-browser-449a6683/pytest.txt",
+      "sha256": "7af14555b75f26ba51d90f8c10f254f616049379fe433f187467edf11aed884b"
+    },
+    "result": "Explicit E2E missing prerequisites fail before stack startup; plugin-disabled fast collection selects 591/651 tests (60 deselected)"
+  },
+  "local_quality": {
+    "fast_tests": "591 passed, 60 deselected, 1 existing Starlette deprecation warning in 109.89 seconds",
+    "artifacts": [
+      {
+        "path": ".artifacts/t18-28-quality-dbba6ab8/pytest.txt",
+        "sha256": "4427bd707c14b3b03ebff13db21df8d5cb73f5057b3047af6a7ea7e1504e3b25"
+      },
+      {
+        "path": ".artifacts/t18-28-quality-dbba6ab8/result.xml",
+        "sha256": "92ac6469a33e29664115594c2bcbeb0b0abd193e3ccf313ef051fb909bc3a7a0"
+      }
+    ],
+    "ruff": "0.17.0 format (211 files) and lint PASS",
+    "compileall": "PASS: required packages plus document_adapter/tools/tests/e2e",
+    "pip_check": "PASS",
+    "compose_configs": "Both PASS, credentials suppressed; config-only, no service startup",
+    "whitespace": "PASS",
+    "order": "Full fast gates before final E2E-only command-timeout refinement. Focused Ruff/compile, timeout probe and complete E2E passed after that change; fast code/selection unchanged, so fast suite not repeated."
+  },
+  "runtime_readback": "No t18-browser-* container or final successful-run API/Reflex HTTP listener remains. Owner Odoo/database and existing 8069 listener (PID 27388) remain running; planning container stays exited.",
+  "limitations": [
+    "No new hosted CI/Ubuntu execution",
+    "Desktop Chromium only",
+    "Visual/accessibility/mobile/keyboard acceptance remains separate",
+    "Novice usability NOT ASSESSED",
+    "No new No-award/scenario browser coverage or live Odoo acquisition",
+    "POST outage before dispatch; lost response after commit remains separate existing test evidence",
+    "Synthetic ML; caller audit text is not authenticated buyer identity",
+    "Forced termination can prevent fixture cleanup; initial frontend registry access needed"
+  ]
+}

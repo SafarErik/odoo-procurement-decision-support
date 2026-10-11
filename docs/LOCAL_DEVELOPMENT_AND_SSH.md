@@ -155,6 +155,13 @@ separate stored planning view below. Check RFQ rendering/refresh, stop FastAPI t
 state, then restart it and confirm recovery. Record browser evidence separately
 from `reflex export --frontend-only --no-zip`, which checks compilation only.
 
+For repeatable local Chromium acceptance of create/compare/approval/stored
+reopening/PDF and real backend-unavailable recovery, use the
+[#28 browser runbook](T18_28_BROWSER_RUNBOOK.md). It owns a separate disposable
+helper database, frontend copy and service processes; it does not reuse/reset
+this application database or your running frontend. Optional browser tooling is
+required only for selected E2E; required Quality remains unchanged.
+
 ### Controlled live tests are explicit fixture acceptance
 
 Use [T6 fixture setup](T6_FIXTURE_SETUP.md), [T7-S manual setup](T7S_MANUAL_SETUP.md)

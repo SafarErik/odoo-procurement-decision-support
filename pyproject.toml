@@ -37,6 +37,9 @@ dev = [
     "pypdf>=6,<7",
     "ruff>=0.8,<1.0",
 ]
+e2e = [
+    "pytest-playwright>=0.7,<1.0",
+]
 
 [tool.setuptools.packages.find]
 include = [

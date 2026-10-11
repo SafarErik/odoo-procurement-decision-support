@@ -2723,3 +2723,50 @@ Previously passing quality/matrix/database checks were not repeated after this
 credential-only change. Hosted CI, browser and novice usability remain separate.
 No commit, publication, issue closure or Drive update. Chapter 7 gains fresh
 controlled history/security evidence; next capability remains #28 browser smoke.
+
+
+## 2026-10-11 — #28 real buyer-flow browser smoke and backend recovery
+
+Problem: compiled Reflex and backend tests do not prove a buyer can complete the
+real browser workflow or recover when Reflex's server-side API client loses its
+backend. Decision: one optional local Chromium smoke with owned services and a
+unique disposable helper database; reuse production modules and existing offline
+synthetic preparation/Compose/migrations. Behavior: UI cost/supplier quantities
+match saved results; explicit alternative approval preserves the original; browser
+reload/reopening with no configured model renders/downloads the byte-identical
+approved PDF. Actual owned FastAPI downtime gives GET and unconfirmed-create
+errors; explicit recovery preserves exact intent/key and produces a stored
+idempotent replay. No production API/UI/core/schema/CI changes.
+
+Evidence: final full Chromium run **1 passed in 82.10 s**, including setup/teardown.
+Earlier full PASS 81.73 s retained separately. Three development assertion failures
+(envelope level, approve/Approved, unconfirmed/uncertain) remain recorded; no
+application defect or automatic workflow retry was concealed. Final cleanup
+refinement reuses owned process-tree handling for command timeouts; a real Windows
+parent/child timeout probe and the final full E2E run passed. Plugin-disabled fast
+collection selected 591/651 tests; selected E2E without plugin or browser binaries
+failed clearly before service startup. [Handoff](T18_28_HANDOFF.md),
+[runbook](T18_28_BROWSER_RUNBOOK.md) and [small evidence record](T18_28_BROWSER_EVIDENCE.json)
+bind tested source/copy/PDF/log/trace hashes. Large screenshots/traces/service logs
+remain ignored local artifacts; prior #27 evidence is preserved.
+
+Required fast gates: **591 passed, 60 deselected**, actual ML/CBC and independent
+T13 oracle; Ruff 0.17.0 formatting (211 files)/lint, compileall, pip check, both
+credential-suppressed Compose configs and whitespace passed. One existing Starlette
+TestClient deprecation remains. Those gates preceded the final E2E-only timeout
+refinement; focused Ruff/compile, probe and full E2E passed afterwards, with fast
+code/selection unchanged. No redundant fast-suite rerun. Owned database/projects
+and API/Reflex/tunnel processes were removed; owner Podman/Odoo/8069 and saved
+application data remain unchanged. Trace generated-secret scan and owner-secret
+artifact checks passed; no generated credential file was written.
+
+Limits: one controlled desktop Chromium flow, synthetic model, technical actor
+text; no new live Odoo acquisition, hosted/Ubuntu browser, mobile/keyboard/visual
+or accessibility acceptance, No-award/scenario browser test or lost-after-commit
+browser claim. Novice usability NOT ASSESSED. Forced pytest termination can prevent
+teardown; fresh frontend dependencies require registry access and remain local
+until manually removed. User controls review/publication; no Drive/issue mutation,
+commit/push/PR/merge. Next: #29 buyer-task/keyboard/mobile walkthrough and blockers,
+then #30 synthesis and later substantial UX/UI reassessment. Chapter 7 gains
+reproducible functional browser/recovery evidence; chapters 4/6 explain the saved
+result/document and server-side credential boundary.
