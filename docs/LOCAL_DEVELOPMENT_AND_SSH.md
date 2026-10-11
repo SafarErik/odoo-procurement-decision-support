@@ -283,6 +283,11 @@ compilation only; [the T16 handoff](T16_HANDOFF.md) records actual browser scope
 
 ## Controlled planning workspace: create and test
 
+For the complete current acquisition -> scenarios -> human decision -> PDF flow,
+use [the T17 reproduction guide](T17_FULL_FLOW_DEMO.md). It includes all five
+stress types, No-award, stored reopening, failure recovery and cleanup. The dated
+[full-flow handoff](T17_FULL_FLOW_HANDOFF.md) records the actual acceptance scope.
+
 The 2026-10-07 next T16 slice adds creation and one supplier outage to `/planning`.
 The earlier stored-only walkthrough remains valid for retrieval. This form reads
 only the fixed owner-prepared `.artifacts/t15-demo/create-request.json` on the

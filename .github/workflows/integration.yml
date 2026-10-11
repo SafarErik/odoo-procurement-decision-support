@@ -18,6 +18,7 @@ on:
       - "supplier_evaluation/**"
       - "tools/t15_demo.py"
       - "tools/t15_odoo_demo.py"
+      - "tools/t17_demo.py"
       - "tests/**"
       - "pyproject.toml"
   push:
@@ -39,6 +40,7 @@ on:
       - "supplier_evaluation/**"
       - "tools/t15_demo.py"
       - "tools/t15_odoo_demo.py"
+      - "tools/t17_demo.py"
       - "tests/**"
       - "pyproject.toml"
   workflow_dispatch:

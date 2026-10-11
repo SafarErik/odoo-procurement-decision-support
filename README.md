@@ -1,7 +1,7 @@
 # Odoo Procurement Decision Support
 
 A Python side-by-side procurement helper for a BSc thesis. For one approved
-product demand and several known suppliers, the intended workflow is:
+product demand and several known suppliers, the supported controlled workflow is:
 
 ```text
 validated read-only Odoo facts + source-attributed supplemental business inputs
@@ -31,7 +31,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
 | What is ready for V2 approval/PDF implementation? | [T17 planning handoff](docs/T17_PLANNING_HANDOFF.md), [published tickets](docs/T17_TICKET_BREAKDOWN.md) |
 
-## Current capability — updated 2026-10-10
+## Current capability — updated 2026-10-11
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
@@ -42,8 +42,19 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Buyer-facing planning workflow | The merged T16 cockpit has separate Plans, What-if, Suppliers and Audit views, a cost/exposure chart, scenario drafts and stored retrieval. Synthetic/prepared-Odoo creation and five stress types retain the existing API. Observed-model promotion and arbitrary quotation discovery remain separate. |
 | Human decision | Issue #20 is committed: explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its local evidence. Complete controlled demonstration remains separate. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
+| Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is recorded; final integrated T18 evaluation remains separate. |
 
-**2026-10-10 update:** #20 is committed at `294b312` on
+**2026-10-11 update:** #20/#21 are committed at `294b312` / `cf20ada` on
+`feature/T17-implementation`. #22 now supplies a repeatable complete controlled
+demonstration, with actual read-only Odoo -> saved ML -> CBC -> PostgreSQL ->
+Reflex approval/PDF and No-award evidence. The defined controlled AC-V2-13 gate
+is met locally; user review, publication/new-SHA CI and merge remain pending.
+See [reproduction instructions](docs/T17_FULL_FLOW_DEMO.md) and
+[acceptance evidence](docs/T17_FULL_FLOW_HANDOFF.md). No application database was
+migrated/reset. Drive remains untouched pending the user's review and green light.
+T18 evaluation and observed-model validity remain separate.
+
+**Earlier 2026-10-10 update, superseded above:** #20 is committed at `294b312` on
 `feature/T17-implementation`; the user reports its CI looks fine. #21 is now
 implemented on the same branch, with new local changes awaiting publication/CI.
 Migrate the intended helper database to `20261010_01`, then follow
@@ -187,18 +198,17 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review the [#21 approved-PDF implementation](docs/T17_PDF_HANDOFF.md),
-   migrate the intended helper database and validate view/download. Commit,
-   publication and merge remain under user control; verify CI for the new SHA.
-2. Deliver [#22: reproducible full controlled demonstration](https://github.com/SafarErik/odoo-procurement-decision-support/issues/22)
-   after the PDF slice. See the [confirmed plan](docs/T17_APPROVAL_PDF_PLAN.md).
+1. Review the [#22 full-flow implementation and local acceptance](docs/T17_FULL_FLOW_HANDOFF.md)
+   and [repeatable demonstration](docs/T17_FULL_FLOW_DEMO.md). Install dependencies,
+   migrate the intended helper database and follow the buyer walkthrough as needed.
+2. After the user's green light, consolidate thesis-relevant T17 results into
+   affected Hungarian Drive records. Commit/publication/merge and issue closure
+   remain under user control; verify CI for the exact final T17 SHA.
 3. Complete the separate T18 integrated evaluation and T19 thesis closure against
    the accepted requirements. Observed-history/model promotion, arbitrary quotation
    selection and broader combined scenarios remain separate capabilities;
    [the controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md)
    is Odoo quotations plus separately synthetic ML history.
-4. Synchronize affected Hungarian Drive records only on explicit request, using
-   reviewed repository evidence. Published specifications alone are not PASS evidence.
 
 ## Documentation responsibilities
 
