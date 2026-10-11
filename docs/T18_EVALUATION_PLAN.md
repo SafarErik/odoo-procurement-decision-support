@@ -1,6 +1,6 @@
 # Integrated evaluation and buyer usability — T18 planning
 
-Status: **CONFIRMED PLAN — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25) and approved [children #26–#30](T18_TICKET_BREAKDOWN.md) are published; #26/#27 have completed local gates, [#28's Chromium smoke](T18_28_HANDOFF.md) and [#29's agent assessment/fixes](T18_29_BUYER_ASSESSMENT.md) have local evidence. Human/text-zoom limits remain explicit; #30's synthesis remains. The agreed evaluation contract is unchanged.**
+Status: **CONFIRMED PLAN — the five delivery slices have evidence consolidated in [#30's controlled assessment](T18_CONTROLLED_ASSESSMENT.md). Controlled functional/latency results pass; pending human/accessibility gates and substantial UX/UI reassessment remain explicit. Review/publication/issue closure are separate. The agreed evaluation contract is unchanged.**
 Updated 2026-10-11 on `feature/T18-implementation`, initially clean at
 `ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. The first executed results are recorded
 separately in [#26's handoff](T18_26_HANDOFF.md); this plan retains the agreed contract.

@@ -1,6 +1,6 @@
 # T18 evaluation delivery tickets — approved and published
 
-Status: **APPROVED AND PUBLISHED — [#26](T18_26_HANDOFF.md), [#27](T18_27_HANDOFF.md), [#28](T18_28_HANDOFF.md) and [#29](T18_29_BUYER_ASSESSMENT.md) have local results. #29 retains explicit pending human/text-zoom gates; #30's synthesis remains. Issue state/closure and publication remain user-controlled.**
+Status: **APPROVED AND PUBLISHED — [#30's controlled assessment](T18_CONTROLLED_ASSESSMENT.md) consolidates #26–#29 results and records all canonical matrices/RQ answers. Pending human/accessibility gates and substantial UX/UI reassessment remain explicit. Issue state/closure and publication remain user-controlled.**
 Prepared 2026-10-11 from [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25)
 and the [confirmed plan](T18_EVALUATION_PLAN.md). The parent specification remains
 unchanged. The user approved all five slices and dependencies before publication.

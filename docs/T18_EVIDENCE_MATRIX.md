@@ -1,5 +1,11 @@
 # Initial controlled-system evidence inventory — T18
 
+**Current assessment (2026-10-11): [#30's complete canonical FR/AC/NFR matrix and
+RQ answers](T18_CONTROLLED_ASSESSMENT.md), with [raw/summary/source reconciliation](T18_30_CONSOLIDATION_EVIDENCE.json),
+supersedes the provisional routing below. Controlled functional/latency gates
+pass; human/accessibility and substantial UX/UI reassessment remain explicit.
+This initial inventory and its continuations are preserved as historical evidence.**
+
 Prepared 2026-10-11 for [#26](https://github.com/SafarErik/odoo-procurement-decision-support/issues/26).
 This is an initial routing inventory, not final acceptance. Canonical meanings
 remain in [06_REQUIREMENTS_BASELINE](https://docs.google.com/document/d/1g0zie-3mEWdrkiBMUET--ST8eCdmOPOVfyjyWXr_Iig/edit)

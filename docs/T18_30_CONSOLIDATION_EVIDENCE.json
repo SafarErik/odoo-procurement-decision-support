@@ -1,0 +1,223 @@
+{
+  "scope": "#30 consolidation; no new timed or service/browser/live run",
+  "verified_at_utc": "2026-10-11T20:40:58.881526+00:00",
+  "assessed_commit": "65acfbe9bf31d89f6ed5e3c94812ecf65a82764b",
+  "canonical_sources": [
+    {
+      "title": "06_REQUIREMENTS_BASELINE",
+      "url": "https://docs.google.com/document/d/1g0zie-3mEWdrkiBMUET--ST8eCdmOPOVfyjyWXr_Iig/edit",
+      "modified_at_utc": "2026-10-11T14:05:58.915Z",
+      "path": ".artifacts/t18-30-sources/requirements.txt",
+      "sha256": "5a7423b1620870c4dd141c2375d9816bf86c807f707b066404d5a370a8fc04ed"
+    },
+    {
+      "title": "04_RESEARCH_NOTES",
+      "url": "https://docs.google.com/document/d/1wpglDSL8rMUCFADUhslrgtIRRcWVAdujoEncrDY9WmY/edit",
+      "modified_at_utc": "2026-10-11T14:06:30.954Z",
+      "path": ".artifacts/t18-30-sources/research.txt",
+      "sha256": "4bbcc4abd9833f214fbfb5ddc875ecd0fa65513c7f189d09fe9a7fb6b896599a"
+    }
+  ],
+  "bound_repository_evidence": [
+    {
+      "path": "docs/T18_27_EVALUATION.json",
+      "sha256": "62ba90b8644c5b270057f9c93e206107fc7ba717b30f1ae2d3cc498ad9abbf4a"
+    },
+    {
+      "path": "docs/T18_27_LIVE_VALIDATION.json",
+      "sha256": "d55af231c0fdd2fd508c205c010509aa75656ae4447ba8047a733d4c81daf536"
+    },
+    {
+      "path": "docs/T18_28_BROWSER_EVIDENCE.json",
+      "sha256": "9d65ce2c64b89b046ab443fbd1953473de596093a4aefea48dd5b4d5f424a4b2"
+    },
+    {
+      "path": "docs/T18_29_BUYER_EVIDENCE.json",
+      "sha256": "9572270fbc6971b405409418b9c7a2d8e3fccad678296f0ecc3d12255a1d1b81"
+    },
+    {
+      "path": "docs/T14_EVALUATION.json",
+      "sha256": "a2f61befbbbf4ccac9f37a15ef7d2833a631acc235c0491dc13a6ec7d13c27c4"
+    }
+  ],
+  "reconciliation": {
+    "raw_reports_verified": 6,
+    "measured_operations": 2160,
+    "warmup_operations": 144,
+    "failed_pending_missing_operations": 0,
+    "partial_or_technical_solver_results": 0,
+    "status_counts": {
+      "warmup/optimal": 108,
+      "warmup/infeasible": 12,
+      "measured/optimal": 1620,
+      "measured/infeasible": 180
+    },
+    "summary_and_raw_export_identity": "PASS: timings/outcomes and full-value template hashes match raw reports",
+    "current_evaluator_and_fixture_hashes": "PASS",
+    "live_and_buyer_bound_artifacts": "PASS",
+    "current_dependency_versions_and_cbc_binary": "Match #27 measured runtime",
+    "production_changes_since_27": [
+      "frontend/planning/decision.py",
+      "frontend/planning/page.py"
+    ],
+    "affected_29_rechecks": "Retained post-fix agent tasks and 87.51-second real-stack smoke match current source hashes",
+    "new_benchmark_rerun": "Not justified: only frontend feedback roles changed; HTTP/backend/model/solver/storage/PDF code unchanged"
+  },
+  "latency_workloads": [
+    {
+      "workload": "3/1",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "3/1",
+        "operation": "combined",
+        "samples": 30,
+        "p95_seconds": 0.658635,
+        "maximum_seconds": 0.671712,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    },
+    {
+      "workload": "3/3",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "3/3",
+        "operation": "combined",
+        "samples": 30,
+        "p95_seconds": 1.118114,
+        "maximum_seconds": 1.919923,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    },
+    {
+      "workload": "5/1",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "5/1",
+        "operation": "supplier_outage",
+        "samples": 30,
+        "p95_seconds": 0.861725,
+        "maximum_seconds": 0.923195,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    },
+    {
+      "workload": "5/3",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "5/3",
+        "operation": "combined",
+        "samples": 30,
+        "p95_seconds": 1.535536,
+        "maximum_seconds": 1.64745,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    },
+    {
+      "workload": "10/1",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "10/1",
+        "operation": "demand_increase",
+        "samples": 30,
+        "p95_seconds": 1.527524,
+        "maximum_seconds": 1.536153,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    },
+    {
+      "workload": "10/3",
+      "passing_operation_cells": 12,
+      "measured_operations": 360,
+      "warmup_operations": 24,
+      "worst_cell": {
+        "workload": "10/3",
+        "operation": "price_increase",
+        "samples": 30,
+        "p95_seconds": 2.791729,
+        "maximum_seconds": 2.816472,
+        "target_seconds": 5,
+        "gate": "PASS"
+      }
+    }
+  ],
+  "hosted_checks": {
+    "commit": "65acfbe9bf31d89f6ed5e3c94812ecf65a82764b",
+    "quality": {
+      "run_id": 38172043161,
+      "job_id": 114566515649,
+      "result": "success"
+    },
+    "container_api": {
+      "run_id": 38172043167,
+      "job_id": 114566485440,
+      "result": "success"
+    },
+    "boundary": "Verified job/step metadata; no hosted browser or owner live-fixture claim",
+    "metadata": [
+      {
+        "path": ".artifacts/t18-30-sources/ci-0.json",
+        "sha256": "aa9b07cfa8ce68fedce238c23948a32a6f8be00b751721ad8fb75a7ce631f0a6"
+      },
+      {
+        "path": ".artifacts/t18-30-sources/ci-1.json",
+        "sha256": "11db54fa4a77ad095827935648b6bbda467ca485e053106264ca42724cb22e99"
+      }
+    ]
+  },
+  "new_local_fast": {
+    "tests": 591,
+    "deselected": 60,
+    "seconds": "103.918",
+    "artifacts": [
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/result.xml",
+        "sha256": "f67cf0d74c7a6da95e929694e7c87858f4c3057a2a07eff1ba60c8a3b15703a9"
+      },
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/pytest.log",
+        "sha256": "f68f20b740e2ba626a0853ea6a79f2d0fd4f8be9ebcdb36772965c705b00028d"
+      },
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/format.log",
+        "sha256": "d769e765e18a03deb2a2efa88ce6b1aa3593023bc16c40737dd375d006fbaa89"
+      },
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/lint.log",
+        "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+      },
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/compile.log",
+        "sha256": "20af013d669c19a409e91692146a640828b9613de475496b27a900e8b90c2f4f"
+      },
+      {
+        "path": ".artifacts/t18-30-fast-e1c053a3fcbe43b38bae38fd4775f2c1/pip.log",
+        "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+      }
+    ],
+    "compose": "Both configs PASS with credentials suppressed; no services started"
+  },
+  "outstanding": {
+    "novice_usability": "NOT ASSESSED; 3-5 external sessions PENDING",
+    "owner_walkthrough": "PENDING",
+    "browser_text_zoom": "NOT VERIFIED",
+    "screen_reader": "NOT ASSESSED",
+    "modern_buyer_experience": "OPEN: substantial UX/UI increment and reassessment",
+    "final_acceptance_and_thesis_closure": "Not established by T18 scoped report"
+  },
+  "publication": "#30 docs uncommitted; no Drive edits, GitHub mutations or commit/push/merge"
+}

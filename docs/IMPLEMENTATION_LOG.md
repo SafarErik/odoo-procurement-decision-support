@@ -2817,3 +2817,54 @@ Chapter 7 gains bounded task/fault/findings evidence; chapters 4/6 explain the
 feedback/document boundary. #30 synthesis is next, retaining pending gates;
 modern UX/UI and reassessment follow before final acceptance/thesis closure.
 No commit/push/PR/merge, issue mutation or Drive edit; publication stays with user.
+
+## 2026-10-11 — #30 consolidated controlled acceptance and UX/UI follow-up
+
+**Problem → decision → delivered behavior:** The user authorized #30 after
+publishing #29 and reporting green CI. Entry branch was clean at
+`65acfbe9bf31d89f6ed5e3c94812ecf65a82764b`. Refresh canonical requirements/RQs
+read-only and consolidate the dated evidence; add no runtime subsystem or broad
+rerun. [Controlled assessment](T18_CONTROLLED_ASSESSMENT.md) maps every
+FR-V2-01–12 / AC-V2-01–13 / NFR-V2-01–08, answers RQ-V2-01–07 and prioritizes
+the next buyer-visible UX/UI work. Scoped controlled functional outcomes pass;
+novice usability and final product/thesis acceptance do not follow from that.
+
+**Evidence:** [Small reconciliation/gate record](T18_30_CONSOLIDATION_EVIDENCE.json)
+binds refreshed Drive source reads, reports and current revision. All six original
+#27 raw-report hashes, 2,304 exported timing/outcome observations, full-value
+template identities, medians/maxima/p95 and 72 unchanged targets independently
+reconciled. There are 2,160 measured successes and 144 warm-up successes, no
+failed/pending/missing timings or partial solver proof. Slowest p95 is 2.791729 s
+(10 suppliers/3 epsilons price increase), target 5 s. Hardware, sequential order,
+warm-state/excluded work and separate live/browser/agent timings remain explicit.
+The two initial T7-S/T8 401 failures and successful post-renewal two-test rerun,
+prior test-setup/automation failures and existing warning remain historical evidence.
+
+Current evaluator/helper/live-tool hashes and #29 post-fix source/artifact hashes
+match recorded execution. Only the two frontend feedback-role files changed in
+production since #27; HTTP/model/solver/storage/PDF behavior is unchanged. #29's
+affected tasks and 87.51 s real-stack smoke are retained; no new local
+service/live/browser/timing run was justified or started. Exact #29-SHA hosted
+Quality run 38172043161/job 114566515649 and Container/API run 38172043167/job
+114566485440 succeeded; connector job/step metadata confirms integration execution
+and frontend compilation, not hosted browser or every optional live fixture.
+
+New required local gates passed: **591 fast tests, 60 deselected in 103.93 s**,
+actual CBC/ML; Ruff 0.17 format (213 files)/lint, compileall, pip check, both
+credential-suppressed Compose configs and whitespace. Fresh workspace-local temp
+avoided the earlier Windows pytest temp problem. Source/report/link/matrix
+reconciliation checks verify this documentation-only increment; unchanged gates
+were not repeated after passing. No new dependency, CI, migration or production
+code; no owner/Odoo/data/service change.
+
+**Limits → chapter relevance → handoff:** Owner walkthrough PENDING; unfamiliar
+3–5 participants PENDING and novice usability NOT ASSESSED; actual browser text
+zoom NOT VERIFIED; screen-reader output NOT ASSESSED. Focus loss/infeasible base
+visibility and broader navigation/hierarchy/choice/recovery/document friction
+remain ranked follow-up findings. Plan substantial modern buyer-focused UX/UI
+development and reassess before final acceptance; preserve T19 thesis closure
+after necessary development. Chapter 7 owns canonical assessment/measurements/
+RQ answers; chapters 3/4/5/6 and conclusions use only supported scoped findings.
+Drive's retained pre-merge T17/future-T18 status was explicitly reconciled, not
+edited. Report is delivered for review; no commit/push/PR/merge, GitHub issue or
+parent #25 mutation/closure, or Hungarian Drive edit. Publication remains user-controlled.
