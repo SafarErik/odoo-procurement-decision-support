@@ -22,6 +22,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     page.get_by_role("button", name="Create and save plan", exact=True).click()
     expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Alternative 1", exact=True)).to_be_visible()
+    expect(page.get_by_role("status")).to_contain_text("Case saved.")
     ids = re.findall(
         r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", page.locator("body").inner_text()
     )
@@ -68,7 +69,14 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     page.get_by_role("button", name="Load stored case", exact=True).click()
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     assert stack.client.get(f"/api/v2/procurement/planning-cases/{case_id}").json() == approved
+    stack.stop(stack.api)
     page.get_by_role("button", name="View approved PDF", exact=True).click()
+    expect(page.get_by_role("alert")).to_contain_text("PDF unavailable. Approval remains saved.")
+    expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
+    expect(page.get_by_role("link", name="Download approved PDF", exact=True)).to_have_count(0)
+    stack.start_api(stored_only=True)
+    page.get_by_role("button", name="View approved PDF", exact=True).click()
+    expect(page.get_by_role("status").filter(has_text="The PDF is ready.")).to_be_visible()
     region = page.get_by_role("region", name="Approved procurement PDF", exact=True)
     expect(region.locator("canvas").first).to_be_visible()
     expect(region).to_contain_text("t18-browser-buyer")
@@ -84,7 +92,8 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     assert hashlib.sha256(data).hexdigest() == pdf.headers["x-pdf-sha256"]
     page.screenshot(path=str(stack.root / "approved-pdf.png"), full_page=True)
     stack.evidence["checks"].append(
-        "Model-unconfigured stored reopening; rendered/downloaded exact PDF"
+        "Model-unconfigured stored reopening; PDF outage alert and explicit recovery; "
+        "rendered/downloaded exact PDF"
     )
 
     stack.stop(stack.api)

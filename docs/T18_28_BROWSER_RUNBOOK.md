@@ -83,8 +83,10 @@ Expected: **one passing Chromium test** covering all of these stages:
 2. Explicitly approve Alternative 1 with actor/reason/acknowledgement; verify
    unchanged original snapshot and the saved selected-plan decision context.
 3. Restart owned FastAPI with the model directory empty, reload the browser and
-   reopen by case ID; verify identical stored approval and render/download PDF.
-   Downloaded bytes and SHA-256 must match the backend artifact.
+   reopen by case ID; verify identical stored approval. The #29 extension stops
+   FastAPI before PDF viewing: require an alert, preserved approval and no false
+   download. Restore it and explicitly retry; readiness exposes a status,
+   rendering/download succeeds and bytes/SHA-256 match the backend artifact.
 4. Stop owned FastAPI; stored loading must show an error and clear false approval
    success. Restore it and explicitly load again; saved content remains identical.
 5. Stop FastAPI before another create; require uncertain-save recovery and blocked
@@ -114,7 +116,9 @@ broad Python/Node process kills, default-project `down`, or `down --volumes`.
 Run the [required fast checks](../AGENTS.md#commands) before handoff. Required
 Quality CI stays unchanged. Hosted browser CI, Ubuntu execution, arbitrary live
 Odoo discovery, No-award/scenario browser coverage, mobile/keyboard/visual checks
-and unfamiliar-participant validation are separate gates.
+and unfamiliar-participant validation are separate gates. The dated
+[#29 assessment](T18_29_BUYER_ASSESSMENT.md) records the manual desktop/narrow/
+keyboard findings and pending human/text-zoom checks separately from this test.
 
 Official tooling references: [Playwright pytest fixtures and tracing](https://playwright.dev/python/docs/test-runners),
 [Reflex CLI](https://reflex.dev/docs/api-reference/cli/). The tested local versions

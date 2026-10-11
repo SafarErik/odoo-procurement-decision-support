@@ -1,13 +1,13 @@
 # Integrated procurement evaluation and buyer usability — T18 specification
 
-Status: **PUBLISHED — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25), `ready-for-agent`; [#26](T18_26_HANDOFF.md), [#27](T18_27_HANDOFF.md) and [#28](T18_28_HANDOFF.md) have local results. Overall T18 remains in progress; #29/#30 and later UX/UI reassessment remain.**
+Status: **PUBLISHED — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25), `ready-for-agent`; [#26](T18_26_HANDOFF.md), [#27](T18_27_HANDOFF.md), [#28](T18_28_HANDOFF.md) and [#29](T18_29_BUYER_ASSESSMENT.md) have local results. Overall T18 remains in progress; pending human/text-zoom gates, #30 synthesis and later UX/UI reassessment remain.**
 Prepared 2026-10-11 from the user-confirmed T18 plan. This specifies work,
 not measured results or complete V2/thesis acceptance.
 
 Approved [delivery tickets #26–#30](T18_TICKET_BREAKDOWN.md) are published;
 #26 is committed at `97afe03`; the user authorized #27, whose measured results
 and limitations are recorded separately. This specification's agreed contract
-is unchanged; #29/#30 and hosted checks retain their own gates. #28's browser
+is unchanged; pending #29 human/text-zoom gates, #30 and hosted checks retain their own gates. #28's browser
 evidence is recorded in its own dated handoff, not promoted to usability acceptance.
 The parent issue body remains unchanged.
 

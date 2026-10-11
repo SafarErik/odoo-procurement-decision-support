@@ -278,7 +278,10 @@ def planning_page() -> rx.Component:
                     rx.cond(
                         PlanningState.notice != "",
                         rx.callout(
-                            PlanningState.notice, color_scheme="green", margin_bottom="1rem"
+                            PlanningState.notice,
+                            color_scheme="green",
+                            role="status",
+                            margin_bottom="1rem",
                         ),
                     ),
                     rx.cond(

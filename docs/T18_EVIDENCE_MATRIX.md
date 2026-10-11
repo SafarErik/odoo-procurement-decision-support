@@ -59,6 +59,24 @@ wording below is historical routing, superseded by this dated contribution.
 Required Quality stays unchanged; large traces/screenshots/logs remain ignored
 local artifacts with hashes in the small report.
 
+## 2026-10-11 continuation — #29
+
+[#29's buyer assessment](T18_29_BUYER_ASSESSMENT.md) and [small evidence record](T18_29_BUYER_EVIDENCE.json)
+add source-informed agent tasks through the real isolated stack: all five
+disruptions, infeasibility/original-base return, alternative approval, separate
+keyboard No-award/reopen, 390/320-pixel exact values and PDF navigation, and real
+GET/uncertain-save/PDF faults. Dynamic PDF errors and save/readiness feedback now
+expose alert/status roles. The extended Chromium regression passed with actual
+PDF outage, preserved approval and explicit byte-identical recovery.
+
+This contributes to FR-V2-07–12, AC-V2-08–13, NFR-V2-04–08 and RQ-V2-04–07,
+without changing their meanings. Agent task clocks are not human-task measures
+or API latency. Owner sessions are PENDING, unfamiliar-buyer usability remains
+NOT ASSESSED, actual browser text zoom is NOT VERIFIED and screen-reader/formal
+conformance is untested. A prioritized observed/hypothesized UX backlog now feeds
+the separate substantial UX/UI increment. #30 still owns consolidated assessment;
+older future-#29 wording below is historical routing, superseded by this entry.
+
 ## Functional and acceptance routes
 
 | Canonical identifiers | Existing evidence and scope | #26 contribution / later gate |

@@ -33,6 +33,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I reproduce repeated three-supplier HTTP measurements? | [T18 #26 evaluation runbook](docs/T18_26_EVALUATION_RUNBOOK.md) |
 | How do I reproduce the supported workload/stress matrix and separate live flow? | [T18 #27 evaluation runbook](docs/T18_27_EVALUATION_RUNBOOK.md) |
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
+| What did the buyer/keyboard/mobile assessment find? | [T18 #29 assessment, UX priorities and pending owner run sheet](docs/T18_29_BUYER_ASSESSMENT.md) |
 
 ## Current capability — updated 2026-10-11
 
@@ -48,6 +49,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is recorded; final integrated T18 evaluation remains separate. |
 | Repeated local HTTP evaluation | T18 #27 measures all six 3/5/10-supplier × 1/3-epsilon workloads, all stress types and infeasibility: 2,160 measured operations passed all 72 local p95 targets. The separate fixed live quotation/synthetic-model flow and stored-only reopening passed. [Handoff](docs/T18_27_HANDOFF.md) preserves exact evidence; both T7-S/T8 checks passed after user key renewal; the initial 401 failures and separate rerun remain recorded. Browser/usability assessment remains separate. |
 | Automated buyer-flow smoke | T18 #28 adds optional local Chromium coverage through real Reflex/FastAPI/disposable PostgreSQL: create, compare saved allocations, explicit alternative approval, model-unconfigured reopening, rendered PDF and byte-identical download. Real backend downtime shows GET/uncertain-save errors and requires explicit recovery with the same intent/key. [Handoff](docs/T18_28_HANDOFF.md) records the local PASS; hosted browser/visual/novice usability remain separate. |
+| Buyer-task and interaction assessment | T18 #29 exercises all five scenarios, infeasibility, alternative approval, separate keyboard No-award, stored reopen, narrow exact-value/PDF navigation and real backend recovery. Bounded feedback roles are fixed and regression-tested. [Assessment](docs/T18_29_BUYER_ASSESSMENT.md) records UX priorities; owner sessions, browser text zoom and unfamiliar-buyer usability remain pending/unverified. |
 
 **2026-10-11 post-merge and planning update:** T17 [PR #24](https://github.com/SafarErik/odoo-procurement-decision-support/pull/24)
 is merged at `ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. Exact post-merge
@@ -65,9 +67,11 @@ labelled `ready-for-agent`, with a [repository copy](docs/T18_EVALUATION_SPEC.md
 The [five-slice ticket breakdown](docs/T18_TICKET_BREAKDOWN.md) is approved and
 published as #26–#30 with `ready-for-agent`. #26/#27 are committed at
 `97afe03`/`6082741`; [#27's handoff](docs/T18_27_HANDOFF.md) records measured
-workload/live results and the resolved credential gate. #28 is locally verified
-in [its browser handoff](docs/T18_28_HANDOFF.md). #29/#30 remain separate delivery
-slices. New implementation publication/hosted CI remain user-controlled.
+workload/live results and the resolved credential gate. #28 is committed at
+`b3cf8f3`; [its browser handoff](docs/T18_28_HANDOFF.md) retains dated evidence.
+[#29's assessment and bounded fixes](docs/T18_29_BUYER_ASSESSMENT.md) have local
+results with human/accessibility limits explicit. #30's synthesis remains.
+New implementation publication/hosted CI remain user-controlled.
 
 **Earlier 2026-10-11 local record, superseded above:** #20/#21 are committed at `294b312` / `cf20ada` on
 `feature/T17-implementation`. #22 now supplies a repeatable complete controlled
@@ -230,13 +234,13 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Review [#28's local browser smoke/recovery](docs/T18_28_HANDOFF.md).
-   Its small evidence report links local traces/logs; publication remains
-   user-controlled. Next is [#29's buyer-task/keyboard/mobile assessment](https://github.com/SafarErik/odoo-procurement-decision-support/issues/29),
-   then #30's consolidated conclusions, using the [approved dependencies](docs/T18_TICKET_BREAKDOWN.md).
-2. Evaluate and fix blockers; record which usability claims remain unassessed.
-   Follow with a substantial buyer-focused UX/UI increment and reassess affected
-   behavior before final acceptance and T19 thesis closure.
+1. Review [#29's assessment, bounded fixes and pending run sheet](docs/T18_29_BUYER_ASSESSMENT.md).
+   Publication remains user-controlled. Next is #30's consolidated conclusions,
+   using the [approved dependencies](docs/T18_TICKET_BREAKDOWN.md).
+2. Complete pending owner/browser text-zoom checks and preserve novice usability
+   as NOT ASSESSED until participant evidence exists. Use the prioritized findings
+   for substantial buyer-focused UX/UI development and reassessment before final
+   acceptance and T19 thesis closure.
 3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive
    records only when authorized. Observed-history/model promotion, arbitrary quotation
    selection and broader combined scenarios remain separate capabilities;

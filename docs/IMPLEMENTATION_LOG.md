@@ -2770,3 +2770,50 @@ commit/push/PR/merge. Next: #29 buyer-task/keyboard/mobile walkthrough and block
 then #30 synthesis and later substantial UX/UI reassessment. Chapter 7 gains
 reproducible functional browser/recovery evidence; chapters 4/6 explain the saved
 result/document and server-side credential boundary.
+
+## 2026-10-11 — #29 buyer-task assessment and bounded feedback fixes
+
+**Problem → decision → behavior:** The user authorized #29 on
+`feature/T18-implementation`, clean at committed #28 `b3cf8f3`. Functional smoke
+does not establish first-time-buyer usability. Assess real owned Reflex/FastAPI/
+disposable PostgreSQL through the built-in browser; retain only bounded evidenced
+fixes. PDF errors lacked alert semantics; save/PDF-ready feedback lacked status
+semantics. Add those roles in the shared saved-decision component/page notice,
+and extend the existing smoke with genuine API downtime before PDF viewing,
+preserved approval, no false download and explicit stored-only recovery.
+
+**Evidence:** [Assessment/run sheet](T18_29_BUYER_ASSESSMENT.md) and
+[small artifact/source record](T18_29_BUYER_EVIDENCE.json) record informed-agent
+creation/comparison, exact EUR 102/109 allocations/exposure, all five disruptions,
+infeasible demand 1000, original-base return, alternative reason validation,
+separate keyboard No-award/reopen, narrow 390/320-pixel audit/PDF tasks and genuine
+GET/uncertain-create/PDF fault recovery. Original snapshot stayed unchanged;
+pending create payload/key stayed identical. Keyboard focus, table horizontal
+scroll and PDF 200% viewer zoom were exercised; successful save/PDF readiness and
+failure roles were rechecked after the fix. Raw screenshots/DOM/PDF/case records
+remain ignored locally; selected hashes are committed-document candidates.
+
+Final extended Chromium smoke passed **1 test in 87.51 s**, including byte/hash-
+identical actual PDF download and owned teardown. Required fast gates passed
+**591 tests, 60 deselected in 104.56 s**, actual CBC/ML; Ruff 0.17 format (212
+files)/lint, compileall, pip check, credential-suppressed Odoo/persistence Compose
+configurations and whitespace checks passed. Existing Starlette warning remains.
+The first fast attempt's 408 passes/183 setup errors (inaccessible Windows default
+pytest temp) remain recorded; a full fresh workspace-local-temp rerun passed.
+No dependency/CI/runtime baseline change. Both owned projects/process trees and
+HTTP listeners were removed; owner Odoo/data/8069 listener and running machine
+were preserved; browser viewport reset and temporary tab closed.
+
+**Limits → chapter relevance → next:** Task clocks are agent/tool wall time, not
+human usability times or API latency. Owner sessions PENDING; 3–5 unfamiliar
+participants PENDING and novice usability NOT ASSESSED. In-app browser zoom
+shortcuts had no effect; actual 200% browser text zoom NOT VERIFIED. Screen-reader
+speech, formal accessibility, physical mobile, other engines/hosted browser and
+new-SHA CI are unverified. Odoo was not read or changed; #27 live evidence remains
+separate, synthetic ML stays synthetic. The report ranks entry/retrieval,
+hierarchy, final-choice context, focus continuity, infeasible comparisons,
+recovery, PDF navigation and buyer copy for substantial later UX/UI development.
+Chapter 7 gains bounded task/fault/findings evidence; chapters 4/6 explain the
+feedback/document boundary. #30 synthesis is next, retaining pending gates;
+modern UX/UI and reassessment follow before final acceptance/thesis closure.
+No commit/push/PR/merge, issue mutation or Drive edit; publication stays with user.

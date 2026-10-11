@@ -35,7 +35,7 @@ def saved_decision() -> rx.Component:
                 ),
                 rx.cond(
                     PlanningState.pdf_error != "",
-                    rx.callout(PlanningState.pdf_error, color_scheme="amber"),
+                    rx.callout(PlanningState.pdf_error, color_scheme="amber", role="alert"),
                 ),
                 rx.cond(
                     PlanningState.pdf_data_url != "",
@@ -45,6 +45,7 @@ def saved_decision() -> rx.Component:
                             "to save this exact document.",
                             size="2",
                             color=MUTED,
+                            role="status",
                         ),
                         ApprovedPDFViewer.create(
                             data=PlanningState.pdf_data_url,
