@@ -14,6 +14,8 @@ explicitly supersedes them. They are not a second live dashboard.
   Windows forwarding workaround, destructive test boundary and Alembic.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
+- [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
+  Odoo acquisition, all stress types, approval/PDF, No-award and stored reopening.
 - [Agent development guidance](../AGENTS.md): scope, architecture, testing and
   followable handoff principles inherited by repository work in future chats.
 - [Implementation log](IMPLEMENTATION_LOG.md): dated technical decisions and
@@ -27,12 +29,14 @@ explicitly supersedes them. They are not a second live dashboard.
 | Offline Decision Tree and saved supplier evaluation | [T14 ML](T14_ML_DESIGN.md) | [T14 handoff](T14_HANDOFF.md), [controlled metrics](T14_EVALUATION.json) |
 | Controlled assembly -> inference -> MILP -> scenarios -> immutable storage | [Reviewed T15 plan](T15_IMPLEMENTATION_PLAN.md) | [T15 handoff](T15_HANDOFF.md) |
 | Create a synthetic or prepared-Odoo plan, run all supported stress scenario types and compare stored results | [Synthetic workspace](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test), [Odoo workspace](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-planning-workspace), [Scenario controls](LOCAL_DEVELOPMENT_AND_SSH.md#what-if-scenarios-and-stored-comparisons) | [T16 handoff](T16_HANDOFF.md) |
-| Planned human approval/no-award -> approved snapshot PDF -> full controlled demonstration | [Confirmed plan](T17_APPROVAL_PDF_PLAN.md), [specification](T17_APPROVAL_PDF_SPEC.md), [published tickets](T17_TICKET_BREAKDOWN.md) | [T17 planning handoff](T17_PLANNING_HANDOFF.md); implementation and AC-V2-11/12/13 remain open |
+| Saved human approval/no-award -> approved snapshot PDF -> full controlled demonstration | [Confirmed plan](T17_APPROVAL_PDF_PLAN.md), [specification](T17_APPROVAL_PDF_SPEC.md), [published tickets](T17_TICKET_BREAKDOWN.md) | [Approval handoff](T17_HANDOFF.md) preserves #20 evidence; [PDF handoff](T17_PDF_HANDOFF.md) records #21. [Planning handoff](T17_PLANNING_HANDOFF.md) preserves the earlier scope. |
+| View/download the approved document without reacquiring facts or changing approval | [Closed PDF spike](T17_PDF_SPIKE.md), [PDF walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#approved-pdf-view-and-download) | [PDF handoff](T17_PDF_HANDOFF.md) preserves #21/local AC-V2-12 evidence; the full-flow row below records the newer #22 status |
+| Complete controlled procurement-to-approved-PDF flow, with separate No-award | [Reproduction guide](T17_FULL_FLOW_DEMO.md) | [Full-flow handoff](T17_FULL_FLOW_HANDOFF.md): #22 / controlled AC-V2-13 local acceptance; user review, publication/CI, Drive synchronization and T18 remain separate |
 
 T15 supports synthetic inputs and a controlled hybrid: live Odoo quotations with
 separately synthetic ML history. See [compatibility boundary](T15_ODOO_COMPATIBILITY_PLAN.md)
 and the Odoo section of [the terminal demo](T15_DEMO.md). The complete observed Odoo/model
-integration, arbitrary quotation selection, broader combined scenarios, approval/PDF and full acceptance
+integration, arbitrary quotation selection, broader combined scenarios and full acceptance
 remain open. The accepted thesis/technology baseline is unchanged.
 
 ## Historical foundations: consult when their behavior matters

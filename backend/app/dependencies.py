@@ -122,6 +122,12 @@ def planning_solver_factory():
     return solver, evidence
 
 
+def render_approved_document(content):
+    from document_adapter.approved_pdf import render_approved_pdf
+
+    return render_approved_pdf(content)
+
+
 def resolve_odoo_planning_input(group_id, facts):
     """Read through adapters inside the locked new-case computation, never on replay."""
     import asyncio

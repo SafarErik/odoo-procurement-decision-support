@@ -2219,3 +2219,262 @@ authorize #20 on updated main. Approval/PDF and AC-V2-11/12/13 remain open; obse
 Odoo-history training, broader quotation selection and T18 evaluation are separate.
 Thesis evidence: problem -> decision -> work definition/publication -> verified
 issue/doc evidence -> implementation/runtime limits -> chapters 3/4/5 and later 6/7/8/9.
+
+## 2026-10-09 - Saved V2 human approval and No-award (issue #20)
+
+Problem: the buyer could compare immutable plans but could not record the final
+allocation choice or reasoned No-award. A historical V1 single-offer decision
+does not satisfy V2 allocation approval.
+
+Decision: implement the first unblocked vertical slice from the user-supplied
+[T17 planning handoff](T17_PLANNING_HANDOFF.md) on `feature/T17-implementation`,
+starting at planning merge `f0c5552`. Reuse the HTTP recovery pipeline and
+PostgreSQL transaction/locking patterns. Store human decision and versioned
+approved content separately; preserve original planning rows and exact hashes.
+No new dependency, accepted ADR, arbitrary Odoo selection or observed-model
+promotion was introduced. Ponytail and Reflex documentation skills guided this slice.
+
+Implemented behavior: explicit original-base minimum/alternative approval or
+reasoned No-award, bounded non-authenticated actor audit text, explicit historical
+demo acknowledgement, one server UTC decision time, pure saved-proof/constraint/
+provenance checks, immutable canonical approved content, same-key semantic replay,
+conflict protection and saved GET/creation recovery. Retained proven minimum and
+earlier alternative remain eligible after later calculation failure with recorded
+incomplete comparison. Stress children remain analytical. No-award creates no
+approved content. The application does no Odoo acquisition, model load/inference,
+training or solver execution during finalization/reopening/retry.
+
+Migration `20261009_01` adds the base-linked `planning_final_decisions` table,
+unique finalization keys, base-only insertion and UPDATE/DELETE protection.
+Only a separate disposable database was migrated; applying the revision to the
+user's helper database remains an explicit local setup step. Downgrade removes
+human decisions/approved content. See [T17 handoff](T17_HANDOFF.md) and the
+[decision walkthrough](LOCAL_DEVELOPMENT_AND_SSH.md#saved-human-decision).
+
+Verification PASS on Python 3.11.16:
+
+- Required fast suite: **562 passed, 54 deselected**, 48.08 s. Actual offline
+  Decision Tree training/reload/inference and bundled CBC ran. One existing
+  Starlette/httpx deprecation warning remains.
+- Focused final API/Reflex/hybrid checks: **51 passed**, 8.03 s. Saved hybrid
+  approval and creation recovery use a mocked read-only Odoo adapter for creation,
+  then forbidden Odoo/model/solver dependencies during stored operations. One
+  cache permission warning accompanied this passing run; final suites used a
+  precreated cache directory and had no cache warning.
+- Combined real PostgreSQL selection: **31 passed**, 35.38 s (V1, T15 and T17).
+  Two requests genuinely wait on PostgreSQL advisory locks before release;
+  identical intents return 201/200 and competing intents 201/409 with one row.
+  Atomic rollback and direct immutable/base-only/unique-key enforcement passed.
+- Ruff format (183 files), Ruff lint, compileall, pip check, Reflex production
+  export, both Compose configs with `--quiet`, and patch whitespace passed.
+  Export is compilation only; generated Reflex dependency-lock changes were
+  restored to the clean starting versions, with no dependency update intended.
+- Built-in browser -> real Reflex/FastAPI/PostgreSQL: minimum/alternative
+  approval, mandatory reason, both No-award cases, stored reload, scenario
+  restriction, desktop/mobile and uncertain-save recovery passed. The synthetic
+  fixture yields EUR 102/109 plans. Mobile 390x844 showed no horizontal overflow.
+  A test-only response wrapper returned 503 after successful commit; UI retained
+  identical recovery JSON while FastAPI was subsequently stopped, and explicit
+  retry after restart recovered the original timestamp/content hash with model
+  configuration absent and acquisition/inference/solver sentinels enabled.
+  Database evidence and screenshots were saved under ignored `.artifacts/t17/`.
+
+Nonpassing attempts retained as limitations: sandbox TestClient stalled and was
+interrupted before elevated execution; one focused invocation omitted its parent
+temporary directory and produced setup errors, corrected before executing tests;
+the initial concurrency observation reused PostgreSQL's cached statistics and
+failed the waiter assertion, fixed with `pg_stat_clear_snapshot()` before the
+passing contention checks. These attempts are not PASS evidence.
+
+Runtime boundary: reused the existing Podman machine, with all existing Odoo and
+helper/demo containers untouched/stopped. A separate
+`procurement-decision-support-t17-acceptance` PostgreSQL container used VM 55434.
+The Windows proxy failed; a created localhost-only SSH tunnel exposed host 55435.
+Only this disposable database was reset. Acceptance servers, container and tunnel
+were stopped/removed after verification; the initially stopped machine was
+returned to stopped state. Local artifact evidence remains for inspection.
+
+Limitation and next capability: this supplies local controlled FR-V2-09/10/11 and
+AC-V2-11 evidence, plus AC-V2-10/V1 regression. Historical/synthetic inputs do not
+establish current operational validity or production buyer authentication. PDF
+render/download (issue #21 / AC-V2-12), the complete local hybrid demonstration
+(#22 / AC-V2-13), user review and exact-new-SHA hosted CI remain open. GitHub
+issues remain open. No Odoo/Drive writes, stage, commit, push, PR or merge were
+performed. Next: render the immutable approved content without reacquisition or
+approval mutation. Thesis relevance: chapters 3/4/5/6/7; later evaluation and
+conclusions retain the synthetic/local scope limitation.
+
+## 2026-10-10 — View and download the immutable approved PDF (#21)
+
+Problem: an approved plan had an immutable content snapshot but no buyer-visible
+document. Decision: render that exact content in the backend, store one PDF with
+its approved-content reference/hash, and expose bounded authenticated retrieval
+through the existing API-only Reflex workspace. This implements FR-V2-09/10/12
+and supplies local AC-V2-12 evidence; #22/AC-V2-13 remains separate. The starting
+branch was `feature/T17-implementation` at `294b312`, with #20 already committed.
+The user's report that prior CI looked fine is not new-PDF CI evidence.
+
+Implemented behavior: ReportLab 4.4.10 plus packaged DejaVu Sans produces paginated
+allocations, exact money/currency and exposure, saved business terms, provenance,
+human decision and audit identities. Synthetic/model/date and incomplete-comparison
+limitations remain explicit. Migration `20261010_01` adds immutable binary PDF
+artifacts linked to exact approved content. Advisory locking gives one artifact
+under contention; rendering/storage failure preserves approval and leaves no
+partial artifact. Stored retrieval does not reacquire Odoo data, load/train/infer
+a model, optimize, render again or modify approval. No-award, unapproved bases
+and scenario children have no approved-PDF action and are denied by the API.
+
+Reflex retrieves and checks bounded MIME/identity/hash/bytes on its server. A
+React-PDF 10.2.0 component displays these bytes with selectable text, fit-width,
+zoom and keyboard scrolling, using a locally bundled worker. A native Blob link
+saves the exact document; no browser token or document generation is introduced.
+Frontend locks retain the viewer and current Reflex-generated requirements.
+See [the closed dependency/storage spike](T17_PDF_SPIKE.md) and
+[the PDF handoff](T17_PDF_HANDOFF.md) for decisions, artifacts and procedures.
+
+Executed evidence:
+
+- Required fast selection: **577 passed, 59 deselected**, 124.69 s. Actual CBC
+  and ML runtime gates executed. One existing Starlette TestClient deprecation
+  warning remains. Focused PDF/hybrid checks earlier passed **19 tests** (18.02 s).
+- Real isolated PostgreSQL PDF acceptance: **5 passed**, 20.83 s. Genuinely
+  contending requests wait before lock release, then one render/row serves both.
+  Direct UPDATE/DELETE, wrong-content insertion, renderer failure, post-flush
+  rollback and exact retry are tested. V1/T15/T17 PostgreSQL regressions:
+  **31 passed**, 53.75 s.
+- Ruff format (194 files), lint, compileall including `document_adapter`, pip
+  check, both Compose configurations with `--quiet`, and patch whitespace passed.
+  Built wheel contains the font and its upstream license.
+- Production Reflex export passed after replacing a static React-PDF import
+  with a client-effect import. Static import failed server prerendering; this
+  failed attempt is not PASS evidence. Final focused PDF/frontend checks after
+  that correction: **21 passed**, 18.43 s, with the same existing warning.
+  Export is compilation evidence; the final browser view also rendered all five
+  pages with stored retrieval and a forbidden renderer.
+- Built-in browser -> real Reflex/FastAPI/PostgreSQL: minimum EUR 102 and
+  alternative EUR 109 document views, actual desktop/mobile downloads, retained
+  approval through renderer/backend failure, explicit same-content retry,
+  forbidden-renderer cache retrieval, No-award/scenario restrictions, keyboard
+  Page Down and 390x844 mobile zoom without outer overflow passed. Both actual
+  downloaded files equal persisted bytes/SHA-256. Original case hashes and
+  final-decision JSON remain identical. Evidence is ignored under `.artifacts/t21/`.
+- All five standard and ten long/Unicode pages were rendered with Poppler and
+  inspected for clipping, overlap, table wrapping, footers and pagination.
+  Latin/Hungarian, Greek and Cyrillic content extracts correctly. Unsupported
+  glyphs fail rendering rather than silently producing missing-glyph boxes.
+
+Initial native iframe previews and scripted downloads failed browser acceptance;
+the local display component/native download link replaced them. An initial
+database invocation stalled before Windows tunnel recovery and was interrupted;
+fresh connected runs provide the PostgreSQL PASS evidence. The final focused
+selection was confirmed again because its earlier session output was unavailable.
+
+Runtime cleanup: only a separate disposable
+`procurement-decision-support-t21-acceptance` database was migrated/reset. Existing
+Odoo and helper/demo containers stayed stopped and untouched. Windows forwarding
+required a task-created localhost-only SSH tunnel (host 55435 -> VM 55434).
+Acceptance servers, test container/network, verified tunnel and temporary browser
+tab were stopped/removed; the initially stopped Podman machine is stopped again.
+Synthetic downloaded PDFs and ignored evidence remain for review.
+
+Limitations/user action: install declared dependencies and apply migration
+`20261010_01` to the deliberately selected helper database before user validation;
+no user application migration was performed. PDFs are controlled procurement-plan
+records, not legally complete external Purchase Orders or calibrated real-world
+supplier predictions. The two-MiB bound and bundled-font glyph coverage are
+intentional. No fresh live-Odoo or hosted CI result is claimed. New hosted CI,
+user review and #22/full AC-V2-13 remain open. GitHub issues stay open; no stage,
+commit, push, PR, merge, Odoo UI/write, direct Odoo database access or Drive write
+was performed. Thesis relevance: chapters 3/4/5/6/7; the next capability is the
+reproducible controlled hybrid acquisition -> ML -> MILP -> stress -> base human
+decision -> stored PDF demonstration.
+
+## 2026-10-11 — Complete controlled procurement-to-approved-PDF flow (#22)
+
+Problem: approval and PDF slices had independent evidence but no single repeatable
+controlled acquisition-to-document acceptance. Decision: reuse the existing
+read-only Odoo fixture, offline synthetic model, CBC, helper database and Reflex;
+add a repository-local HTTP reproduction tool and a complete buyer walkthrough.
+No product-layer, dependency, schema, model/solver or infrastructure correction
+was necessary. Starting branch: `feature/T17-implementation`, clean at `cf20ada`.
+
+Implemented behavior: `tools/t17_demo.py run` creates two original hybrid bases,
+all five stress types and an infeasible demand case, records explicit alternative
+approval and separately reasoned No-award, retrieves the matching PDF and verifies
+stored retries. `reopen` verifies unchanged snapshots, decisions and document
+bytes after restart. Exact payload/key is written before each POST; no token or
+automatic retry is recorded. New tests use actual saved inference/CBC/rendering,
+forbidden-call reopening, corrupted replay/PDF rejection and lost-response intent
+retention. Integration path filters include the tool. See
+[reproduction instructions](T17_FULL_FLOW_DEMO.md) and
+[the dated acceptance handoff](T17_FULL_FLOW_HANDOFF.md).
+
+Evidence:
+
+- Final fast gate: **579 passed, 59 deselected**, 55.60 s; actual ML/CBC execute,
+  one existing upstream TestClient warning. The first full selection passed in
+  55.38 s with an additional Windows cache-permission warning. Following the
+  distinct No-award-reason refinement, the final run used a precreated cache.
+- Services: **57 passed, 2 skipped, 579 deselected**, 49.88 s. Real PostgreSQL
+  concurrency/immutability/rollback, served API/Odoo health and authorized read-only
+  T6/live contracts passed. Two dedicated T7-S projection gates were not enabled.
+- Ruff format (196 files), lint, compileall including tools/document adapter,
+  pip check, both quiet Compose configs and patch whitespace passed.
+- Real browser -> Reflex/FastAPI -> read-only Odoo/saved ML/CBC/PostgreSQL:
+  fresh USD 1,850/2,200 base, all five independently stored original-base scenarios,
+  demand-500 infeasibility, supplier/audit provenance, reasoned alternative approval,
+  separate No-award and scenario finalization restriction passed.
+- Odoo stopped, model unconfigured and acquisition/inference/solver forbidden:
+  saved base approval, stored reopening and exact approval/No-award retries passed.
+  Forced renderer 503 retained approval; explicit retry generated its document.
+  API-unavailable handling retained approval and removed stale download controls.
+  Restart with renderer additionally forbidden still served the same five PDF pages.
+- Actual browser download: **30,434 bytes**, equal persisted bytes/SHA-256
+  `68e2851ccc2feb0467d82080bc472d37b9226cb8b3ea2f848c98c123f33cc5d3`.
+  Original browser snapshots/decisions remain identical. Required PDF content was
+  extracted; all five Poppler-rendered pages were inspected without clipping or
+  overlap. A browser download tool took about 18 minutes to return; that delay
+  is excluded from application/runtime measurements.
+- Final HTTP exercise: **5.671 s**, excluding offline preparation/startup/browser
+  actions and subsequent replay verification. All exact replays/PDF succeeded after
+  model-unavailable restart with upstream/solver/renderer forbidden. Dataset bounds:
+  240 generated observations, 160/80 train/held-out, 4,597 history and 1,200 outcome
+  lines; explicit synthetic evidence, not observed Odoo history. Runtime/model/policy
+  identities, request times, case IDs and artifact references are in the handoff.
+
+Runtime/cleanup: used the existing initially stopped Podman machine and fixture
+containers, plus separate `procurement-decision-support-t22-acceptance` helper
+PostgreSQL. Only that disposable database was migrated/reset; demonstration records
+were preserved before service resets. Windows forwarding required a task-created
+localhost tunnel (55435 -> 55434 and 8069 -> 8069). Task servers, temporary browser
+tab, helper container/network and tunnel were cleaned up; original Odoo containers
+and machine returned to stopped state. The default preview JSON was restored from
+its byte backup. Ignored evidence remains under `.artifacts/t22/`.
+
+Limitation/review: controlled **AC-V2-13 is met locally**, with AC-V2-11/12 and
+relevant V1/V2 regression retained. No new frontend compilation is claimed because
+#22 changes no frontend/dependency; #21's export evidence remains historical.
+Hosted CI for the unpublished changes, user review, merge/issue closure, T18
+evaluation, observed-model validity and complete thesis acceptance remain separate.
+No Odoo/UI write, direct Odoo database access, application-database reset/migration,
+Drive edit, stage, commit, push, PR, merge or issue closure was performed. Stop
+before Drive synchronization until the user's green light. Thesis relevance:
+chapters 3/4/5/6/7; summarize T17 human decisions, immutable PDF and full-flow
+evidence in Hungarian only after review, then plan the separate T18 evaluation.
+
+## 2026-10-11 — Correct the Quality job's documentation formatting failure
+
+The user published #22 as `06a3876` and supplied the failing Quality log. The job
+stopped at `ruff format --check .`: CI's Ruff 0.17.0 checks Python examples in
+Markdown, while the previous local Ruff 0.16.9 gate missed two blank lines around
+the function in `T17_FULL_FLOW_DEMO.md`. Tests did not run in that failed job.
+
+Reproduced the exact failure with isolated project-local Ruff 0.17.0, then applied
+its two-line formatting correction. Matching-version whole-repository formatting
+(198 files), lint and patch whitespace pass. The existing environment and project
+dependencies are unchanged. No application code changed, so the previously passing
+579 fast / 57 service tests were not repeated for this documentation-only fix.
+README records the publication/correction state. The fix remains unstaged and
+uncommitted; new hosted CI awaits user publication. Drive remains untouched until
+the review boundary is cleared. No service, database, Odoo or GitHub mutation was
+performed during this correction.

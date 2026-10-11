@@ -142,6 +142,54 @@ def test_actual_hybrid_creation_provenance_outage_and_offline_replay(configured,
         assert len(uow.rows) == 2
 
 
+def test_hybrid_final_decision_and_creation_recovery_use_only_saved_evidence(
+    configured, monkeypatch
+):
+    _, payload, _, _, calls = configured
+    creation_key, final_key = str(uuid4()), str(uuid4())
+    with TestClient(app) as client:
+        created = client.post(f"{BASE}/from-odoo", json=payload, headers=headers(creation_key))
+        assert created.status_code == 201, created.text
+        case = created.json()
+        before = calls.copy()
+        for name in (
+            "resolve_odoo_planning_input",
+            "infer_planning_features",
+            "planning_solver_factory",
+        ):
+            monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
+        monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+        command = {
+            "snapshot_hash": case["snapshot_hash"],
+            "outcome": "approve",
+            "plan_index": 1,
+            "actor_reference": "hybrid demo buyer",
+            "rationale": "Prefer lower saved exposure.",
+            "demonstration_acknowledged": True,
+        }
+        approved = client.post(
+            f"{BASE}/{case['case_id']}/final-decision", json=command, headers=headers(final_key)
+        )
+        assert approved.status_code == 201, approved.text
+        recovered = client.post(f"{BASE}/from-odoo", json=payload, headers=headers(creation_key))
+        assert recovered.status_code == 200, recovered.text
+        assert recovered.json()["final_decision"] == approved.json()["final_decision"]
+        assert recovered.json()["snapshot"] == case["snapshot"] and calls == before
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
+        pdf = client.get(
+            f"{BASE}/{case['case_id']}/approved-pdf/"
+            + approved.json()["final_decision"]["approved_content_hash"],
+            headers=headers(),
+        )
+        assert pdf.status_code == 200, pdf.text
+        text = "\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf.content)).pages)
+        assert "2200 USD" in text and "odoo_json2" in text and "t14_synthetic" in text
+        assert calls == before
+
+
 @pytest.mark.parametrize(
     "problem",
     [

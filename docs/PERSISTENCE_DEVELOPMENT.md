@@ -1,6 +1,6 @@
 # Planning persistence: isolated PostgreSQL tests and explicit migrations
 
-This is the current T11/T12/T15 database runbook. Use the existing Podman machine
+This is the current T11/T12/T15/T17 database runbook. Use the existing Podman machine
 and the separate Compose project `procurement-decision-support-t11-test` from
 `infra/persistence/compose.test.yaml`. The historical T11 name remains to avoid
 changing infrastructure; this service now tests both V1 decisions and V2 planning.
@@ -12,7 +12,13 @@ are unnecessary for these database tests.
 
 The test fixtures run `alembic downgrade base`, `alembic upgrade head` and truncate
 case tables. **Use only this disposable database, never an Odoo, application,
-shared or production-like database.** Tests do not mutate Odoo or need its credentials.
+shared or production-like database.** An old container with a test-project name
+may now hold manual demo cases: its name alone does not make resetting safe.
+Stop dependent servers and verify the selected database is disposable first.
+If preserving existing cases, use an explicitly separate Compose project and
+unused port, for example `-p procurement-decision-support-t17-acceptance` and
+`T11_POSTGRES_PORT=55434`, consistently for startup, inspection and cleanup.
+Tests do not mutate Odoo or need its credentials.
 The service binds to localhost and has no named volume: removing/recreating its
 container discards its test data. The Odoo Compose project's named volumes are
 separate and must not be removed as part of persistence testing.
@@ -94,7 +100,7 @@ not a resolved Windows forwarding defect. Do not expose the service beyond local
 ```powershell
 $taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $taskRun | Out-Null
-python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
+python -m pytest tests/integration/test_t15_planning_postgres.py tests/integration/test_decision_case_postgres.py tests/integration/test_t17_decisions_postgres.py tests/integration/test_t21_documents_postgres.py -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 ```
 
 The fixtures create/reset the schema themselves. Expect tests to execute and pass;
@@ -102,6 +108,11 @@ The fixtures create/reset the schema themselves. Expect tests to execute and pas
 The checks cover actual FastAPI-to-PostgreSQL round-trip, stored-only GET/replay,
 V1 compatibility, immutable snapshots/keys, concurrent compute-once creation,
 conflicting reuse and atomic rollback. Real controlled inference/CBC are exercised.
+T17 additionally verifies genuinely contending finalization transactions,
+one linked decision per original base, unique finalization keys, atomic approved
+content and database-enforced UPDATE/DELETE and scenario-finalization protection.
+The PDF selection adds concurrent render-once storage, exact approval binding,
+artifact UPDATE/DELETE protection and post-flush rollback with approval intact.
 The initial T15 implementation recorded 21 passing database tests; newer execution
 results belong to their own dated log entry rather than overwriting that evidence.
 
@@ -136,13 +147,26 @@ python -m alembic upgrade head
 python -m alembic current
 ```
 
-Expect current revision `20261005_01`. The migration chain is:
+Expect current revision `20261010_01`. The migration chain is:
 
 | Revision | Behavior |
 | --- | --- |
 | `20260922_01` | V1 immutable evaluation snapshots with one-time human finalization |
 | `20260922_02` | V1 creation keys/fingerprints, atomic mapping and advisory locking |
 | `20261005_01` | V2 planning/scenario JSONB snapshots; shared creation-key namespace; UPDATE/DELETE protection |
+| `20261009_01` | Separate V2 human-decision JSONB records; base-only insertion, unique finalization keys and UPDATE/DELETE protection; original snapshots unchanged |
+| `20261010_01` | Separate approved PDF BYTEA/reference/hash records; exact approved-content insertion guard, size bound and UPDATE/DELETE protection |
+
+For an existing application database, deliberately export its own
+`DECISION_DATABASE_URL` and run only `alembic upgrade head` / `alembic current`.
+Do not point the resetting pytest fixtures at it. T17 adds a table and triggers;
+it does not rewrite existing case rows. Downgrading this revision removes human
+decisions and approved content, so retain a database backup before any deliberate
+rollback. This implementation session migrated only its disposable database.
+Downgrading only `20261010_01` discards rendered PDF artifacts/references while
+preserving approved content and human decisions in `20261009_01`; re-upgrading
+can render again from that same content. Do not use downgrade as routine cleanup
+against an application database.
 
 Application startup and requests never migrate. For an already configured own
 application database, export its URL before Alembic, as documented in

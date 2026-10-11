@@ -169,8 +169,7 @@ def validate_snapshot(case: PlanningCase) -> dict:
         TypeError,
         KeyError,
         AttributeError,
-        ZeroDivisionError,
-        OverflowError,
+        ArithmeticError,
     ) as error:
         raise RepositoryError(
             "invalid_persisted_case", "The stored planning snapshot is invalid."

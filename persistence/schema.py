@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary,
     PrimaryKeyConstraint,
     String,
     Text,
@@ -104,3 +105,33 @@ class PlanningCaseRecord(Base):
     snapshot_version: Mapped[str] = mapped_column(String(64), nullable=False)
     snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+
+
+class PlanningFinalDecisionRecord(Base):
+    """One immutable human outcome and approved content per original planning case."""
+
+    __tablename__ = "planning_final_decisions"
+
+    case_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("planning_cases.case_id"), primary_key=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(36), nullable=False, unique=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    record_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    record: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+
+
+class PlanningDocumentRecord(Base):
+    """One immutable rendered artifact for the immutable approved content."""
+
+    __tablename__ = "planning_documents"
+
+    case_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("planning_final_decisions.case_id"), primary_key=True
+    )
+    content_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    reference: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    renderer_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    pdf_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    pdf: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)

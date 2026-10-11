@@ -9,6 +9,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from application.decision_cases import RepositoryError
 from application.planning_cases import SNAPSHOT_VERSION, PlanningCase, validate_snapshot
 from application.planning_serialization import snapshot_json
+from persistence.planning_decisions import SqlAlchemyPlanningDecisionRepository
+from persistence.planning_documents import SqlAlchemyPlanningDocumentRepository
 from persistence.postgres import SqlAlchemyUnitOfWork
 from persistence.schema import PlanningCaseRecord
 
@@ -85,4 +87,6 @@ class SqlAlchemyPlanningUnitOfWork(SqlAlchemyUnitOfWork):
     def __enter__(self):
         super().__enter__()
         self.cases = SqlAlchemyPlanningRepository(self._session)
+        self.decisions = SqlAlchemyPlanningDecisionRepository(self._session)
+        self.documents = SqlAlchemyPlanningDocumentRepository(self._session)
         return self

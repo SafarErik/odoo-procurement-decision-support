@@ -8,6 +8,7 @@ on:
       - "application/**"
       - "backend/**"
       - "decision_core/**/*.py"
+      - "document_adapter/**"
       - "frontend/**"
       - "infra/persistence/**"
       - "infra/odoo/**"
@@ -17,6 +18,7 @@ on:
       - "supplier_evaluation/**"
       - "tools/t15_demo.py"
       - "tools/t15_odoo_demo.py"
+      - "tools/t17_demo.py"
       - "tests/**"
       - "pyproject.toml"
   push:
@@ -28,6 +30,7 @@ on:
       - "application/**"
       - "backend/**"
       - "decision_core/**/*.py"
+      - "document_adapter/**"
       - "frontend/**"
       - "infra/persistence/**"
       - "infra/odoo/**"
@@ -37,6 +40,7 @@ on:
       - "supplier_evaluation/**"
       - "tools/t15_demo.py"
       - "tools/t15_odoo_demo.py"
+      - "tools/t17_demo.py"
       - "tests/**"
       - "pyproject.toml"
   workflow_dispatch:
