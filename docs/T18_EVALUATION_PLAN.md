@@ -1,8 +1,9 @@
 # Integrated evaluation and buyer usability — T18 planning
 
-Status: **CONFIRMED PLAN — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25) and approved [children #26–#30](T18_TICKET_BREAKDOWN.md) are published; execution has not started.**
+Status: **CONFIRMED PLAN — [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25) and approved [children #26–#30](T18_TICKET_BREAKDOWN.md) are published; #26 is locally implemented/verified, other slices remain.**
 Updated 2026-10-11 on `feature/T18-implementation`, initially clean at
-`ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. No T18 runtime results are claimed.
+`ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. The first executed results are recorded
+separately in [#26's handoff](T18_26_HANDOFF.md); this plan retains the agreed contract.
 
 ## Outcome and development sequence
 
@@ -227,8 +228,10 @@ the contract and completion criteria. The subsequent user-invoked to-tickets
 stage refined the four areas above into five bounded slices, separating automated
 browser coverage from task assessment and proving measurement on a complete flow
 before expanding it. The user approved the granularity and dependencies; the
-[published breakdown](T18_TICKET_BREAKDOWN.md) links #26–#30. No T18 implementation
-has started. Next: implement #26's complete three-supplier HTTP evaluation.
+[published breakdown](T18_TICKET_BREAKDOWN.md) links #26–#30. The user subsequently
+authorized #26 implementation; its [local handoff](T18_26_HANDOFF.md) records a
+complete three-supplier HTTP evaluation. After review/publication, #27 extends
+the proven mechanism to the supported workload/stress matrix.
 
 No new domain meaning was resolved: `GLOSSARY.md` already distinguishes planning
 case/base/scenario/final decision/approved snapshot. Keep these meanings intact.

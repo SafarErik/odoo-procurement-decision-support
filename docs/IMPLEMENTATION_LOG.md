@@ -2600,3 +2600,57 @@ lint passed for this documentation-only stage. Patch whitespace, published
 ticket/local links and structure pass; the repository specification body still
 matches unchanged parent #25 exactly. Application/service/browser tests were
 not rerun, and no new runtime acceptance is claimed.
+
+## 2026-10-11 — Implement #26's repeated three-supplier HTTP evaluation
+
+The user authorized #26 on `feature/T18-implementation`, starting from published
+planning HEAD `7536a54`. Added one bounded CLI reusing T15 offline synthetic
+preparation and existing HTTP/core/PDF contracts, plus seven meaningful accounting,
+failure, artifact-preservation and actual saved inference/CBC/API/PDF tests.
+No production endpoint, schema, business policy, frontend or dependency changed.
+
+The evaluator atomically retains exact POST intent before requests, distinguishes
+failed/pending/unattempted observations and stops ambiguous writes without retry.
+It measures seven operations separately, validates saved allocations/approval
+and PDF identity, excludes validation/report IO from HTTP time and records model,
+dataset/input/policy, solver/runtime, git/dirty-state and evaluator-source hashes.
+The first full development run passed but duplicated large response snapshots;
+compact identity/result reporting reduced checkpoint overhead. That first report
+is retained as history; the subsequent final-source run is authoritative.
+
+The existing Podman machine was stopped. Started it and only a fresh disposable
+helper project `procurement-t18-26-b7580128`, using PostgreSQL 16.15; Windows
+forwarding failed, so used a task-owned localhost SSH tunnel. Migrated that
+database only to `20261010_01` and served FastAPI on unused port 8002 with the
+matching offline model. Both warm-ups and all 210 measured operations passed;
+p95 seconds were create 0.571495, outage 0.602628, approval 0.258946, GET 0.142419,
+exact replay 0.281872, first PDF 0.244752 and cached PDF 0.172571. All agreed
+local targets passed for this 3-supplier/1-epsilon synthetic workload.
+
+Database readback found 128 base/child cases, 64 approvals and 64 artifacts across
+the two 32-flow executions, consistent with exact replay and cached downloads.
+[Raw timing/identity evidence](T18_26_EVALUATION.json),
+[initial canonical inventory](T18_EVIDENCE_MATRIX.md),
+[runbook](T18_26_EVALUATION_RUNBOOK.md) and [handoff](T18_26_HANDOFF.md) separate
+new measurement from retained component/live/browser evidence. README/index and
+planning headers now reflect the executed scope; original tracker bodies remain.
+
+Initial focused setup errors came from an absent parent temp directory, followed
+by a sandboxed Windows asyncio socket-pair stall before API startup. Fresh temp
+directories and permitted execution outside the socket sandbox resolved them;
+the focused five-test run passed. An earlier 584-pass fast run predates the final
+compact/failure changes; final checks and service cleanup are recorded at handoff.
+No Odoo read/write/UI mutation, application-database reset, Drive edit, GitHub
+issue mutation, stage, commit, push, PR or merge was performed. #27's larger
+matrix/live validation, #28 browser smoke, #29 usability and #30 final assessment
+remain separate. Unfamiliar-participant usability is NOT ASSESSED; modern UX/UI
+work and reassessment still precede final thesis acceptance.
+
+Final checks: 586 fast tests passed, 59 service/browser cases deselected; all seven
+new cases included. Ruff 0.17.0 formatting (206 files)/lint, compileall, pip check,
+both credential-safe Compose config validations, whitespace/local links and raw
+observation/summary/source-hash reproduction pass. No new hosted or browser/live
+Odoo result is claimed. Task-owned API/tunnel and disposable Compose database were
+stopped/removed; generated secret files deleted. No other containers were running,
+so the Podman machine returned to its initially stopped state. #26's local scope
+is complete; implementation changes remain unstaged/uncommitted for user review.

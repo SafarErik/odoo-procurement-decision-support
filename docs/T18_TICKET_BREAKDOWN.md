@@ -1,6 +1,6 @@
 # T18 evaluation delivery tickets — approved and published
 
-Status: **APPROVED AND PUBLISHED — #26–#30 are open with `ready-for-agent`; implementation has not started.**
+Status: **APPROVED AND PUBLISHED — #26–#30 remain open; [#26 is implemented/verified locally](T18_26_HANDOFF.md), other slices have not started.**
 Prepared 2026-10-11 from [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25)
 and the [confirmed plan](T18_EVALUATION_PLAN.md). The parent specification remains
 unchanged. The user approved all five slices and dependencies before publication.
@@ -311,6 +311,11 @@ The user-invoked to-tickets skill prohibits modifying or closing the parent.
 Independent readback confirms #25's body/state are unchanged; no parent task list
 was added. The runnable frontier is #26, #28 and #29. Recommended next work is
 #26, proving one complete measurement flow before expanding to #27.
+
+Subsequent implementation update: the user authorized #26 and its
+[local handoff](T18_26_HANDOFF.md) records the complete measurement flow and
+passing three-supplier targets. Issue closure/publication are not performed
+by this local implementation update; #27 can reuse the evaluator after review.
 
 No application implementation, dependency installation, service startup, Drive
 edit, stage, commit, push, merge or issue closure was performed in this stage.

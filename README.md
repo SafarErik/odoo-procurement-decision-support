@@ -30,6 +30,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
 | What is specified next? | [T18 evaluation specification](docs/T18_EVALUATION_SPEC.md), [confirmed plan](docs/T18_EVALUATION_PLAN.md) |
+| How do I reproduce repeated three-supplier HTTP measurements? | [T18 #26 evaluation runbook](docs/T18_26_EVALUATION_RUNBOOK.md) |
 
 ## Current capability — updated 2026-10-11
 
@@ -43,6 +44,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is recorded; final integrated T18 evaluation remains separate. |
+| Repeated local HTTP evaluation | T18 #26 measures the synthetic three-supplier/one-epsilon workflow with two warm-ups and 30 attempts per operation. All seven local p95 targets passed; [handoff](docs/T18_26_HANDOFF.md) preserves raw evidence and limits. Broader workloads, live Odoo and browser/usability assessment remain separate. |
 
 **2026-10-11 post-merge and planning update:** T17 [PR #24](https://github.com/SafarErik/odoo-procurement-decision-support/pull/24)
 is merged at `ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. Exact post-merge
@@ -58,8 +60,9 @@ another development increment before final acceptance and thesis closure.
 The confirmed scope is now [specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25),
 labelled `ready-for-agent`, with a [repository copy](docs/T18_EVALUATION_SPEC.md).
 The [five-slice ticket breakdown](docs/T18_TICKET_BREAKDOWN.md) is approved and
-published as #26–#30 with `ready-for-agent`; T18 implementation and measurements
-have not started. Begin with #26's complete three-supplier HTTP evaluation.
+published as #26–#30 with `ready-for-agent`. #26 is implemented and measured
+locally on this branch, pending user publication/new-SHA CI; see
+[its handoff](docs/T18_26_HANDOFF.md). The other slices remain unimplemented.
 
 **Earlier 2026-10-11 local record, superseded above:** #20/#21 are committed at `294b312` / `cf20ada` on
 `feature/T17-implementation`. #22 now supplies a repeatable complete controlled
@@ -222,8 +225,9 @@ claimed. Browser milestone procedures are in the runbook.
 
 ## Next product steps
 
-1. Implement [#26's complete three-supplier evaluation](https://github.com/SafarErik/odoo-procurement-decision-support/issues/26),
-   then follow the [approved delivery dependencies](docs/T18_TICKET_BREAKDOWN.md). Reuse
+1. Review [#26's local evaluation](docs/T18_26_HANDOFF.md), publish when accepted,
+   then extend it through [#27's workload/stress evaluation](https://github.com/SafarErik/odoo-procurement-decision-support/issues/27)
+   using the [approved delivery dependencies](docs/T18_TICKET_BREAKDOWN.md). Reuse
    existing tests; add checks for demonstrated gaps rather than repeating coverage.
 2. Evaluate and fix blockers; record which usability claims remain unassessed.
    Follow with a substantial buyer-focused UX/UI increment and reassess affected
