@@ -117,6 +117,16 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     expect(page.get_by_role("alert")).to_contain_text("The outcome is unconfirmed")
     recovery = page.get_by_label("Exact request recovery JSON", exact=True)
     pending = json.loads(recovery.input_value())
+    for destination in ("/cases", f"/planning?case_id={case_id}&view=audit"):
+        page.goto(stack.frontend_url + destination)
+        expect(
+            page.get_by_role("button", name="Retry the same request", exact=True)
+        ).to_be_visible()
+        expect(page).to_have_url(stack.frontend_url + "/planning")
+        assert json.loads(recovery.input_value()) == pending
+    stack.evidence["checks"].append(
+        "Pending create survived Cases and another-case bookmark navigation with exact key/payload"
+    )
     page.screenshot(path=str(stack.root / "pending-save.png"), full_page=True)
     stack.start_api()
     assert json.loads(recovery.input_value()) == pending

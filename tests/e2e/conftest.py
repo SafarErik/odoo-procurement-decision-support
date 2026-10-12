@@ -181,6 +181,7 @@ class SmokeStack:
             ignore=shutil.ignore_patterns(".web", ".states", ".reflex", "__pycache__"),
         )
         self.payload = prepare_demo(self.root / ".artifacts/t15-demo")
+        self.env["PLANNING_LIBRARY_COMPANY_ID"] = self.payload["company_id"]
         self.database_started = True  # Clean up even when Compose startup fails partway.
         self.compose("up", "-d")
         self.database_port = int(self.env["T11_POSTGRES_PORT"])

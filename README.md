@@ -35,9 +35,10 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
 | What did the buyer/keyboard/mobile assessment find? | [T18 #29 assessment, UX priorities and pending owner run sheet](docs/T18_29_BUYER_ASSESSMENT.md) |
 | What does the complete controlled evaluation establish? | [T18 #30 acceptance matrix, RQ answers and UX/UI follow-up](docs/T18_CONTROLLED_ASSESSMENT.md) |
-| What is specified for the next buyer workspace redesign? | [Specification #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42), [published ten-ticket index](docs/UX_UI_TICKET_BREAKDOWN.md), [confirmed brief](docs/UX_UI_INCREMENT_PLAN.md) — start with #32's saved-case library; implementation remains pending |
+| How do I find and reopen earlier saved work? | [Saved-case library runbook](docs/UX32_LIBRARY_RUNBOOK.md), [#32 handoff](docs/UX32_LIBRARY_HANDOFF.md) — migrate the helper and configure its library company, then open `/cases` |
+| What follows the saved-case library? | [Specification #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42), [ten-ticket index](docs/UX_UI_TICKET_BREAKDOWN.md) — #33 adds explicit creation classification and curated Practice |
 
-## Current capability — updated 2026-10-11
+## Current capability — updated 2026-10-12
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
@@ -46,6 +47,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
 | Buyer-facing planning workflow | The merged T16 cockpit has separate Plans, What-if, Suppliers and Audit views, a cost/exposure chart, scenario drafts and stored retrieval. Synthetic/prepared-Odoo creation and five stress types retain the existing API. Observed-model promotion and arbitrary quotation discovery remain separate. |
+| Find and reopen saved work | #32 adds a company-scoped, filtered/paged library at `/cases`, lazy stored scenarios and bookmarkable cockpit retrieval. Existing cases remain explicitly unclassified under Earlier cases; controlled/Practice creation classification belongs to #33. Requires migration `20261012_01` and backend `PLANNING_LIBRARY_COMPANY_ID`; no Odoo/model execution for browsing. See the library handoff for dated verification and limits. |
 | Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is retained and assessed alongside later evidence in [T18's controlled report](docs/T18_CONTROLLED_ASSESSMENT.md). |

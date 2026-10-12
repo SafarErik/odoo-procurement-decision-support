@@ -33,7 +33,10 @@ def configured(postgres_runtime, assets, monkeypatch):
     directory, payload = assets
     with engine.begin() as connection:
         connection.execute(
-            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
+            text(
+                "TRUNCATE planning_case_catalog, planning_documents, "
+                "planning_final_decisions, planning_cases"
+            )
         )
     monkeypatch.setattr(settings, "t15_trusted_model_directory", directory)
     monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("t15-pg-test-secret"))

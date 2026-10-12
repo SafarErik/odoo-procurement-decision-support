@@ -11,6 +11,17 @@ from application.planning_serialization import snapshot_json
 from persistence.schema import PlanningFinalDecisionRecord
 
 
+def read_decision_row(row):
+    if row is None:
+        return None
+    decision = PlanningFinalDecision(
+        row.case_id, row.idempotency_key, row.fingerprint, snapshot_json(row.record)
+    )
+    if decision.record_hash != row.record_hash:
+        raise RepositoryError("invalid_persisted_decision", "Final decision integrity failed.")
+    return decision
+
+
 class SqlAlchemyPlanningDecisionRepository:
     def __init__(self, session):
         self._session = session
@@ -28,16 +39,7 @@ class SqlAlchemyPlanningDecisionRepository:
     def _read(self, statement):
         try:
             row = self._session.execute(statement).scalar_one_or_none()
-            if row is None:
-                return None
-            decision = PlanningFinalDecision(
-                row.case_id, row.idempotency_key, row.fingerprint, snapshot_json(row.record)
-            )
-            if decision.record_hash != row.record_hash:
-                raise RepositoryError(
-                    "invalid_persisted_decision", "Final decision integrity failed."
-                )
-            return decision
+            return read_decision_row(row)
         except SQLAlchemyError as error:
             raise RepositoryError(
                 "repository_failure", "Final decision could not be read."

@@ -7,6 +7,10 @@ the existing English/Reflex/read-only workflow and **Decision editorial**. The u
 then confirmed the full brief and authorized specification work. T19 remains thesis
 closure after this development and reassessment; no new T-number is assigned here.
 
+Current #32 delivery evidence is recorded separately in the
+[library handoff](UX32_LIBRARY_HANDOFF.md); this specification retains its approved
+prospective criteria and historical publication status.
+
 The [approved ticket breakdown](UX_UI_TICKET_BREAKDOWN.md) refines the six delivery
 areas into ten complete buyer tasks. On 2026-10-12 the user approved all ten tickets,
 their dependencies, a new specification parent and the bounded validation gates.

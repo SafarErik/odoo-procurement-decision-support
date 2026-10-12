@@ -12,6 +12,9 @@ explicitly supersedes them. They are not a second live dashboard.
   activate Python, start only its services, interpret checks and clean up.
 - [Persistence development](PERSISTENCE_DEVELOPMENT.md): isolated database,
   Windows forwarding workaround, destructive test boundary and Alembic.
+- [Saved-case library #32](UX32_LIBRARY_RUNBOOK.md): company configuration, additive
+  catalog migration, browsing/bookmarks and owned disposable performance/browser checks.
+  [Handoff](UX32_LIBRARY_HANDOFF.md) records dated evidence and limits.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only

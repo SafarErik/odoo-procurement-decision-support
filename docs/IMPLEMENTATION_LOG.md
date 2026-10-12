@@ -2900,3 +2900,48 @@ started for publication. No commit/push/merge, Drive write or existing-parent ch
 chapter 7 needs actual task/query/browser evidence. Preserve read-only Odoo,
 synthetic-model limitations, immutable stored decisions/PDF and T19 closure after
 development/reassessment. Next capability is #32's saved-case library.
+
+## 2026-10-12 — Find and reopen saved cases (#32)
+
+**Problem → decision:** Returning buyers needed UUIDs to reopen saved work, while
+test history had no purpose classification. Implement the first complete task of
+parent #42 with bounded company-owned library queries and a working Reflex entry.
+Reuse stored validation and existing API/repository seams; keep all legacy cases
+unclassified instead of deriving Practice from synthetic model evidence.
+
+**Implemented behavior:** `/cases` filters/pages original summaries, lazily expands
+stored scenarios and opens bookmarkable saved results. Backend collections require
+the service token and explicit `PLANNING_LIBRARY_COMPANY_ID`; unknown parameters,
+bad/mismatched cursors and unsupported/corrupt saved data fail explicitly. Migration
+`20261012_01` adds an empty immutable original-base catalog and workspace index.
+Hashes, creation/replay, V1 records, approved content/PDF and read-only Odoo boundaries
+remain unchanged. Pending navigation preserves the original route/key/payload and
+explicit recovery. [Runbook](UX32_LIBRARY_RUNBOOK.md) owns configuration, migration,
+commands, disposable benchmark and cleanup; [handoff](UX32_LIBRARY_HANDOFF.md) owns
+the full dated evidence and failed-attempt record.
+
+**Evidence:** 605 fast tests passed; final guard/recovery-focused checks passed 20.
+32 real PostgreSQL integration checks passed, covering old migration/readability,
+immutable V2 data and catalog constraints/joins. New library browser acceptance and
+existing approval/PDF/recovery browser regression passed; the latter's final extension
+verified blocked pending navigation and exact retry in a real browser. Library
+find → expand → keyboard reopen/reload, 768/390/320 reflow, corruption and genuine
+backend downtime/recovery passed with model/Odoo configuration cleared for stored
+reads. Built-in browser visual inspection and the mechanical detector completed.
+Format/lint/compileall/pip/Compose configuration passed. Owned test stacks/tunnels
+were removed; no owner/Odoo database reset or application migration occurred.
+
+**Measured gate → limitation:** The owned fixture contains 1,000 company bases and
+60 children, plus cross-company and concurrent-insertion checks. Six 20-row queries,
+two warm-ups and 30 observations each, passed local p95 ≤1 second (0.170–0.244s).
+[Raw timings/query plans](UX32_LIBRARY_MEASUREMENTS.json) preserve all 192 observations.
+No additional snapshot indexes were justified. This is a bounded PoC result, not a
+production SLA or new business/ML evidence. Failed setup/compatibility/form/collection
+attempts remain recorded alongside final PASS. Owner/novice usability, text zoom,
+screen-reader speech, physical phones and hosted new-SHA CI remain unverified.
+
+**Traceability → next:** UX-AC-01/03, FR/AC-V2-09/10, NFR-V2-04/05/06/07/08 and UX29-03;
+chapters 4/6 explain architecture/UI choices, chapter 7 uses scoped verification.
+Changes remain uncommitted; user controls commit/push/merge and owner migration.
+Drive and GitHub issues were not edited. #33's explicit creation classification and
+curated Practice is next; #34–#41 and final buyer/thesis acceptance remain open.

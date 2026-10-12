@@ -18,6 +18,8 @@ from application.planning_decisions import (
     retrieve_planning_case,
 )
 from application.planning_documents import approved_document
+from application.planning_library import library_query, list_planning_cases
+from backend.app.config import settings
 from backend.app.dependencies import (
     get_planning_unit_of_work,
     infer_planning_features,
@@ -85,6 +87,45 @@ def _error(error):
     raise HTTPException(
         status, detail={"code": code, "message": "The planning request could not be accepted."}
     ) from error
+
+
+def _library(request, parent_id=None):
+    allowed = {"workspace", "status", "q", "limit", "cursor"}
+    try:
+        if any(
+            key not in allowed or len(request.query_params.getlist(key)) != 1
+            for key in request.query_params
+        ):
+            raise ValueError("Unknown or repeated library parameter.")
+        params = dict(request.query_params)
+        if "limit" in params:
+            if not params["limit"].isascii() or not params["limit"].isdecimal():
+                raise ValueError("Invalid limit.")
+            params["limit"] = int(params["limit"])
+        query = library_query(settings.planning_library_company_id, parent_id=parent_id, **params)
+        return list_planning_cases(get_planning_unit_of_work(), query)
+    except RepositoryError as error:
+        if error.code.startswith("invalid_"):
+            raise HTTPException(
+                503,
+                detail={
+                    "code": "invalid_library_data",
+                    "message": "Saved library data failed validation.",
+                },
+            ) from error
+        _error(error)
+    except (PlanningCaseError, ValueError) as error:
+        _error(error)
+
+
+@router.get("")
+def get_library(request: Request):
+    return _library(request)
+
+
+@router.get("/{case_id}/scenarios")
+def get_saved_scenarios(case_id: str, request: Request):
+    return _library(request, case_id)
 
 
 def _response(case, replay=False, decision=None):

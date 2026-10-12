@@ -4,6 +4,9 @@ Prepared 2026-10-12 from the user-confirmed brief and
 [local specification](UX_UI_INCREMENT_SPEC.md).
 Status: **APPROVED AND PUBLISHED — parent #42 and delivery #32–#41; implementation pending**.
 Ticket numbers below are local delivery identifiers, not GitHub issue numbers.
+Current delivery evidence: [#32 implementation handoff](UX32_LIBRARY_HANDOFF.md).
+The approved criteria below remain the contract; later tickets are not implemented
+by the saved-case library.
 The selected direction is Decision editorial; T19 remains thesis closure after
 development and reassessment. No existing T18 issue or parent is modified.
 

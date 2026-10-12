@@ -280,7 +280,7 @@ def index() -> rx.Component:
                         align="center",
                     ),
                     rx.hstack(
-                        rx.link("Stored plans", href="/planning", color=ACCENT),
+                        rx.link("Saved cases", href="/cases", color=ACCENT),
                         _connection_badge(),
                         spacing="4",
                         align="center",

@@ -100,7 +100,13 @@ def _workspace() -> rx.Component:
     return rx.box(
         rx.flex(
             rx.box(
-                rx.heading(PlanningState.details["product_label"], as_="h2", size="5"),
+                rx.heading(
+                    PlanningState.details["product_label"],
+                    as_="h2",
+                    size="5",
+                    id="saved-case-heading",
+                    tab_index=-1,
+                ),
                 rx.text(
                     PlanningState.details["quantity"],
                     " ordered units · required ",
@@ -196,6 +202,12 @@ def planning_page() -> rx.Component:
         rx.box(
             rx.flex(
                 rx.link("Procurement cockpit", href="/planning", font_weight="700", color=SURFACE),
+                rx.button(
+                    "Saved cases",
+                    on_click=PlanningState.open_library,
+                    disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    variant="soft",
+                ),
                 rx.link("Open RFQs", href="/", color=SURFACE),
                 justify="between",
                 max_width="88rem",

@@ -107,6 +107,21 @@ class PlanningCaseRecord(Base):
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
 
+class PlanningCaseCatalogRecord(Base):
+    """Presentation classification separate from immutable planning evidence."""
+
+    __tablename__ = "planning_case_catalog"
+    __table_args__ = (
+        CheckConstraint("workspace IN ('controlled', 'practice')", name="ck_catalog_workspace"),
+    )
+
+    case_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("planning_cases.case_id"), primary_key=True
+    )
+    workspace: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    example_id: Mapped[str | None] = mapped_column(String(80))
+
+
 class PlanningFinalDecisionRecord(Base):
     """One immutable human outcome and approved content per original planning case."""
 

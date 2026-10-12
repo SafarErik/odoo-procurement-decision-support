@@ -13,6 +13,7 @@ import reflex as rx
 
 from frontend.config import settings
 from frontend.planning_client import _supplier_label, fetch_planning_case, submit_planning_request
+from frontend.planning_library_client import fetch_library
 from frontend.planning_pdf_client import fetch_planning_pdf
 
 
@@ -61,6 +62,144 @@ class PlanningState(rx.State):
     _odoo_payload: dict = {}
     # shortcut: recovery is session-local; copy JSON before leaving until durable recovery exists.
     _pending: dict = {}
+    _pending_route: str = "/planning"
+    library_rows: list[dict[str, str]] = []
+    library_children: list[dict[str, str]] = []
+    library_workspace: str = "controlled"
+    library_status: str = "all"
+    library_search: str = ""
+    library_cursor: str = ""
+    children_cursor: str = ""
+    expanded_case: str = ""
+    library_error: str = ""
+    children_error: str = ""
+    library_loading: bool = False
+    children_loading: bool = False
+    library_loaded: bool = False
+    _library_params: dict = {}
+
+    @rx.event
+    def open_library(self):
+        if not self.is_loading and not self.has_pending:
+            return rx.redirect("/cases")
+
+    @rx.event
+    def open_saved_case(self, case_id: str):
+        if not self.is_loading and not self.has_pending:
+            return rx.redirect("/planning?case_id=" + case_id + "&view=plans")
+
+    @rx.event
+    def new_comparison(self):
+        if not self.is_loading and not self.has_pending:
+            return rx.redirect("/planning")
+
+    @rx.event
+    async def load_bookmark(self):
+        if self.has_pending or self.is_loading:
+            route = self.router.url.path + (
+                "?" + self.router.url.query if self.router.url.query else ""
+            )
+            if route != self._pending_route:
+                yield rx.redirect(self._pending_route)
+            return
+        params = self.router.url.query_parameters
+        if "case_id" not in params and "view" not in params:
+            return
+        view = params.get("view", "plans")
+        async for event in self.load_case(
+            {
+                "case_id": params.get("case_id", "")
+                if view in {"plans", "whatif", "suppliers", "audit"}
+                else ""
+            }
+        ):
+            yield event
+        if self.has_case:
+            self.view = view
+            yield rx.set_focus("saved-case-heading")
+
+    @rx.event
+    async def library_on_load(self):
+        if self.has_pending or self.is_loading:
+            yield rx.redirect(self._pending_route)
+            return
+        async for event in self.refresh_library():
+            yield event
+
+    @rx.event
+    async def refresh_library(self, form_data: dict[str, Any] | None = None):
+        if self.library_loading or self.has_pending or self.is_loading:
+            return
+        if form_data is not None:
+            self.library_workspace = form_data.get("workspace", "controlled")
+            self.library_status = form_data.get("status", "all")
+            self.library_search = form_data.get("q", "").strip()
+        self._library_params = {
+            "workspace": self.library_workspace,
+            "status": self.library_status,
+            "q": self.library_search,
+        }
+        self.expanded_case = self.children_cursor = self.children_error = ""
+        self.library_children = []
+        async for event in self._load_library_page(""):
+            yield event
+
+    @rx.event
+    async def next_library_page(self):
+        if self.library_cursor and not self.library_loading:
+            self.expanded_case = ""
+            self.library_children = []
+            async for event in self._load_library_page(self.library_cursor):
+                yield event
+            yield rx.set_focus("library-heading")
+
+    async def _load_library_page(self, cursor):
+        self.library_loading = True
+        self.library_error = self.library_cursor = ""
+        self.library_rows = []
+        yield
+        try:
+            params = dict(self._library_params)
+            if cursor:
+                params["cursor"] = cursor
+            page, self.library_error = await fetch_library(
+                settings.planning_cases_url,
+                settings.t12_trusted_caller_token.get_secret_value(),
+                params,
+            )
+            self.library_loaded = True
+            if page is not None:
+                self.library_rows, self.library_cursor = page["items"], page["next_cursor"]
+        finally:
+            self.library_loading = False
+
+    @rx.event
+    async def expand_scenarios(self, case_id: str, more: bool = False):
+        if self.children_loading or self.library_loading or self.has_pending or self.is_loading:
+            return
+        if case_id == self.expanded_case and not more:
+            self.expanded_case = ""
+            self.library_children = []
+            return
+        cursor = self.children_cursor if more and case_id == self.expanded_case else ""
+        self.expanded_case = case_id
+        self.library_children = []
+        self.children_loading = True
+        self.children_error = self.children_cursor = ""
+        yield
+        try:
+            params = {"workspace": self._library_params.get("workspace", "controlled")}
+            if cursor:
+                params["cursor"] = cursor
+            page, self.children_error = await fetch_library(
+                f"{settings.planning_cases_url}/{case_id}/scenarios",
+                settings.t12_trusted_caller_token.get_secret_value(),
+                params,
+            )
+            if page is not None:
+                self.library_children, self.children_cursor = page["items"], page["next_cursor"]
+        finally:
+            self.children_loading = False
 
     @rx.event
     def change_view(self, value: str):
@@ -356,6 +495,10 @@ class PlanningState(rx.State):
             )
 
     def _prepare_request(self, url: str, payload: dict):
+        self._pending_route = (
+            self.router.url.path + ("?" + self.router.url.query if self.router.url.query else "")
+            or "/planning"
+        )
         self.request_key = str(uuid4())
         self._pending = {"url": url, "payload": deepcopy(payload), "key": self.request_key}
         self.recovery_json = json.dumps(self._pending, indent=2, allow_nan=False)
