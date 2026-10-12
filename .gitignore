@@ -34,3 +34,7 @@ Thumbs.db
 
 # Locally generated controlled ML datasets, models and reports
 .artifacts/
+
+# Local design decision pages and unapproved sketches
+.impeccable/questions/
+.impeccable/mocks/

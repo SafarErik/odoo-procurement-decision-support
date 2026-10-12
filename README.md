@@ -35,6 +35,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
 | What did the buyer/keyboard/mobile assessment find? | [T18 #29 assessment, UX priorities and pending owner run sheet](docs/T18_29_BUYER_ASSESSMENT.md) |
 | What does the complete controlled evaluation establish? | [T18 #30 acceptance matrix, RQ answers and UX/UI follow-up](docs/T18_CONTROLLED_ASSESSMENT.md) |
+| What is specified for the next buyer workspace redesign? | [Specification #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42), [published ten-ticket index](docs/UX_UI_TICKET_BREAKDOWN.md), [confirmed brief](docs/UX_UI_INCREMENT_PLAN.md) — start with #32's saved-case library; implementation remains pending |
 
 ## Current capability — updated 2026-10-11
 

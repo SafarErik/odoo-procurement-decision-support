@@ -2868,3 +2868,35 @@ RQ answers; chapters 3/4/5/6 and conclusions use only supported scoped findings.
 Drive's retained pre-merge T17/future-T18 status was explicitly reconciled, not
 edited. Report is delivered for review; no commit/push/PR/merge, GitHub issue or
 parent #25 mutation/closure, or Hungarian Drive edit. Publication remains user-controlled.
+
+## 2026-10-12 — Approved buyer workspace specification and ticket publication
+
+**Problem → decision:** T18's controlled workflow evidence does not establish an
+understandable first-time buyer experience. The user confirmed Decision editorial,
+a bounded saved-case library, curated Practice without reset, guided creation,
+aligned comparison, deliberate approval, recovery/document access and reassessment.
+Ten complete buyer slices refine the six specification areas without changing the
+accepted baseline. The user approved all sizes/dependencies, a new parent and the
+prospective library/usability gates before publication.
+
+**Published behavior → evidence:** [Specification #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42)
+links delivery #32–#41; the [ticket index](UX_UI_TICKET_BREAKDOWN.md) records their
+actual blockers. Readback verified all eleven exact bodies, titles, open states and
+`ready-for-agent` labels, parent links and 48 unchecked delivery criteria. Explicit
+Markdown relationships are used because native sub-issue/dependency tools are
+unavailable. Only #32 is initially unblocked. Two temporary automatic-review rate
+limits resolved through the same approval process; existing issues were untouched.
+
+**Acceptance → limitation:** Library: 1,000 disposable bases plus children, two
+warm-ups/30 measurements per selected 20-row query, local p95 ≤1s. Buyer tasks:
+3–5 unfamiliar participants, ≥80% independent completion per essential task
+(round successes up), zero unintended finalizations or unresolved critical source/
+decision misunderstandings. These are future scoped gates, not measured results.
+Missing participants remain NOT ASSESSED. Planning/document readback is not
+implementation or buyer acceptance; no runtime services or application tests were
+started for publication. No commit/push/merge, Drive write or existing-parent change.
+
+**Chapter relevance → next:** Chapters 4/6 use the design/integration decisions;
+chapter 7 needs actual task/query/browser evidence. Preserve read-only Odoo,
+synthetic-model limitations, immutable stored decisions/PDF and T19 closure after
+development/reassessment. Next capability is #32's saved-case library.

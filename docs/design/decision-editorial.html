@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Decision editorial — static planning sketch</title>
+<style>
+*{box-sizing:border-box}body{margin:0;width:1440px;height:900px;overflow:hidden;background:#eff5f1;color:#173e3d;font:16px/1.45 Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}button{font:inherit}a:focus-visible,button:focus-visible{outline:3px solid #8171c3;outline-offset:5px}
+.shell{display:grid;grid-template-columns:224px 1fr;height:900px}.rail{background:#153f40;color:#fff;padding:38px 24px;display:flex;flex-direction:column}
+.brand{font-size:21px;font-weight:700;letter-spacing:-.7px;line-height:1.15}.brand small{display:block;font-size:12px;font-weight:400;letter-spacing:.5px;margin-top:9px;color:#c5d9d2}
+.rail nav{margin-top:55px;display:grid;gap:8px}.rail nav a{padding:13px 16px;border-left:3px solid transparent;color:#d4e3dc}.rail nav .active{background:#275253;border-color:#d5e9df;color:#fff;font-weight:700}
+.rail-bottom{margin-top:auto;border-top:1px solid #527272;padding-top:23px;font-size:13px;color:#d4e3dc}.rail-bottom strong{display:block;color:#fff;margin-bottom:5px}
+main{position:relative;padding:20px 48px 132px}.sketch{display:flex;justify-content:space-between;color:#536964;font-size:12px;border-bottom:1px solid #cddbd3;padding-bottom:10px;letter-spacing:.35px}
+.sketch strong{color:#153f40}.breadcrumbs{font-size:13px;margin-top:18px;color:#536964}.heading{display:flex;align-items:center;justify-content:space-between;margin-top:11px}
+h1{font-size:34px;letter-spacing:-1.2px;line-height:1.15;margin:0}h2{font-size:22px;letter-spacing:-.5px;margin:0}.draft{border:1px solid #b9cbc0;padding:5px 12px;font-size:13px;background:#fff}
+.subtitle{margin:8px 0 14px;color:#536964;font-size:15px}.facts{display:flex;gap:44px;padding:12px 0;margin:0;border-top:1px solid #cddbd3;border-bottom:1px solid #cddbd3}
+.facts div{display:grid;gap:3px}.facts dt{font-size:12px;color:#536964}.facts dd{margin:0;font-weight:700;font-size:16px}.facts .model dd{font-weight:400}
+.tabs{display:flex;gap:34px;border-bottom:1px solid #bccfc3;margin-top:12px}.tabs a{padding:12px 0;color:#536964;font-size:14px}.tabs a[aria-current]{border-bottom:3px solid #153f40;color:#153f40;font-weight:700}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 12px}.section-head p{font-size:13px;color:#536964;margin:0}
+table{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed}caption{text-align:left;padding:0 0 10px;font-size:13px;color:#536964}
+th,td{text-align:left;padding:12px 23px;border-bottom:1px solid #dae2dc;vertical-align:top}th:first-child{width:24%;font-size:13px;font-weight:400;color:#536964}thead th{padding:16px 23px 14px}
+thead th:first-child{vertical-align:bottom}thead .plan-title{display:block;font-size:18px;font-weight:700;letter-spacing:-.3px}.plan-note{display:block;font-size:12px;color:#536964;margin-top:6px;font-weight:400}
+.selected{background:#f1eff8;border-left:2px solid #413b76;border-right:2px solid #413b76}.selected-head{border-top:2px solid #413b76}.selected-end{border-bottom:2px solid #413b76}
+.selected-mark{color:#413b76;font-size:12px;font-weight:700;display:block;margin-bottom:8px}.money{font-size:35px;line-height:1;letter-spacing:-1.2px;font-weight:700}.money span{font-size:14px;letter-spacing:0;font-weight:400}
+.price-note{display:block;margin-top:10px;font-size:13px;color:#536964}.allocations{display:grid;gap:6px}.allocation{display:flex;justify-content:space-between;font-size:15px}.allocation strong{font-size:17px}
+.total{font-size:13px;color:#536964;padding-top:8px;border-top:1px solid #d6ddd8}.exposure{font-size:16px;font-weight:700}.exposure-note{font-size:12px;line-height:1.4;color:#536964;margin-top:5px}
+.source{font-size:12px;line-height:1.5;color:#536964;margin:12px 0 0;max-width:890px}.source strong{color:#173e3d}
+.review{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #bfcfc4;padding:24px 48px;display:flex;gap:35px;align-items:center;height:115px}.review-summary{flex:1}.review-label{font-size:12px;color:#413b76;font-weight:700;margin-bottom:5px}.review-summary strong{font-size:18px;letter-spacing:-.25px}.review-summary p{margin:5px 0 0;font-size:13px;color:#536964}
+.review button{border:0;background:#413b76;color:#fff;padding:15px 24px;font-size:15px;font-weight:700;cursor:default}.review button span{margin-left:17px}.review small{display:block;text-align:right;font-size:11px;color:#536964;margin-top:7px}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail" aria-label="Global workspace">
+<div class="brand">Procurement<br>workspace<small>COMPARE. UNDERSTAND. DECIDE.</small></div>
+<nav aria-label="Global navigation">
+<a href="#" >Cases</a>
+<a href="#">Open RFQs</a>
+<a href="#" class="active" aria-current="page">Practice</a>
+</nav>
+<div class="rail-bottom"><strong>Practice workspace</strong>Synthetic examples.<br>Saved cases may persist.</div>
+</aside>
+<main>
+<div class="sketch"><strong>STATIC SKETCH · DECISION EDITORIAL</strong><span>Illustrative controls · 1440 × 900 concept</span></div>
+<div class="breadcrumbs">Practice / Controlled demo / Plans</div>
+<div class="heading"><h1>Controlled demo product</h1><span class="draft">Draft</span></div>
+<p class="subtitle">Compare two saved allocations for the same demand, then review your decision.</p>
+<dl class="facts">
+<div><dt>Demand</dt><dd>10 units</dd></div>
+<div><dt>Currency</dt><dd>EUR</dd></div>
+<div><dt>Case lineage</dt><dd>Original base</dd></div>
+<div class="model"><dt>Assessment evidence</dt><dd>Synthetic model · Practice</dd></div>
+</dl>
+<nav class="tabs" aria-label="Current case sections"><a href="#" aria-current="page">Plans</a><a href="#">What-if</a><a href="#">Suppliers</a><a href="#">Audit</a></nav>
+<div class="section-head"><h2>Your allocation options</h2><p>Same product · Same 10-unit demand</p></div>
+<table aria-label="Comparison of minimum-cost and selected alternative plans">
+<thead><tr><th scope="col">Original-base plans</th><th scope="col"><span class="plan-title">Minimum cost</span><span class="plan-note">Cost reference</span></th><th scope="col" class="selected selected-head"><span class="selected-mark">● SELECTED FOR REVIEW</span><span class="plan-title">Alternative</span></th></tr></thead>
+<tbody>
+<tr><th scope="row">Total cost</th><td><div class="money">102 <span>EUR</span></div><span class="price-note">Minimum-cost allocation</span></td><td class="selected"><div class="money">109 <span>EUR</span></div><span class="price-note">+7 EUR · exact premium: 7/102</span></td></tr>
+<tr><th scope="row">Supplier allocation</th><td><div class="allocations"><div class="allocation"><span>S226</span><strong>6 units</strong></div><div class="allocation"><span>S184</span><strong>4 units</strong></div><div class="total">6 + 4 = 10 units · demand covered</div></div></td><td class="selected"><div class="allocations"><div class="allocation"><span>S161</span><strong>8 units</strong></div><div class="allocation"><span>S184</span><strong>2 units</strong></div><div class="total">8 + 2 = 10 units · demand covered</div></div></td></tr>
+<tr><th scope="row">Model exposure</th><td><div class="exposure-note">Consult saved audit evidence.<br>No value shown in this sketch.</div></td><td class="selected selected-end"><div class="exposure">9661/50000</div><div class="exposure-note">Uncalibrated synthetic proxy.<br>Not a failure probability.</div></td></tr>
+</tbody>
+</table>
+<p class="source"><strong>Practice source:</strong> controlled synthetic inputs and saved synthetic model evidence. These are example allocations, not fresh Odoo quotations or measured supplier performance.</p>
+<footer class="review" aria-label="Selected plan and next step">
+<div class="review-summary"><div class="review-label">DRAFT · ALTERNATIVE SELECTED</div><strong>109 EUR for 10 units · S161: 8 + S184: 2</strong><p>7 EUR above minimum cost. Review the exact plan and your selection reason before a final decision.</p></div>
+<div><button type="button">Review decision <span aria-hidden="true">→</span></button><small>Static concept · no action is submitted</small></div>
+</footer>
+</main>
+</div>
+</body>
+</html>

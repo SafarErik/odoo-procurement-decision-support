@@ -27,6 +27,16 @@ explicitly supersedes them. They are not a second live dashboard.
 
 ## Active V2: understand the product flow
 
+[Buyer workspace redesign proposal](UX_UI_INCREMENT_PLAN.md) captures the next
+substantial UX/UI discovery after T18. Curated Practice without resets and a bounded
+case library, Decision editorial direction and the final brief are confirmed.
+The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
+[parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
+defines bounded discovery/classification, buyer flows and approved reassessment
+gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
+and their verified blocking links. Begin with #32's saved-case library;
+implementation and participant evidence remain pending.
+
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |
 | Integer allocation and cost/exposure alternatives | [T13 MILP](T13_V2_MILP_DESIGN.md) | [T13 handoff](T13_HANDOFF.md) |
