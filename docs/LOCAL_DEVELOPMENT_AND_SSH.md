@@ -346,7 +346,10 @@ the ignored root `.env`; clear stale process overrides before restarting.
    Inspect the exact review, then **Create and save plan**. Review saves nothing;
    **Edit terms** returns to the preserved draft. See [creation review](UX35_CREATION_RUNBOOK.md).
    Expect EUR 102 minimum and EUR 109 alternative (+7 EUR / approximately 6.9%).
-   The allocation bars show quantities, not probabilities. Schedule classes and
+   Aligned supplier rows show quantities, including zero allocations. Use
+   **Select for review**, then **Review decision** to inspect the exact saved
+   selection without finalizing. See [comparison instructions](UX36_COMPARISON_RUNBOOK.md).
+   Schedule classes and
    exposure use synthetic saved-model evidence; exact fractions remain expandable.
    Copy the returned case ID. Creation saves a new immutable case in the database.
 
@@ -825,7 +828,9 @@ or reopening an already stored case; new case creation retains its existing prer
    case**, then **Plans**. Check allocations, exact costs, supplier classes and
    saved dates. Scenario children explain their analytical restriction and have
    no finalization action; open their original base instead.
-2. In **Record the final decision**, explicitly select **Minimum cost**, a saved
+2. Use **Select for review** beside a saved plan, check its exact selection summary,
+   then **Review decision** to focus **Record the final decision**. Selection alone
+   saves nothing. The compatible selector also offers **Minimum cost**, a saved
    alternative, or **No-award**. There is no selected default. Enter **Actor audit
    reference**; enter **Reason** for an alternative or No-award. No-award is also
    available on a base with no proven plan.

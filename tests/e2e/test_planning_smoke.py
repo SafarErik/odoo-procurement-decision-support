@@ -23,7 +23,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     page.get_by_role("button", name="Create and save plan", exact=True).click()
     expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Alternative 1", exact=True)).to_be_visible()
-    expect(page.get_by_role("status")).to_contain_text("Case saved.")
+    expect(page.get_by_role("status").filter(has_text="Case saved.")).to_be_visible()
     ids = re.findall(
         r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", page.locator("body").inner_text()
     )
@@ -35,19 +35,26 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     assert created["parent_id"] is None and result["status"] == "optimal"
     assert result["minimum_cost_plan"]["total_cost"] == "102"
     for index, plan in enumerate([result["minimum_cost_plan"], *result["alternatives"]]):
-        label = "Minimum cost" if index == 0 else f"Alternative {index}"
-        card = page.get_by_role("heading", name=label, exact=True).locator("../..")
-        expect(card.get_by_text(f"{plan['total_cost']} EUR", exact=True)).to_be_visible()
+        comparison = page.get_by_role("region", name="Aligned saved plan comparison")
+        cost_row = comparison.get_by_role("row").filter(
+            has=page.get_by_role("rowheader", name="Total cost", exact=True)
+        )
+        expect(cost_row.get_by_role("cell").nth(index)).to_have_text(f"{plan['total_cost']} EUR")
         for row in plan["allocations"]:
-            if row["quantity"]:
-                supplier = "Demo supplier " + row["supplier_id"].removeprefix("synthetic-")
-                allocation = card.get_by_text(supplier, exact=True).locator("..")
-                expect(allocation.get_by_text(str(row["quantity"]), exact=True)).to_be_visible()
+            supplier = "Demo supplier " + row["supplier_id"].removeprefix("synthetic-")
+            allocation = comparison.get_by_role("row").filter(
+                has=page.get_by_role("rowheader").filter(has_text=supplier)
+            )
+            expect(allocation.get_by_role("cell").nth(index)).to_have_text(
+                f"{row['quantity']} piece"
+            )
         assert sum(row["quantity"] for row in plan["allocations"]) == 10
     stack.evidence["checks"].append(
         "Created base; both saved costs and supplier quantities match API"
     )
-    page.get_by_label("Plan or No-award", exact=True).select_option("Alternative 1")
+    page.get_by_role("button", name="Select Alternative 1 for review", exact=True).click()
+    page.get_by_role("button", name="Review decision", exact=True).click()
+    expect(page.locator("#final-decision-heading")).to_be_focused()
     page.get_by_label("Actor audit reference", exact=True).fill("t18-browser-buyer")
     page.get_by_label("Reason", exact=True).fill(
         "Accept the saved cost premium for lower synthetic exposure."

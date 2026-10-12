@@ -4,7 +4,7 @@ import reflex as rx
 
 from frontend.planning.pdf import ApprovedPDFViewer
 from frontend.planning.state import PlanningState
-from frontend.theme import HAIRLINE, MUTED, SURFACE
+from frontend.theme import ACCENT, HAIRLINE, MUTED, SURFACE
 
 
 def saved_decision() -> rx.Component:
@@ -77,6 +77,115 @@ def saved_decision() -> rx.Component:
     )
 
 
+def selection_review() -> rx.Component:
+    return rx.el.section(
+        rx.heading(
+            rx.cond(
+                PlanningState.details["final_outcome"] == "Approved",
+                "Saved approved selection",
+                "Selection for review",
+            ),
+            as_="h2",
+            size="5",
+        ),
+        rx.box(
+            rx.cond(
+                PlanningState.selected_plan.get("label", "") != "",
+                rx.box(
+                    rx.text(
+                        PlanningState.selected_plan.get("label", ""),
+                        " · saved plan index ",
+                        PlanningState.selected_plan.get("index", ""),
+                        font_weight="650",
+                    ),
+                    rx.text(
+                        PlanningState.selected_plan.get("cost", ""), size="6", font_weight="650"
+                    ),
+                    rx.text(
+                        "Above minimum: ",
+                        PlanningState.selected_plan.get("premium_absolute", ""),
+                        " · exact relative premium ",
+                        PlanningState.selected_plan.get("premium_exact", ""),
+                        size="2",
+                    ),
+                    rx.text(
+                        PlanningState.selected_plan.get("allocation_summary", ""),
+                        size="2",
+                        margin_y="0.5rem",
+                    ),
+                    rx.text(
+                        "Synthetic exposure: ",
+                        PlanningState.selected_plan.get("exposure_exact", ""),
+                        ". Uncalibrated proxy, not a failure probability.",
+                        size="2",
+                    ),
+                ),
+                rx.text(
+                    rx.cond(
+                        PlanningState.details["final_outcome"] == "No-award",
+                        "Saved No-award: no allocation was approved.",
+                        rx.cond(
+                            PlanningState.final_choice == "No-award",
+                            "No-award: no allocation is selected. "
+                            "A reason is required before finalization.",
+                            "Select a saved plan explicitly. "
+                            "Nothing is selected or approved automatically.",
+                        ),
+                    ),
+                ),
+            ),
+            role="status",
+            aria_live="polite",
+            margin_y="0.75rem",
+        ),
+        rx.text(
+            PlanningState.details["product"],
+            " · ",
+            PlanningState.details["quantity"],
+            " ",
+            PlanningState.details["unit"],
+            " · ",
+            PlanningState.details["currency"],
+            " · required ",
+            PlanningState.details["required_date"],
+            size="2",
+        ),
+        rx.text("Selection source case ", PlanningState.details["case_id"], size="1", color=MUTED),
+        rx.text(PlanningState.details["input_kind"], size="2", color=MUTED),
+        rx.cond(
+            (PlanningState.details["parent_id"] == "Base case")
+            & (PlanningState.details["final_outcome"] == ""),
+            rx.button(
+                "Review decision",
+                on_click=rx.set_focus("final-decision-heading"),
+                disabled=PlanningState.is_loading
+                | PlanningState.has_pending
+                | (PlanningState.final_choice == ""),
+                background=ACCENT,
+                color="white",
+                margin_top="1rem",
+            ),
+            rx.text(
+                rx.cond(
+                    PlanningState.details["parent_id"] != "Base case",
+                    "Scenario selections are analytical. "
+                    "Return to the original base for a decision.",
+                    "The recorded decision is immutable; this summary does not change it.",
+                ),
+                size="2",
+                margin_top="0.75rem",
+            ),
+        ),
+        aria_label="Selected plan and next step",
+        id="selection-review",
+        background=rx.cond(PlanningState.selected_plan.get("label", "") != "", "#f1eff8", SURFACE),
+        border=f"1px solid {HAIRLINE}",
+        padding="1.25rem",
+        margin_y="1.25rem",
+        width="100%",
+    )
+
+
 def decision_view() -> rx.Component:
     return rx.box(
         rx.text(
@@ -96,7 +205,13 @@ def decision_view() -> rx.Component:
                 PlanningState.details["final_outcome"] != "",
                 saved_decision(),
                 rx.vstack(
-                    rx.heading("Record the final decision", as_="h2", size="4"),
+                    rx.heading(
+                        "Record the final decision",
+                        as_="h2",
+                        size="4",
+                        id="final-decision-heading",
+                        tab_index=-1,
+                    ),
                     rx.text(
                         "Explicitly choose a saved plan or No-award. This one-time decision "
                         "cannot be replaced. Alternative approval and No-award require a reason.",

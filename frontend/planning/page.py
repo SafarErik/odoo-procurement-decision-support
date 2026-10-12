@@ -3,6 +3,7 @@
 import reflex as rx
 
 from frontend.planning.audit import audit_view
+from frontend.planning.decision import decision_view, selection_review
 from frontend.planning.inputs import _planning_controls
 from frontend.planning.practice import practice_guidance
 from frontend.planning.results import plans_view, suppliers_view
@@ -225,6 +226,8 @@ def _workspace() -> rx.Component:
             on_change=PlanningState.change_view,
             width="100%",
         ),
+        selection_review(),
+        decision_view(),
         practice_guidance(),
         background=SURFACE,
         border=f"1px solid {HAIRLINE}",

@@ -855,8 +855,24 @@ class PlanningState(rx.State):
 
     @rx.event
     def choose_final_plan(self, value: str):
-        if not self.is_loading and not self.has_pending:
+        if (
+            self.has_case
+            and not self.is_loading
+            and not self.has_pending
+            and not self.details.get("final_outcome")
+            and value in [p["label"] for p in self.plans] + ["No-award"]
+            and (value != "No-award" or self.details.get("parent_id") == "Base case")
+        ):
             self.final_choice = value
+
+    @rx.var
+    def selected_plan(self) -> dict[str, str]:
+        choice = (
+            self.details.get("final_plan", "")
+            if self.details.get("final_outcome") == "Approved"
+            else self.final_choice
+        )
+        return next((p for p in self.plans if p["label"] == choice), {})
 
     @rx.event
     async def finalize_case(self, form_data: dict[str, Any]):

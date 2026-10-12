@@ -3,7 +3,7 @@
 import hashlib
 import json
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from uuid import UUID
 
 import httpx
@@ -488,6 +488,18 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
             )
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
+        by_supplier = {}
+        for allocation in plan["allocations"]:
+            identity = _required_string(allocation, "supplier_id")
+            _integer(allocation["quantity"])
+            if identity in by_supplier or allocation["quantity"] < 0:
+                raise ValueError("Invalid recorded allocation")
+            by_supplier[identity] = allocation["quantity"]
+        if set(by_supplier) != supplier_ids or sum(by_supplier.values()) != quantity:
+            raise ValueError("Invalid recorded allocation supplier join or demand total")
+        with localcontext() as context:
+            context.prec = max(28, len(plan["total_cost"]) + len(minimum["total_cost"]))
+            extra_cost = _decimal(plan["total_cost"]) - _decimal(minimum["total_cost"])
         exposure = _ratio(plan["risk_exposure"])
         if not 0 <= exposure <= 1:
             raise ValueError("Invalid recorded exposure")
@@ -495,6 +507,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
             {
                 "label": label,
                 "number": str(index + 1),
+                "index": str(index),
                 "chart_x": "50%"
                 if high == low
                 else f"{100 * (_decimal(plan['total_cost']) - low) / (high - low):.4f}%",
@@ -502,11 +515,25 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "cost": f"{_decimal(plan['total_cost']):,f} {currency}",
                 "exposure": _rational(plan["risk_exposure"]),
                 "premium": _rational(plan["cost_premium"]),
+                "premium_absolute": f"{extra_cost:+,f} {currency}",
+                "premium_exact": (
+                    f"{plan['cost_premium']['numerator']}/{plan['cost_premium']['denominator']}"
+                ),
+                "exposure_exact": (
+                    f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}"
+                ),
+                "allocation_summary": "; ".join(
+                    f"{_supplier_label(identity)}: {by_supplier[identity]} "
+                    f"{requirement['quantity_unit']} (promised "
+                    f"{saved_suppliers[identity]['promised_date']})"
+                    for identity in sorted(by_supplier)
+                    if by_supplier[identity] > 0
+                ),
                 "exposure_display": f"{_ratio(plan['risk_exposure']) * 100:.1f} / 100",
                 "premium_display": "Minimum cost for these constraints"
                 if index == 0
                 else (
-                    f"+{_decimal(plan['total_cost']) - _decimal(minimum['total_cost']):,f} "
+                    f"+{extra_cost:,f} "
                     f"{currency} (+{_ratio(plan['cost_premium']) * 100:.1f}%) above minimum"
                 ),
                 "buyer_notes": "\n".join(
@@ -532,12 +559,13 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         allocations.extend(
             {
                 "plan": label,
-                "supplier": _required_string(a, "supplier_id"),
-                "quantity": _integer(a["quantity"]),
-                "name": _supplier_label(a["supplier_id"]),
-                "share": f"{Decimal(a['quantity']) / requirement['approved_quantity'] * 100:.2f}",
+                "supplier": identity,
+                "quantity": str(by_supplier[identity]),
+                "name": _supplier_label(identity),
+                "promised": saved_suppliers[identity]["promised_date"],
+                "share": f"{Decimal(by_supplier[identity]) / quantity * 100:.2f}",
             }
-            for a in plan["allocations"]
+            for identity in sorted(by_supplier)
         )
     assessments = []
     for assessment in snapshot["assessments"]:

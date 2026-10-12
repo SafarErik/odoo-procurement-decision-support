@@ -9,6 +9,8 @@ Current delivery evidence: [#32 implementation handoff](UX32_LIBRARY_HANDOFF.md)
 [#34 responsive workspace/navigation handoff](UX34_WORKSPACE_HANDOFF.md) records
 local technical delivery. [#35 attributed creation handoff](UX35_CREATION_HANDOFF.md)
 adds local input review/real save evidence; remaining tickets and human acceptance stay open.
+[#36 comparison/selection handoff](UX36_COMPARISON_HANDOFF.md) adds local aligned
+saved values, explicit review and real-stack/zoom verification. #37–#41 remain open.
 The approved criteria below remain the contract; later tickets are not implemented
 by the saved-case library.
 The selected direction is Decision editorial; T19 remains thesis closure after

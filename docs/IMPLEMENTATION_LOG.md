@@ -3047,3 +3047,38 @@ session-local review/recovery does not establish closed-session durability. UX-A
 FR/AC-V2-01/09, NFR-V2-05/07 and UX29-04/06/10 support chapters 4/6/7. User controls
 commit/push/merge; Drive/issues remain untouched. Next is #36 aligned saved allocation
 comparison and explicit selection; reassessment and thesis closure remain separate.
+
+## 2026-10-12 — Compare and explicitly select saved allocations (#36)
+
+**Problem -> decision:** Independent cards and a distant label-only selector made
+allocation comparison and the contemplated decision harder to follow. Use aligned
+saved-plan columns/supplier rows, labelled narrow sections and an exact in-flow
+review strip through the existing HTTP-only frontend mapping/selection state.
+
+**Behavior:** Costs, absolute/exact relative premium, zero/nonzero quantities,
+promised dates, exact exposure and saved explanations align across plans. Selection
+is explicit, semantically pressed and performs no write. Review mirrors the exact
+saved plan/context across views and focuses the existing finalization form; original
+reason/acknowledgement/No-award and immutable approval/PDF remain functional. The
+chart stays subordinate with an exact table. Single/infeasible/incomplete outcomes
+remain honest; bad allocation joins/totals fail mapping and tiny decimal cost
+differences retain precision. No backend, solver/model, migration or dependency change.
+
+**Evidence:** Required 646 fast tests passed; final affected 69 passed after
+component/focus corrections. Real saved 3/5/10-supplier comparisons, variable
+alternatives, long non-Latin identity, read-only selection across views, keyboard
+review, five viewport widths and native 200% zoom passed. Genuine infeasibility and
+separate No-award passed; existing alternative approval/immutable snapshot/PDF and
+real outage/exact retry regression passed, as did curated Practice. Built-in-browser
+desktop/320 inspection confirmed selected-state grammar and unobscured focus.
+Static/runtime/Compose gates passed and owned stacks cleaned up. [Handoff](UX36_COMPARISON_HANDOFF.md)
+retains failures and scope; [runbook](UX36_COMPARISON_RUNBOOK.md) owns execution/cleanup.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, speech, physical
+phones and owner/novice sessions remain unverified. Draft selection/recovery stays
+session-local; Practice shares storage. Incomplete solver states are mapping fixtures,
+distinct from actual CBC saves; palette/DOM checks are not whole-app WCAG acceptance.
+UX-AC-08/09, FR-V2-06/07/09, AC-V2-05/07/09, NFR-V2-07 and UX29-04/05/10 support
+chapters 4/6/7. User controls commit/push/merge; Drive/issues remain untouched.
+Next is #37 original-base disruption comparison, followed by #38 final review;
+#39 explanation and later reassessment/thesis closure remain separate.
