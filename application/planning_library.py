@@ -14,6 +14,7 @@ from application.planning_cases import (
     fingerprint,
     validate_snapshot,
 )
+from application.planning_catalog import CatalogContext
 from application.planning_decisions import validate_final_decision
 from supplier_evaluation.contracts import SYNTHETIC
 
@@ -92,6 +93,12 @@ def case_summary(case, workspace, example_id, decision, company):
             raise ValueError("Unsupported saved ML evidence source.")
         if source not in {"controlled_synthetic", "odoo_quotations_synthetic_history"}:
             raise ValueError("Unknown source kind.")
+        if workspace != "unclassified":
+            CatalogContext(workspace, example_id).validate(
+                from_odoo=source == "odoo_quotations_synthetic_history"
+            )
+        elif example_id is not None:
+            raise ValueError("Unclassified cases cannot have a curated example.")
         for field in ("product_id", "quantity_unit", "currency"):
             if not isinstance(requirement[field], str) or not requirement[field].strip():
                 raise ValueError("Missing saved context.")

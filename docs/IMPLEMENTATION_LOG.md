@@ -2945,3 +2945,40 @@ chapters 4/6 explain architecture/UI choices, chapter 7 uses scoped verification
 Changes remain uncommitted; user controls commit/push/merge and owner migration.
 Drive and GitHub issues were not edited. #33's explicit creation classification and
 curated Practice is next; #34–#41 and final buyer/thesis acceptance remain open.
+
+## 2026-10-12 — Curated Practice and explicit classification (#33)
+
+**Problem → decision:** Synthetic evidence does not identify a saved case's purpose,
+and a buyer needed deliberate exercises. Reuse #32's catalog storage and existing
+prepared synthetic/scenario APIs; add presentation context outside hashed planning
+facts and a labelled `/practice` entry. Preserve all accepted architecture/source
+boundaries and old omitted-context intent fingerprints.
+
+**Behavior:** Compare/outage/infeasibility selection fills a fresh draft without
+saving. Explicit actions save genuine new bases/scenarios; finalized examples are
+never silently reused as editable work. New synthetic UI saves use Practice, prepared
+Odoo UI saves use controlled work, and legacy callers remain unclassified. Context
+validation follows the server path; case/catalog commit atomically. Exact replay
+writes no metadata, changed context/key conflicts, and children inherit the original.
+Workspace/source remain separate in case/history/decision/document access, without
+rewriting snapshots, approved content or PDF bytes. Pending requests keep exact
+context/payload/key and explicit recovery. No new migration or dependency.
+
+**Evidence:** 617 fast tests passed; affected recovery/frontend/API checks passed 59.
+36 real PostgreSQL integration checks covered rollback/commit ambiguity/concurrency,
+replay/conflict/inheritance and old V1/hash compatibility. The new real Practice
+browser flow and existing approval/PDF/navigation regression passed separately;
+entry selections wrote nothing, actual outage/infeasibility and model-unconfigured
+library reopening/PDF download succeeded, and classified pending retry stayed exact.
+Entry screenshots/reflow checks covered 1280/1440/768/390/320, with built-in-browser
+desktop/focus/reflow/contrast inspection. Format/lint/compileall/pip/Compose gates
+passed; owned test/preview services were removed. Failed assertions/setup/preview
+attempts and Windows cache warnings remain in the [dated handoff](UX33_PRACTICE_HANDOFF.md).
+[Runbook](UX33_PRACTICE_RUNBOOK.md) owns preparation/configuration/run/cleanup.
+
+**Limitation → traceability → next:** Odoo path validation used controlled mocked
+HTTP; fresh live Odoo, hosted CI, owner/novice/zoom/speech/physical-phone gates remain
+unverified. Practice persists without isolation/reset or operational-validity claims.
+No owner/Odoo database migration/reset, Drive update, commit/push/merge or issue edit.
+UX-AC-02/03/05, FR/AC-V2-09/10, NFR-V2-05/06/07 and UX29-03/10 support chapters 4/6/7.
+Next is #34's responsive workspace/navigation; broader UX and final acceptance remain open.

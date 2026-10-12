@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from application.decision_cases import RepositoryError
 from application.planning_cases import SNAPSHOT_VERSION, PlanningCase, validate_snapshot
+from application.planning_catalog import CatalogContext
 from application.planning_serialization import snapshot_json
 from persistence.planning_decisions import SqlAlchemyPlanningDecisionRepository, read_decision_row
 from persistence.planning_documents import SqlAlchemyPlanningDocumentRepository
@@ -51,6 +52,28 @@ class SqlAlchemyPlanningRepository:
 
     def get(self, case_id: str) -> PlanningCase | None:
         return self._read(select(PlanningCaseRecord).where(PlanningCaseRecord.case_id == case_id))
+
+    def catalog_for(self, case_id):
+        try:
+            row = self._session.get(PlanningCaseCatalogRecord, case_id)
+            return None if row is None else CatalogContext(row.workspace, row.example_id)
+        except SQLAlchemyError as error:
+            raise RepositoryError(
+                "repository_failure", "Case classification is unavailable."
+            ) from error
+
+    def add_catalog(self, case_id, context):
+        self._session.add(
+            PlanningCaseCatalogRecord(
+                case_id=case_id, workspace=context.workspace, example_id=context.example_id
+            )
+        )
+        try:
+            self._session.flush()
+        except SQLAlchemyError as error:
+            raise RepositoryError(
+                "repository_failure", "Case classification could not be saved."
+            ) from error
 
     def list_saved(self, query):
         try:

@@ -283,6 +283,7 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
     recovery = json.loads(state.recovery_json)
     expected = deepcopy(payload)
     expected["approval_reference"] = "controlled-demand-10-t16-v1"
+    expected["catalog_context"] = {"workspace": "practice", "example_id": None}
     expected["requirement_source"] = {
         "source_type": "controlled_business_terms",
         "source_reference": "t16-ui-demand-v1",

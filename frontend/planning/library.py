@@ -144,6 +144,15 @@ def library_page():
         """),
         rx.flex(
             rx.text("Procurement workspace", font_weight="650"),
+            rx.button(
+                "Practice",
+                on_click=PlanningState.open_practice,
+                disabled=PlanningState.has_pending | PlanningState.is_loading,
+                variant="soft",
+                color="white",
+                background="#413b76",
+                style={"&:focus-visible": {"outline_color": "white"}},
+            ),
             rx.link("Open RFQs", href="/", color="white"),
             justify="between",
             wrap="wrap",

@@ -4,6 +4,7 @@ import reflex as rx
 
 from frontend.planning.library import library_page
 from frontend.planning.page import planning_page
+from frontend.planning.practice import practice_page
 from frontend.planning.state import PlanningState  # noqa: F401 - existing Python entry point
 from frontend.rfq_page import RfqState, index
 
@@ -17,4 +18,7 @@ app.add_page(
 )
 app.add_page(
     library_page, route="/cases", title="Saved cases", on_load=PlanningState.library_on_load
+)
+app.add_page(
+    practice_page, route="/practice", title="Practice", on_load=PlanningState.practice_on_load
 )

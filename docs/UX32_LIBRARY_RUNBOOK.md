@@ -29,8 +29,10 @@ existing trusted-caller behavior.
    The resulting `/planning?case_id=<UUID>&view=plans` URL can be bookmarked; allowed
    views are `plans`, `whatif`, `suppliers`, `audit`. Bad IDs/views clear stale results.
 
-Controlled work and Practice remain empty until classification-bearing creation is
-implemented in #33. Synthetic ML never automatically classifies a case as Practice.
+**2026-10-12 #33 extension:** new Reflex synthetic saves explicitly use Practice;
+new prepared Odoo saves explicitly use controlled work. See the
+[Practice runbook](UX33_PRACTICE_RUNBOOK.md). Existing records remain unclassified;
+synthetic ML never automatically classifies an old case as Practice.
 Product labels fall back to the recorded identity because snapshots contain no
 authoritative business product name. Scenarios inherit their original's workspace;
 their final-decision status belongs to the original, not to an invented child approval.

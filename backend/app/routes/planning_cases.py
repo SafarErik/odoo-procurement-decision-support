@@ -12,6 +12,7 @@ from application.planning_cases import (
     create_planning_case,
     normalize_planning_facts,
 )
+from application.planning_catalog import retrieve_catalog
 from application.planning_decisions import (
     FinalizePlanningCommand,
     finalize_planning_case,
@@ -137,6 +138,7 @@ def _response(case, replay=False, decision=None):
         snapshot=json.loads(case.snapshot),
         idempotent_replay=replay,
         final_decision=decision,
+        **retrieve_catalog(get_planning_unit_of_work(), case),
     )
 
 
@@ -157,6 +159,9 @@ def post_planning_case(
             get_planning_unit_of_work(),
             idempotency_key,
             facts=request.to_facts(),
+            catalog_context=None
+            if request.catalog_context is None
+            else request.catalog_context.context(),
             infer=infer_planning_features,
             solver_factory=planning_solver_factory,
         )
@@ -179,6 +184,9 @@ def post_odoo_planning_case(
             idempotency_key,
             base_intent={"purchase_group_id": request.purchase_group_id, "facts": facts},
             load_base=lambda: resolve_odoo_planning_input(request.purchase_group_id, facts),
+            catalog_context=None
+            if request.catalog_context is None
+            else request.catalog_context.context(),
             infer=infer_planning_features,
             solver_factory=planning_solver_factory,
         )

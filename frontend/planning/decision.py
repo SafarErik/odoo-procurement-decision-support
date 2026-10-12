@@ -9,6 +9,16 @@ from frontend.theme import HAIRLINE, MUTED, SURFACE
 
 def saved_decision() -> rx.Component:
     return rx.vstack(
+        rx.text("Workspace: ", PlanningState.details["workspace_label"], font_weight="650"),
+        rx.cond(
+            PlanningState.details["workspace"] == "practice",
+            rx.text(
+                "Practice document access. The backend's immutable PDF bytes retain their "
+                "saved source/provenance; this label does not watermark or rewrite the PDF.",
+                size="2",
+                color=MUTED,
+            ),
+        ),
         rx.heading(PlanningState.details["final_outcome"], as_="h3", size="4"),
         rx.text("Selected plan: ", PlanningState.details["final_plan"]),
         rx.text("Actor audit reference: ", PlanningState.details["final_actor"]),
@@ -69,6 +79,12 @@ def saved_decision() -> rx.Component:
 
 def decision_view() -> rx.Component:
     return rx.box(
+        rx.text(
+            "Decision context: ",
+            PlanningState.details["workspace_label"],
+            font_weight="650",
+            margin_bottom="0.75rem",
+        ),
         rx.cond(
             PlanningState.details["parent_id"] != "Base case",
             rx.callout(

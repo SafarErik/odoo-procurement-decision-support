@@ -4,6 +4,7 @@ import reflex as rx
 
 from frontend.planning.audit import audit_view
 from frontend.planning.inputs import _planning_controls
+from frontend.planning.practice import practice_guidance
 from frontend.planning.results import plans_view, suppliers_view
 from frontend.planning.scenarios import _scenario_comparison, _scenario_form
 from frontend.planning.state import PlanningState
@@ -98,6 +99,16 @@ def _recovery() -> rx.Component:
 
 def _workspace() -> rx.Component:
     return rx.box(
+        rx.text("Workspace: ", PlanningState.details["workspace_label"], font_weight="650"),
+        rx.cond(
+            PlanningState.details["workspace"] == "practice",
+            rx.text(
+                "Practice persists in application storage. No isolation or reset is provided.",
+                size="2",
+                color=MUTED,
+            ),
+        ),
+        practice_guidance(),
         rx.flex(
             rx.box(
                 rx.heading(
@@ -207,6 +218,15 @@ def planning_page() -> rx.Component:
                     on_click=PlanningState.open_library,
                     disabled=PlanningState.is_loading | PlanningState.has_pending,
                     variant="soft",
+                ),
+                rx.button(
+                    "Practice",
+                    on_click=PlanningState.open_practice,
+                    disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    variant="soft",
+                    color="white",
+                    background="#413b76",
+                    style={"&:focus-visible": {"outline_color": "white"}},
                 ),
                 rx.link("Open RFQs", href="/", color=SURFACE),
                 justify="between",

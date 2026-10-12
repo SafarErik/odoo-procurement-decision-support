@@ -77,6 +77,57 @@ class PlanningState(rx.State):
     children_loading: bool = False
     library_loaded: bool = False
     _library_params: dict = {}
+    practice_task: str = ""
+    practice_run_saved: bool = False
+
+    @rx.event
+    def open_practice(self):
+        if not self.is_loading and not self.has_pending:
+            return rx.redirect("/practice")
+
+    @rx.event
+    async def practice_on_load(self):
+        if self.has_pending or self.is_loading:
+            if self._pending_route != "/practice":
+                yield rx.redirect(self._pending_route)
+
+    @rx.event
+    def choose_practice_task(self, value: str):
+        if self.is_loading or self.has_pending:
+            return
+        if value not in {"compare-plans", "supplier-outage", "infeasible-demand"}:
+            self.error_message = "Choose a supported Practice exercise."
+            return
+        self.practice_task = value
+        self.practice_run_saved = False
+        self.has_case = False
+        self.details = {}
+        self.notice = ""
+        self._prepare_demo()
+        return rx.set_focus("practice-draft-heading")
+
+    @rx.event
+    def prepare_practice_scenario(self):
+        if (
+            self.is_loading
+            or self.has_pending
+            or not self.has_case
+            or self.details.get("parent_id") != "Base case"
+        ):
+            return
+        task = self.details.get("example_id")
+        if task not in {"supplier-outage", "infeasible-demand"}:
+            return
+        self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
+        if task == "supplier-outage":
+            self.scenario_kind = "supplier_outage"
+            self.stress_supplier = self.scenario_suppliers[0]["supplier"]
+        elif task == "infeasible-demand":
+            self.scenario_kind = "demand_increase"
+            self.stress_quantity = "25"
+        else:
+            return
+        self.view = "whatif"
 
     @rx.event
     def open_library(self):
@@ -210,6 +261,9 @@ class PlanningState(rx.State):
     def change_input_mode(self, value: str):
         if not self.is_loading and not self.has_pending and value in {"stored", "odoo", "create"}:
             self.input_mode = value
+            if value == "create":
+                self.practice_task = ""
+                self.practice_run_saved = False
 
     @rx.event
     def update_stress(self, field: str, value: str):
@@ -307,6 +361,9 @@ class PlanningState(rx.State):
 
     @rx.event
     def prepare_demo(self):
+        self._prepare_demo()
+
+    def _prepare_demo(self):
         if self.is_loading or self.has_pending:
             return
         self.error_message = ""
@@ -469,6 +526,7 @@ class PlanningState(rx.State):
                 "of today or later."
             )
             return
+        payload["catalog_context"] = {"workspace": "controlled"}
         self._prepare_request(settings.planning_cases_url + "/from-odoo", payload)
         yield
         try:
@@ -484,6 +542,11 @@ class PlanningState(rx.State):
             settings.t12_trusted_caller_token.get_secret_value(),
         )
         self.has_pending = uncertain or (recovering and result is None)
+        if (
+            result is not None
+            and self._pending["payload"].get("catalog_context", {}).get("workspace") == "practice"
+        ):
+            self.practice_run_saved = True
         if not self.has_pending:
             self._pending = {}
         if result is not None:
@@ -583,6 +646,10 @@ class PlanningState(rx.State):
             )
             return
         payload = deepcopy(self._demo_payload)
+        payload["catalog_context"] = {
+            "workspace": "practice",
+            "example_id": self.practice_task or None,
+        }
         payload["requirement"]["approved_quantity"] = int(quantity)
         payload["approval_reference"] = f"controlled-demand-{int(quantity)}-t16-v1"
         payload["requirement_source"] = {

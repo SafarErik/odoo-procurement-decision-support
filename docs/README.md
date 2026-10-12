@@ -15,6 +15,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Saved-case library #32](UX32_LIBRARY_RUNBOOK.md): company configuration, additive
   catalog migration, browsing/bookmarks and owned disposable performance/browser checks.
   [Handoff](UX32_LIBRARY_HANDOFF.md) records dated evidence and limits.
+- [Curated Practice #33](UX33_PRACTICE_RUNBOOK.md): offline preparation, deliberate
+  exercises, creation classification/replay and disposable verification.
+  [Handoff](UX33_PRACTICE_HANDOFF.md) records scope and dated evidence.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
