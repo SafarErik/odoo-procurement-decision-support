@@ -24,6 +24,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             max="1000",
             step="1",
             required=True,
+            on_change=PlanningState.mark_creation_dirty,
             default_value=row["capacity"],
             disabled=busy,
             width="100%",
@@ -41,6 +42,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             min="1",
             max="1000",
             step="1",
+            on_change=PlanningState.mark_creation_dirty,
             default_value=row["moq"],
             disabled=busy,
             width="100%",
@@ -56,6 +58,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             name=row["supplier"] + "_promised_date",
             type="date",
             required=True,
+            on_change=PlanningState.mark_creation_dirty,
             default_value=row["promised_date"],
             disabled=busy,
             width="100%",
@@ -80,6 +83,7 @@ def _odoo_creation_controls() -> rx.Component:
         ),
         rx.button(
             "Load prepared Odoo comparison",
+            id="load-odoo",
             on_click=PlanningState.prepare_odoo,
             disabled=busy,
             variant="soft",
@@ -102,6 +106,7 @@ def _odoo_creation_controls() -> rx.Component:
                                 max="1000",
                                 step="1",
                                 required=True,
+                                on_change=PlanningState.mark_creation_dirty,
                                 default_value=PlanningState.odoo_quantity,
                                 disabled=busy,
                             ),
@@ -115,6 +120,7 @@ def _odoo_creation_controls() -> rx.Component:
                                 name="odoo_required_date",
                                 type="date",
                                 required=True,
+                                on_change=PlanningState.mark_creation_dirty,
                                 default_value=PlanningState.odoo_required_date,
                                 disabled=busy,
                             ),
@@ -158,9 +164,9 @@ def _planning_controls() -> rx.Component:
     busy = PlanningState.is_loading | PlanningState.has_pending
     return rx.tabs.root(
         rx.tabs.list(
-            rx.tabs.trigger("Saved case", value="stored"),
-            rx.tabs.trigger("Odoo", value="odoo"),
-            rx.tabs.trigger("Demo", value="create"),
+            rx.tabs.trigger("Saved case", value="stored", id="input-stored", disabled=busy),
+            rx.tabs.trigger("Odoo", value="odoo", id="input-odoo", disabled=busy),
+            rx.tabs.trigger("Demo", value="create", id="input-create", disabled=busy),
         ),
         _odoo_creation_controls(),
         rx.tabs.content(
@@ -176,6 +182,7 @@ def _planning_controls() -> rx.Component:
             ),
             rx.button(
                 "Load demo inputs",
+                id="load-demo",
                 on_click=PlanningState.prepare_demo,
                 disabled=busy,
                 variant="soft",
@@ -219,6 +226,7 @@ def _planning_controls() -> rx.Component:
                                     min="1",
                                     max="1000",
                                     step="1",
+                                    on_change=PlanningState.mark_creation_dirty,
                                     default_value=PlanningState.demo_quantity,
                                     required=True,
                                     disabled=busy,

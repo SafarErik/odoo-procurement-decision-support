@@ -82,6 +82,7 @@ def _plan_tradeoff_chart() -> rx.Component:
                 rx.box(
                     rx.text(
                         label,
+                        white_space="nowrap",
                         position="absolute",
                         right="100%",
                         padding_right="0.5rem",
@@ -166,6 +167,9 @@ def _plan_tradeoff_chart() -> rx.Component:
                 ),
             ),
             overflow_x="auto",
+            role="region",
+            aria_label="Saved plan chart values",
+            tab_index=0,
             width="100%",
         ),
         rx.text(

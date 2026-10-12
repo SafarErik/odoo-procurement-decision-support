@@ -6,10 +6,10 @@ from frontend.planning.library import library_page
 from frontend.planning.page import planning_page
 from frontend.planning.practice import practice_page
 from frontend.planning.state import PlanningState  # noqa: F401 - existing Python entry point
-from frontend.rfq_page import RfqState, index
+from frontend.rfq_page import RfqState, index  # noqa: F401 - existing Python entry point
 
 app = rx.App()
-app.add_page(index, route="/", on_load=RfqState.refresh_rfqs, title="Open RFQs")
+app.add_page(index, route="/", on_load=PlanningState.rfq_on_load, title="Open RFQs")
 app.add_page(
     planning_page,
     route="/planning",

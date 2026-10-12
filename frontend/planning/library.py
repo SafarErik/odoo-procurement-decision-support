@@ -3,6 +3,7 @@
 import reflex as rx
 
 from frontend.planning.state import PlanningState
+from frontend.workspace import workspace_shell
 
 INK = "#173e3d"
 MUTED = "#536964"
@@ -130,8 +131,9 @@ def _row(row):
 
 
 def library_page():
-    return rx.box(
-        rx.el.style("""
+    return workspace_shell(
+        rx.box(
+            rx.el.style("""
             .case-library { font-variant-numeric: tabular-nums; }
             .case-library :focus-visible { outline:3px solid #413b76; outline-offset:3px; }
             .case-library input, .case-library select { min-width:0; max-width:100%; }
@@ -142,168 +144,159 @@ def library_page():
                 .case-library * { animation:none!important; transition:none!important; }
             }
         """),
-        rx.flex(
-            rx.text("Procurement workspace", font_weight="650"),
-            rx.button(
-                "Practice",
-                on_click=PlanningState.open_practice,
-                disabled=PlanningState.has_pending | PlanningState.is_loading,
-                variant="soft",
-                color="white",
-                background="#413b76",
-                style={"&:focus-visible": {"outline_color": "white"}},
-            ),
-            rx.link("Open RFQs", href="/", color="white"),
-            justify="between",
-            wrap="wrap",
-            gap="1rem",
-            background="#153f40",
-            color="white",
-            padding="1rem 1.5rem",
-        ),
-        rx.box(
-            rx.flex(
-                rx.box(
-                    rx.heading(
-                        "Saved cases", as_="h1", size="7", id="library-heading", tab_index=-1
-                    ),
-                    rx.text(
-                        "Find a comparison. Reopen its saved result.",
-                        color=MUTED,
-                        margin_top="0.5rem",
-                    ),
-                ),
-                rx.button(
-                    "New comparison",
-                    on_click=PlanningState.new_comparison,
-                    disabled=PlanningState.has_pending | PlanningState.is_loading,
-                    background=PURPLE,
-                    color="white",
-                ),
-                direction=rx.breakpoints(initial="column", sm="row"),
-                justify="between",
-                gap="1rem",
-                align="start",
-            ),
-            rx.text(
-                "Earlier cases have no workspace classification. Source labels describe captured "
-                "evidence; synthetic ML does not make a case Practice.",
-                color=MUTED,
-                max_width="72ch",
-                margin_top="1rem",
-            ),
-            rx.form(
+            rx.box(
                 rx.flex(
                     rx.box(
-                        rx.el.label("Workspace", html_for="library-workspace"),
-                        rx.el.select(
-                            rx.el.option("Controlled work", value="controlled"),
-                            rx.el.option("Practice", value="practice"),
-                            rx.el.option("Earlier cases", value="unclassified"),
-                            id="library-workspace",
-                            name="workspace",
-                            default_value=PlanningState.library_workspace,
-                            key=PlanningState.library_workspace,
-                            padding="0.65rem",
-                            width="100%",
+                        rx.heading(
+                            "Saved cases", as_="h1", size="7", id="library-heading", tab_index=-1
                         ),
-                        min_width="0",
-                    ),
-                    rx.box(
-                        rx.el.label("Decision status", html_for="library-status"),
-                        rx.el.select(
-                            *[
-                                rx.el.option(label, value=value)
-                                for label, value in [
-                                    ("All decisions", "all"),
-                                    ("Awaiting decision", "draft"),
-                                    ("Approved", "approved"),
-                                    ("No-award", "no_award"),
-                                ]
-                            ],
-                            id="library-status",
-                            name="status",
-                            default_value=PlanningState.library_status,
-                            key=PlanningState.library_status,
-                            padding="0.65rem",
-                            width="100%",
+                        rx.text(
+                            "Find a comparison. Reopen its saved result.",
+                            color=MUTED,
+                            margin_top="0.5rem",
                         ),
-                        min_width="0",
-                    ),
-                    rx.box(
-                        rx.el.label("Product or case ID", html_for="library-search"),
-                        rx.input(
-                            id="library-search",
-                            name="q",
-                            max_length=80,
-                            default_value=PlanningState.library_search,
-                            key=PlanningState.library_search,
-                            placeholder="Search saved identity",
-                            width="100%",
-                        ),
-                        flex="1",
-                        min_width="0",
                     ),
                     rx.button(
-                        "Refresh",
-                        type="submit",
-                        disabled=PlanningState.library_loading,
+                        "New comparison",
+                        id="new-comparison",
+                        on_click=PlanningState.new_comparison,
+                        disabled=PlanningState.has_pending | PlanningState.is_loading,
                         background=PURPLE,
                         color="white",
                     ),
-                    direction=rx.breakpoints(initial="column", md="row"),
+                    direction=rx.breakpoints(initial="column", sm="row"),
+                    justify="between",
                     gap="1rem",
-                    align="stretch",
+                    align="start",
                 ),
-                on_submit=PlanningState.refresh_library,
-                margin="1.5rem 0",
-            ),
-            rx.cond(
-                PlanningState.library_loading,
-                rx.text("Loading saved cases…", role="status"),
+                rx.text(
+                    "Earlier cases have no workspace classification. Source labels "
+                    "describe captured "
+                    "evidence; synthetic ML does not make a case Practice.",
+                    color=MUTED,
+                    max_width="72ch",
+                    margin_top="1rem",
+                ),
+                rx.form(
+                    rx.flex(
+                        rx.box(
+                            rx.el.label("Workspace", html_for="library-workspace"),
+                            rx.el.select(
+                                rx.el.option("Controlled work", value="controlled"),
+                                rx.el.option("Practice", value="practice"),
+                                rx.el.option("Earlier cases", value="unclassified"),
+                                id="library-workspace",
+                                disabled=~PlanningState.library_loaded
+                                | PlanningState.library_loading,
+                                name="workspace",
+                                default_value=PlanningState.library_workspace,
+                                key=PlanningState.library_workspace,
+                                padding="0.65rem",
+                                width="100%",
+                            ),
+                            min_width="0",
+                        ),
+                        rx.box(
+                            rx.el.label("Decision status", html_for="library-status"),
+                            rx.el.select(
+                                *[
+                                    rx.el.option(label, value=value)
+                                    for label, value in [
+                                        ("All decisions", "all"),
+                                        ("Awaiting decision", "draft"),
+                                        ("Approved", "approved"),
+                                        ("No-award", "no_award"),
+                                    ]
+                                ],
+                                id="library-status",
+                                disabled=~PlanningState.library_loaded
+                                | PlanningState.library_loading,
+                                name="status",
+                                default_value=PlanningState.library_status,
+                                key=PlanningState.library_status,
+                                padding="0.65rem",
+                                width="100%",
+                            ),
+                            min_width="0",
+                        ),
+                        rx.box(
+                            rx.el.label("Product or case ID", html_for="library-search"),
+                            rx.input(
+                                id="library-search",
+                                disabled=~PlanningState.library_loaded
+                                | PlanningState.library_loading,
+                                name="q",
+                                max_length=80,
+                                default_value=PlanningState.library_search,
+                                key=PlanningState.library_search,
+                                placeholder="Search saved identity",
+                                width="100%",
+                            ),
+                            flex="1",
+                            min_width="0",
+                        ),
+                        rx.button(
+                            "Refresh",
+                            type="submit",
+                            disabled=~PlanningState.library_loaded | PlanningState.library_loading,
+                            background=PURPLE,
+                            color="white",
+                        ),
+                        direction=rx.breakpoints(initial="column", md="row"),
+                        gap="1rem",
+                        align="stretch",
+                    ),
+                    on_submit=PlanningState.refresh_library,
+                    margin="1.5rem 0",
+                ),
                 rx.cond(
-                    PlanningState.library_error != "",
-                    rx.text(PlanningState.library_error, role="alert", color="#92313b"),
+                    ~PlanningState.library_loaded | PlanningState.library_loading,
+                    rx.text("Loading saved cases…", role="status"),
                     rx.cond(
-                        PlanningState.library_rows.length() > 0,
-                        rx.foreach(PlanningState.library_rows, _row),
+                        PlanningState.library_error != "",
+                        rx.text(PlanningState.library_error, role="alert", color="#92313b"),
                         rx.cond(
-                            PlanningState.library_loaded,
-                            rx.box(
-                                rx.heading("No saved cases in this view", as_="h2", size="4"),
-                                rx.text(
-                                    rx.cond(
-                                        (PlanningState.library_search != "")
-                                        | (PlanningState.library_status != "all"),
-                                        "No matches. Change the filters and Refresh.",
-                                        "Try Earlier cases for work saved before classification "
-                                        "was available.",
+                            PlanningState.library_rows.length() > 0,
+                            rx.foreach(PlanningState.library_rows, _row),
+                            rx.cond(
+                                PlanningState.library_loaded,
+                                rx.box(
+                                    rx.heading("No saved cases in this view", as_="h2", size="4"),
+                                    rx.text(
+                                        rx.cond(
+                                            (PlanningState.library_search != "")
+                                            | (PlanningState.library_status != "all"),
+                                            "No matches. Change the filters and Refresh.",
+                                            "Try Earlier cases for work saved before "
+                                            "classification "
+                                            "was available.",
+                                        ),
+                                        color=MUTED,
                                     ),
-                                    color=MUTED,
+                                    padding="2rem 0",
                                 ),
-                                padding="2rem 0",
                             ),
                         ),
                     ),
                 ),
-            ),
-            rx.cond(
-                PlanningState.library_cursor != "",
-                rx.button(
-                    "Next cases",
-                    on_click=PlanningState.next_library_page,
-                    disabled=PlanningState.library_loading,
-                    margin_top="1rem",
-                    variant="outline",
+                rx.cond(
+                    PlanningState.library_cursor != "",
+                    rx.button(
+                        "Next cases",
+                        on_click=PlanningState.next_library_page,
+                        disabled=PlanningState.library_loading,
+                        margin_top="1rem",
+                        variant="outline",
+                    ),
                 ),
+                max_width="72rem",
+                margin="auto",
+                padding=["1.25rem", "2rem"],
             ),
-            max_width="72rem",
-            margin="auto",
-            padding=["1.25rem", "2rem"],
+            class_name="case-library",
+            background="#eff5f1",
+            color=INK,
+            overflow_wrap="anywhere",
         ),
-        class_name="case-library",
-        min_height="100vh",
-        background="#eff5f1",
-        color=INK,
-        overflow_wrap="anywhere",
+        active="cases",
     )

@@ -6,6 +6,8 @@ Status: **APPROVED AND PUBLISHED — parent #42 and delivery #32–#41; implemen
 Ticket numbers below are local delivery identifiers, not GitHub issue numbers.
 Current delivery evidence: [#32 implementation handoff](UX32_LIBRARY_HANDOFF.md).
 [#33 Practice/classification handoff](UX33_PRACTICE_HANDOFF.md) records the next slice.
+[#34 responsive workspace/navigation handoff](UX34_WORKSPACE_HANDOFF.md) records
+local technical delivery; remaining tickets and human acceptance stay open.
 The approved criteria below remain the contract; later tickets are not implemented
 by the saved-case library.
 The selected direction is Decision editorial; T19 remains thesis closure after

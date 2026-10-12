@@ -65,6 +65,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     stack.stop(stack.api)
     stack.start_api(stored_only=True)
     page.reload()
+    page.get_by_text("Open or create a comparison", exact=True).click()
     page.get_by_label("Case ID", exact=True).fill(case_id)
     page.get_by_role("button", name="Load stored case", exact=True).click()
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
@@ -97,6 +98,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     )
 
     stack.stop(stack.api)
+    page.get_by_text("Open or create a comparison", exact=True).click()
     page.get_by_role("button", name="Load stored case", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Planning data is unavailable")
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_have_count(0)
@@ -108,6 +110,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
         "Actual FastAPI outage; visible GET error and explicit identical recovery"
     )
 
+    page.get_by_text("Open or create a comparison", exact=True).click()
     page.get_by_role("tab", name="Demo", exact=True).click()
     page.get_by_role("button", name="Load demo inputs", exact=True).click()
     stack.stop(stack.api)

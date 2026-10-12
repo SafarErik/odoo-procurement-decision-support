@@ -29,12 +29,17 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
         page.goto(stack.frontend_url + "/practice")
         expect(page.get_by_role("heading", name="Practice", exact=True)).to_be_visible()
         assert counts() == (0, 0)
-        for name in (
-            "Choose compare plans",
-            "Choose test a supplier outage",
-            "Choose make a case infeasible",
+        for index, name in enumerate(
+            (
+                "Choose compare plans",
+                "Choose test a supplier outage",
+                "Choose make a case infeasible",
+            )
         ):
             page.get_by_role("button", name=name, exact=True).click()
+            if index:
+                expect(page.get_by_role("alertdialog")).to_be_visible()
+                page.get_by_role("button", name="Discard draft", exact=True).click()
             expect(page.get_by_role("heading", name="Fresh Practice draft")).to_be_visible()
             expect(
                 page.get_by_role("button", name="Calculate and save fresh Practice case")
@@ -55,6 +60,9 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             before = counts()
             page.get_by_role("button", name=button, exact=True).focus()
             page.keyboard.press("Enter")
+            if example == "compare-plans":
+                expect(page.get_by_role("alertdialog")).to_be_visible()
+                page.get_by_role("button", name="Discard draft", exact=True).click()
             expect(
                 page.get_by_role("button", name="Calculate and save fresh Practice case")
             ).to_be_visible()

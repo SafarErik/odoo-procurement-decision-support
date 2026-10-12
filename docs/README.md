@@ -18,6 +18,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Curated Practice #33](UX33_PRACTICE_RUNBOOK.md): offline preparation, deliberate
   exercises, creation classification/replay and disposable verification.
   [Handoff](UX33_PRACTICE_HANDOFF.md) records scope and dated evidence.
+- [Responsive workspace #34](UX34_WORKSPACE_RUNBOOK.md): shared navigation, protected
+  drafts, case bookmarks and real browser zoom/recovery checks.
+  [Handoff](UX34_WORKSPACE_HANDOFF.md) retains dated evidence and limits.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -40,8 +43,10 @@ The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
 [parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
 defines bounded discovery/classification, buyer flows and approved reassessment
 gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
-and their verified blocking links. Begin with #32's saved-case library;
-implementation and participant evidence remain pending.
+and their verified blocking links. #32–#34 now supply local discovery, Practice
+and responsive guarded navigation; their dated handoffs distinguish technical
+evidence from pending participants. Next are #35 input review, #36 comparison
+and #39 readable explanation; final buyer acceptance remains open.
 
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |

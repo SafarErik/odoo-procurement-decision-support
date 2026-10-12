@@ -7,7 +7,7 @@ from copy import deepcopy
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import reflex as rx
 
@@ -79,11 +79,105 @@ class PlanningState(rx.State):
     _library_params: dict = {}
     practice_task: str = ""
     practice_run_saved: bool = False
+    creation_dirty: bool = False
+    scenario_dirty: bool = False
+    navigation_open: bool = False
+    navigation_focus: str = ""
+    drawer_open: bool = False
+    _navigation: tuple[str, str] = ("", "")
+
+    def _guard_navigation(self, action: str, value: str, focus: str = ""):
+        if self.has_pending or self.is_loading:
+            return None
+        if self.creation_dirty or self.scenario_dirty:
+            self._navigation = (action, value)
+            self.navigation_focus = "workspace-menu" if self.drawer_open else focus
+            self.drawer_open = False
+            self.navigation_open = True
+            return None
+        return self._navigate(action, value)
+
+    def _navigate(self, action: str, value: str):
+        self.drawer_open = False
+        if action == "route":
+            if value == "/planning":
+                self.has_case = False
+                self.details = {}
+                self.input_mode = "stored"
+            return rx.redirect(value)
+        if action == "view":
+            self.view = value
+            if self.has_case:
+                return rx.redirect(f"/planning?case_id={self.details['case_id']}&view={value}")
+        elif action == "input":
+            self.input_mode = value
+            if value == "create":
+                self.practice_task = ""
+                self.practice_run_saved = False
+        elif action == "practice":
+            return self._choose_practice_task(value)
+        elif action == "demo":
+            self._prepare_demo()
+        elif action == "odoo":
+            self._prepare_odoo()
+        elif action == "scenario":
+            self._prepare_practice_scenario()
+
+    def _discard_drafts(self):
+        self.creation_dirty = self.scenario_dirty = False
+        self.demo_ready = self.odoo_ready = False
+        self._demo_payload = self._odoo_payload = {}
+        self.practice_task = ""
+        self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
+        self.error_message = self.error_target = ""
+
+    @rx.event
+    def stay_navigation(self, opened: bool = False):
+        if not opened:
+            self.navigation_open = False
+            self._navigation = ("", "")
+
+    @rx.event
+    def discard_navigation(self):
+        if self.has_pending or self.is_loading or not self.navigation_open:
+            return
+        action, value = self._navigation
+        # Restoring the old tab's focus would automatically select it again after Discard.
+        self.navigation_focus = (
+            action + "-" + value if action in {"view", "input"} else "workspace-main"
+        )
+        self.navigation_open = False
+        self._navigation = ("", "")
+        self._discard_drafts()
+        return self._navigate(action, value)
+
+    @rx.event
+    def change_drawer(self, opened: bool):
+        self.drawer_open = opened
+
+    @rx.event
+    def mark_creation_dirty(self, value: str):
+        if not self.has_pending and not self.is_loading:
+            self.creation_dirty = True
+
+    @rx.event
+    def navigate_global(self, destination: str):
+        routes = {"cases": "/cases", "rfqs": "/", "practice": "/practice"}
+        if destination in routes:
+            return self._guard_navigation("route", routes[destination], "nav-" + destination)
+
+    @rx.event
+    async def rfq_on_load(self):
+        if self.has_pending or self.is_loading:
+            yield rx.redirect(self._pending_route)
+            return
+        from frontend.rfq_page import RfqState
+
+        yield RfqState.refresh_rfqs
 
     @rx.event
     def open_practice(self):
-        if not self.is_loading and not self.has_pending:
-            return rx.redirect("/practice")
+        return self.navigate_global("practice")
 
     @rx.event
     async def practice_on_load(self):
@@ -98,6 +192,9 @@ class PlanningState(rx.State):
         if value not in {"compare-plans", "supplier-outage", "infeasible-demand"}:
             self.error_message = "Choose a supported Practice exercise."
             return
+        return self._guard_navigation("practice", value, "choose-" + value)
+
+    def _choose_practice_task(self, value: str):
         self.practice_task = value
         self.practice_run_saved = False
         self.has_case = False
@@ -108,6 +205,9 @@ class PlanningState(rx.State):
 
     @rx.event
     def prepare_practice_scenario(self):
+        return self._guard_navigation("scenario", "", "prepare-exercise")
+
+    def _prepare_practice_scenario(self):
         if (
             self.is_loading
             or self.has_pending
@@ -128,21 +228,24 @@ class PlanningState(rx.State):
         else:
             return
         self.view = "whatif"
+        self.scenario_dirty = True
 
     @rx.event
     def open_library(self):
-        if not self.is_loading and not self.has_pending:
-            return rx.redirect("/cases")
+        return self.navigate_global("cases")
 
     @rx.event
     def open_saved_case(self, case_id: str):
-        if not self.is_loading and not self.has_pending:
-            return rx.redirect("/planning?case_id=" + case_id + "&view=plans")
+        try:
+            if str(UUID(case_id)) != case_id:
+                return
+        except (ValueError, TypeError, AttributeError):
+            return
+        return self._guard_navigation("route", "/planning?case_id=" + case_id + "&view=plans", "")
 
     @rx.event
     def new_comparison(self):
-        if not self.is_loading and not self.has_pending:
-            return rx.redirect("/planning")
+        return self._guard_navigation("route", "/planning", "new-comparison")
 
     @rx.event
     async def load_bookmark(self):
@@ -157,7 +260,14 @@ class PlanningState(rx.State):
         if "case_id" not in params and "view" not in params:
             return
         view = params.get("view", "plans")
-        async for event in self.load_case(
+        if (
+            view in {"plans", "whatif", "suppliers", "audit"}
+            and self.has_case
+            and params.get("case_id") == self.details.get("case_id")
+        ):
+            self.view = view
+            return
+        async for event in self._load_case(
             {
                 "case_id": params.get("case_id", "")
                 if view in {"plans", "whatif", "suppliers", "audit"}
@@ -254,16 +364,13 @@ class PlanningState(rx.State):
 
     @rx.event
     def change_view(self, value: str):
-        if value in {"plans", "whatif", "suppliers", "audit"}:
-            self.view = value
+        if value in {"plans", "whatif", "suppliers", "audit"} and value != self.view:
+            return self._guard_navigation("view", value, "view-" + self.view)
 
     @rx.event
     def change_input_mode(self, value: str):
-        if not self.is_loading and not self.has_pending and value in {"stored", "odoo", "create"}:
-            self.input_mode = value
-            if value == "create":
-                self.practice_task = ""
-                self.practice_run_saved = False
+        if value in {"stored", "odoo", "create"} and value != self.input_mode:
+            return self._guard_navigation("input", value, "input-" + self.input_mode)
 
     @rx.event
     def update_stress(self, field: str, value: str):
@@ -274,9 +381,11 @@ class PlanningState(rx.State):
             and isinstance(value, str)
         ):
             setattr(self, "stress_" + field, value)
+            self.scenario_dirty = True
             self.error_message = ""
 
     def _show(self, result):
+        self.creation_dirty = self.scenario_dirty = False
         self.details = result.details
         self.plans = result.plans
         self.allocations = result.allocations
@@ -330,6 +439,7 @@ class PlanningState(rx.State):
     @rx.event
     def select_stress_supplier(self, value: str):
         if not self.is_loading and not self.has_pending:
+            self.scenario_dirty = True
             self.stress_supplier = value
             self.stress_capacity = self.stress_price = ""
             self.error_message = ""
@@ -361,7 +471,7 @@ class PlanningState(rx.State):
 
     @rx.event
     def prepare_demo(self):
-        self._prepare_demo()
+        return self._guard_navigation("demo", "", "load-demo")
 
     def _prepare_demo(self):
         if self.is_loading or self.has_pending:
@@ -408,6 +518,7 @@ class PlanningState(rx.State):
             self.demo_offers = offers
             self._demo_payload = data
             self.demo_ready = True
+            self.creation_dirty = True
         except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
             self.error_message = (
                 "The controlled demo is missing or invalid. Run the offline T15 prepare "
@@ -416,6 +527,9 @@ class PlanningState(rx.State):
 
     @rx.event
     def prepare_odoo(self):
+        return self._guard_navigation("odoo", "", "load-odoo")
+
+    def _prepare_odoo(self):
         if self.is_loading or self.has_pending:
             return
         self.error_message = ""
@@ -477,6 +591,7 @@ class PlanningState(rx.State):
             )
             self._odoo_payload = data
             self.odoo_ready = True
+            self.creation_dirty = True
         except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
             self.error_message = (
                 "The prepared Odoo comparison is missing or invalid. Run the offline "
@@ -679,6 +794,7 @@ class PlanningState(rx.State):
             }
         ):
             self.scenario_kind = value
+            self.scenario_dirty = True
             self.stress_capacity = self.stress_quantity = self.stress_price = ""
             self.error_message = ""
 
@@ -795,6 +911,13 @@ class PlanningState(rx.State):
 
     @rx.event
     async def load_case(self, form_data: dict[str, Any]):
+        if self.creation_dirty or self.scenario_dirty:
+            yield self.open_saved_case(form_data.get("case_id", "").strip())
+            return
+        async for event in self._load_case(form_data):
+            yield event
+
+    async def _load_case(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:
             return
         self.error_target = ""

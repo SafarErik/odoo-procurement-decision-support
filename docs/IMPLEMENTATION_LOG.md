@@ -2982,3 +2982,37 @@ unverified. Practice persists without isolation/reset or operational-validity cl
 No owner/Odoo database migration/reset, Drive update, commit/push/merge or issue edit.
 UX-AC-02/03/05, FR/AC-V2-09/10, NFR-V2-05/06/07 and UX29-03/10 support chapters 4/6/7.
 Next is #34's responsive workspace/navigation; broader UX and final acceptance remain open.
+
+
+## 2026-10-12 — Responsive workspace and safe navigation (#34)
+
+**Problem -> decision:** Buyers needed consistent destinations and case context,
+and explicit navigation could lose unsaved creation/scenario drafts. Apply the
+approved Decision editorial shell through existing frontend modules and put the
+navigation guard in the existing HTTP-only planning state. Preserve the accepted
+architecture, immutable contracts and legacy entries.
+
+**Behavior:** Cases/Open RFQs/Practice share rail/drawer navigation. Saved product,
+demand/unit/currency, source/dates, lineage and status lead the cockpit; case views
+are bookmarkable. Stay retains a draft; Discard clears it before the requested
+navigation and focuses the destination. Pending writes have no Discard, retain
+exact request/key and return to the original recovery route. Exact tables keep
+named keyboard scroll regions; drawer/reduced-motion cleanup and RFQ error roles
+are verified. No backend, migration, dependency or Odoo mutation was added.
+
+**Evidence:** 622 fast tests passed; affected 69 and final UI/RFQ 47 passed after
+relevant corrections. Workspace, curated Practice and existing approval/PDF browser
+flows passed separately against real disposable helper storage/API/Reflex. Scoped
+keyboard, 1280/1440/768/390/320 reflow, drawer/dialog focus, reduced motion and actual
+200% native Chromium zoom passed. Built-in-browser inspection confirmed the final
+320 drawer geometry/focus. Required format/lint/compile/dependency/Compose checks
+passed; owned stacks cleaned up. The [handoff](UX34_WORKSPACE_HANDOFF.md) preserves
+failed runs, exact scope and limits; the [runbook](UX34_WORKSPACE_RUNBOOK.md) owns
+execution and cleanup.
+
+**Limitation -> chapter relevance -> next:** Hosted/live Odoo, speech, physical
+phone and owner/novice gates remain unverified; session-local recovery is not a
+closed-session outbox. UX-AC-04/06/13/15, FR/AC-V2-09/10, NFR-V2-05/06/07 and
+UX29-03/04/06/08/10 support chapters 4/6/7. User controls commit/push/merge; Drive and
+issues remain untouched. Next are attributed input review (#35), aligned comparison
+(#36) or explanation (#39); final buyer acceptance and thesis closure remain open.
