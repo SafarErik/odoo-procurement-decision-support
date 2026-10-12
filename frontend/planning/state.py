@@ -5,7 +5,8 @@ import re
 from base64 import b64encode
 from copy import deepcopy
 from datetime import UTC, date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
+from fractions import Fraction
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -27,6 +28,10 @@ class PlanningState(rx.State):
     provenance: list[dict[str, str]] = []
     scenario_suppliers: list[dict[str, str]] = []
     comparison_rows: list[dict[str, str]] = []
+    original_details: dict[str, str] = {}
+    original_plan: dict[str, str] = {}
+    original_allocations: list[dict[str, str]] = []
+    original_error: str = ""
     scenario_kind: str = "capacity_reduction"
     view: str = "plans"
     input_mode: str = "stored"
@@ -418,6 +423,145 @@ class PlanningState(rx.State):
         self.pdf_data_url = self.pdf_error = self.pdf_reference = ""
         self.pdf_filename = ""
         self.stress_capacity = self.stress_quantity = self.stress_price = ""
+        self.original_error = ""
+        if self.details["parent_id"] == "Base case":
+            self._set_original(result)
+        elif not self._original_matches_context(self.original_details):
+            self.original_details = {}
+            self.original_plan = {}
+            self.original_allocations = []
+
+    def _set_original(self, result):
+        original = result.details
+        if not self._original_matches_context(original) or {
+            s["supplier"] for s in result.scenario_suppliers
+        } != {s["supplier"] for s in self.scenario_suppliers}:
+            raise ValueError("The original base does not match this saved case's context.")
+        self.original_details = deepcopy(original)
+        self.original_plan = deepcopy(result.plans[0]) if result.plans else {}
+        self.original_allocations = [
+            deepcopy(row) for row in result.allocations if row["plan"] == "Minimum cost"
+        ]
+
+    def _original_matches_context(self, original):
+        return (
+            original.get("parent_id") == "Base case"
+            and original.get("case_id") == self.details.get("base_id")
+            and original.get("quantity") == self.details.get("base_quantity")
+            and all(
+                original.get(key) == self.details.get(key)
+                for key in (
+                    "company",
+                    "product",
+                    "unit",
+                    "currency",
+                    "required_date",
+                    "as_of",
+                    "workspace",
+                    "example_id",
+                )
+            )
+        )
+
+    async def _ensure_original(self, *, refresh=False):
+        if self._original_matches_context(self.original_details) and not refresh:
+            return
+        result, error = await fetch_planning_case(
+            settings.planning_cases_url,
+            self.details["base_id"],
+            settings.t12_trusted_caller_token.get_secret_value(),
+        )
+        try:
+            if result is None:
+                raise ValueError(error)
+            self._set_original(result)
+            self.original_error = ""
+        except (ValueError, KeyError, TypeError) as error:
+            self.original_error = "Original-base data is unavailable. " + str(error)
+
+    @rx.event
+    async def retry_original(self):
+        if self.is_loading or self.has_pending or not self.has_case:
+            return
+        self.is_loading = True
+        yield
+        try:
+            await self._ensure_original(refresh=True)
+        finally:
+            self.is_loading = False
+        yield rx.set_focus("scenario-result-heading")
+
+    @rx.var
+    def scenario_metrics(self) -> list[dict[str, str]]:
+        if not self.has_case:
+            return []
+        child = self.details.get("parent_id") != "Base case"
+        unit = self.details.get("unit", "")
+        right = self.plans[0] if child and self.plans else {}
+        left = self.original_plan
+        cost_delta = exposure_delta = "Unavailable"
+        if left and right:
+            with localcontext() as context:
+                context.prec = max(28, len(left["cost_exact"]) + len(right["cost_exact"]))
+                cost_delta = (
+                    f"{Decimal(right['cost_exact']) - Decimal(left['cost_exact']):+,f} "
+                    f"{self.details['currency']}"
+                )
+            delta = Fraction(right["exposure_exact"]) - Fraction(left["exposure_exact"])
+            exposure_delta = f"{delta.numerator}/{delta.denominator}"
+        return [
+            {
+                "metric": "Feasibility",
+                "base": self.original_details.get("status_label", "Unavailable"),
+                "scenario": self.details.get("status_label", "Unavailable"),
+                "change": "See saved outcome",
+            },
+            {
+                "metric": "Demand quantity",
+                "base": self.original_details.get("quantity", "Unavailable") + " " + unit,
+                "scenario": self.details.get("quantity", "Unavailable") + " " + unit,
+                "change": (
+                    f"{int(self.details['quantity']) - int(self.original_details['quantity']):+d} "
+                    f"{unit}"
+                    if self.original_details and child
+                    else "Unavailable"
+                ),
+            },
+            {
+                "metric": "Minimum total cost",
+                "base": left.get("cost", "Unavailable"),
+                "scenario": right.get("cost", "Unavailable"),
+                "change": cost_delta,
+            },
+            {
+                "metric": "Synthetic exposure (exact fraction)",
+                "base": left.get("exposure_exact", "Unavailable"),
+                "scenario": right.get("exposure_exact", "Unavailable"),
+                "change": exposure_delta,
+            },
+        ]
+
+    @rx.var
+    def scenario_allocation_rows(self) -> list[dict[str, str]]:
+        if not self.has_case:
+            return []
+        before = {r["supplier"]: r["quantity"] for r in self.original_allocations}
+        after = {
+            r["supplier"]: r["quantity"] for r in self.allocations if r["plan"] == "Minimum cost"
+        }
+        return [
+            {
+                "name": supplier["name"],
+                "base": before.get(supplier["supplier"], "Unavailable"),
+                "scenario": after.get(supplier["supplier"], "Unavailable"),
+                "change": (
+                    f"{int(after[supplier['supplier']]) - int(before[supplier['supplier']]):+d}"
+                    if supplier["supplier"] in before and supplier["supplier"] in after
+                    else "Unavailable"
+                ),
+            }
+            for supplier in self.scenario_suppliers
+        ]
 
     @rx.event
     async def request_pdf(self):
@@ -839,6 +983,7 @@ class PlanningState(rx.State):
                 if self.details["final_outcome"]
                 else "Case saved. Keep its case ID to reopen this exact result."
             )
+        return result
 
     def _prepare_request(self, url: str, payload: dict):
         self._pending_route = (
@@ -1079,9 +1224,14 @@ class PlanningState(rx.State):
         )
         yield
         try:
-            await self._send_pending()
+            saved = await self._send_pending()
+            if saved is not None:
+                await self._ensure_original()
         finally:
             self.is_loading = False
+        if saved is not None:
+            yield rx.redirect(f"/planning?case_id={self.details['case_id']}&view=whatif")
+            yield rx.set_focus("scenario-result-heading")
 
     @rx.event
     async def recover_request(self):
@@ -1089,10 +1239,13 @@ class PlanningState(rx.State):
             return
         self.is_loading = True
         reviewed_creation = bool(self._review_payload)
+        scenario = self._pending["url"].endswith("/scenarios")
         self.error_message = ""
         yield
         try:
-            await self._send_pending(recovering=True)
+            saved = await self._send_pending(recovering=True)
+            if saved is not None and scenario:
+                await self._ensure_original()
         finally:
             self.is_loading = False
         if (
@@ -1103,6 +1256,9 @@ class PlanningState(rx.State):
         ):
             for event in self._creation_saved_events():
                 yield event
+        elif saved is not None and scenario:
+            yield rx.redirect(f"/planning?case_id={self.details['case_id']}&view=whatif")
+            yield rx.set_focus("scenario-result-heading")
 
     @rx.event
     async def load_case(self, form_data: dict[str, Any]):
@@ -1138,6 +1294,11 @@ class PlanningState(rx.State):
             )
             if result is not None:
                 self._show(result)
+                await self._ensure_original()
+            else:
+                self.original_details = {}
+                self.original_plan = {}
+                self.original_allocations = []
         finally:
             self.is_loading = False
 

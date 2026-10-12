@@ -556,6 +556,19 @@ approval/PDF and full V2 acceptance remain separate work.
 
 ## What-if scenarios and stored comparisons
 
+Current update, 2026-10-12 (#37): **Saved scenario comparison** now retrieves the
+original immutable result through the existing stored GET, rather than reconstructing
+it from deltas as described in the historical walkthrough below. The original's
+cost/exposure/allocations remain visible when the child has no proven plan. A fresh
+child bookmark may need one additional original GET; failure keeps the child visible,
+labels missing original cells **Unavailable**, and offers **Retry original-base
+retrieval** without rerunning the scenario. Save/recovery focuses the comparison
+and bookmarks `view=whatif`. **Return to original base** is explicit; children remain
+analytical. The five-type composer is headed **Test changed assumptions. Save a new
+scenario.** See the [current scenario procedure](UX37_SCENARIO_RUNBOOK.md) and
+[dated verification](UX37_SCENARIO_HANDOFF.md). This update supersedes the comparison
+display/recovery wording below; fixture inputs/results remain applicable.
+
 Added 2026-10-08. Open a saved base or child at `/planning`. This requires only
 Reflex, FastAPI, the existing planning database/tunnel and matching server-side
 service token. No Odoo access, configured model or training is needed for scenario

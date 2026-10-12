@@ -275,8 +275,9 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
     assert state.demo_ready and state.demo_offers
 
     async def event(handler, *args):
-        async for _ in handler.fn(state, *args):
-            assert state.is_loading
+        async for update in handler.fn(state, *args):
+            if update is None:
+                assert state.is_loading
 
     asyncio.run(event(PlanningState.create_demo, {"quantity": "10", "token": "ignored"}))
     assert state.has_pending and not state.has_case and len(calls) == 1

@@ -513,6 +513,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 else f"{100 * (_decimal(plan['total_cost']) - low) / (high - low):.4f}%",
                 "chart_y": f"{10 + 80 * (1 - exposure):.4f}%",
                 "cost": f"{_decimal(plan['total_cost']):,f} {currency}",
+                "cost_exact": plan["total_cost"],
                 "exposure": _rational(plan["risk_exposure"]),
                 "premium": _rational(plan["cost_premium"]),
                 "premium_absolute": f"{extra_cost:+,f} {currency}",

@@ -215,7 +215,7 @@ def _workspace() -> rx.Component:
             ),
             rx.tabs.content(plans_view(), value="plans", padding_top="1.25rem"),
             rx.tabs.content(
-                rx.cond(PlanningState.details["comparison"] != "", _scenario_comparison()),
+                _scenario_comparison(),
                 _scenario_form(),
                 value="whatif",
                 padding_top="1.25rem",

@@ -27,6 +27,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Saved allocation comparison #36](UX36_COMPARISON_RUNBOOK.md): aligned exact values,
   explicit selection and persistent in-flow review with working finalization.
   [Handoff](UX36_COMPARISON_HANDOFF.md) records real saved 3/5/10-supplier and zoom evidence.
+- [Original-base disruption comparison #37](UX37_SCENARIO_RUNBOOK.md): bounded drafts,
+  exact saved comparisons, retained original on infeasibility and explicit recovery.
+  [Handoff](UX37_SCENARIO_HANDOFF.md) distinguishes genuine saves from controlled read faults.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -49,10 +52,10 @@ The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
 [parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
 defines bounded discovery/classification, buyer flows and approved reassessment
 gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
-and their verified blocking links. #32–#36 now supply local discovery, Practice,
+and their verified blocking links. #32–#37 now supply local discovery, Practice,
 responsive guarded navigation, attributed input review and aligned explicit
-comparison; their dated handoffs distinguish technical evidence from pending
-participants. Next are #37 disruptions, #38 final review and #39 readable
+comparison and original-base disruptions; their dated handoffs distinguish technical
+evidence from pending participants. Next are #38 final review and #39 readable
 explanation; final buyer acceptance remains open.
 
 | Step | Design | Evidence and boundary |

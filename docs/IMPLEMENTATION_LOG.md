@@ -3082,3 +3082,43 @@ UX-AC-08/09, FR-V2-06/07/09, AC-V2-05/07/09, NFR-V2-07 and UX29-04/05/10 support
 chapters 4/6/7. User controls commit/push/merge; Drive/issues remain untouched.
 Next is #37 original-base disruption comparison, followed by #38 final review;
 #39 explanation and later reassessment/thesis closure remain separate.
+
+## 2026-10-12 — Test disruptions against the original base (#37)
+
+**Problem -> decision:** An infeasible child lacks minimum-plan comparison deltas,
+so reconstructed baseline values disappeared. Retrieve/retain the actual immutable
+original through the existing HTTP GET and compare saved minimum-cost plans. Reuse
+the existing five-type composer, validation and MILP scenario API.
+
+**Behavior:** What-if aligns original/child feasibility, demand, exact cost/exposure
+and supplier allocations. Missing child results say Unavailable; original values
+remain. Context/class/Practice-group/supplier joins are checked. Original-only read
+failure preserves the child and entered draft; explicit GET retry creates nothing.
+New scenarios always target the original, inherit classification/grouping and run
+the same MILP with saved assessments. Draft/caveat text, purposeful error/save focus,
+bookmarking and explicit guarded return are visible. Immediate submit throttling
+prevents rapid duplicate saves; uncertain requests retain exact URL/payload/key and
+require explicit replay. No backend, model/solver, API, migration or dependency change.
+
+**Evidence:** Required full fast run passed 656 tests; final affected 97 passed
+after the submit refinement. Final scenario browser passed all five actual saves,
+bounded combined rejection, exact allocation cells, genuine infeasibility, original
+retention, class/lineage, single-save double-click, keyboard/focus, five viewport
+widths, draft Stay, controlled original-GET 503 and real API process-outage recovery.
+Final-source Practice and existing immutable approval/PDF recovery each passed in
+a separately identified mixed run; its earlier new-test locator failure was resolved
+by the final standalone scenario PASS, not relabelled a suite PASS. Built-in-browser
+desktop/320 comparison, keyboard scroll and unobscured error focus passed. Required
+static/runtime/Compose gates passed; owned stacks/tab/viewport cleaned up. The
+[handoff](UX37_SCENARIO_HANDOFF.md) preserves failures, evidence scope and limits;
+the [runbook](UX37_SCENARIO_RUNBOOK.md) owns execution and cleanup.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, speech, physical
+phones and owner/novice sessions remain unverified. Practice shares storage and
+recovery is session-local. Original-read outage is controlled HTTP fault injection;
+POST uncertainty is a real stopped API, both on disposable helper storage. No new
+timing workload or independent persistence rerun was needed. UX-AC-10, FR/AC-V2-08,
+AC-V2-07/09, NFR-V2-06/07 and UX29-04/06/07 support chapters 4/6/7. User controls
+commit/push/merge; Drive/issues remain untouched. Next is #38 deliberate approval/
+No-award review; #39 explanations and later human reassessment/thesis closure remain
+separate.

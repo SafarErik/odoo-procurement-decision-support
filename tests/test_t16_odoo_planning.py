@@ -49,8 +49,9 @@ def prepared_state(assets, monkeypatch):
 
 
 async def event(state, handler, *args):
-    async for _ in handler.fn(state, *args):
-        assert state.is_loading
+    async for effect in handler.fn(state, *args):
+        if effect is None:
+            assert state.is_loading
     assert not state.is_loading
 
 
