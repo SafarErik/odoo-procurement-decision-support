@@ -41,9 +41,7 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                 expect(page.get_by_role("alertdialog")).to_be_visible()
                 page.get_by_role("button", name="Discard draft", exact=True).click()
             expect(page.get_by_role("heading", name="Fresh Practice draft")).to_be_visible()
-            expect(
-                page.get_by_role("button", name="Calculate and save fresh Practice case")
-            ).to_be_enabled()
+            expect(page.get_by_role("button", name="Review Practice terms")).to_be_enabled()
             assert counts() == (0, 0)
         for width in (1280, 1440, 768, 390, 320):
             page.set_viewport_size({"width": width, "height": 900})
@@ -63,10 +61,9 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             if example == "compare-plans":
                 expect(page.get_by_role("alertdialog")).to_be_visible()
                 page.get_by_role("button", name="Discard draft", exact=True).click()
-            expect(
-                page.get_by_role("button", name="Calculate and save fresh Practice case")
-            ).to_be_visible()
+            expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
             assert counts() == before
+            page.get_by_role("button", name="Review Practice terms", exact=True).click()
             page.get_by_role("button", name="Calculate and save fresh Practice case").click()
             expect(page.get_by_role("button", name="Open saved Practice case")).to_be_visible()
             assert counts() == (before[0] + 1, before[1] + 1)
@@ -96,6 +93,7 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                 )
                 assert counts() == (before[0] + 1, before[1] + 1)
                 page.get_by_role("button", name="Create and save scenario", exact=True).click()
+                expect(page.get_by_text("Saved case " + identity, exact=True)).to_have_count(0)
                 expect(page.get_by_role("status").filter(has_text="Case saved.")).to_be_visible()
                 children = stack.client.get(
                     f"{BASE}/{identity}/scenarios", params={"workspace": "practice"}
@@ -138,10 +136,9 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
         assert hashlib.sha256(document.content).hexdigest() == document.headers["x-pdf-sha256"]
         page.goto(stack.frontend_url + "/practice")
         page.get_by_role("button", name="Choose compare plans", exact=True).click()
-        expect(
-            page.get_by_role("button", name="Calculate and save fresh Practice case")
-        ).to_be_visible()
+        expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
         assert counts() == (5, 3)
+        page.get_by_role("button", name="Review Practice terms", exact=True).click()
         stack.stop(stack.api)
         page.get_by_role("button", name="Calculate and save fresh Practice case").click()
         expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()

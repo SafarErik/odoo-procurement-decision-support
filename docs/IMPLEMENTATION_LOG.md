@@ -3016,3 +3016,34 @@ closed-session outbox. UX-AC-04/06/13/15, FR/AC-V2-09/10, NFR-V2-05/06/07 and
 UX29-03/04/06/08/10 support chapters 4/6/7. User controls commit/push/merge; Drive and
 issues remain untouched. Next are attributed input review (#35), aligned comparison
 (#36) or explanation (#39); final buyer acceptance and thesis closure remain open.
+
+## 2026-10-12 — Review attributed inputs before saving (#35)
+
+**Problem -> decision:** Immediate calculation made captured quotation facts,
+explicit business terms and policy harder to review together. Reuse the existing
+prepared requests and HTTP state for validate -> read-only review -> deliberate
+save. Freeze reviewed intent; preserve accepted architecture and immutable contracts.
+
+**Behavior:** Demo, curated Practice and prepared Odoo show exact context, supplier
+terms/ranges/availability and policy. Review saves/solves nothing; Edit retains
+values and invalidates review. Labelled inline errors focus the first invalid field;
+review/saved headings receive purposeful focus and exact tables support keyboard
+scrolling. Odoo preview stays captured/local until FastAPI rereads quotations on
+save; ML history stays synthetic. Genuine saved classification and exact pending
+payload/key/retry remain intact. No backend, migration or dependency change.
+
+**Evidence:** Required 632 fast tests passed; final affected 42 passed after focus
+and feedback corrections. New synthetic/controlled creation, existing Practice,
+approval/PDF recovery and workspace browser flows passed in separately identified
+runs against real HTTP/model/CBC/disposable helper PostgreSQL. Controlled quotation
+transport is mocked, not live ERP evidence. Built-in-browser invalid-field/review
+focus, desktop and 320-pixel keyboard table access passed. Static/runtime gates
+passed; all owned stacks cleaned up. [Handoff](UX35_CREATION_HANDOFF.md) retains
+failed runs, actual scope and limits; [runbook](UX35_CREATION_RUNBOOK.md) owns commands.
+
+**Limitation -> chapter relevance -> next:** Fresh live Odoo, hosted CI, speech,
+physical phones and owner/novice gates remain unverified. Practice shares storage;
+session-local review/recovery does not establish closed-session durability. UX-AC-07,
+FR/AC-V2-01/09, NFR-V2-05/07 and UX29-04/06/10 support chapters 4/6/7. User controls
+commit/push/merge; Drive/issues remain untouched. Next is #36 aligned saved allocation
+comparison and explicit selection; reassessment and thesis closure remain separate.

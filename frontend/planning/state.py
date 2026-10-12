@@ -85,6 +85,17 @@ class PlanningState(rx.State):
     navigation_focus: str = ""
     drawer_open: bool = False
     _navigation: tuple[str, str] = ("", "")
+    creation_errors: dict[str, str] = {}
+    creation_review: dict[str, str] = {}
+    review_suppliers: list[dict[str, str]] = []
+    _review_payload: dict = {}
+    _review_url: str = ""
+
+    def _clear_review(self):
+        self.creation_review = {}
+        self.review_suppliers = []
+        self._review_payload = {}
+        self._review_url = ""
 
     def _guard_navigation(self, action: str, value: str, focus: str = ""):
         if self.has_pending or self.is_loading:
@@ -124,6 +135,8 @@ class PlanningState(rx.State):
             self._prepare_practice_scenario()
 
     def _discard_drafts(self):
+        self._clear_review()
+        self.creation_errors = {}
         self.creation_dirty = self.scenario_dirty = False
         self.demo_ready = self.odoo_ready = False
         self._demo_payload = self._odoo_payload = {}
@@ -159,6 +172,8 @@ class PlanningState(rx.State):
     def mark_creation_dirty(self, value: str):
         if not self.has_pending and not self.is_loading:
             self.creation_dirty = True
+            self._clear_review()
+            self.creation_errors = {}
 
     @rx.event
     def navigate_global(self, destination: str):
@@ -385,6 +400,8 @@ class PlanningState(rx.State):
             self.error_message = ""
 
     def _show(self, result):
+        self._clear_review()
+        self.creation_errors = {}
         self.creation_dirty = self.scenario_dirty = False
         self.details = result.details
         self.plans = result.plans
@@ -477,6 +494,9 @@ class PlanningState(rx.State):
         if self.is_loading or self.has_pending:
             return
         self.error_message = ""
+        self.notice = ""
+        self._clear_review()
+        self.creation_errors = {}
         self.error_target = ""
         self.demo_ready = False
         self._demo_payload = {}
@@ -533,6 +553,9 @@ class PlanningState(rx.State):
         if self.is_loading or self.has_pending:
             return
         self.error_message = ""
+        self.notice = ""
+        self._clear_review()
+        self.creation_errors = {}
         self.error_target = ""
         self.odoo_ready = False
         self._odoo_payload = {}
@@ -598,56 +621,201 @@ class PlanningState(rx.State):
                 "Odoo prepare command and configure its matching saved model on FastAPI."
             )
 
+    def _odoo_request(self, form_data):
+        self.creation_errors = {}
+        if not self.odoo_ready:
+            self.error_message = "Load the prepared comparison before reviewing terms."
+            return None
+        payload = deepcopy(self._odoo_payload)
+        facts = payload["controlled_input"]
+
+        def field(name, identity, parser, message):
+            try:
+                return parser(form_data.get(name))
+            except (ValueError, TypeError):
+                self.creation_errors[identity] = message
+                return None
+
+        quantity = field(
+            "odoo_quantity",
+            "odoo-quantity",
+            lambda value: _bounded_form_integer(value, minimum=1),
+            "Enter a whole-number demand from 1 to 1,000.",
+        )
+        required = field(
+            "odoo_required_date", "odoo-required-date", _form_date, "Enter a valid required date."
+        )
+        now = datetime.now(UTC)
+        if required and date.fromisoformat(required) < now.date():
+            self.creation_errors["odoo-required-date"] = "Required date must be today or later."
+        for supplier in facts["suppliers"]:
+            prefix = supplier["supplier_id"]
+            supplier["capacity"] = field(
+                prefix + "_capacity",
+                prefix + "_capacity",
+                lambda value: _bounded_form_integer(value, minimum=0),
+                "Enter a whole-number capacity from 0 to 1,000.",
+            )
+            supplier["minimum_order_quantity"] = field(
+                prefix + "_moq",
+                prefix + "_moq",
+                lambda value: None if value == "" else _bounded_form_integer(value, minimum=1),
+                "Leave MOQ blank for none, or enter a whole number from 1 to 1,000.",
+            )
+            supplier["promised_date"] = field(
+                prefix + "_promised_date",
+                prefix + "_promised_date",
+                _form_date,
+                "Enter a valid promised date.",
+            )
+        if self.creation_errors:
+            self.error_message = "Review the highlighted terms before calculating."
+            return None
+        facts["as_of"] = now.isoformat()
+        facts["requirement"]["approved_quantity"] = quantity
+        facts["requirement"]["required_date"] = required
+        facts["approval_reference"] = f"controlled-demand-{quantity}-t16-odoo-v1"
+        source = {
+            "source_type": "controlled_business_terms",
+            "source_reference": "t16-ui-odoo-terms-v1",
+            "observed_at": facts["as_of"],
+        }
+        facts["requirement_source"] = source.copy()
+        for supplier in facts["suppliers"]:
+            supplier["source"] = source.copy()
+        payload["catalog_context"] = {"workspace": "controlled"}
+        return payload
+
     @rx.event
     async def create_odoo(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:
             return
         self.error_target = ""
-        try:
-            if not self.odoo_ready:
-                raise ValueError("Prepare the comparison first")
-            payload = deepcopy(self._odoo_payload)
-            facts = payload["controlled_input"]
-            quantity = _bounded_form_integer(form_data.get("odoo_quantity"), minimum=1)
-            required = _form_date(form_data.get("odoo_required_date"))
-            now = datetime.now(UTC)
-            if date.fromisoformat(required) < now.date():
-                raise ValueError("Required date must be today or later")
-            facts["as_of"] = now.isoformat()
-            facts["requirement"]["approved_quantity"] = quantity
-            facts["requirement"]["required_date"] = required
-            facts["approval_reference"] = f"controlled-demand-{quantity}-t16-odoo-v1"
-            source = {
-                "source_type": "controlled_business_terms",
-                "source_reference": "t16-ui-odoo-terms-v1",
-                "observed_at": facts["as_of"],
-            }
-            facts["requirement_source"] = source.copy()
-            for supplier in facts["suppliers"]:
-                prefix = supplier["supplier_id"]
-                supplier["capacity"] = _bounded_form_integer(
-                    form_data.get(prefix + "_capacity"), minimum=0
-                )
-                moq = form_data.get(prefix + "_moq")
-                supplier["minimum_order_quantity"] = (
-                    None if moq == "" else _bounded_form_integer(moq, minimum=1)
-                )
-                supplier["promised_date"] = _form_date(form_data.get(prefix + "_promised_date"))
-                supplier["source"] = source.copy()
-        except (ValueError, TypeError, KeyError):
-            self.error_message = (
-                "Load the comparison and review every term: demand and MOQ 1–1,000 "
-                "(blank MOQ means none), capacity 0–1,000, valid dates and a required date "
-                "of today or later."
-            )
+        payload = self._odoo_request(form_data)
+        if payload is None:
             return
-        payload["catalog_context"] = {"workspace": "controlled"}
         self._prepare_request(settings.planning_cases_url + "/from-odoo", payload)
         yield
         try:
             await self._send_pending()
         finally:
             self.is_loading = False
+
+    def _set_review(self, payload, *, odoo: bool):
+        try:
+            facts = payload["controlled_input"] if odoo else payload
+            if any(type(s["available"]) is not bool for s in facts["suppliers"]):
+                raise ValueError("Invalid prepared availability")
+            r = facts["requirement"]
+            self._review_payload = deepcopy(payload)
+            self._review_url = settings.planning_cases_url + ("/from-odoo" if odoo else "")
+            self.creation_review = {
+                "kind": "odoo" if odoo else "demo",
+                "product": r["product_id"],
+                "company": facts["company_id"],
+                "quantity": str(r["approved_quantity"]),
+                "unit": r["quantity_unit"],
+                "currency": r["currency"],
+                "required_date": r["required_date"],
+                "cutoff": facts["as_of"],
+                "captured": self._odoo_payload["controlled_input"]["as_of"]
+                if odoo
+                else facts["as_of"],
+                "workspace": "Controlled work" if odoo else "Practice",
+                "policy": self.odoo_policy if odoo else self.demo_policy,
+            }
+            self.review_suppliers = [
+                {
+                    "name": _supplier_label(s["supplier_id"]),
+                    "price": str(s["unit_price"]),
+                    "capacity": str(s["capacity"]),
+                    "moq": "None (no MOQ)"
+                    if s["minimum_order_quantity"] is None
+                    else str(s["minimum_order_quantity"]),
+                    "promised": s["promised_date"],
+                    "available": "Available" if s["available"] else "Unavailable",
+                    "ranges": (
+                        f"Price: {s['price_quantities']['minimum']}–"
+                        f"{s['price_quantities']['maximum']} {r['quantity_unit']}; "
+                        f"delivery: {s['delivery_quantities']['minimum']}–"
+                        f"{s['delivery_quantities']['maximum']} {r['quantity_unit']}"
+                    ),
+                    "offer": s["offer_id"],
+                }
+                for s in facts["suppliers"]
+            ]
+            self.error_message = ""
+            self.error_target = "creation"
+            return rx.set_focus("creation-review-heading")
+
+        except (KeyError, TypeError, ValueError):
+            self._clear_review()
+            self.error_message = (
+                "Prepared input data is incomplete. Reload a valid offline fixture."
+            )
+            return None
+
+    @rx.event
+    def review_demo(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending:
+            return
+        self._clear_review()
+        payload = self._demo_request(form_data)
+        if payload is None:
+            return rx.set_focus("demo-quantity")
+        return self._set_review(payload, odoo=False)
+
+    @rx.event
+    def review_odoo(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending:
+            return
+        self._clear_review()
+        payload = self._odoo_request(form_data)
+        if payload is None:
+            if self.creation_errors:
+                # Foreach supplier inputs have dynamic IDs, without static Reflex refs.
+                identity = json.dumps(next(iter(self.creation_errors)))
+                return rx.call_script(f"document.getElementById({identity})?.focus()")
+            return
+        return self._set_review(payload, odoo=True)
+
+    @rx.event
+    def edit_creation_terms(self):
+        if self.is_loading or self.has_pending:
+            return
+        kind = self.creation_review.get("kind")
+        self._clear_review()
+        return rx.set_focus("odoo-quantity" if kind == "odoo" else "demo-quantity")
+
+    @rx.event
+    async def save_reviewed_creation(self):
+        if self.is_loading or self.has_pending or not self._review_payload:
+            return
+        if (
+            self.creation_review.get("kind") == "odoo"
+            and date.fromisoformat(self.creation_review["required_date"]) < datetime.now(UTC).date()
+        ):
+            self.error_message = "The required date is now past. Edit terms and review again."
+            self.creation_errors = {"odoo-required-date": self.error_message}
+            yield rx.set_focus("creation-edit-terms")
+            return
+        self._prepare_request(self._review_url, self._review_payload)
+        yield
+        try:
+            await self._send_pending()
+        finally:
+            self.is_loading = False
+        if self.has_case and not self.has_pending and not self._review_payload:
+            for event in self._creation_saved_events():
+                yield event
+
+    def _creation_saved_events(self):
+        if self.router.url.path == "/practice":
+            return [rx.set_focus("practice-saved-heading")]
+        return [
+            rx.redirect(f"/planning?case_id={self.details['case_id']}&view=plans"),
+            rx.set_focus("saved-case-heading"),
+        ]
 
     async def _send_pending(self, *, recovering: bool = False):
         result, self.error_message, uncertain = await submit_planning_request(
@@ -742,36 +910,38 @@ class PlanningState(rx.State):
         finally:
             self.is_loading = False
 
-    @rx.event
-    async def create_demo(self, form_data: dict[str, Any]):
-        if self.is_loading or self.has_pending:
-            return
-        self.error_target = ""
-        quantity = form_data.get("quantity", "")
-        if (
-            not self.demo_ready
-            or not isinstance(quantity, str)
-            or not quantity.isascii()
-            or not quantity.isdecimal()
-            or len(quantity) > 4
-            or not 1 <= int(quantity) <= 1000
-        ):
-            self.error_message = (
-                "Prepare the demo and enter a whole-number quantity from 1 to 1,000."
-            )
-            return
+    def _demo_request(self, form_data):
+        self.creation_errors = {}
+        try:
+            quantity = _bounded_form_integer(form_data.get("quantity"), minimum=1)
+            if not self.demo_ready:
+                raise ValueError("Prepare the demo")
+        except (ValueError, TypeError):
+            self.creation_errors["demo-quantity"] = "Enter a whole-number demand from 1 to 1,000."
+            self.error_message = "Prepare the demo and review the highlighted demand."
+            return None
         payload = deepcopy(self._demo_payload)
         payload["catalog_context"] = {
             "workspace": "practice",
             "example_id": self.practice_task or None,
         }
-        payload["requirement"]["approved_quantity"] = int(quantity)
-        payload["approval_reference"] = f"controlled-demand-{int(quantity)}-t16-v1"
+        payload["requirement"]["approved_quantity"] = quantity
+        payload["approval_reference"] = f"controlled-demand-{quantity}-t16-v1"
         payload["requirement_source"] = {
             "source_type": "controlled_business_terms",
             "source_reference": "t16-ui-demand-v1",
             "observed_at": payload["as_of"],
         }
+        return payload
+
+    @rx.event
+    async def create_demo(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending:
+            return
+        self.error_target = ""
+        payload = self._demo_request(form_data)
+        if payload is None:
+            return
         self._prepare_request(settings.planning_cases_url, payload)
         yield
         try:
@@ -902,12 +1072,21 @@ class PlanningState(rx.State):
         if self.is_loading or not self.has_pending or not self._pending:
             return
         self.is_loading = True
+        reviewed_creation = bool(self._review_payload)
         self.error_message = ""
         yield
         try:
             await self._send_pending(recovering=True)
         finally:
             self.is_loading = False
+        if (
+            reviewed_creation
+            and self.has_case
+            and not self.has_pending
+            and not self._review_payload
+        ):
+            for event in self._creation_saved_events():
+                yield event
 
     @rx.event
     async def load_case(self, form_data: dict[str, Any]):

@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from frontend.planning.creation import creation_review, field_error
 from frontend.planning.state import PlanningState
 from frontend.workspace import workspace_shell
 
@@ -147,6 +148,14 @@ def practice_page():
                             & (PlanningState.details["workspace"] == "practice")
                             & (PlanningState.details["example_id"] == PlanningState.practice_task),
                             rx.box(
+                                rx.heading(
+                                    "Practice case saved",
+                                    as_="h2",
+                                    id="practice-saved-heading",
+                                    tab_index=-1,
+                                    on_mount=rx.set_focus("practice-saved-heading"),
+                                    size="4",
+                                ),
                                 rx.text(
                                     "Practice case saved. Reopening uses this stored run; choosing "
                                     "an exercise again starts a fresh draft, even after "
@@ -163,23 +172,48 @@ def practice_page():
                                 ),
                             ),
                             rx.form(
-                                rx.el.input(type="hidden", name="quantity", value="10"),
+                                rx.el.label("Demand quantity", html_for="demo-quantity"),
+                                rx.input(
+                                    id="demo-quantity",
+                                    name="quantity",
+                                    type="number",
+                                    min="1",
+                                    max="1000",
+                                    step="1",
+                                    required=True,
+                                    default_value=PlanningState.demo_quantity,
+                                    on_change=PlanningState.mark_creation_dirty,
+                                    disabled=busy
+                                    | (PlanningState.creation_review.get("kind", "") != ""),
+                                    aria_invalid=PlanningState.creation_errors.get(
+                                        "demo-quantity", ""
+                                    )
+                                    != "",
+                                    aria_describedby="demo-quantity-error",
+                                    width="100%",
+                                ),
+                                field_error("demo-quantity"),
                                 rx.text(
-                                    "The prepared demand is 10 pieces. "
-                                    "Review exact saved facts in Audit after calculation.",
+                                    "The prepared demand starts at 10 pieces. Dates and other "
+                                    "terms stay fixed to this synthetic example.",
                                     size="2",
                                 ),
                                 rx.button(
-                                    "Calculate and save fresh Practice case",
+                                    "Review Practice terms",
                                     type="submit",
-                                    disabled=busy | ~PlanningState.demo_ready,
+                                    disabled=busy
+                                    | ~PlanningState.demo_ready
+                                    | (PlanningState.creation_review.get("kind", "") != ""),
                                     background="#413b76",
                                     color="white",
                                     margin_top="1rem",
                                 ),
-                                on_submit=PlanningState.create_demo,
+                                on_submit=PlanningState.review_demo,
+                                no_validate=True,
+                                reset_on_submit=False,
                             ),
                         ),
+                        creation_review("demo", "Calculate and save fresh Practice case"),
                         background="white",
                         padding="1.25rem",
                         margin_top="1rem",

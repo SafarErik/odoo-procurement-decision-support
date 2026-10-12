@@ -23,8 +23,12 @@ server-held service token before browsing.
    Compare plans, Test a supplier outage, or Make a case infeasible. Entry/selection
    reads only the fixed prepared input and fills a fresh draft; it saves nothing.
    Choosing again after finalization never treats the finalized case as editable.
-5. Press **Calculate and save fresh Practice case**. This explicitly creates a new
-   real synthetic base with demand 10 pieces and immutable Practice classification.
+5. Keep or edit demand, then press **Review Practice terms** to inspect exact
+   synthetic facts, terms and policy without saving. **Edit terms** preserves the
+   draft and requires review again. Then **Calculate and save fresh Practice case**
+   explicitly creates a new
+   real synthetic base with the reviewed demand (default 10 pieces) and immutable
+   Practice classification.
    Open saved Practice case to compare exact allocations, costs and exposure.
 6. For outage/infeasibility, press **Prepare exercise scenario**. This fills the
    existing What-if form without saving: one original supplier unavailable, or

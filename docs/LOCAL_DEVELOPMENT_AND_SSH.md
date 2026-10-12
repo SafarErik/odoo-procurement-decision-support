@@ -341,8 +341,10 @@ needed for synthetic creation, scenarios or stored GET.
    <http://localhost:3000/planning>. Both servers read the same service token from
 the ignored root `.env`; clear stale process overrides before restarting.
 
-4. Choose **Create a demo plan**, then **Load demo inputs**. Read the supplier
-   prices/capacities and policy. Keep demand **10**, then **Create and save plan**.
+4. Choose **Demo**, then **Load demo inputs**. Read the supplier
+   prices/capacities and policy. Keep demand **10**, then **Review demo terms**.
+   Inspect the exact review, then **Create and save plan**. Review saves nothing;
+   **Edit terms** returns to the preserved draft. See [creation review](UX35_CREATION_RUNBOOK.md).
    Expect EUR 102 minimum and EUR 109 alternative (+7 EUR / approximately 6.9%).
    The allocation bars show quantities, not probabilities. Schedule classes and
    exposure use synthetic saved-model evidence; exact fractions remain expandable.
@@ -447,7 +449,8 @@ user acceptance and is not implied by repository documentation changes.
 
 Added 2026-10-08. This uses the prepared three-quotation comparison from T15,
 not a general quotation selector. **Load prepared Odoo comparison** reads a fixed
-local JSON preview; it does not refresh Odoo. **Create and save Odoo plan** calls
+local JSON preview; it does not refresh Odoo. **Review Odoo terms** also uses only
+the prepared draft. **Create and save Odoo plan** after review calls
 `POST /api/v2/procurement/planning-cases/from-odoo`; FastAPI independently reads
 the comparison and currency, checks expectations, runs the matching saved model
 and unchanged MILP, then saves an immutable snapshot. There are no Odoo writes.
@@ -511,7 +514,7 @@ port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
    Pop-Location
    ```
 
-   Open <http://localhost:3000/planning>, choose **Plan from Odoo**, then
+   Open <http://localhost:3000/planning>, choose **Odoo**, then
    **Load prepared Odoo comparison**. Inspect the captured prices/context and
    dates. Supplier IDs identify the prepared suppliers; display names are not
    acquired by this form. Never enter either API credential in the browser.
@@ -522,7 +525,9 @@ port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
    Demand/MOQ accept integers 1–1,000; blank MOQ explicitly means none; capacity
    accepts 0–1,000. Required date must be today or later. Policy, availability,
    applicability ranges and synthetic history remain the prepared values.
-   Click **Create and save Odoo plan**. Expect USD 1,850 with allocations 50/0/150,
+   Click **Review Odoo terms** to inspect exact facts, explicit terms and policy
+   without saving or refreshing Odoo. Then **Create and save Odoo plan**.
+   Expect USD 1,850 with allocations 50/0/150,
    and USD 2,200 with allocations 100/100/0 (+350 USD, approximately 18.9%).
    Keep the case UUID. The source banner must say **Live Odoo quotations;
    synthetic ML history**. The ML assessments are not observed supplier evidence.

@@ -2,22 +2,30 @@
 
 import reflex as rx
 
+from frontend.planning.creation import creation_review, field_error
 from frontend.planning.state import PlanningState
 from frontend.theme import HAIRLINE, MUTED
 
 
 def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
-    busy = PlanningState.is_loading | PlanningState.has_pending
+    busy = (
+        PlanningState.is_loading
+        | PlanningState.has_pending
+        | (PlanningState.creation_review.get("kind", "") != "")
+    )
     return rx.box(
         rx.text(row["name"], font_weight="650", size="2"),
         rx.text(row["price"], " per unit", size="2", color=MUTED),
         rx.text("Captured Odoo price; checked again when saving.", size="1", color=MUTED),
+        rx.text("Captured offer: ", row["offer"], size="1", color=MUTED),
         rx.text(row["ranges"], size="1", color=MUTED, margin_y="0.5rem"),
         rx.el.label(
             "Capacity (explicit limit)", html_for=row["supplier"] + "_capacity", display="block"
         ),
         rx.input(
             id=row["supplier"] + "_capacity",
+            aria_invalid=PlanningState.creation_errors.get(row["supplier"] + "_capacity", "") != "",
+            aria_describedby=row["supplier"] + "_capacity-error",
             name=row["supplier"] + "_capacity",
             type="number",
             min="0",
@@ -29,6 +37,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             disabled=busy,
             width="100%",
         ),
+        field_error(row["supplier"] + "_capacity"),
         rx.el.label(
             "MOQ (blank means none)",
             html_for=row["supplier"] + "_moq",
@@ -37,6 +46,8 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
         ),
         rx.input(
             id=row["supplier"] + "_moq",
+            aria_invalid=PlanningState.creation_errors.get(row["supplier"] + "_moq", "") != "",
+            aria_describedby=row["supplier"] + "_moq-error",
             name=row["supplier"] + "_moq",
             type="number",
             min="1",
@@ -47,6 +58,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             disabled=busy,
             width="100%",
         ),
+        field_error(row["supplier"] + "_moq"),
         rx.el.label(
             "Promised date",
             html_for=row["supplier"] + "_promised_date",
@@ -55,6 +67,9 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
         ),
         rx.input(
             id=row["supplier"] + "_promised_date",
+            aria_invalid=PlanningState.creation_errors.get(row["supplier"] + "_promised_date", "")
+            != "",
+            aria_describedby=row["supplier"] + "_promised_date-error",
             name=row["supplier"] + "_promised_date",
             type="date",
             required=True,
@@ -63,6 +78,7 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
             disabled=busy,
             width="100%",
         ),
+        field_error(row["supplier"] + "_promised_date"),
         padding="1rem",
         border=f"1px solid {HAIRLINE}",
         border_radius="8px",
@@ -70,7 +86,11 @@ def _odoo_supplier_terms(row: rx.Var[dict[str, str]]) -> rx.Component:
 
 
 def _odoo_creation_controls() -> rx.Component:
-    busy = PlanningState.is_loading | PlanningState.has_pending
+    busy = (
+        PlanningState.is_loading
+        | PlanningState.has_pending
+        | (PlanningState.creation_review.get("kind", "") != "")
+    )
     return rx.tabs.content(
         rx.text(
             "Use the prepared Odoo quotation comparison. FastAPI reads Odoo again before saving. "
@@ -91,7 +111,9 @@ def _odoo_creation_controls() -> rx.Component:
         rx.cond(
             PlanningState.odoo_ready,
             rx.box(
+                rx.heading("Prepared quotation facts", as_="h3", size="4"),
                 rx.text(PlanningState.odoo_details, size="2", color=MUTED, margin_y="1rem"),
+                rx.heading("Your demand", as_="h3", size="4"),
                 rx.el.form(
                     rx.flex(
                         rx.box(
@@ -100,6 +122,9 @@ def _odoo_creation_controls() -> rx.Component:
                             ),
                             rx.input(
                                 id="odoo-quantity",
+                                aria_invalid=PlanningState.creation_errors.get("odoo-quantity", "")
+                                != "",
+                                aria_describedby="odoo-quantity-error",
                                 name="odoo_quantity",
                                 type="number",
                                 min="1",
@@ -110,6 +135,7 @@ def _odoo_creation_controls() -> rx.Component:
                                 default_value=PlanningState.odoo_quantity,
                                 disabled=busy,
                             ),
+                            field_error("odoo-quantity"),
                         ),
                         rx.box(
                             rx.el.label(
@@ -117,6 +143,11 @@ def _odoo_creation_controls() -> rx.Component:
                             ),
                             rx.input(
                                 id="odoo-required-date",
+                                aria_invalid=PlanningState.creation_errors.get(
+                                    "odoo-required-date", ""
+                                )
+                                != "",
+                                aria_describedby="odoo-required-date-error",
                                 name="odoo_required_date",
                                 type="date",
                                 required=True,
@@ -124,12 +155,19 @@ def _odoo_creation_controls() -> rx.Component:
                                 default_value=PlanningState.odoo_required_date,
                                 disabled=busy,
                             ),
+                            field_error("odoo-required-date"),
                         ),
                         gap="1rem",
                         flex_wrap="wrap",
                         margin_bottom="1rem",
                     ),
-                    rx.text("Your business terms", font_weight="650", margin_bottom="0.5rem"),
+                    rx.heading(
+                        "Your business terms",
+                        as_="h3",
+                        size="4",
+                        font_weight="650",
+                        margin_bottom="0.5rem",
+                    ),
                     rx.text(
                         "Capacity and MOQ are supplied limits, not Odoo stock or quotation "
                         "quantities. Review every promised date.",
@@ -149,10 +187,12 @@ def _odoo_creation_controls() -> rx.Component:
                         max_width="75ch",
                         margin_y="1rem",
                     ),
-                    rx.button("Create and save Odoo plan", type="submit", disabled=busy, size="3"),
-                    on_submit=PlanningState.create_odoo,
+                    rx.button("Review Odoo terms", type="submit", disabled=busy, size="3"),
+                    on_submit=PlanningState.review_odoo,
+                    no_validate=True,
                     reset_on_submit=False,
                 ),
+                creation_review("odoo", "Create and save Odoo plan"),
             ),
         ),
         value="odoo",
@@ -190,6 +230,7 @@ def _planning_controls() -> rx.Component:
             rx.cond(
                 PlanningState.demo_ready,
                 rx.box(
+                    rx.heading("Prepared synthetic facts", as_="h3", size="4"),
                     rx.text(PlanningState.demo_details, size="2", color=MUTED, margin_y="1rem"),
                     rx.flex(
                         rx.foreach(
@@ -211,6 +252,7 @@ def _planning_controls() -> rx.Component:
                         margin_bottom="1rem",
                     ),
                     rx.el.form(
+                        rx.heading("Your demand", as_="h3", size="4", margin_bottom="1rem"),
                         rx.flex(
                             rx.box(
                                 rx.el.label(
@@ -221,6 +263,11 @@ def _planning_controls() -> rx.Component:
                                 ),
                                 rx.input(
                                     id="demo-quantity",
+                                    aria_invalid=PlanningState.creation_errors.get(
+                                        "demo-quantity", ""
+                                    )
+                                    != "",
+                                    aria_describedby="demo-quantity-error",
                                     name="quantity",
                                     type="number",
                                     min="1",
@@ -229,18 +276,25 @@ def _planning_controls() -> rx.Component:
                                     on_change=PlanningState.mark_creation_dirty,
                                     default_value=PlanningState.demo_quantity,
                                     required=True,
-                                    disabled=busy,
+                                    disabled=busy
+                                    | (PlanningState.creation_review.get("kind", "") != ""),
                                     width="10rem",
                                 ),
+                                field_error("demo-quantity"),
                             ),
                             rx.button(
-                                "Create and save plan", type="submit", disabled=busy, size="3"
+                                "Review demo terms",
+                                type="submit",
+                                disabled=busy
+                                | (PlanningState.creation_review.get("kind", "") != ""),
+                                size="3",
                             ),
                             align="end",
                             gap="1rem",
                             flex_wrap="wrap",
                         ),
-                        on_submit=PlanningState.create_demo,
+                        on_submit=PlanningState.review_demo,
+                        no_validate=True,
                         reset_on_submit=False,
                     ),
                     rx.text(
@@ -250,6 +304,7 @@ def _planning_controls() -> rx.Component:
                         margin_top="1rem",
                         max_width="70ch",
                     ),
+                    creation_review("demo", "Create and save plan"),
                 ),
             ),
             value="create",

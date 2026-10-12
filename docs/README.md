@@ -21,6 +21,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Responsive workspace #34](UX34_WORKSPACE_RUNBOOK.md): shared navigation, protected
   drafts, case bookmarks and real browser zoom/recovery checks.
   [Handoff](UX34_WORKSPACE_HANDOFF.md) retains dated evidence and limits.
+- [Attributed creation review #35](UX35_CREATION_RUNBOOK.md): facts/terms/review,
+  preserved editing, deliberate real saves and exact pending recovery.
+  [Handoff](UX35_CREATION_HANDOFF.md) distinguishes real runtime from mocked Odoo transport.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -43,9 +46,9 @@ The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
 [parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
 defines bounded discovery/classification, buyer flows and approved reassessment
 gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
-and their verified blocking links. #32–#34 now supply local discovery, Practice
-and responsive guarded navigation; their dated handoffs distinguish technical
-evidence from pending participants. Next are #35 input review, #36 comparison
+and their verified blocking links. #32–#35 now supply local discovery, Practice,
+responsive guarded navigation and attributed input review; their dated handoffs
+distinguish technical evidence from pending participants. Next are #36 comparison
 and #39 readable explanation; final buyer acceptance remains open.
 
 | Step | Design | Evidence and boundary |

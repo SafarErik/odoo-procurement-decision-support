@@ -19,6 +19,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     page.get_by_role("tab", name="Demo", exact=True).click()
     page.get_by_role("button", name="Load demo inputs", exact=True).click()
     expect(page.get_by_label("Demand quantity", exact=True)).to_have_value("10")
+    page.get_by_role("button", name="Review demo terms", exact=True).click()
     page.get_by_role("button", name="Create and save plan", exact=True).click()
     expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Alternative 1", exact=True)).to_be_visible()
@@ -65,6 +66,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     stack.stop(stack.api)
     stack.start_api(stored_only=True)
     page.reload()
+    expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     page.get_by_text("Open or create a comparison", exact=True).click()
     page.get_by_label("Case ID", exact=True).fill(case_id)
     page.get_by_role("button", name="Load stored case", exact=True).click()
@@ -113,7 +115,9 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     page.get_by_text("Open or create a comparison", exact=True).click()
     page.get_by_role("tab", name="Demo", exact=True).click()
     page.get_by_role("button", name="Load demo inputs", exact=True).click()
+    pending_route = page.url
     stack.stop(stack.api)
+    page.get_by_role("button", name="Review demo terms", exact=True).click()
     page.get_by_role("button", name="Create and save plan", exact=True).click()
     expect(page.get_by_role("button", name="Retry the same request", exact=True)).to_be_visible()
     expect(page.get_by_role("button", name="Create and save plan", exact=True)).to_be_disabled()
@@ -125,7 +129,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
         expect(
             page.get_by_role("button", name="Retry the same request", exact=True)
         ).to_be_visible()
-        expect(page).to_have_url(stack.frontend_url + "/planning")
+        expect(page).to_have_url(pending_route)
         assert json.loads(recovery.input_value()) == pending
     stack.evidence["checks"].append(
         "Pending create survived Cases and another-case bookmark navigation with exact key/payload"

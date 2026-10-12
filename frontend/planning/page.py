@@ -111,6 +111,7 @@ def _workspace() -> rx.Component:
                     size="7",
                     id="saved-case-heading",
                     tab_index=-1,
+                    on_mount=rx.set_focus("saved-case-heading"),
                 ),
                 rx.text(
                     PlanningState.details["quantity"],

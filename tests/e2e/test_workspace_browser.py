@@ -94,6 +94,7 @@ def test_workspace_navigation_and_recovery(smoke_stack, smoke_page, playwright):
     page.set_viewport_size({"width": 1280, "height": 900})
     page.get_by_role("button", name="Practice", exact=True).click()
     page.get_by_role("button", name="Choose compare plans", exact=True).click()
+    page.get_by_role("button", name="Review Practice terms", exact=True).click()
     stack.stop(stack.api)
     page.get_by_role("button", name="Calculate and save fresh Practice case").click()
     expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
