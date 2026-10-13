@@ -904,6 +904,8 @@ already approved content.
 
 1. Load an **approved original base**, then open **Plans** or **Audit**. Its saved
    human outcome, selected plan and original UTC decision time remain visible.
+   **Saved approved terms** retains product/demand, required date, exact cost and
+   supplier quantities/promised dates even while document access is unavailable.
 2. Choose **View approved PDF**. FastAPI validates the saved content and either
    atomically stores its first rendered artifact or serves the existing one.
    Expect the document pages and **Download approved PDF** link. The viewer
@@ -913,7 +915,9 @@ already approved content.
    and exact case/content hashes follow. The document approves only the original
    base; stress results are analytical. An incomplete comparison warning appears
    when later calculations failed after the selected plan was proven.
-4. Use **PDF zoom** for fit-width, 150%, 200% or 300% viewing. The document region
+4. **Previous PDF page** and **Next PDF page** show one page at a time with an
+   announced page indicator and disabled end controls. Use keyboard focus/Enter.
+   Use **PDF zoom** for fit-width, 150%, 200% or 300% viewing. The document region
    scrolls independently, including horizontal scrolling when zoomed. It is
    keyboard-focusable; Page Up/Down and arrow keys navigate. Mobile layout retains
    the download/zoom controls without expanding the whole page horizontally.
@@ -923,9 +927,13 @@ already approved content.
    plugin. The service token remains on the Reflex server and is absent from
    document URLs, browser state and the file.
 6. On **PDF unavailable**, the saved approval stays visible. Restore the backend
-   or renderer dependency, then choose **View approved PDF** explicitly again.
+   or renderer dependency, then choose **Retry approved PDF** explicitly.
+   **Document identity for support** exposes the original case/content hash.
    Do not finalize again or replace its key/content. No-award, unapproved bases
    and stress children have no approved-PDF action and are rejected by the API.
+
+See [#40 recovery/document procedures](UX40_RECOVERY_RUNBOOK.md) for distinct
+rejection/conflict/uncertainty, exact explicit retry and session-loss limits.
 
 Backend contract:
 `GET /api/v2/procurement/planning-cases/{case_id}/approved-pdf/{approved_content_hash}`

@@ -36,6 +36,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Supplier explanations and exact Audit #39](UX39_EVIDENCE_RUNBOOK.md): saved classes,
   timing/constraints, progressive exact evidence and keyboard/scoped scrolling.
   [Handoff](UX39_EVIDENCE_HANDOFF.md) records stored-only browser/reflow/native-zoom checks.
+- [Safe recovery and documents #40](UX40_RECOVERY_RUNBOOK.md): distinct rejection/conflict/
+  uncertainty, exact explicit replay, session limits and approved summary/page/zoom/download.
+  [Handoff](UX40_RECOVERY_HANDOFF.md) records genuine API faults and exact artifact recovery.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -58,11 +61,12 @@ The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
 [parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
 defines bounded discovery/classification, buyer flows and approved reassessment
 gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
-and their verified blocking links. #32–#39 now supply local discovery, Practice,
+and their verified blocking links. #32–#40 now supply local discovery, Practice,
 responsive guarded navigation, attributed input review and aligned explicit
 comparison, original-base disruptions, deliberate final review and exact supplier
-evidence; their dated handoffs distinguish technical evidence from pending participants.
-Next is #40 document recovery/access; final buyer acceptance stays open.
+evidence, safe recovery and approved-document navigation; their dated handoffs
+distinguish technical evidence from pending participants.
+Next is #41 complete buyer reassessment; final buyer acceptance stays open.
 
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |

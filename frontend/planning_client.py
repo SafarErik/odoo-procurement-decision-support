@@ -22,6 +22,12 @@ class PlanningDisplay:
     comparison_rows: list[dict[str, str]]
 
 
+FINAL_DECISION_CONFLICT = (
+    "Decision conflict (HTTP 409). The case may already be finalized or the request key "
+    "belongs to another intent. Reopen the recorded decision; do not approve again."
+)
+
+
 async def submit_planning_request(
     url: str,
     payload: dict,
@@ -59,10 +65,12 @@ async def submit_planning_request(
             403: "Planning access was rejected. Check the server-side service token.",
             404: "The base case was not found in this database. Load it again.",
             409: (
-                "This request key belongs to different inputs. Do not reuse it for changed inputs."
+                "Save conflict (HTTP 409). This request key belongs to different inputs. "
+                "Do not reuse it for changed inputs. Copy the exact request for support."
             ),
             422: (
-                "These inputs are outside the supported planning or model contract. Check "
+                "Inputs rejected (HTTP 422). These inputs are outside the supported planning "
+                "or model contract. Check "
                 "quantity, terms and the matched saved model."
             ),
             413: "The prepared request exceeds the API size limit.",
@@ -72,11 +80,10 @@ async def submit_planning_request(
                 return (
                     None,
                     (
-                        "The case is already finalized or the finalization key conflicts. "
-                        "Reopen it to review the recorded decision."
+                        FINAL_DECISION_CONFLICT
                         if response.status_code == 409
-                        else "Finalization was rejected. Review the explicit plan, actor, reason, "
-                        "saved hash and demo acknowledgement."
+                        else "Finalization was rejected (HTTP 422). Review the explicit plan, "
+                        "actor, reason, saved hash and demo acknowledgement."
                     ),
                     False,
                 )
@@ -179,7 +186,9 @@ async def fetch_planning_case(
     except httpx.HTTPError:
         return (
             None,
-            "Planning data is unavailable. Check the FastAPI service and planning database.",
+            "Planning data is unavailable. Retry Load stored case when access returns. "
+            "Opening only reads saved work. If it persists, give the case ID to the owner "
+            "to check the FastAPI service and planning database.",
         )
     try:
         return _map_case(response.json(), case_id), ""

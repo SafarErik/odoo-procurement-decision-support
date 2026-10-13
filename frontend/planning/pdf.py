@@ -22,6 +22,7 @@ function ApprovedPDFViewer({data, filename}) {
     const [pdfLibrary, setPdfLibrary] = useState(null);
     const [url, setUrl] = useState("");
     const [pages, setPages] = useState(0);
+    const [page, setPage] = useState(1);
     const [width, setWidth] = useState(300);
     const [zoom, setZoom] = useState(1);
     const [error, setError] = useState(false);
@@ -53,25 +54,40 @@ function ApprovedPDFViewer({data, filename}) {
     }, []);
     const Document = pdfLibrary?.Document;
     const Page = pdfLibrary?.Page;
-    return <div ref={container} style={{width: "100%"}}>
+    const control = {padding: "0.5rem 0.75rem", color: "#173e3d",
+        background: "#fff", border: "1px solid #c9d8d1", borderRadius: "6px",
+        minHeight: "44px", font: "inherit"};
+    return <div ref={container} style={{width: "100%", minWidth: 0}}>
         <p><a href={url} download={filename} style={{display: "inline-block",
-            padding: "0.5rem 0.75rem", color: "#153d55", border: "1px solid #ccd6dc",
+            padding: "0.5rem 0.75rem", color: "#173e3d", border: "1px solid #c9d8d1",
             borderRadius: "6px"}}>Download approved PDF</a></p>
-        <label>PDF zoom <select aria-label="PDF zoom" value={zoom}
+        <div style={{display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center",
+            marginBottom: "0.75rem"}}>
+        <button type="button" style={control} disabled={page <= 1 || error || !pages}
+            onClick={() => setPage(current => current - 1)}>Previous PDF page</button>
+        <span role="status" aria-live="polite">
+            {error ? "PDF preview unavailable" : pages ? `Page ${page} of ${pages}`
+                : "Loading PDF pages…"}</span>
+        <button type="button" style={control} disabled={page >= pages || error || !pages}
+            onClick={() => setPage(current => current + 1)}>Next PDF page</button>
+        <label>PDF zoom <select aria-label="PDF zoom" value={zoom} style={control}
             onChange={event => setZoom(Number(event.target.value))}>
             <option value="1">Fit width</option><option value="1.5">150%</option>
             <option value="2">200%</option><option value="3">300%</option>
-        </select></label>
+        </select></label></div>
         {error && <p role="alert">PDF preview unavailable. Approval remains saved.
             Download the PDF or explicitly retry View approved PDF.</p>}
         <div role="region" tabIndex={0} aria-label="Approved procurement PDF"
-             style={{maxHeight: "700px", overflow: "auto", border: "1px solid #ccd6dc"}}>
-            {pdfLibrary ? <Document file={file} onLoadSuccess={({numPages}) => setPages(numPages)}
+             style={{maxHeight: "min(700px, 70dvh)", overflow: "auto",
+                 border: "1px solid #c9d8d1"}}>
+            {pdfLibrary ? <Document file={file} onLoadSuccess={({numPages}) => {
+                          setPages(numPages); setPage(1); setError(false);
+                      }}
                       onLoadError={() => setError(true)} onSourceError={() => setError(true)}>
-                {Array.from({length: pages}, (_, i) =>
-                    <Page key={i + 1} pageNumber={i + 1} width={Math.max(200, width - 4) * zoom}
-                          renderAnnotationLayer={false} onRenderError={() => setError(true)} />)}
-            </Document> : <p>Loading PDF viewer...</p>}
+                {pages > 0 && <Page key={page} pageNumber={page}
+                          width={Math.max(160, width - 4) * zoom}
+                          renderAnnotationLayer={false} onRenderError={() => setError(true)} />}
+            </Document> : <p role="status">Loading PDF viewer...</p>}
         </div>
     </div>;
 }

@@ -11,8 +11,8 @@ from pydantic import SecretStr
 from backend.app.main import app
 from frontend.config import settings
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case, submit_planning_request
-from tests.test_t17_decisions import TOKEN
+from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
+from tests.test_t17_decisions import TOKEN, intent
 from tests.test_t17_decisions import configured as configured
 from tests.test_t17_decisions import stored_cases as stored_cases
 
@@ -121,3 +121,67 @@ def test_no_award_requires_reason_has_no_plan_and_child_cannot_review(prepared):
     state._show(_map_case(child, child["case_id"]))
     state.review_final_decision(form("No-award"))
     assert not state.decision_open and len(posts) == 1
+
+
+@pytest.mark.parametrize("recovering", [False, True])
+def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
+    prepared, configured, monkeypatch, recovering
+):
+    state, uow, base, _, posts = prepared
+    client = configured[0]
+    if recovering:
+        state._prepare_request(
+            "http://test/api/v2/procurement/planning-cases/" + base["case_id"] + "/final-decision",
+            intent(base, index=1),
+        )
+        state.is_loading = False
+    saved = client.post(
+        f"/api/v2/procurement/planning-cases/{base['case_id']}/final-decision",
+        json=intent(base),
+        headers={"Authorization": f"Bearer {TOKEN}", "Idempotency-Key": str(uuid4())},
+    )
+    assert saved.status_code == 201
+    if recovering:
+        consume(state, PlanningState.recover_request)
+        pending = deepcopy(state._pending)
+        assert state.has_pending
+    else:
+        state.review_final_decision(form())
+        consume(state, PlanningState.confirm_final_decision)
+    assert state.decision_conflict and "HTTP 409" in state.error_message
+    assert "ref_request_recovery_heading" in str(PlanningState.focus_pending_save.fn(state))
+    assert len(posts) == len(uow.decisions.rows) == 1
+    recovery = state.recovery_json
+    state.review_final_decision(form())
+    consume(state, PlanningState.confirm_final_decision)
+    consume(state, PlanningState.recover_request)
+    assert len(posts) == 1 and not state.decision_open
+
+    async def unavailable(*args):
+        return None, "Planning data is unavailable."
+
+    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", unavailable)
+    consume(state, PlanningState.reopen_conflicted_decision)
+    assert state.decision_conflict and state.recovery_json == recovery
+    if recovering:
+        assert state._pending == pending and state.has_pending
+
+    async def no_record(*args):
+        return _map_case(base, base["case_id"]), ""
+
+    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", no_record)
+    consume(state, PlanningState.reopen_conflicted_decision)
+    assert state.decision_conflict and "No recorded decision" in state.error_message
+    assert state.recovery_json == recovery and len(posts) == 1
+
+    async def fetch(url, case_id, token):
+        return await fetch_planning_case(
+            url, case_id, token, transport=httpx.ASGITransport(app=app)
+        )
+
+    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", fetch)
+    consume(state, PlanningState.reopen_conflicted_decision)
+    assert not state.has_pending and not state.decision_conflict
+    assert state.details["final_plan"] == "Minimum cost"
+    assert state.details["snapshot_hash"] == base["snapshot_hash"]
+    assert len(posts) == len(uow.decisions.rows) == 1

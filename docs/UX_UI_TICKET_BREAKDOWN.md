@@ -2,7 +2,7 @@
 
 Prepared 2026-10-12 from the user-confirmed brief and
 [local specification](UX_UI_INCREMENT_SPEC.md).
-Status: **APPROVED AND PUBLISHED — parent #42 and delivery #32–#41; #32–#39 locally implemented, remaining work and human acceptance pending**.
+Status: **APPROVED AND PUBLISHED — parent #42 and delivery #32–#41; #32–#40 locally implemented, #41 and human acceptance pending**.
 Ticket numbers below are local delivery identifiers, not GitHub issue numbers.
 Current delivery evidence: [#32 implementation handoff](UX32_LIBRARY_HANDOFF.md).
 [#33 Practice/classification handoff](UX33_PRACTICE_HANDOFF.md) records the next slice.
@@ -17,7 +17,9 @@ infeasibility, five real disruption types and exact recovery.
 and separate No-award while retaining immutable decisions/PDF.
 [#39 supplier/Audit handoff](UX39_EVIDENCE_HANDOFF.md) adds readable saved evidence,
 progressive exact records and stored-only keyboard/reflow/zoom verification.
-#40–#41 remain open.
+[#40 recovery/document handoff](UX40_RECOVERY_HANDOFF.md) adds distinct conflict recovery,
+session limits and exact approved summary/page/zoom/download with genuine API fault evidence.
+#41 remains open; local implementation does not close GitHub issues or establish human acceptance.
 The approved criteria below remain the contract; later tickets are not implemented
 by the saved-case library.
 The selected direction is Decision editorial; T19 remains thesis closure after

@@ -3204,3 +3204,43 @@ chapters 4/6/7. No independent transaction rerun or timing benchmark was require
 for unchanged contracts. Commit/push/merge remain user-controlled, with Drive/issues
 untouched. Next: #40 recovery and approved documents; #41 human reassessment remains
 separate before T19 thesis closure.
+
+## 2026-10-13 — Safe recovery and approved document access (#40, parent #42)
+
+**Problem -> decision:** Uncertain saves were technically safe but unclear, finalized
+conflicts left approval controls available, and the PDF lacked page controls. Reuse
+the existing HTTP state/projection and React-PDF; preserve immutable backend content.
+
+**Implemented behavior:** Distinct rejection/conflict/pending/unavailable/document
+copy supplies explicit actions and copyable original request/support identity.
+Uncertain create/scenario/decision retains URL/payload/key and navigation guards;
+retry remains explicit. Session-loss limits are visible, with no durable outbox.
+Finalization conflict pauses approval for stored-only GET reopening; failed/no-record
+GET preserves context/proof. Approved product/demand/date/cost/allocations remain
+visible through document failure. One-page preview has announced page status,
+previous/next/end states, fit/zoom and byte-identical full download. Practice/actor/
+synthetic limits and PDF eligibility remain. No backend/core/model/solver/Odoo/
+persistence/renderer/content contract, migration, dependency or service change.
+
+**Evidence:** Final full fast 675 PASS, 74 deselected; focused development 72 PASS.
+Both final real-stack browsers PASS: actual GET/create/scenario/finalization/PDF
+outages; exact replay/guards; one child/decision and unchanged stored content; real
+competing HTTP 409 and GET-only reopening; five rendered PDF pages and exact SHA-256
+download; keyboard, narrow/long/non-Latin labels and native 200% browser zoom.
+A fresh isolated browser context had no pending recovery while the original kept
+its proof. Initial locator failures and passing reruns are preserved in the
+[handoff](UX40_RECOVERY_HANDOFF.md); commands/cleanup are in the
+[runbook](UX40_RECOVERY_RUNBOOK.md). Built-in desktop/320 inspection confirms page
+navigation, scoped PDF zoom and saved terms/retry/support through a real owned API
+failure. Fast/static/runtime/pip/Compose gates pass. Owned storage/process/tunnel
+cleanup, explicit preview tab closure and viewport restoration confirmed.
+
+**Limitation -> chapter relevance -> next:** Recovery is session-local; copied JSON
+does not restore a session. Practice shares storage, exposure is uncalibrated and
+actor attribution is not authenticated identity. Unchanged transaction contracts
+retain historical #38 evidence; no standalone rollback/contention or benchmark
+rerun was needed. Live Odoo, hosted CI, physical devices, speech and human tasks
+remain unverified/NOT ASSESSED. UX-AC-13/14, FR/AC-V2-09/10/11/12, NFR-V2-05/06/07
+and UX29-06/08/09 support chapters 4/6/7. Local #32–#40 technical delivery is complete;
+#41 participant/owner reassessment remains next before T19 closure. Commit/push/merge
+remain user-controlled; Drive/issues were untouched.

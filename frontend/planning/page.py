@@ -57,26 +57,50 @@ def _test_guide() -> rx.Component:
 def _recovery() -> rx.Component:
 
     return rx.cond(
-        PlanningState.has_pending & ~PlanningState.is_loading,
+        (PlanningState.has_pending | PlanningState.decision_conflict) & ~PlanningState.is_loading,
         rx.box(
             rx.heading(
-                "Confirm the pending save before continuing",
+                rx.cond(
+                    PlanningState.decision_conflict,
+                    "Reopen the recorded decision",
+                    "Confirm the pending save before continuing",
+                ),
                 as_="h2",
                 size="3",
                 id="request-recovery-heading",
                 tab_index=-1,
-                on_mount=PlanningState.focus_pending_decision,
+                on_mount=PlanningState.focus_pending_save,
             ),
             rx.text(
-                "The response is uncertain. Retry the identical request; changing "
-                "inputs could create another case or conflict with a recorded decision.",
+                rx.cond(
+                    PlanningState.decision_conflict,
+                    "The server reported a conflict. Read the saved outcome before continuing; "
+                    "another approval attempt cannot replace it.",
+                    "The response is uncertain: this save may have succeeded. Retry sends only "
+                    "the original inputs and key. Do not create a replacement or change context.",
+                ),
                 size="2",
                 margin_y="0.75rem",
             ),
-            rx.button(
-                "Retry the same request",
-                on_click=PlanningState.recover_request,
-                disabled=PlanningState.is_loading,
+            rx.cond(
+                PlanningState.decision_conflict,
+                rx.callout(PlanningState.error_message, role="alert", color_scheme="red"),
+            ),
+            rx.cond(
+                PlanningState.decision_conflict,
+                rx.button(
+                    "Reopen saved decision", on_click=PlanningState.reopen_conflicted_decision
+                ),
+                rx.button("Retry the same request", on_click=PlanningState.recover_request),
+            ),
+            rx.text(
+                "Recovery is held only in this Reflex session. Closing or losing the session, "
+                "or a server restart, can lose the pending intent. Copy the recovery record "
+                "before leaving and give it to the owner if recovery fails; it is not an "
+                "automatic restore or a durable outbox.",
+                size="2",
+                margin_top="0.75rem",
+                max_width="75ch",
             ),
             rx.el.details(
                 rx.el.summary("Copy recovery record before leaving", cursor="pointer"),
@@ -263,6 +287,7 @@ def planning_page() -> rx.Component:
             ),
             rx.cond(
                 (PlanningState.error_message != "")
+                & ~PlanningState.decision_conflict
                 & (
                     (PlanningState.error_target != "decision")
                     | ~PlanningState.has_case
@@ -277,6 +302,30 @@ def planning_page() -> rx.Component:
                 ),
             ),
             _recovery(),
+            rx.cond(
+                (PlanningState.error_message != "")
+                & ~PlanningState.has_pending
+                & ~PlanningState.decision_conflict
+                & (PlanningState.recovery_json != ""),
+                rx.el.details(
+                    rx.el.summary("Last request for support", cursor="pointer"),
+                    rx.text(
+                        "Keep the response message with this original URL, payload and key.",
+                        size="2",
+                    ),
+                    rx.button(
+                        "Copy exact request", on_click=rx.set_clipboard(PlanningState.recovery_json)
+                    ),
+                    rx.text_area(
+                        value=PlanningState.recovery_json,
+                        read_only=True,
+                        aria_label="Exact request recovery JSON",
+                        width="100%",
+                        height="10rem",
+                    ),
+                    margin_bottom="1rem",
+                ),
+            ),
             rx.cond(
                 PlanningState.notice != "",
                 rx.callout(

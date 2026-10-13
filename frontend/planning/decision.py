@@ -41,9 +41,41 @@ def saved_decision(*, focus_target: bool = False) -> rx.Component:
         rx.cond(
             PlanningState.details["final_outcome"] == "Approved",
             rx.vstack(
+                rx.el.section(
+                    rx.heading("Saved approved terms", as_="h3", size="3"),
+                    rx.text(
+                        PlanningState.details["product"],
+                        " · ",
+                        PlanningState.details["quantity"],
+                        " ",
+                        PlanningState.details["unit"],
+                        " · required ",
+                        PlanningState.details["required_date"],
+                    ),
+                    rx.text("Approved cost: ", PlanningState.selected_plan.get("cost", "")),
+                    rx.foreach(
+                        PlanningState.allocations,
+                        lambda row: rx.cond(
+                            row["plan"] == PlanningState.details["final_plan"],
+                            rx.text(
+                                row["name"],
+                                ": ",
+                                row["quantity"],
+                                " ",
+                                PlanningState.details["unit"],
+                                " · promised ",
+                                row["promised"],
+                                size="2",
+                            ),
+                        ),
+                    ),
+                    aria_label="Saved approved terms",
+                ),
                 rx.flex(
                     rx.button(
-                        "View approved PDF",
+                        rx.cond(
+                            PlanningState.pdf_error != "", "Retry approved PDF", "View approved PDF"
+                        ),
                         on_click=PlanningState.request_pdf,
                         disabled=PlanningState.is_loading | PlanningState.has_pending,
                     ),
@@ -53,6 +85,19 @@ def saved_decision(*, focus_target: bool = False) -> rx.Component:
                 rx.cond(
                     PlanningState.pdf_error != "",
                     rx.callout(PlanningState.pdf_error, color_scheme="amber", role="alert"),
+                ),
+                rx.el.details(
+                    rx.el.summary("Document identity for support", cursor="pointer"),
+                    rx.text("Original case: ", PlanningState.details["case_id"], size="2"),
+                    rx.text(
+                        "Approved content hash: ",
+                        PlanningState.details["final_content_hash"],
+                        size="2",
+                    ),
+                    rx.text(
+                        "Document access reads this approval only; it does not approve again.",
+                        size="2",
+                    ),
                 ),
                 rx.cond(
                     PlanningState.pdf_data_url != "",
@@ -311,8 +356,12 @@ def decision_view() -> rx.Component:
                 color_scheme="gray",
             ),
             rx.cond(
-                PlanningState.details["final_outcome"] != "",
-                saved_decision(focus_target=True),
+                (PlanningState.details["final_outcome"] != "") | PlanningState.decision_conflict,
+                rx.cond(
+                    PlanningState.decision_conflict,
+                    rx.text("Decision actions are paused. Reopen the recorded decision above."),
+                    saved_decision(focus_target=True),
+                ),
                 rx.vstack(
                     rx.heading(
                         "Record the final decision",

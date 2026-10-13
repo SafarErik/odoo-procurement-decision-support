@@ -13,7 +13,12 @@ from uuid import UUID, uuid4
 import reflex as rx
 
 from frontend.config import settings
-from frontend.planning_client import _supplier_label, fetch_planning_case, submit_planning_request
+from frontend.planning_client import (
+    FINAL_DECISION_CONFLICT,
+    _supplier_label,
+    fetch_planning_case,
+    submit_planning_request,
+)
 from frontend.planning_library_client import fetch_library
 from frontend.planning_pdf_client import fetch_planning_pdf
 
@@ -60,6 +65,7 @@ class PlanningState(rx.State):
     notice: str = ""
     final_choice: str = ""
     decision_open: bool = False
+    decision_conflict: bool = False
     decision_review: dict[str, str] = {}
     _decision_payload: dict = {}
     pdf_data_url: str = ""
@@ -420,6 +426,7 @@ class PlanningState(rx.State):
         self.scenario_suppliers = result.scenario_suppliers
         self.comparison_rows = result.comparison_rows
         self.has_case = True
+        self.decision_conflict = False
         self.input_mode = "stored"
         self.view = "plans" if self.details["parent_id"] == "Base case" else "whatif"
         self.stress_supplier = ""
@@ -972,6 +979,7 @@ class PlanningState(rx.State):
             self._pending["key"],
             settings.t12_trusted_caller_token.get_secret_value(),
         )
+        self.decision_conflict = self.error_message == FINAL_DECISION_CONFLICT
         self.has_pending = uncertain or (recovering and result is None)
         if (
             result is not None
@@ -998,6 +1006,7 @@ class PlanningState(rx.State):
         self._pending = {"url": url, "payload": deepcopy(payload), "key": self.request_key}
         self.recovery_json = json.dumps(self._pending, indent=2, allow_nan=False)
         self.has_pending = True
+        self.decision_conflict = False
         self.error_message = ""
         self.notice = ""
         self.is_loading = True
@@ -1029,7 +1038,7 @@ class PlanningState(rx.State):
 
     @rx.event
     def review_final_decision(self, form_data: dict[str, Any]):
-        if self.is_loading or self.has_pending:
+        if self.is_loading or self.has_pending or self.decision_conflict:
             return
         self._clear_decision_review()
         self.error_target = "decision"
@@ -1089,8 +1098,8 @@ class PlanningState(rx.State):
         self._decision_payload = {}
 
     @rx.event
-    def focus_pending_decision(self):
-        if self.has_pending and self._pending.get("url", "").endswith("/final-decision"):
+    def focus_pending_save(self):
+        if self.has_pending or self.decision_conflict:
             return rx.set_focus("request-recovery-heading")
 
     @rx.event
@@ -1100,7 +1109,7 @@ class PlanningState(rx.State):
 
     @rx.event
     async def confirm_final_decision(self):
-        if self.is_loading or self.has_pending or not self.decision_open:
+        if self.is_loading or self.has_pending or self.decision_conflict or not self.decision_open:
             return
         if (
             not self.has_case
@@ -1293,7 +1302,7 @@ class PlanningState(rx.State):
 
     @rx.event
     async def recover_request(self):
-        if self.is_loading or not self.has_pending or not self._pending:
+        if self.is_loading or self.decision_conflict or not self.has_pending or not self._pending:
             return
         self.is_loading = True
         reviewed_creation = bool(self._review_payload)
@@ -1322,6 +1331,34 @@ class PlanningState(rx.State):
             yield rx.set_focus("saved-decision-heading")
 
     @rx.event
+    async def reopen_conflicted_decision(self):
+        if self.is_loading or not self.decision_conflict or not self.has_case:
+            return
+        self.is_loading = True
+        yield
+        try:
+            saved, error = await fetch_planning_case(
+                settings.planning_cases_url,
+                self.details["case_id"],
+                settings.t12_trusted_caller_token.get_secret_value(),
+            )
+            if saved is not None and saved.details["final_outcome"]:
+                self.has_pending = False
+                self._pending = {}
+                self.decision_conflict = False
+                self._show(saved)
+                self.notice = "Recorded decision reopened. Review its saved actor and terms."
+            else:
+                self.error_message = error or (
+                    "No recorded decision was returned. Keep the recovery record and contact "
+                    "the owner about the conflicting request key. Do not approve again."
+                )
+        finally:
+            self.is_loading = False
+        if not self.decision_conflict:
+            yield rx.set_focus("saved-decision-heading")
+
+    @rx.event
     async def load_case(self, form_data: dict[str, Any]):
         if self.creation_dirty or self.scenario_dirty:
             yield self.open_saved_case(form_data.get("case_id", "").strip())
@@ -1332,8 +1369,10 @@ class PlanningState(rx.State):
     async def _load_case(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:
             return
+        self.decision_conflict = False
         self.error_target = ""
         self.view = "plans"
+        self.recovery_json = self.request_key = ""
         self.has_case = False
         self.details = {}
         self.plans = []

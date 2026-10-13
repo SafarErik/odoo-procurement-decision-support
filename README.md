@@ -33,6 +33,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I reproduce repeated three-supplier HTTP measurements? | [T18 #26 evaluation runbook](docs/T18_26_EVALUATION_RUNBOOK.md) |
 | How do I reproduce the supported workload/stress matrix and separate live flow? | [T18 #27 evaluation runbook](docs/T18_27_EVALUATION_RUNBOOK.md) |
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
+| How do I recover an uncertain save or reopen an approved PDF? | [Recovery/document runbook #40](docs/UX40_RECOVERY_RUNBOOK.md), [handoff](docs/UX40_RECOVERY_HANDOFF.md) — exact explicit retry, conflict reopening, saved terms and PDF page/zoom/download controls |
 | What did the buyer/keyboard/mobile assessment find? | [T18 #29 assessment, UX priorities and pending owner run sheet](docs/T18_29_BUYER_ASSESSMENT.md) |
 | What does the complete controlled evaluation establish? | [T18 #30 acceptance matrix, RQ answers and UX/UI follow-up](docs/T18_CONTROLLED_ASSESSMENT.md) |
 | How do I find and reopen earlier saved work? | [Saved-case library runbook](docs/UX32_LIBRARY_RUNBOOK.md), [#32 handoff](docs/UX32_LIBRARY_HANDOFF.md) — migrate the helper and configure its library company, then open `/cases` |
@@ -60,6 +61,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Deliberate approval and separate No-award | #38 reviews exact selected context/terms, actor and reason before confirmation. Review/cancel write nothing; final confirmation uses the existing immutable API. No-award is separate and has no approved PDF. Saved choice/time/reason replace controls; exact pending replay and existing document access remain. See the decision handoff for local verification and open human gates. |
 | Readable supplier evidence and exact Audit | #39 leads with saved classes, receipt sample/reference time, applicability and recorded exclusions/binding limits. Audit progressively exposes exact inputs, tree/model/solver evidence, provenance and the complete saved snapshot without recalculation. [Handoff](docs/UX39_EVIDENCE_HANDOFF.md), [inspection/runbook](docs/UX39_EVIDENCE_RUNBOOK.md) retain browser/zoom evidence and human limits. |
 | Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
+| Safe recovery and approved document access | #40 explains uncertain saves and session-loss limits, preserves the original intent/key, and pauses conflicting finalization for explicit stored-only reopening. Approved terms remain visible through PDF failure; previous/next, page status, fit/zoom and download use the existing immutable artifact. [Handoff](docs/UX40_RECOVERY_HANDOFF.md) records real faults, exact recovery/download and keyboard/narrow/native-zoom evidence. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is retained and assessed alongside later evidence in [T18's controlled report](docs/T18_CONTROLLED_ASSESSMENT.md). |
 | Repeated local HTTP evaluation | T18 #27 measures all six 3/5/10-supplier × 1/3-epsilon workloads, all stress types and infeasibility: 2,160 measured operations passed all 72 local p95 targets. The separate fixed live quotation/synthetic-model flow and stored-only reopening passed. [Handoff](docs/T18_27_HANDOFF.md) preserves exact evidence; both T7-S/T8 checks passed after user key renewal; the initial 401 failures and separate rerun remain recorded. Browser/usability assessment remains separate. |
@@ -259,8 +261,8 @@ claimed. Browser milestone procedures are in the runbook.
    Commit/push/merge and issue closure remain user-controlled; the report does not
    establish final product/thesis acceptance.
 2. Continue the [published buyer-workspace increment](docs/UX_UI_TICKET_BREAKDOWN.md)
-   with #40 document recovery/access.
-   #32–#39 have local technical evidence. Complete
+   with #41 complete buyer reassessment.
+   #32–#40 have local technical evidence. Complete
    remaining owner/assistive checks and #41 unfamiliar-participant reassessment
    before validating the buyer experience and proceeding to T19 thesis closure.
 3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive

@@ -59,5 +59,7 @@ async def fetch_planning_pdf(cases_url, case_id, content_hash, token, *, transpo
     except (httpx.HTTPError, ValueError, TypeError, AttributeError):
         return (
             None,
-            "PDF unavailable. Approval remains saved. Retry the same approved document explicitly.",
+            "PDF unavailable. Approval remains saved. Use Retry approved PDF to read this same "
+            "document when access returns. If it persists, give the original case and approved "
+            "content hash below to the owner. Do not approve again.",
         )

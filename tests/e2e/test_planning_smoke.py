@@ -10,7 +10,7 @@ import pytest
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 
-def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
+def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page, playwright):
     from playwright.sync_api import expect
 
     expect.set_options(timeout=45000)
@@ -61,7 +61,20 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     )
     page.get_by_role("checkbox").check()
     page.get_by_role("button", name="Review approval", exact=True).click()
+    stack.stop(stack.api)
     page.get_by_role("button", name="Confirm approval", exact=True).click()
+    expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
+    pending_decision = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
+    expect(page.locator("body")).to_contain_text("server restart")
+    expect(page.get_by_role("button", name="Cases", exact=True)).to_be_disabled()
+    page.goto(stack.frontend_url + "/cases")
+    assert (
+        json.loads(page.get_by_label("Exact request recovery JSON").input_value())
+        == pending_decision
+    )
+    stack.start_api(stored_only=True)
+    page.get_by_role("button", name="Retry the same request", exact=True).click()
+    expect(page.locator("#saved-decision-heading")).to_be_focused()
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     expect(page.get_by_text("Selected plan: Alternative 1", exact=True)).to_be_visible()
     approved = stack.client.get(f"/api/v2/procurement/planning-cases/{case_id}").json()
@@ -70,6 +83,13 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     assert decision["intent"]["outcome"] == "approve"
     assert decision["intent"]["actor_reference"] == "t18-browser-buyer"
     assert decision["approved_content"]["selected_plan"] == result["alternatives"][0]
+    assert decision["idempotency_key"] == pending_decision["key"]
+    replay = stack.client.post(
+        pending_decision["url"],
+        json=pending_decision["payload"],
+        headers={"Idempotency-Key": pending_decision["key"]},
+    )
+    assert replay.status_code == 200 and replay.json()["idempotent_replay"]
     stack.evidence["checks"].append("Explicit alternative approval and unchanged original snapshot")
     stack.stop(stack.api)
     stack.start_api(stored_only=True)
@@ -86,7 +106,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     expect(page.get_by_role("link", name="Download approved PDF", exact=True)).to_have_count(0)
     stack.start_api(stored_only=True)
-    page.get_by_role("button", name="View approved PDF", exact=True).click()
+    page.get_by_role("button", name="Retry approved PDF", exact=True).click()
     expect(page.get_by_role("status").filter(has_text="The PDF is ready.")).to_be_visible()
     region = page.get_by_role("region", name="Approved procurement PDF", exact=True)
     expect(region.locator("canvas").first).to_be_visible()
@@ -101,6 +121,88 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     )
     assert pdf.status_code == 200 and data == pdf.content
     assert hashlib.sha256(data).hexdigest() == pdf.headers["x-pdf-sha256"]
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    pages = len(PdfReader(BytesIO(data)).pages)
+    assert pages > 1
+    expect(page.get_by_role("status").filter(has_text=f"Page 1 of {pages}")).to_be_visible()
+    expect(page.get_by_role("button", name="Previous PDF page")).to_be_disabled()
+    summary = page.get_by_role("region", name="Saved approved terms")
+    expect(summary).to_contain_text(result["alternatives"][0]["total_cost"] + " EUR")
+    for allocation in result["alternatives"][0]["allocations"]:
+        expect(summary).to_contain_text(str(allocation["quantity"]) + " piece")
+    next_page = page.get_by_role("button", name="Next PDF page")
+    for number in range(2, pages + 1):
+        next_page.focus()
+        page.keyboard.press("Enter")
+        expect(region.locator(".react-pdf__Page")).to_have_attribute(
+            "data-page-number", str(number)
+        )
+    expect(next_page).to_be_disabled()
+    previous_page = page.get_by_role("button", name="Previous PDF page")
+    previous_page.focus()
+    page.keyboard.press("Enter")
+    expect(region.locator(".react-pdf__Page")).to_have_attribute("data-page-number", str(pages - 1))
+    for width in (1440, 768, 390, 320):
+        page.set_viewport_size({"width": width, "height": 900})
+        page.get_by_label("PDF zoom").select_option("2")
+        expect(region.locator("canvas")).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.get_by_label("PDF zoom").select_option("1")
+        previous_page.scroll_into_view_if_needed()
+        page.screenshot(path=str(stack.root / f"approved-document-{width}.png"))
+    extension = stack.root / "pdf-zoom-extension"
+    extension.mkdir()
+    (extension / "manifest.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 3,
+                "name": "Document text zoom check",
+                "version": "1.0",
+                "permissions": ["tabs"],
+                "background": {"service_worker": "background.js"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (extension / "background.js").write_text(
+        "chrome.runtime.onInstalled.addListener(() => {});", encoding="utf-8"
+    )
+    context = playwright.chromium.launch_persistent_context(
+        str(stack.root / "pdf-zoom-profile"),
+        channel="chromium",
+        headless=True,
+        args=[f"--disable-extensions-except={extension}", f"--load-extension={extension}"],
+        viewport={"width": 1280, "height": 900},
+    )
+    try:
+        worker = (
+            context.service_workers[0]
+            if context.service_workers
+            else context.wait_for_event("serviceworker")
+        )
+        zoom = context.new_page()
+        zoom.goto(stack.frontend_url + f"/planning?case_id={case_id}&view=plans")
+        expect(zoom.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
+        factor = worker.evaluate("""async () => {
+            const [tab] = await chrome.tabs.query({url:'http://127.0.0.1/*'});
+            await chrome.tabs.setZoom(tab.id, 2); return chrome.tabs.getZoom(tab.id);
+        }""")
+        assert factor == 2
+        zoom.wait_for_function("window.devicePixelRatio === 2 && window.innerWidth <= 640")
+        zoom.get_by_role("button", name="View approved PDF").click()
+        expect(zoom.get_by_role("button", name="Next PDF page")).to_be_enabled()
+        zoom.get_by_role("button", name="Next PDF page").focus()
+        zoom.keyboard.press("Enter")
+        expect(zoom.get_by_role("status").filter(has_text=f"Page 2 of {pages}")).to_be_visible()
+        assert zoom.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        zoom.screenshot(path=str(stack.root / "approved-document-browser-200-percent.png"))
+        stack.evidence["native_browser_zoom"] = factor
+    finally:
+        context.close()
+    page.set_viewport_size({"width": 1280, "height": 900})
     page.screenshot(path=str(stack.root / "approved-pdf.png"), full_page=True)
     stack.evidence["checks"].append(
         "Model-unconfigured stored reopening; PDF outage alert and explicit recovery; "
@@ -132,6 +234,16 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
     expect(page.get_by_role("alert")).to_contain_text("The outcome is unconfirmed")
     recovery = page.get_by_label("Exact request recovery JSON", exact=True)
     pending = json.loads(recovery.input_value())
+    fresh_context = page.context.browser.new_context()
+    try:
+        fresh = fresh_context.new_page()
+        fresh.goto(stack.frontend_url + "/planning")
+        expect(fresh.get_by_role("heading", name="Start a comparison")).to_be_visible()
+        expect(fresh.get_by_role("button", name="Retry the same request")).to_have_count(0)
+        expect(fresh.get_by_label("Exact request recovery JSON")).to_have_count(0)
+    finally:
+        fresh_context.close()
+    assert json.loads(recovery.input_value()) == pending
     for destination in ("/cases", f"/planning?case_id={case_id}&view=audit"):
         page.goto(stack.frontend_url + destination)
         expect(
@@ -162,6 +274,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
         case_id=case_id,
         approved_content_hash=decision["approved_content_hash"],
         pdf_sha256=hashlib.sha256(data).hexdigest(),
+        pdf_pages=pages,
         recovery_key=pending["key"],
         recovery_case_id=replay.json()["case_id"],
         outcome="PASS",
