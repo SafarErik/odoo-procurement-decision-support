@@ -298,7 +298,11 @@ def planning_page() -> rx.Component:
                 padding="1rem",
                 margin_top="1.5rem",
             ),
-            _test_guide(),
+            rx.cond(
+                ~PlanningState.has_case
+                | (PlanningState.details.get("workspace", "") == "practice"),
+                _test_guide(),
+            ),
             rx.el.details(
                 rx.el.summary("Evidence boundary", padding=".75rem 0"),
                 rx.text(

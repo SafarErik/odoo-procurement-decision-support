@@ -226,16 +226,42 @@ def _supplier_label(identity: str) -> str:
     )
 
 
+_BUYER_EXPLANATIONS = {
+    "zero_in_optimal_plan": (
+        "Not selected in this plan; this does not mean the supplier is excluded."
+    ),
+    "capacity_binding": "Uses all of this supplier's declared capacity.",
+    "concentration_binding": "Reaches the maximum quantity allowed for one supplier.",
+    "supplier_count_binding": "Uses the maximum allowed number of suppliers.",
+    "unavailable": "Excluded: declared unavailable for this saved case.",
+    "deadline_ineligible": "Excluded: the promised date is after the required date.",
+    "no_valid_quantity": "Excluded: no positive quantity satisfies the recorded limits.",
+    "moq_binding": "Reaches this supplier's minimum order quantity.",
+    "price_lower_binding": "Reaches the lower quantity limit for the saved price.",
+    "price_upper_binding": "Reaches the upper quantity limit for the saved price.",
+    "delivery_lower_binding": "Reaches the lower quantity limit for the delivery promise.",
+    "delivery_upper_binding": "Reaches the upper quantity limit for the delivery promise.",
+    "integer_concentration_ceiling": "Reaches the whole-unit limit for one supplier's share.",
+    "insufficient_effective_capacity": "The usable supplier quantities cannot cover demand.",
+    "supplier_count_capacity_shortfall": (
+        "Demand cannot be covered within the allowed number of suppliers."
+    ),
+}
+
+
 def _explanation(entry: dict) -> str:
-    phrases = {
-        "zero_in_optimal_plan": (
-            "Not selected in this plan; this does not mean the supplier is excluded."
-        ),
-        "capacity_binding": "Uses all of this supplier's declared capacity.",
-        "concentration_binding": "Reaches the maximum quantity allowed for one supplier.",
-        "supplier_count_binding": "Uses the maximum allowed number of suppliers.",
-    }
-    return phrases.get(entry["code"], entry["detail"])
+    return _BUYER_EXPLANATIONS.get(entry["code"], entry["detail"])
+
+
+def _buyer_explanations(entries: list[dict]) -> str:
+    return "\n".join(
+        dict.fromkeys(
+            ((_supplier_label(e["supplier_id"]) + ": ") if e["supplier_id"] else "")
+            + _explanation(e)
+            for e in entries
+            if e["code"] in _BUYER_EXPLANATIONS
+        )
+    )
 
 
 def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
@@ -373,6 +399,8 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         else requirement["product_id"],
         "decision_summary": "",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
+        "buyer_diagnostics": _buyer_explanations(result["explanations"]),
+        "snapshot_json": json.dumps(snapshot, indent=2, ensure_ascii=False, allow_nan=False),
     }
     comparison = snapshot["comparison"]
     comparison_rows = []
@@ -537,20 +565,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                     f"+{extra_cost:,f} "
                     f"{currency} (+{_ratio(plan['cost_premium']) * 100:.1f}%) above minimum"
                 ),
-                "buyer_notes": "\n".join(
-                    dict.fromkeys(
-                        ((_supplier_label(e["supplier_id"]) + ": ") if e["supplier_id"] else "")
-                        + _explanation(e)
-                        for e in plan["explanations"]
-                        if e["code"]
-                        in {
-                            "zero_in_optimal_plan",
-                            "capacity_binding",
-                            "concentration_binding",
-                            "supplier_count_binding",
-                        }
-                    )
-                ),
+                "buyer_notes": _buyer_explanations(plan["explanations"]),
                 "explanations": "\n".join(
                     f"{e['supplier_id'] or 'Plan'} — {e['code']}: {e['detail']}"
                     for e in plan["explanations"]
@@ -583,6 +598,13 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "score": str(_decimal(assessment["score"])),
                 "name": _supplier_label(feature["context"]["supplier_id"]),
                 "class_label": "Schedule watch" if predicted else "Schedule regular",
+                "class_meaning": (
+                    "Training label: at least two of five future synthetic receipts are late."
+                    if predicted
+                    else "Training label: fewer than two of five future synthetic receipts "
+                    "are late."
+                ),
+                "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
                 "score_display": f"{score * 100:.1f} / 100",
                 "history_summary": (
                     f"{feature['values'][0]:g}% on time across "

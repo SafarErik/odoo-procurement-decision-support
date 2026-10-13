@@ -33,6 +33,9 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Deliberate decision review #38](UX38_DECISION_RUNBOOK.md): read-only review/cancel,
   exact confirmation, separate No-award and immutable reopening with existing PDF.
   [Handoff](UX38_DECISION_HANDOFF.md) records browser and real transaction evidence.
+- [Supplier explanations and exact Audit #39](UX39_EVIDENCE_RUNBOOK.md): saved classes,
+  timing/constraints, progressive exact evidence and keyboard/scoped scrolling.
+  [Handoff](UX39_EVIDENCE_HANDOFF.md) records stored-only browser/reflow/native-zoom checks.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -55,11 +58,11 @@ The [implementation specification](UX_UI_INCREMENT_SPEC.md), published as
 [parent #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42),
 defines bounded discovery/classification, buyer flows and approved reassessment
 gates. The [published ten-ticket index](UX_UI_TICKET_BREAKDOWN.md) records #32–#41
-and their verified blocking links. #32–#38 now supply local discovery, Practice,
+and their verified blocking links. #32–#39 now supply local discovery, Practice,
 responsive guarded navigation, attributed input review and aligned explicit
-comparison, original-base disruptions and deliberate final review; their dated
-handoffs distinguish technical evidence from pending participants. Next are #39
-readable explanations and #40 document recovery/access; final buyer acceptance stays open.
+comparison, original-base disruptions, deliberate final review and exact supplier
+evidence; their dated handoffs distinguish technical evidence from pending participants.
+Next is #40 document recovery/access; final buyer acceptance stays open.
 
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |

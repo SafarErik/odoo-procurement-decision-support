@@ -3162,3 +3162,45 @@ UX-AC-11, FR/AC-V2-11, AC-V2-09/10/12, NFR-V2-06/07 and UX29-05/06 support chapt
 4/6/7. Commit/push/merge remain user-controlled; Drive/issues were untouched.
 Next: #39 readable explanations; #40 recovery/documents is also unblocked. #41 human
 reassessment remains separate.
+
+## 2026-10-13 — Readable supplier assessments and exact Audit evidence (#39)
+
+**Problem -> decision:** Reference time/applicability were buried, raw solver prose
+dominated expanded ordinary notes and Audit omitted some exact model/path fields.
+Reuse the stored-only frontend projection and organize interpretation separately
+from exact evidence.
+
+**Implemented behavior:** Suppliers leads with saved classes, generated sample,
+history/reference time and saved quantity/time applicability. Recorded exclusions
+and binding constraints use readable wording; zero allocation alone is explicitly
+not an exclusion. Child assessments remain unchanged even when no allocation is
+feasible. Critical synthetic/source limits stay visible. Guarded navigation focuses
+Audit, where native disclosures retain exact inputs/policy, paths/model references,
+solver/allocations/provenance, final decision and complete snapshot JSON including
+node/leaf support and versions. Pretty-printing preserves values, not hash bytes.
+Tables and long JSON scroll in labelled keyboard regions; the workflow checklist
+remains in Practice/empty-entry help. No backend/core/solver/model/API/persistence,
+migration, dependency, upstream-refresh or source-promotion change.
+
+**Evidence:** Required full fast suite: 673 PASS, 73 deselected; focused contracts:
+57 PASS. Final supplier/Audit browser passes original/feasible/infeasible cases,
+exact input/full JSON equality, long/non-Latin and missing-business-name labels,
+keyboard disclosure/focus/local scrolling, five viewport widths, native 200% zoom,
+model-unconfigured reads and real stopped-API different-case GET/reopening without
+inspection writes. Approval/No-award regression passed in an earlier mixed run;
+its new fixture failure is preserved, not relabelled a suite PASS. Built-in desktop/
+320 inspection confirms visible limits/timing and a 768px table locally scrolling
+40px within a 198px region, with document width 305. Required static/runtime/Compose
+gates pass; owned service/tunnel/Compose cleanup and viewport restoration confirmed.
+Browser policy blocked explicit closure of the expired unmarked preview tab; normal
+turn cleanup is not independently verified. The [handoff](UX39_EVIDENCE_HANDOFF.md)
+records failures/timing/limits, and the [runbook](UX39_EVIDENCE_RUNBOOK.md) owns execution.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, physical phones,
+speech and unfamiliar participants remain unverified. Synthetic exposure is not
+calibrated probability; Practice shares storage and recovery remains session-local.
+UX-AC-12, FR-V2-02/03/07/09, AC-V2-02/03/07/09, NFR-V2-03/07 and UX29-04/10 support
+chapters 4/6/7. No independent transaction rerun or timing benchmark was required
+for unchanged contracts. Commit/push/merge remain user-controlled, with Drive/issues
+untouched. Next: #40 recovery and approved documents; #41 human reassessment remains
+separate before T19 thesis closure.

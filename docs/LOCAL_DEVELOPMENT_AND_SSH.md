@@ -394,7 +394,8 @@ case IDs/evidence. No Odoo writes, approval or PDF are performed by this slice.
 Updated 2026-10-08 after usability feedback. The earlier walkthroughs below record
 the preceding layout; the cockpit now uses **Saved case / Odoo / Demo** to start,
 then **Plans / What-if / Suppliers / Audit** for the loaded result. Open the
-in-app **What should I test?** guide for the same workflow.
+in-app **What should I test?** guide in Practice for the same workflow. The current
+Suppliers → Audit inspection is documented in [#39's runbook](UX39_EVIDENCE_RUNBOOK.md).
 
 Start only FastAPI, Reflex and the planning PostgreSQL service for saved-case and
 scenario testing. Odoo is needed for new Odoo case creation, not saved retrieval
@@ -427,7 +428,7 @@ comparison procedure below. Expected amounts here apply to the documented fixtur
 | What-if: Combined changes, Supplier 53, demand 220 and capacity 100; leave price blank | USD 2,400 minimum, allocations 120/100/0. Two changes are required. |
 | What-if: Demand increase, enter 500 | Saved No feasible plan. No invented allocations, chart points or zero-valued cost/exposure. View the base again to recover the original comparison. |
 | Copy a child case ID and reopen it through Saved case | Same costs, allocations and Audit snapshot hash. Viewing does not call Odoo, run the Decision Tree or solve MILP. |
-| Suppliers: expand a classification path and the training explanation | Readable branch conditions lead to the saved class; exact float32 inputs/thresholds remain in Exact tree record. Histories are explicitly synthetic. |
+| Suppliers: expand a classification path and the training explanation | Readable branch conditions lead to the saved class; Audit → Supplier tree paths and model evidence / Complete saved snapshot JSON retains exact float32 inputs, thresholds, support and versions. Histories are explicitly synthetic. |
 
 Scenarios always start from the original base, including when viewing a child.
 The draft shows assumptions before saving; it does not promise feasibility.

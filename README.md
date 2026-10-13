@@ -58,6 +58,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Aligned comparison and explicit selection | #36 aligns saved quantities/cost/premium/exposure, with labelled narrow plan sections, explicit selected state and an exact review strip across case views. Selection writes nothing; Review decision focuses the existing finalization form. Chart/table, single/incomplete outcomes and immutable approval/PDF remain intact. See the comparison handoff for 3/5/10-supplier, native zoom and real approval/No-award/recovery evidence; human acceptance remains open. |
 | Disruptions against the original base | #37 shows exact original/scenario feasibility, demand, minimum cost, exposure and allocations, retaining original values even when the child is infeasible. All five existing types target the original; original GET failure has explicit read-only retry, and uncertain saves retain exact request/key. Demand and simulated-price caveats remain visible. See the scenario handoff for local evidence; human acceptance remains open. |
 | Deliberate approval and separate No-award | #38 reviews exact selected context/terms, actor and reason before confirmation. Review/cancel write nothing; final confirmation uses the existing immutable API. No-award is separate and has no approved PDF. Saved choice/time/reason replace controls; exact pending replay and existing document access remain. See the decision handoff for local verification and open human gates. |
+| Readable supplier evidence and exact Audit | #39 leads with saved classes, receipt sample/reference time, applicability and recorded exclusions/binding limits. Audit progressively exposes exact inputs, tree/model/solver evidence, provenance and the complete saved snapshot without recalculation. [Handoff](docs/UX39_EVIDENCE_HANDOFF.md), [inspection/runbook](docs/UX39_EVIDENCE_RUNBOOK.md) retain browser/zoom evidence and human limits. |
 | Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is retained and assessed alongside later evidence in [T18's controlled report](docs/T18_CONTROLLED_ASSESSMENT.md). |
@@ -258,8 +259,8 @@ claimed. Browser milestone procedures are in the runbook.
    Commit/push/merge and issue closure remain user-controlled; the report does not
    establish final product/thesis acceptance.
 2. Continue the [published buyer-workspace increment](docs/UX_UI_TICKET_BREAKDOWN.md)
-   with #39 readable explanations and #40 document recovery/access.
-   #32–#38 have local technical evidence. Complete
+   with #40 document recovery/access.
+   #32–#39 have local technical evidence. Complete
    remaining owner/assistive checks and #41 unfamiliar-participant reassessment
    before validating the buyer experience and proceeding to T19 thesis closure.
 3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive

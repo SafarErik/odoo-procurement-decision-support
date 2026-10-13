@@ -34,7 +34,7 @@ def _plan_notes(plan):
     return rx.el.details(
         rx.el.summary("What shapes this allocation?", cursor="pointer"),
         rx.text(plan["buyer_notes"], white_space="pre-line", size="2", margin_top="0.75rem"),
-        rx.text(plan["explanations"], white_space="pre-line", size="2", margin_top="0.75rem"),
+        rx.text("Exact solver notes are available in Audit.", size="2", color=MUTED),
     )
 
 
@@ -362,22 +362,39 @@ def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
     return rx.box(
         rx.flex(
             rx.box(
-                rx.text(row["name"], font_weight="650"),
+                rx.heading(row["name"], as_="h3", size="3", overflow_wrap="anywhere"),
                 rx.text(row["history_summary"], color=MUTED, size="2"),
+                min_width="0",
+                flex="1",
             ),
             rx.box(
                 rx.badge(
                     row["class_label"], color_scheme=rx.cond(row["class"] == "0", "teal", "amber")
                 ),
-                rx.text("Exposure ", row["score_display"], size="2", margin_top="0.3rem"),
+                rx.text(
+                    "Synthetic exposure (approx.) ",
+                    row["score_display"],
+                    size="2",
+                    margin_top="0.3rem",
+                ),
             ),
             justify="between",
             gap="1rem",
             flex_wrap="wrap",
         ),
+        rx.text(row["class_meaning"], size="2", margin_top="0.75rem"),
+        rx.text("History window: ", row["history_window"], size="2"),
+        rx.text("Assessment reference (UTC): ", row["reference_time"], size="2"),
+        rx.text(
+            "Saved applicability: ",
+            row["quantity_range"],
+            " · valid until (UTC) ",
+            row["valid_until"],
+            size="2",
+            color=MUTED,
+        ),
         rx.el.details(
             rx.el.summary("How did the tree classify this supplier?", cursor="pointer"),
-            rx.text("History window: ", row["history_window"], size="2", margin_top="0.75rem"),
             rx.text(
                 "These conditions trace the saved model's branches. They are not receipt records.",
                 size="2",
@@ -392,30 +409,18 @@ def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
             ),
             rx.text("Result: ", row["class_label"], font_weight="650", size="2"),
             rx.text(
-                "Thresholds above are rounded for reading. Exact branches and model "
-                "identity follow.",
+                "Thresholds above are rounded for reading. Inspect exact branches, leaf support "
+                "and model identity in Audit.",
                 size="1",
                 color=MUTED,
-            ),
-            rx.el.details(
-                rx.el.summary("Exact tree record", cursor="pointer"),
-                rx.text(row["path"], white_space="pre-line", size="1", margin_y="0.75rem"),
-                rx.text("Exact supplier ID: ", row["supplier"], size="2"),
-                rx.text("Recorded class: ", row["class"], " · Score: ", row["score"], size="2"),
-                rx.text("Recorded validity end: ", row["valid_until"], size="2"),
-                rx.text("Recorded score applicability: ", row["quantity_range"], size="2"),
-                rx.text(
-                    "Synthetic history reference: ",
-                    row["source"],
-                    size="2",
-                    overflow_wrap="anywhere",
-                ),
-                rx.text("Model: ", row["model"], size="2", overflow_wrap="anywhere"),
             ),
             margin_top="0.75rem",
         ),
         padding_y="1.25rem",
         border_bottom=f"1px solid {HAIRLINE}",
+        overflow_wrap="anywhere",
+        role="region",
+        aria_label="Supplier assessment: " + row["name"],
     )
 
 
@@ -509,22 +514,82 @@ def suppliers_view() -> rx.Component:
     return rx.box(
         rx.heading("Why these supplier assessments?", as_="h2", size="4"),
         rx.text(
-            "The saved Decision Tree classifies each supplier from its prior "
-            "on-time delivery rate and completed-receipt count. The branch "
-            "sequence explains the classification; it does not prove why a "
-            "delivery was late.",
+            "Classes describe synthetic training outcomes, not observed supplier performance. "
+            "The saved tree uses prior on-time delivery and receipt counts; its branches explain "
+            "the classification, not why a delivery was late. Allocation constraints are separate.",
             size="2",
             color=MUTED,
             max_width="75ch",
             margin_y="0.75rem",
         ),
+        rx.text(
+            "Rates and branch thresholds are rounded for reading; Audit retains exact values.",
+            size="2",
+            color=MUTED,
+            margin_bottom="0.75rem",
+        ),
         rx.callout(
             "Synthetic history. These percentages describe generated receipts, "
             "including for Odoo suppliers. They are not performance measured "
-            "from your Odoo database.",
+            "from your Odoo database. Exposure is uncalibrated, not a failure probability.",
             color_scheme="amber",
         ),
         rx.foreach(PlanningState.assessments, _recorded_assessment),
+        rx.cond(
+            PlanningState.details["parent_id"] != "Base case",
+            rx.text(
+                "Stress scenarios reuse original saved assessments. Simulated supply changes "
+                "do not reclassify suppliers.",
+                size="2",
+                color=MUTED,
+                margin_y="0.75rem",
+            ),
+        ),
+        rx.heading("Saved allocation constraints", as_="h3", size="4", margin_top="1.5rem"),
+        rx.text(
+            "A zero allocation alone is not an exclusion. The notes below describe recorded "
+            "exclusions and limits reached by each saved plan; no constraints are recalculated.",
+            size="2",
+            color=MUTED,
+            max_width="75ch",
+            margin_y="0.75rem",
+        ),
+        rx.cond(
+            PlanningState.details["buyer_diagnostics"] != "",
+            rx.text(PlanningState.details["buyer_diagnostics"], white_space="pre-line", size="2"),
+        ),
+        rx.foreach(
+            PlanningState.plans,
+            lambda plan: rx.box(
+                rx.heading(plan["label"], as_="h4", size="3"),
+                rx.text(
+                    rx.cond(
+                        plan["buyer_notes"] != "",
+                        plan["buyer_notes"],
+                        "No exclusions or binding limits were recorded for this plan.",
+                    ),
+                    white_space="pre-line",
+                    size="2",
+                    margin_top="0.5rem",
+                ),
+                margin_bottom="1rem",
+            ),
+        ),
+        rx.cond(
+            PlanningState.plans.length() == 0,
+            rx.text(
+                "No proven allocation is saved for this outcome. Inspect recorded diagnostics "
+                "and inputs in Audit.",
+                size="2",
+            ),
+        ),
+        rx.button(
+            "Inspect exact evidence in Audit",
+            on_click=PlanningState.change_view("audit"),
+            variant="outline",
+            margin_y="1rem",
+            disabled=PlanningState.is_loading | PlanningState.has_pending,
+        ),
         rx.el.details(
             rx.el.summary("What was the model trained on?", font_weight="650", cursor="pointer"),
             rx.text(
@@ -556,4 +621,5 @@ def suppliers_view() -> rx.Component:
             ),
         ),
         width="100%",
+        overflow_wrap="anywhere",
     )
