@@ -1,5 +1,10 @@
 # Compare and explicitly select saved plans — #36
 
+Current decision presentation, 2026-10-13: [#38](UX38_DECISION_RUNBOOK.md) replaces
+the combined final selector/immediate finalization described below with separate
+approval/No-award review and explicit confirmation. Comparison and selection remain
+read-only; this note supersedes the final-control names in the historical procedure.
+
 Use the existing [local service runbook](LOCAL_DEVELOPMENT_AND_SSH.md),
 [library prerequisites](UX32_LIBRARY_RUNBOOK.md) and
 [creation review](UX35_CREATION_RUNBOOK.md). This frontend increment needs no new

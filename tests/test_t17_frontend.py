@@ -51,18 +51,18 @@ def test_explicit_selection_and_lost_success_response_recovery(configured, monke
             "reason": "prefer exposure",
             "demonstration": "on",
         }
-        async for _ in state.finalize_case(form):
-            pass
+        state.review_final_decision(form)
         assert not lost and "Explicitly choose" in state.error_message
         form["choice"] = "Alternative 1"
-        async for _ in state.finalize_case(form):
+        state.review_final_decision(form)
+        assert not lost and state.decision_open
+        async for _ in state.confirm_final_decision():
             pass
         assert state.has_pending and not state.is_loading and not state.details["final_outcome"]
         pending = deepcopy(state._pending)
         assert "test buyer" in state.recovery_json and TOKEN not in state.recovery_json
         assert len(uow.decisions.rows) == 1
-        async for _ in state.finalize_case(form | {"choice": "No-award"}):
-            pass
+        state.review_final_decision(form | {"choice": "No-award"})
         assert len(lost) == 1 and state._pending == pending
         async for _ in state.recover_request():
             pass
@@ -114,8 +114,7 @@ def test_no_award_and_scenario_controls_and_unavailable_load(configured, monkeyp
         assert not state.has_case and state.details == {} and state.error_message
         state.has_case = True
         state.details = {"parent_id": child["case_id"], "final_outcome": ""}
-        async for _ in state.finalize_case({}):
-            pass
+        state.review_final_decision({})
         assert "original base" in state.error_message and not state.has_pending
 
     asyncio.run(run())

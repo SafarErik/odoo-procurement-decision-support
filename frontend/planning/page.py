@@ -59,7 +59,14 @@ def _recovery() -> rx.Component:
     return rx.cond(
         PlanningState.has_pending & ~PlanningState.is_loading,
         rx.box(
-            rx.heading("Confirm the pending save before continuing", as_="h2", size="3"),
+            rx.heading(
+                "Confirm the pending save before continuing",
+                as_="h2",
+                size="3",
+                id="request-recovery-heading",
+                tab_index=-1,
+                on_mount=PlanningState.focus_pending_decision,
+            ),
             rx.text(
                 "The response is uncertain. Retry the identical request; changing "
                 "inputs could create another case or conflict with a recorded decision.",
@@ -256,6 +263,11 @@ def planning_page() -> rx.Component:
             ),
             rx.cond(
                 (PlanningState.error_message != "")
+                & (
+                    (PlanningState.error_target != "decision")
+                    | ~PlanningState.has_case
+                    | PlanningState.has_pending
+                )
                 & ((PlanningState.view != "whatif") | (PlanningState.error_target != "scenario")),
                 rx.callout(
                     PlanningState.error_message,

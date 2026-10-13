@@ -828,6 +828,16 @@ or saved data. See the dated [implementation log](IMPLEMENTATION_LOG.md).
 
 ## Saved human decision
 
+Current update, 2026-10-13 (#38): **Saved plan for approval** and the separate
+**Record No-award** action replace the combined selector below. Enter actor/reason
+and acknowledgement, then **Review approval** or **Review No-award**. The exact
+confirmation dialog writes nothing until **Confirm approval** or **Confirm
+No-award**; Cancel/Escape retain entered values. Actions remain visible while the
+review scrolls on narrow screens. Saved outcome/time/reason replace controls and
+receive focus; pending finalizations retain the existing exact-request recovery.
+The [current decision runbook](UX38_DECISION_RUNBOOK.md) supersedes historical
+control names below; backend eligibility, immutability, reasons and PDF rules remain.
+
 T17 issue #20 extends the existing `/planning` workspace. First activate the
 Python 3.11 environment, apply current revision `20261010_01` to the intended helper
 database as described in the [persistence guide](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations),

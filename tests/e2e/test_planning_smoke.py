@@ -60,7 +60,8 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page):
         "Accept the saved cost premium for lower synthetic exposure."
     )
     page.get_by_role("checkbox").check()
-    page.get_by_role("button", name="Finalize this base", exact=True).click()
+    page.get_by_role("button", name="Review approval", exact=True).click()
+    page.get_by_role("button", name="Confirm approval", exact=True).click()
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     expect(page.get_by_text("Selected plan: Alternative 1", exact=True)).to_be_visible()
     approved = stack.client.get(f"/api/v2/procurement/planning-cases/{case_id}").json()

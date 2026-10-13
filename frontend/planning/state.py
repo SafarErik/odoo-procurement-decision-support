@@ -59,6 +59,9 @@ class PlanningState(rx.State):
     recovery_json: str = ""
     notice: str = ""
     final_choice: str = ""
+    decision_open: bool = False
+    decision_review: dict[str, str] = {}
+    _decision_payload: dict = {}
     pdf_data_url: str = ""
     pdf_error: str = ""
     pdf_reference: str = ""
@@ -405,6 +408,7 @@ class PlanningState(rx.State):
             self.error_message = ""
 
     def _show(self, result):
+        self._clear_decision_review()
         self._clear_review()
         self.creation_errors = {}
         self.creation_dirty = self.scenario_dirty = False
@@ -1004,11 +1008,15 @@ class PlanningState(rx.State):
             self.has_case
             and not self.is_loading
             and not self.has_pending
+            and not self.decision_open
             and not self.details.get("final_outcome")
-            and value in [p["label"] for p in self.plans] + ["No-award"]
+            and value in [p["label"] for p in self.plans] + ["", "No-award"]
             and (value != "No-award" or self.details.get("parent_id") == "Base case")
         ):
             self.final_choice = value
+            self._clear_decision_review()
+            if value in {"", "No-award"}:
+                return rx.set_focus("final-decision-heading")
 
     @rx.var
     def selected_plan(self) -> dict[str, str]:
@@ -1020,10 +1028,12 @@ class PlanningState(rx.State):
         return next((p for p in self.plans if p["label"] == choice), {})
 
     @rx.event
-    async def finalize_case(self, form_data: dict[str, Any]):
+    def review_final_decision(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:
             return
-        self.error_target = ""
+        self._clear_decision_review()
+        self.error_target = "decision"
+        self.error_message = ""
         try:
             if (
                 not self.has_case
@@ -1061,15 +1071,63 @@ class PlanningState(rx.State):
             }
         except (ValueError, KeyError) as error:
             self.error_message = str(error)
+            return rx.set_focus("decision-error")
+        self.final_choice = choice
+        self._decision_payload = payload
+        self.decision_review = {
+            "case_id": self.details["case_id"],
+            "choice": choice,
+            "actor": actor.strip(),
+            "reason": reason.strip() or "Not provided",
+            **deepcopy(self.selected_plan),
+        }
+        self.decision_open = True
+
+    def _clear_decision_review(self):
+        self.decision_open = False
+        self.decision_review = {}
+        self._decision_payload = {}
+
+    @rx.event
+    def focus_pending_decision(self):
+        if self.has_pending and self._pending.get("url", "").endswith("/final-decision"):
+            return rx.set_focus("request-recovery-heading")
+
+    @rx.event
+    def change_decision_confirmation(self, opened: bool):
+        if not opened and not self.is_loading and not self.has_pending:
+            self._clear_decision_review()
+
+    @rx.event
+    async def confirm_final_decision(self):
+        if self.is_loading or self.has_pending or not self.decision_open:
+            return
+        if (
+            not self.has_case
+            or self.details.get("parent_id") != "Base case"
+            or self.details.get("final_outcome")
+            or self.decision_review.get("case_id") != self.details.get("case_id")
+            or self.decision_review.get("choice") != self.final_choice
+            or self._decision_payload.get("snapshot_hash") != self.details.get("snapshot_hash")
+        ):
+            self._clear_decision_review()
+            self.error_target = "decision"
+            self.error_message = "The reviewed case changed. Review the saved decision again."
             return
         self._prepare_request(
-            f"{settings.planning_cases_url}/{self.details['case_id']}/final-decision", payload
+            f"{settings.planning_cases_url}/{self.details['case_id']}/final-decision",
+            self._decision_payload,
         )
+        self._clear_decision_review()
         yield
         try:
-            await self._send_pending()
+            saved = await self._send_pending()
         finally:
             self.is_loading = False
+        if saved is not None:
+            yield rx.set_focus("saved-decision-heading")
+        elif self.has_pending:
+            yield rx.set_focus("request-recovery-heading")
 
     def _demo_request(self, form_data):
         self.creation_errors = {}
@@ -1240,6 +1298,7 @@ class PlanningState(rx.State):
         self.is_loading = True
         reviewed_creation = bool(self._review_payload)
         scenario = self._pending["url"].endswith("/scenarios")
+        decision = self._pending["url"].endswith("/final-decision")
         self.error_message = ""
         yield
         try:
@@ -1259,6 +1318,8 @@ class PlanningState(rx.State):
         elif saved is not None and scenario:
             yield rx.redirect(f"/planning?case_id={self.details['case_id']}&view=whatif")
             yield rx.set_focus("scenario-result-heading")
+        elif saved is not None and decision:
+            yield rx.set_focus("saved-decision-heading")
 
     @rx.event
     async def load_case(self, form_data: dict[str, Any]):

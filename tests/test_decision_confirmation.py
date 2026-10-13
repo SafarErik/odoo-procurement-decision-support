@@ -1,0 +1,123 @@
+"""Review/cancel are read-only; confirmation freezes the original decision intent."""
+
+import asyncio
+from copy import deepcopy
+from uuid import uuid4
+
+import httpx
+import pytest
+from pydantic import SecretStr
+
+from backend.app.main import app
+from frontend.config import settings
+from frontend.planning.state import PlanningState
+from frontend.planning_client import _map_case, submit_planning_request
+from tests.test_t17_decisions import TOKEN
+from tests.test_t17_decisions import configured as configured
+from tests.test_t17_decisions import stored_cases as stored_cases
+
+
+def consume(state, handler):
+    async def run():
+        return [event async for event in handler.fn(state)]
+
+    return asyncio.run(run())
+
+
+@pytest.fixture
+def prepared(configured, monkeypatch):
+    _, uow, base, child, *_ = configured
+    state = PlanningState(_reflex_internal_init=True)
+    state._show(_map_case(base, base["case_id"]))
+    monkeypatch.setattr(settings, "backend_base_url", "http://test")
+    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    posts = []
+
+    async def send(url, payload, key, token):
+        posts.append((url, deepcopy(payload), key))
+        return await submit_planning_request(
+            url, payload, key, token, transport=httpx.ASGITransport(app=app)
+        )
+
+    monkeypatch.setattr("frontend.planning.state.submit_planning_request", send)
+    return state, uow, base, child, posts
+
+
+def form(choice="Alternative 1", **changes):
+    return {
+        "choice": choice,
+        "actor": "review buyer",
+        "reason": "Prefer exposure",
+        "demonstration": "on",
+    } | changes
+
+
+def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepared):
+    state, uow, base, _, posts = prepared
+    submitted = form()
+    state.review_final_decision(submitted)
+    expected = deepcopy(state._decision_payload)
+    assert state.decision_open and state.decision_review["choice"] == "Alternative 1"
+    assert state.decision_review["cost"] == "109 EUR"
+    assert not state.has_pending and not posts and not uow.decisions.rows
+    state.change_decision_confirmation(False)
+    assert not state.decision_open and not state._decision_payload and not posts
+    assert state.final_choice == "Alternative 1"
+    state.review_final_decision(submitted)
+    submitted["actor"] = "different unreviewed value"
+    events = consume(state, PlanningState.confirm_final_decision)
+    assert len(posts) == 1 and posts[0][1] == expected
+    assert posts[0][0].endswith(f"/{base['case_id']}/final-decision")
+    assert state.details["final_outcome"] == "Approved" and not state.decision_open
+    assert "ref_saved_decision_heading" in str(events)
+    assert len(uow.decisions.rows) == 1
+    assert consume(state, PlanningState.confirm_final_decision) == [] and len(posts) == 1
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"choice": ""},
+        {"choice": "invented"},
+        {"actor": " "},
+        {"reason": " "},
+        {"reason": "x" * 2001},
+        {"demonstration": ""},
+    ],
+)
+def test_invalid_review_and_confirm_without_review_never_post(prepared, changes):
+    state, _, _, _, posts = prepared
+    state.review_final_decision(form(**changes))
+    assert not state.decision_open and state.error_message
+    assert consume(state, PlanningState.confirm_final_decision) == [] and not posts
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("case_id", str(uuid4())),
+        ("snapshot_hash", "changed"),
+        ("parent_id", str(uuid4())),
+        ("final_outcome", "No-award"),
+    ],
+)
+def test_changed_context_invalidates_confirmation(prepared, field, value):
+    state, _, _, _, posts = prepared
+    state.review_final_decision(form())
+    state.details[field] = value
+    consume(state, PlanningState.confirm_final_decision)
+    assert not posts and not state.decision_open and "changed" in state.error_message
+
+
+def test_no_award_requires_reason_has_no_plan_and_child_cannot_review(prepared):
+    state, _, _, child, posts = prepared
+    state.review_final_decision(form("No-award", reason=" "))
+    assert not state.decision_open and not posts
+    state.review_final_decision(form("No-award", reason="Decline the saved options"))
+    assert "cost" not in state.decision_review
+    consume(state, PlanningState.confirm_final_decision)
+    assert posts[0][1]["outcome"] == "no_award" and posts[0][1]["plan_index"] is None
+    assert state.details["final_outcome"] == "No-award"
+    state._show(_map_case(child, child["case_id"]))
+    state.review_final_decision(form("No-award"))
+    assert not state.decision_open and len(posts) == 1

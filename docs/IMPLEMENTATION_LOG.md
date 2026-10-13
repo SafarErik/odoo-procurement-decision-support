@@ -3122,3 +3122,43 @@ AC-V2-07/09, NFR-V2-06/07 and UX29-04/06/07 support chapters 4/6/7. User control
 commit/push/merge; Drive/issues remain untouched. Next is #38 deliberate approval/
 No-award review; #39 explanations and later human reassessment/thesis closure remain
 separate.
+
+## 2026-10-13 — Deliberate original-base approval and separate No-award (#38)
+
+**Problem -> decision:** Immediate final-form submission made the immutable choice
+too easy to record without reviewing its exact saved allocation and attribution.
+Keep the accepted backend contract and insert a read-only confirmation step.
+
+**Implemented behavior:** Selecting a plan still writes nothing. Review validates
+original-base eligibility, actor, demonstration acknowledgement and required reasons,
+then freezes exact intent on the Reflex server. The confirmation shows original
+identity/context/dates, selected quantities/cost/exposure, actor and reason; Cancel
+or Escape preserves the form without a save/key. Confirm sends once with existing
+snapshot/idempotency/conflict rules. No-award has a separate reasoned action, no
+approved allocation and no PDF. Saved outcome focuses immutable choice/time/reason;
+uncertain requests retain exact URL/body/key and guarded explicit retry. Safe Cancel
+focus, named review, local error focus and separately scrolling narrow content keep
+actions visible. Practice/source/identity limits and no Odoo order creation remain
+explicit. No backend, model/solver, API, migration or dependency change.
+
+**Evidence:** Required full fast suite: 668 PASS; final affected tests: 69 PASS
+after focus/layout corrections. Final browser selection: 2 PASS, including actual
+alternative review/cancel/single-save double-click, immutable model-unconfigured
+reopening, separate No-award with stopped-API exact recovery, child UI/API rejection,
+long labels, keyboard focus and 1280/1440/768/390/320 reflow. Updated comparison
+regression also passes native 200% zoom. Existing Practice and approval/PDF passed
+earlier in a mixed run whose new-test failure is preserved, not called a suite PASS.
+Real PostgreSQL transaction/document regressions: 14 PASS with no skips. Built-in
+browser confirms final desktop/320 review, visible actions and Cancel-retained form.
+Required static/runtime/Compose checks pass; all owned stacks/tab/viewport cleaned
+up. The [handoff](UX38_DECISION_HANDOFF.md) records exact artifacts, retained failures,
+verification timing and limitations; the [runbook](UX38_DECISION_RUNBOOK.md) owns
+prerequisites, commands, expected outcomes and cleanup.
+
+**Limitation -> chapter relevance -> next:** Fresh live Odoo, hosted CI, speech,
+physical phones and owner/novice usability remain unverified. Practice shares storage,
+actor references are not authenticated identity and exact recovery is session-local.
+UX-AC-11, FR/AC-V2-11, AC-V2-09/10/12, NFR-V2-06/07 and UX29-05/06 support chapters
+4/6/7. Commit/push/merge remain user-controlled; Drive/issues were untouched.
+Next: #39 readable explanations; #40 recovery/documents is also unblocked. #41 human
+reassessment remains separate.

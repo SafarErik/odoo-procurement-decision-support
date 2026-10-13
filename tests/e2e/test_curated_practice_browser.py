@@ -77,13 +77,16 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             expect(page.get_by_text("Saved case " + identity, exact=True)).to_be_visible()
             expect(page.locator("body")).to_contain_text("Workspace: Practice")
             if example == "compare-plans":
-                page.get_by_label("Plan or No-award", exact=True).select_option("Alternative 1")
+                page.get_by_label("Saved plan for approval", exact=True).select_option(
+                    "Alternative 1"
+                )
                 page.get_by_label("Actor audit reference", exact=True).fill("ux33-practice-buyer")
                 page.get_by_label("Reason", exact=True).fill(
                     "Compare the saved synthetic trade-off."
                 )
                 page.get_by_role("checkbox").check()
-                page.get_by_role("button", name="Finalize this base", exact=True).click()
+                page.get_by_role("button", name="Review approval", exact=True).click()
+                page.get_by_role("button", name="Confirm approval", exact=True).click()
                 expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
                 expect(page.locator("body")).to_contain_text("Practice document access")
             else:

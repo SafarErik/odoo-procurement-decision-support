@@ -125,7 +125,8 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
         if kind in {"demand_increase", "combined"}:
             expect(page.locator("body")).to_contain_text("not a like-for-like saving")
         expect(page.locator("body")).to_contain_text("not fresh quotations")
-        expect(page.get_by_role("button", name="Finalize this base", exact=True)).to_have_count(0)
+        expect(page.get_by_role("button", name="Review approval", exact=True)).to_have_count(0)
+        expect(page.get_by_role("button", name="Review No-award", exact=True)).to_have_count(0)
         assert stack.client.get(f"{BASE}/{identity}").json() == base
     assert len(children()) == 5
     for width in (1280, 1440, 768, 390, 320):

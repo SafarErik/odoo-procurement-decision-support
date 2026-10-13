@@ -25,7 +25,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How can I see a plan, a disruption and stored retrieval? | [T15 terminal demonstration](docs/T15_DEMO.md) |
 | How does the controlled planning API work? | [T15 handoff](docs/T15_HANDOFF.md) |
 | How can I create, compare and reopen a plan in Reflex? | [Planning workspace walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-planning-workspace-create-and-test), [T16 handoff](docs/T16_HANDOFF.md) |
-| How can I approve a saved plan or record No-award? | [Decision walkthrough](docs/LOCAL_DEVELOPMENT_AND_SSH.md#saved-human-decision), [T17 approval handoff](docs/T17_HANDOFF.md) |
+| How can I approve a saved plan or record No-award? | [Decision review #38](docs/UX38_DECISION_RUNBOOK.md), [handoff](docs/UX38_DECISION_HANDOFF.md) — read-only review/cancel, deliberate confirmation and immutable reopening |
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
@@ -57,6 +57,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Attributed input review | #35 adds facts → terms → exact review before synthetic/Practice or prepared Odoo calculation/save. Inline errors focus invalid fields; Edit retains values, final save freezes reviewed intent and uncertain retry stays exact. Odoo review is local; backend rereads quotations when saving. Synthetic ML remains explicit. See the creation handoff for real-stack checks and the mocked Odoo transport/live-evidence distinction. |
 | Aligned comparison and explicit selection | #36 aligns saved quantities/cost/premium/exposure, with labelled narrow plan sections, explicit selected state and an exact review strip across case views. Selection writes nothing; Review decision focuses the existing finalization form. Chart/table, single/incomplete outcomes and immutable approval/PDF remain intact. See the comparison handoff for 3/5/10-supplier, native zoom and real approval/No-award/recovery evidence; human acceptance remains open. |
 | Disruptions against the original base | #37 shows exact original/scenario feasibility, demand, minimum cost, exposure and allocations, retaining original values even when the child is infeasible. All five existing types target the original; original GET failure has explicit read-only retry, and uncertain saves retain exact request/key. Demand and simulated-price caveats remain visible. See the scenario handoff for local evidence; human acceptance remains open. |
+| Deliberate approval and separate No-award | #38 reviews exact selected context/terms, actor and reason before confirmation. Review/cancel write nothing; final confirmation uses the existing immutable API. No-award is separate and has no approved PDF. Saved choice/time/reason replace controls; exact pending replay and existing document access remain. See the decision handoff for local verification and open human gates. |
 | Human decision | Merged T17 supports explicit original-base approval or reasoned No-award, immutable audit/approved content, stored reopening and exact uncertain-response recovery. The approval handoff preserves its evidence and limits. |
 | Approved PDF | Issue #21 adds a backend-rendered document from immutable approved content, stored separately with a stable reference/hash. Reflex displays its pages and downloads the exact artifact. Rendering/retrieval failure preserves approval; No-award, unapproved bases and stress children are ineligible. See the PDF handoff for local evidence and limits. |
 | Complete controlled demonstration | Issue #22 reproduces the actual read-only Odoo/synthetic-ML/MILP/stress/approval/PDF chain, separate No-award and stored-only reopening. Local AC-V2-13 evidence is retained and assessed alongside later evidence in [T18's controlled report](docs/T18_CONTROLLED_ASSESSMENT.md). |
@@ -257,8 +258,8 @@ claimed. Browser milestone procedures are in the runbook.
    Commit/push/merge and issue closure remain user-controlled; the report does not
    establish final product/thesis acceptance.
 2. Continue the [published buyer-workspace increment](docs/UX_UI_TICKET_BREAKDOWN.md)
-   with #38 deliberate approval/No-award review and #39 readable explanations;
-   #40 document access follows #38. #32–#37 have local technical evidence. Complete
+   with #39 readable explanations and #40 document recovery/access.
+   #32–#38 have local technical evidence. Complete
    remaining owner/assistive checks and #41 unfamiliar-participant reassessment
    before validating the buyer experience and proceeding to T19 thesis closure.
 3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive

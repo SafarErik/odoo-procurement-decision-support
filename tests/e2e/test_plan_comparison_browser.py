@@ -114,7 +114,9 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
                             f"{_supplier_label(allocation['supplier_id'])}: "
                             f"{allocation['quantity']} piece"
                         )
-                expect(page.get_by_label("Plan or No-award", exact=True)).to_have_value(label)
+                expect(page.get_by_label("Saved plan for approval", exact=True)).to_have_value(
+                    label
+                )
                 page.get_by_role("button", name="Review decision", exact=True).click()
                 expect(page.locator("#final-decision-heading")).to_be_focused()
                 assert counts() == before
@@ -202,7 +204,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
         finally:
             context.close()
         page.goto(stack.frontend_url + f"/planning?case_id={cases[0]['case_id']}&view=plans")
-        page.get_by_label("Plan or No-award", exact=True).select_option("No-award")
+        page.get_by_role("button", name="Record No-award", exact=True).click()
         expect(page.get_by_role("region", name="Selected plan and next step")).to_contain_text(
             "No-award: no allocation is selected"
         )
@@ -210,8 +212,9 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
         page.get_by_label("Actor audit reference", exact=True).fill("comparison keyboard test")
         page.get_by_label("Reason", exact=True).fill("Decline this controlled demonstration.")
         page.get_by_role("checkbox").check()
-        page.get_by_role("button", name="Finalize this base", exact=True).focus()
+        page.get_by_role("button", name="Review No-award", exact=True).focus()
         page.keyboard.press("Enter")
+        page.get_by_role("button", name="Confirm No-award", exact=True).click()
         expect(page.get_by_role("heading", name="No-award", exact=True)).to_be_visible()
         final = stack.client.get(f"{BASE}/{cases[0]['case_id']}").json()
         assert final["final_decision"]["intent"]["outcome"] == "no_award"
