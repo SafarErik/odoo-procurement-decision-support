@@ -1,0 +1,255 @@
+"""#33/#41 complete real Practice chain, deliberate decisions and exact recovery."""
+
+import hashlib
+import json
+from urllib.parse import parse_qs, urlsplit
+
+import pytest
+from sqlalchemy import create_engine, text
+
+pytestmark = [pytest.mark.integration, pytest.mark.e2e]
+BASE = "/api/v2/procurement/planning-cases"
+
+
+def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
+    from playwright.sync_api import expect
+
+    expect.set_options(timeout=45000)
+    stack, page = smoke_stack, smoke_page
+    page.emulate_media(reduced_motion="reduce")
+    assert page.evaluate("matchMedia('(prefers-reduced-motion:reduce)').matches")
+    engine = create_engine(stack.env["DECISION_DATABASE_URL"])
+
+    def counts():
+        with engine.connect() as connection:
+            return tuple(
+                connection.execute(text("SELECT count(*) FROM " + table)).scalar_one()
+                for table in ("planning_cases", "planning_case_catalog")
+            )
+
+    try:
+        page.goto(stack.frontend_url + "/practice")
+        expect(page.get_by_role("heading", name="Practice", exact=True)).to_be_visible()
+        assert counts() == (0, 0)
+        for index, name in enumerate(
+            (
+                "Choose compare plans",
+                "Choose test a supplier outage",
+                "Choose make a case infeasible",
+            )
+        ):
+            page.get_by_role("button", name=name, exact=True).click()
+            if index:
+                expect(page.get_by_role("alertdialog")).to_be_visible()
+                page.get_by_role("button", name="Discard draft", exact=True).click()
+            expect(page.get_by_role("heading", name="Fresh Practice draft")).to_be_visible()
+            expect(page.get_by_role("button", name="Review Practice terms")).to_be_enabled()
+            assert counts() == (0, 0)
+        for width in (1280, 1440, 768, 390, 320):
+            page.set_viewport_size({"width": width, "height": 900})
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+            page.screenshot(path=str(stack.root / f"practice-{width}.png"), full_page=True)
+        page.set_viewport_size({"width": 1280, "height": 900})
+        cases = {}
+        for example, button in (
+            ("compare-plans", "Choose compare plans"),
+            ("supplier-outage", "Choose test a supplier outage"),
+            ("infeasible-demand", "Choose make a case infeasible"),
+        ):
+            page.goto(stack.frontend_url + "/practice")
+            before = counts()
+            page.get_by_role("button", name=button, exact=True).focus()
+            page.keyboard.press("Enter")
+            if example == "compare-plans":
+                expect(page.get_by_role("alertdialog")).to_be_visible()
+                page.get_by_role("button", name="Discard draft", exact=True).click()
+            expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
+            assert counts() == before
+            page.get_by_role("button", name="Review Practice terms", exact=True).click()
+            page.get_by_role("button", name="Calculate and save comparison").click()
+            expect(page.get_by_role("button", name="Open saved Practice case")).to_be_visible()
+            expect(page.get_by_role("heading", name="Saved Practice comparison")).to_be_visible()
+            expect(page.locator("body")).to_contain_text(
+                "Comparison saved. Approval is a separate choice."
+            )
+            assert counts() == (before[0] + 1, before[1] + 1)
+            page.get_by_role("button", name="Open saved Practice case").click()
+            expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
+            identity = parse_qs(urlsplit(page.url).query)["case_id"][0]
+            base = stack.client.get(f"{BASE}/{identity}").json()
+            cases[example] = base
+            assert base["workspace"] == "practice" and base["example_id"] == example
+            assert base["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] == "102"
+            expect(page.get_by_text("Saved case " + identity, exact=True)).to_be_visible()
+            expect(page.locator("body")).to_contain_text("Workspace: Practice")
+            if example == "compare-plans":
+                comparison = page.get_by_role("region", name="Aligned saved plan comparison")
+                cost = comparison.get_by_role("row").filter(
+                    has=page.get_by_role("rowheader", name="Total cost", exact=True)
+                )
+                expect(cost.get_by_role("cell").nth(0)).to_have_text("102 EUR")
+                expect(cost.get_by_role("cell").nth(1)).to_have_text("109 EUR")
+                result = base["snapshot"]["result"]
+                for index, plan in enumerate(
+                    [result["minimum_cost_plan"], *result["alternatives"]]
+                ):
+                    for allocation in plan["allocations"]:
+                        name = "Demo supplier " + allocation["supplier_id"].removeprefix(
+                            "synthetic-"
+                        )
+                        row = comparison.get_by_role("row").filter(
+                            has=page.get_by_role("rowheader").filter(has_text=name)
+                        )
+                        expect(row.get_by_role("cell").nth(index)).to_have_text(
+                            f"{allocation['quantity']} piece"
+                        )
+                expect(
+                    page.get_by_role("button", name="Review selected plan", exact=True)
+                ).to_be_disabled()
+                page.get_by_role("tab", name="What-if", exact=True).click()
+                page.get_by_label("Scenario type").select_option("supplier_outage")
+                page.get_by_label("Supplier to change (original terms)").select_option(
+                    stack.payload["suppliers"][0]["supplier_id"]
+                )
+                page.get_by_role("button", name="Create and save scenario").click()
+                expect(page.locator("#scenario-result-heading")).to_be_focused()
+                expect(
+                    page.get_by_role("heading", name="Saved scenario comparison")
+                ).to_be_visible()
+                page.get_by_role("button", name="Return to original base", exact=True).click()
+                expect(page.get_by_text("Saved case " + identity, exact=True)).to_be_visible()
+                page.get_by_role("tab", name="Plans", exact=True).click()
+                assert stack.client.get(f"{BASE}/{identity}").json() == base
+                page.get_by_label("Saved plan for approval", exact=True).select_option(
+                    "Alternative 1"
+                )
+                page.get_by_label("Actor audit reference", exact=True).fill("ux33-practice-buyer")
+                page.get_by_label("Reason", exact=True).fill(
+                    "Compare the saved synthetic trade-off."
+                )
+                page.get_by_role("checkbox").check()
+                page.get_by_role("button", name="Review approval", exact=True).click()
+                page.get_by_role("button", name="Approve plan", exact=True).click()
+                expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
+                expect(page.locator("body")).to_contain_text("Practice document access")
+                cases[example] = stack.client.get(f"{BASE}/{identity}").json()
+            else:
+                page.get_by_role("button", name="Prepare exercise scenario", exact=True).click()
+                expect(page.get_by_role("tab", name="What-if", exact=True)).to_have_attribute(
+                    "data-state", "active"
+                )
+                assert counts() == (before[0] + 1, before[1] + 1)
+                page.get_by_role("button", name="Create and save scenario", exact=True).click()
+                expect(page.get_by_text("Saved case " + identity, exact=True)).to_have_count(0)
+                expect(
+                    page.get_by_role("status").filter(
+                        has_text="Comparison saved. Approval is a separate choice."
+                    )
+                ).to_be_visible()
+                children = stack.client.get(
+                    f"{BASE}/{identity}/scenarios", params={"workspace": "practice"}
+                ).json()["items"]
+                assert len(children) == 1 and children[0]["workspace"] == "practice"
+                if example == "infeasible-demand":
+                    assert children[0]["planning_status"] == "infeasible"
+                    expect(page.locator("body")).to_contain_text("No feasible plan")
+                else:
+                    assert children[0]["scenario_kind"] == "supplier_outage"
+                    assert children[0]["planning_status"] == "optimal"
+                assert counts()[1] == 3 if example == "infeasible-demand" else counts()[1] == 2
+        assert len({case["case_id"] for case in cases.values()}) == 3
+        stack.stop(stack.api)
+        stack.start_api(stored_only=True)
+        page.goto(stack.frontend_url + "/cases")
+        expect(page.get_by_role("heading", name="Saved cases", exact=True)).to_be_visible()
+        page.get_by_label("Workspace", exact=True).select_option("practice")
+        page.get_by_role("button", name="Refresh", exact=True).click()
+        expect(page.get_by_role("button", name="Open case", exact=True)).to_have_count(3)
+        approved = cases["compare-plans"]
+        page.get_by_label("Product or case ID", exact=True).fill("synthetic-product")
+        page.get_by_label("Decision status", exact=True).select_option("approved")
+        page.get_by_role("button", name="Refresh", exact=True).click()
+        expect(page.get_by_role("button", name="Open case", exact=True)).to_have_count(1)
+        page.get_by_role("button", name="Open case", exact=True).click()
+        expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
+        expect(page.locator("body")).to_contain_text("Workspace: Practice")
+        reopened = stack.client.get(f"{BASE}/{approved['case_id']}").json()
+        assert reopened == approved
+        stack.stop(stack.api)
+        page.get_by_role("button", name="View approved PDF", exact=True).click()
+        expect(page.get_by_role("alert")).to_contain_text("Approval remains saved")
+        expect(page.get_by_role("region", name="Saved approved terms")).to_contain_text("109 EUR")
+        stack.start_api(stored_only=True)
+        page.get_by_role("button", name="Retry approved PDF", exact=True).click()
+        region = page.get_by_role("region", name="Approved procurement PDF", exact=True)
+        expect(region.locator("canvas").first).to_be_visible()
+        with page.expect_download() as download_info:
+            page.get_by_role("link", name="Download approved PDF", exact=True).click()
+        download_info.value.save_as(stack.root / "practice-approved.pdf")
+        document = stack.client.get(
+            f"{BASE}/{approved['case_id']}/approved-pdf/{reopened['final_decision']['approved_content_hash']}"
+        )
+        assert (stack.root / "practice-approved.pdf").read_bytes() == document.content
+        assert hashlib.sha256(document.content).hexdigest() == document.headers["x-pdf-sha256"]
+        page.screenshot(path=str(stack.root / "complete-practice-approved-pdf.png"))
+        declined = cases["supplier-outage"]
+        page.goto(stack.frontend_url + f"/planning?case_id={declined['case_id']}&view=plans")
+        page.get_by_role("button", name="Record No-award", exact=True).click()
+        page.get_by_label("Actor audit reference", exact=True).fill("ux41-no-award-buyer")
+        page.get_by_label("Reason", exact=True).fill("Decline these saved demonstration terms")
+        page.get_by_role("checkbox").check()
+        page.get_by_role("button", name="Review No-award", exact=True).click()
+        page.get_by_role("button", name="Confirm No-award", exact=True).click()
+        expect(page.locator("#saved-decision-heading")).to_be_focused()
+        expect(page.get_by_role("button", name="View approved PDF", exact=True)).to_have_count(0)
+        saved_decline = stack.client.get(f"{BASE}/{declined['case_id']}").json()
+        assert saved_decline["snapshot"] == declined["snapshot"]
+        assert saved_decline["final_decision"]["intent"]["outcome"] == "no_award"
+        assert saved_decline["final_decision"]["approved_content"] is None
+        page.goto(stack.frontend_url + "/practice")
+        page.get_by_role("button", name="Choose compare plans", exact=True).click()
+        expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
+        assert counts() == (6, 3)
+        page.get_by_role("button", name="Review Practice terms", exact=True).click()
+        stack.stop(stack.api)
+        page.get_by_role("button", name="Calculate and save comparison").click()
+        expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
+        expect(
+            page.get_by_role("heading", name="Practice save awaiting confirmation")
+        ).to_be_visible()
+        pending = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
+        assert pending["payload"]["catalog_context"] == {
+            "workspace": "practice",
+            "example_id": "compare-plans",
+        }
+        expect(
+            page.get_by_role("button", name="Choose test a supplier outage", exact=True)
+        ).to_be_disabled()
+        page.goto(stack.frontend_url + "/cases")
+        expect(page).to_have_url(stack.frontend_url + "/practice")
+        assert json.loads(page.get_by_label("Exact request recovery JSON").input_value()) == pending
+        stack.start_api()
+        page.get_by_role("button", name="Retry the same request").click()
+        expect(page.get_by_role("button", name="Open saved Practice case")).to_be_visible()
+        replay = stack.client.post(
+            pending["url"], json=pending["payload"], headers={"Idempotency-Key": pending["key"]}
+        )
+        assert replay.status_code == 200 and replay.json()["idempotent_replay"]
+        assert replay.json()["case_id"] != approved["case_id"] and counts() == (7, 4)
+        stack.evidence["checks"].append(
+            "Three entry tasks write nothing; three fresh classified bases, outage/infeasibility "
+            "children, keyboard/narrow entry, stored-only Practice library/approval/PDF "
+            "and exact pending recovery PASS; one original through compare/scenario/alternative "
+            "approval, product/status library reopening without UUID, real PDF failure and "
+            "exact download; separate No-award; reduced-motion preference enabled throughout."
+        )
+        stack.evidence.update(
+            approved_case_id=approved["case_id"],
+            approved_content_hash=reopened["final_decision"]["approved_content_hash"],
+            pdf_sha256=hashlib.sha256(document.content).hexdigest(),
+            no_award_case_id=declined["case_id"],
+            reduced_motion=True,
+        )
+        stack.evidence["outcome"] = "PASS"
+    finally:
+        engine.dispose()

@@ -1,0 +1,329 @@
+{
+  "scope": "Issue #29 informed-agent buyer tasks and bounded feedback fixes",
+  "date": "2026-10-11",
+  "branch": "feature/T18-implementation",
+  "base_commit": "b3cf8f351f69c2dbef095288137fb1ef213dad68",
+  "implementation": "Uncommitted; tested changed source hashes below",
+  "manual_runtime": {
+    "project": "t18-browser-96f7af07bc03",
+    "versions": {
+      "reflex": "0.9.12",
+      "pytest-playwright": "0.10.0",
+      "playwright": "1.63.0",
+      "pulp": "3.3.0",
+      "scikit-learn": "1.8.0"
+    },
+    "python": "3.11.16 (main, Sep 29 2026, 14:58:48) [MSC v.1944 64 bit (AMD64)]",
+    "viewport_checks": [
+      "initial 534x764",
+      "1280x900",
+      "390x844",
+      "320x568"
+    ],
+    "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+  },
+  "tasks": [
+    {
+      "task": "desktop-create-compare",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T19:47:41.590880+00:00",
+      "completed_at_utc": "2026-10-11T19:48:58.452987+00:00",
+      "agent_wall_seconds": 76.859,
+      "observations": "Minimum102EUR: S2266/S1844. Alternative109EUR: S1618/S1842, exposure9661/50000 and premium7/102; synthetic proxy, not observed probability."
+    },
+    {
+      "task": "desktop-scenarios-infeasible",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T19:48:58.855797+00:00",
+      "completed_at_utc": "2026-10-11T19:51:21.311143+00:00",
+      "agent_wall_seconds": 142.453,
+      "observations": "All5types target originalbase102EUR. Outage106,capacity103.5,demand123,price106,combined128. Changeddemand notlike-for-like. 1000infeasible noinventedallocation, childapprovalblocked, returnbase preserved."
+    },
+    {
+      "task": "desktop-alternative-approval-pdf-recovery",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T19:51:21.513595+00:00",
+      "completed_at_utc": "2026-10-11T19:56:04.993893+00:00",
+      "agent_wall_seconds": 283.485,
+      "observations": "Alternative 1 required a reason; approval preserved during owned API outage; explicit retry and actual PDF download succeeded against stored-only API."
+    },
+    {
+      "task": "keyboard-no-award",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T19:56:21.825848+00:00",
+      "completed_at_utc": "2026-10-11T19:57:38.330941+00:00",
+      "agent_wall_seconds": 76.5,
+      "observations": "Keyboard-only tabs, input loading, creation, No-award reason validation and finalization, stored reopen. Native browser input only; visible focus. Save removed focused control and focus fell to body; future context improvement."
+    },
+    {
+      "task": "narrow-recovery",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T19:57:39.335159+00:00",
+      "completed_at_utc": "2026-10-11T20:01:06.398195+00:00",
+      "agent_wall_seconds": 207.062,
+      "observations": "390px real GET outage and recovery; uncertain create retained identical request/key and recovered to 84bf77cc-3908-4730-8315-8b369b595474. 320px exact tables keyboard horizontal scroll; infeasible scenario/base return; mobile minimum approval/reopen/PDF download; PDF 200 percent zoom region scrolled with keyboard. Actual browser text zoom shortcuts had no effect, not assessed."
+    },
+    {
+      "task": "feedback-fix-recheck",
+      "actor": "source/runbook-informed agent",
+      "completion": "PASS in recorded bounded scope",
+      "critical_outcome_errors_observed": 0,
+      "assistance": "Known source/runbook/fixture; no human assistance",
+      "started_at_utc": "2026-10-11T20:02:00.416869+00:00",
+      "completed_at_utc": "2026-10-11T20:03:25.694006+00:00",
+      "agent_wall_seconds": 85.281,
+      "observations": "Fixed PDF error exposed role alert while approval preserved at 320px; explicit stored-only retry rendered same approved case with role status; successful scenario save exposed role status. No assistive-technology speech claim."
+    }
+  ],
+  "time_boundary": "Agent wall clock includes tools, reasoning and fault setup; not human task time or API latency",
+  "manual_integrity_checks": [
+    "Original snapshot unchanged after scenarios/approval",
+    "Separate stored No-award has no approved content",
+    "Both downloaded five-page PDFs contain matching case/snapshot/approved-content hashes, actor and exact chosen cost",
+    "PDF failure alert and scenario save status exposed after fix"
+  ],
+  "browser_regression": {
+    "outcome": "PASS",
+    "seconds": 87.51,
+    "project": "t18-browser-c960952a9737",
+    "checks": [
+      "Created base; both saved costs and supplier quantities match API",
+      "Explicit alternative approval and unchanged original snapshot",
+      "Model-unconfigured stored reopening; PDF outage alert and explicit recovery; rendered/downloaded exact PDF",
+      "Actual FastAPI outage; visible GET error and explicit identical recovery",
+      "Actual FastAPI outage; exact pending payload/key and explicit idempotent recovery"
+    ],
+    "case_id": "7279837d-dcd4-4ce4-bfc3-2b8076186569",
+    "approved_content_hash": "dc2209577196a91029c2ef4facef5f75299249765688401dc5cc9bc4f9864186",
+    "pdf_sha256": "0f499dbccd93462a27f7a06749def0838cd5a04e8c87f9b96ccadd3d9c7ad0ff",
+    "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched.",
+    "artifacts": [
+      {
+        "path": ".artifacts/t18-browser-c960952a9737/evidence.json",
+        "bytes": 1524,
+        "sha256": "d9f962039c0629fa122c4566ab0e8a2879d790edac4e9db8cd37d0057d59c386"
+      },
+      {
+        "path": ".artifacts/t18-browser-c960952a9737/approved.pdf",
+        "bytes": 29777,
+        "sha256": "0f499dbccd93462a27f7a06749def0838cd5a04e8c87f9b96ccadd3d9c7ad0ff"
+      },
+      {
+        "path": ".artifacts/t18-browser-c960952a9737/trace.zip",
+        "bytes": 9162654,
+        "sha256": "38cd6d6a820d39f9d309d51c7709a2a4982c6b42d84d4fce306d65e7dd69021a"
+      }
+    ]
+  },
+  "gates": {
+    "ruff_format": "PASS: 212 files",
+    "ruff_lint": "PASS",
+    "compileall": "PASS",
+    "fast_tests": "PASS: 591 passed, 60 deselected; actual CBC/ML",
+    "initial_fast_attempt": "408 passed, 183 setup errors: inaccessible Windows default pytest temp. Retained separately; rerun with fresh workspace-local basetemp.",
+    "pip_check": "No broken requirements found.",
+    "compose": "Both existing configs PASS; output suppressed",
+    "owner_walkthrough": "PENDING",
+    "unfamiliar_participants": "PENDING: planned 3-5",
+    "novice_usability": "NOT ASSESSED",
+    "browser_text_zoom_200_percent": "NOT VERIFIED: IAB shortcuts had no effect",
+    "screen_reader_and_formal_conformance": "NOT ASSESSED",
+    "hosted_browser_and_new_sha_ci": "NOT VERIFIED"
+  },
+  "source_sha256": {
+    "frontend/planning/decision.py": "16cbf722ea4d795a34450bc13065dc1a3fc7190ceb09282c21384a56492bac3a",
+    "frontend/planning/page.py": "281f4991994ff565f637ce266a0d4d25a4716783bcd172b3bf9bb00e2bd01364",
+    "tests/e2e/test_planning_smoke.py": "560548e5f3e84f5ca786b482d09c93c53422dfe64bf16bc937c2efa87fb01ce2",
+    "tests/e2e/conftest.py": "3bfffbf57d2b92f9179ec1ae6ed6f713ccaa0cff7805ac2e5db8577dd5bf93f5"
+  },
+  "manual_artifacts": [
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-base-case.json",
+      "bytes": 58962,
+      "sha256": "2a5be0fefbc48ac514690b7c216597c384c476887f548d15541f87645e24e4a8"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-base-after-scenarios-case.json",
+      "bytes": 58962,
+      "sha256": "2a5be0fefbc48ac514690b7c216597c384c476887f548d15541f87645e24e4a8"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-approved-case.json",
+      "bytes": 129118,
+      "sha256": "8cc1aa003112867d5a054dd1d326184c5249dd9ff5c23ec186ec50c334e481c7"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/mobile-approved-case.json",
+      "bytes": 128854,
+      "sha256": "3f0bca494cb00aef51040c4b992a31c6c551e719ec54cb2feb08f208aeee94dd"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/keyboard-no-award-case.json",
+      "bytes": 60252,
+      "sha256": "4fcf4692a0c41b46d63a2e2cd0215be9b50b79b5418d04ca7bb222385fae8432"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/mobile-pending-request.json",
+      "bytes": 15072,
+      "sha256": "eeeeffc5e15caf28fb20d668384b518ca533be6dc4eadc2dcd3ef8b3c71eda0d"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-approved.pdf",
+      "bytes": 29791,
+      "sha256": "021b41fd9b1f315b6a4527f4497c19e82a46ec9a2e548352b96f465c10192cc5"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/mobile-approved.pdf",
+      "bytes": 29765,
+      "sha256": "ec48fd7e60bd4855b879a8a5c985ff20f46ae5a07a7c9fc596db071a3a9eee8f"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/proof-approved.jpg",
+      "bytes": 53103,
+      "sha256": "20e655619cfbb64f14850acb0aa2081102e8939954bcf39cbed74f1ac3454882"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-audit-before.jpg",
+      "bytes": 215979,
+      "sha256": "a01feb53870a3643576362d34b85bab3221493cdecceab5e338048b67e041f4d"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-outage.jpg",
+      "bytes": 160536,
+      "sha256": "8e1d34e6271d9e5f20df1fe70bbbd11bcb8bd79de4c1744a979f909ff4a9d9a1"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-capacity.jpg",
+      "bytes": 170332,
+      "sha256": "ad63a8e9a1b15501feeed047559fe966eb01c25d5978a8f7a537f5a3a0dcda8a"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-demand.jpg",
+      "bytes": 164651,
+      "sha256": "14268feb662d8ad6dfc4532463a32334cbe7491da592ba99c9224156c83c8a58"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-price.jpg",
+      "bytes": 170743,
+      "sha256": "bdb28c166a239a3f9f7ba016f497a5e30fd8105372115de56572ca64154c095a"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-combined.jpg",
+      "bytes": 193460,
+      "sha256": "53309731e7b0187e3516b7e56d6f1566906183f1dd57901041c7c3f38129020e"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-infeasible.jpg",
+      "bytes": 97494,
+      "sha256": "2900fb7df38766b99fbb1d7d8e52faca43e602fd3c8fa666e48c1a1e1fa9fd82"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-base-return.jpg",
+      "bytes": 208598,
+      "sha256": "6867208ccf5157624c1d4dd11113bcd7c72bafd11dd7c125cc14068e68a834d5"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-approved-before.jpg",
+      "bytes": 200707,
+      "sha256": "cd878ca38e21a4b8f8ea30dea60a401c047f556b68d8103bda792a14483aa2a6"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-pdf-failure-before.json",
+      "bytes": 5207,
+      "sha256": "8ae1cf69ecb8498d0979d25bdcb149b7217dea8cbd5698e6baa24967ddf20a1a"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-pdf-rendered.jpg",
+      "bytes": 276316,
+      "sha256": "10c076374e1b49ceafaf4b4b2577c79dae1292576d99b473228f55ff618834e3"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/keyboard-no-award.jpg",
+      "bytes": 201983,
+      "sha256": "09c027cb08e132f1fbb9a4642c2c3d152b4fe14c3734ca59d7027ab25d762299"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/mobile-get-unavailable.jpg",
+      "bytes": 72830,
+      "sha256": "ab94fc42ec9d8f38e51e120779769f719aa9dbef6e5d1dd47aa173aa0c8a5af2"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/mobile-pending-save.jpg",
+      "bytes": 241227,
+      "sha256": "3143f39b4aca22e10b673384a5dca51c439e3528fd2c19ceb797828b717bd2aa"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/narrow320-exact-values.jpg",
+      "bytes": 205449,
+      "sha256": "3652dce18be225baa08e2928e57f6be85a7605f48ec9e5c2644ddbd3c9895b14"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/narrow320-infeasible.jpg",
+      "bytes": 139112,
+      "sha256": "7a3960a3231aa8b4a133c23365c693708344be6c31ef96327dc3772600a31971"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/narrow320-pdf-keyboard.json",
+      "bytes": 16715,
+      "sha256": "f2cc3cccd4ac2fc3c1b6ee6532725e89bc3728420080611e4be4f4dd66608f7e"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/browser-text-zoom-attempt.json",
+      "bytes": 16708,
+      "sha256": "03edd8fa8ead066430733dceee0a4d5e64b45b785e3aca1e290a5290d6d67cdb"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/narrow320-pdf-failure-fixed.json",
+      "bytes": 5186,
+      "sha256": "7455ad5e4feb13d61bb9633b8bd9a0aef702fd47952cd90f23999ad8611cecb5"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/narrow320-pdf-recovered-fixed.json",
+      "bytes": 16783,
+      "sha256": "96b7baee940921ea837ded31979d629760f9c3867bda659b68bd25b4f1c7629a"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/desktop-scenario-status-fixed.json",
+      "bytes": 5040,
+      "sha256": "4b76018fb1ea45f388d7ee3ab3809e63cbb233784bf7b1f4a438765d1d67ebcf"
+    },
+    {
+      "path": ".artifacts/t18-browser-96f7af07bc03/evidence.json",
+      "bytes": 4401,
+      "sha256": "a4d7feb506f6b3e77f6962a23468c82416780eacde447a1500700bbab1ffbdf3"
+    }
+  ],
+  "fast_artifacts": [
+    {
+      "path": ".artifacts/t18-29-fast-final-ebba8687d6dc44e5888c0f1698ab5c56/result.xml",
+      "bytes": 80787,
+      "sha256": "0c0147a4dea9909f72950b3741700a415f4105553322dd282f430bc6af696952"
+    },
+    {
+      "path": ".artifacts/t18-29-fast-final-ebba8687d6dc44e5888c0f1698ab5c56/pytest.log",
+      "bytes": 67053,
+      "sha256": "cb0c4fe4cbc446ad3b27fae1526d31d24b16fa46ec7e9cee84c663f1fff927f9"
+    },
+    {
+      "path": ".artifacts/t18-29-fast/pytest.log",
+      "bytes": 442380,
+      "sha256": "ac6a4cb412ed45e27253b818ef24c20c14a4616c60a0f8a56a2ae2f8e15f4b82"
+    }
+  ],
+  "publication": "No commit/push/merge/GitHub mutation/Drive edit"
+}

@@ -3,17 +3,17 @@
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import CONNECTED, HAIRLINE, MUTED, SURFACE
+from frontend.theme import HAIRLINE, MUTED, SURFACE
 
 
 def _scenario_form() -> rx.Component:
     busy = PlanningState.is_loading | PlanningState.has_pending
     combined = PlanningState.scenario_kind == "combined"
     return rx.box(
-        rx.heading("Change one assumption. Save a new scenario.", as_="h2", size="4"),
+        rx.heading("Test changed assumptions. Save a new scenario.", as_="h2", size="4"),
         rx.text(
             "Each run starts from the original saved base, even when viewing a "
-            "scenario. Odoo stays unchanged; saved supplier scores are reused.",
+            "scenario. The same MILP runs with saved supplier scores. Odoo stays unchanged.",
             size="2",
             color=MUTED,
             max_width="75ch",
@@ -214,6 +214,19 @@ def _scenario_form() -> rx.Component:
                     color=MUTED,
                     margin_top="0.5rem",
                 ),
+                rx.text(
+                    "Original base: ",
+                    PlanningState.details["base_id"],
+                    size="1",
+                    color=MUTED,
+                ),
+                rx.text(
+                    "Changed-demand totals are not like-for-like savings. "
+                    "What-if prices are simulated assumptions, not fresh quotations.",
+                    size="2",
+                    margin_top="0.5rem",
+                    max_width="75ch",
+                ),
                 padding="1rem",
                 background="#EFF3F6",
                 border_radius="6px",
@@ -225,11 +238,14 @@ def _scenario_form() -> rx.Component:
                     PlanningState.error_message,
                     color_scheme="red",
                     role="alert",
+                    id="scenario-error",
+                    tab_index=-1,
+                    on_mount=rx.set_focus("scenario-error"),
                     margin_bottom="1rem",
                 ),
             ),
             rx.button("Create and save scenario", type="submit", disabled=busy, size="3"),
-            on_submit=PlanningState.run_scenario,
+            on_submit=PlanningState.run_scenario.throttle(500),
             reset_on_submit=False,
         ),
         width="100%",
@@ -238,88 +254,119 @@ def _scenario_form() -> rx.Component:
 
 
 def _scenario_comparison() -> rx.Component:
-    return rx.box(
-        rx.heading("Change from the base case", as_="h3", size="4"),
-        rx.text(
-            "What-if assumptions: ",
-            PlanningState.details["assumptions"],
-            size="2",
-            margin_y="0.5rem",
+    child = PlanningState.details["parent_id"] != "Base case"
+    return rx.el.section(
+        rx.heading(
+            rx.cond(child, "Saved scenario comparison", "Original base before disruption"),
+            as_="h2",
+            size="5",
+            id="scenario-result-heading",
+            tab_index=-1,
         ),
-        rx.text(PlanningState.details["comparison_display"], size="2", margin_bottom="1rem"),
+        rx.text("Original base: ", PlanningState.details["base_id"], size="2", color=MUTED),
+        rx.cond(
+            child,
+            rx.box(
+                rx.text(
+                    "Saved scenario: ", PlanningState.details["case_id"], size="2", color=MUTED
+                ),
+                rx.text(
+                    "Saved assumptions: ",
+                    PlanningState.details["assumptions"],
+                    size="2",
+                    margin_y="0.75rem",
+                ),
+                rx.button(
+                    "Return to original base",
+                    on_click=PlanningState.open_saved_case(PlanningState.details["base_id"]),
+                    disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    variant="outline",
+                    margin_bottom="1rem",
+                ),
+            ),
+        ),
+        rx.cond(
+            PlanningState.original_error != "",
+            rx.box(
+                rx.callout(PlanningState.original_error, role="alert", color_scheme="red"),
+                rx.button(
+                    "Retry original-base retrieval",
+                    on_click=PlanningState.retry_original,
+                    disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    variant="outline",
+                    margin_y="0.75rem",
+                ),
+            ),
+        ),
         rx.box(
             rx.table.root(
                 rx.table.header(
                     rx.table.row(
                         rx.table.column_header_cell("Result"),
                         rx.table.column_header_cell("Original base"),
-                        rx.table.column_header_cell("Scenario"),
-                    )
+                        rx.cond(child, rx.table.column_header_cell("Saved scenario")),
+                        rx.cond(child, rx.table.column_header_cell("Change")),
+                    ),
                 ),
                 rx.table.body(
-                    rx.table.row(
-                        rx.table.row_header_cell("Feasibility"),
-                        rx.table.cell(PlanningState.details["base_status_label"]),
-                        rx.table.cell(PlanningState.details["scenario_status_label"]),
+                    rx.foreach(
+                        PlanningState.scenario_metrics,
+                        lambda row: rx.table.row(
+                            rx.table.row_header_cell(row["metric"]),
+                            rx.table.cell(row["base"]),
+                            rx.cond(child, rx.table.cell(row["scenario"])),
+                            rx.cond(child, rx.table.cell(row["change"])),
+                        ),
                     ),
-                    rx.table.row(
-                        rx.table.row_header_cell("Demand quantity"),
-                        rx.table.cell(PlanningState.details["base_quantity"]),
-                        rx.table.cell(PlanningState.details["quantity"]),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("Minimum total cost"),
-                        rx.table.cell(PlanningState.details["base_cost"]),
-                        rx.table.cell(PlanningState.details["scenario_cost"]),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("Schedule-watch exposure"),
-                        rx.table.cell(PlanningState.details["base_exposure"]),
-                        rx.table.cell(PlanningState.details["scenario_exposure"]),
+                    rx.foreach(
+                        PlanningState.scenario_allocation_rows,
+                        lambda row: rx.table.row(
+                            rx.table.row_header_cell(row["name"]),
+                            rx.table.cell(row["base"]),
+                            rx.cond(child, rx.table.cell(row["scenario"])),
+                            rx.cond(child, rx.table.cell(row["change"])),
+                        ),
                     ),
                 ),
-            ),
-            overflow_x="auto",
-            width="100%",
-        ),
-        rx.cond(
-            PlanningState.comparison_rows.length() > 0,
-            rx.box(
-                rx.text("Minimum-cost allocation changes", font_weight="600", margin_y="0.75rem"),
-                rx.table.root(
-                    rx.table.header(
-                        rx.table.row(
-                            rx.table.column_header_cell("Supplier"),
-                            rx.table.column_header_cell("Base quantity"),
-                            rx.table.column_header_cell("Scenario quantity"),
-                            rx.table.column_header_cell("Change"),
-                        )
-                    ),
-                    rx.table.body(
-                        rx.foreach(
-                            PlanningState.comparison_rows,
-                            lambda row: rx.table.row(
-                                rx.table.row_header_cell(row["name"]),
-                                rx.table.cell(row["base"]),
-                                rx.table.cell(row["scenario"]),
-                                rx.table.cell(row["change"]),
-                            ),
-                        )
-                    ),
-                ),
-                overflow_x="auto",
+                min_width=rx.cond(child, "38rem", "24rem"),
                 width="100%",
             ),
+            role="region",
+            aria_label="Exact original-base and scenario comparison",
+            tab_index=0,
+            overflow_x="auto",
+            width="100%",
+            margin_y="1rem",
+        ),
+        rx.cond(
+            child & (PlanningState.details["quantity"] != PlanningState.details["base_quantity"]),
             rx.text(
-                "No comparable proven minimum-cost allocation is available. View the base "
-                "case to inspect its saved result; missing values are not zero allocations.",
+                "Demand changed: these totals cover different quantities, "
+                "not a like-for-like saving.",
                 size="2",
-                color=MUTED,
-                margin_top="0.75rem",
+                margin_bottom="0.75rem",
+                max_width="75ch",
             ),
         ),
-        width="100%",
-        padding="1rem",
-        border_left=f"3px solid {CONNECTED}",
+        rx.cond(
+            child & (PlanningState.plans.length() == 0),
+            rx.callout(
+                "No proven scenario minimum-cost plan is available. Its cost, exposure and "
+                "allocations are unavailable, not zero. The original saved result remains above. "
+                "Read the saved outcome and diagnostics in Audit.",
+                color_scheme="amber",
+                margin_bottom="0.75rem",
+            ),
+        ),
+        rx.text(
+            "Costs and allocations compare minimum-cost plans. Exposure is an uncalibrated "
+            "synthetic proxy, not failure probability. What-if prices are simulated assumptions, "
+            "not fresh quotations. Scenarios remain analytical and cannot be approved.",
+            size="2",
+            color=MUTED,
+            max_width="75ch",
+        ),
+        aria_label="Original base and saved scenario",
         margin_bottom="1.5rem",
+        width="100%",
     )

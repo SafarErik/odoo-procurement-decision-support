@@ -16,12 +16,14 @@ class MemoryPlanningUnitOfWork:
 
     def __init__(self):
         self.rows = {}
+        self.catalog = {}
         self.cases = self
         self.decisions = MemoryPlanningDecisions()
         self.documents = MemoryPlanningDocuments()
 
     def __enter__(self):
         self.before = self.rows.copy()
+        self.before_catalog = self.catalog.copy()
         self.before_decisions = self.decisions.rows.copy()
         self.before_documents = self.documents.rows.copy()
         self.committed = False
@@ -30,6 +32,7 @@ class MemoryPlanningUnitOfWork:
     def __exit__(self, *args):
         if not self.committed:
             self.rows = self.before
+            self.catalog = self.before_catalog
             self.decisions.rows = self.before_decisions
             self.documents.rows = self.before_documents
 
@@ -48,6 +51,13 @@ class MemoryPlanningUnitOfWork:
     def add(self, case):
         assert self.by_key(case.idempotency_key) is None
         self.rows[case.case_id] = case
+
+    def add_catalog(self, case_id, context):
+        assert case_id not in self.catalog and self.rows[case_id].parent_id is None
+        self.catalog[case_id] = context
+
+    def catalog_for(self, case_id):
+        return self.catalog.get(case_id)
 
 
 class MemoryPlanningDecisions:

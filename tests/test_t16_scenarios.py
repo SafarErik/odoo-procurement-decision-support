@@ -44,8 +44,9 @@ def configured(stored_cases, monkeypatch):
 
 
 async def event(state, handler, *args):
-    async for _ in handler.fn(state, *args):
-        assert state.is_loading
+    async for update in handler.fn(state, *args):
+        if update is None:
+            assert state.is_loading
     assert not state.is_loading
 
 

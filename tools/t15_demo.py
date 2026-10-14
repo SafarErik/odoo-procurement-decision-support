@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
@@ -23,7 +24,9 @@ from supplier_evaluation.model import train
 BASE = "/api/v2/procurement/planning-cases"
 
 
-def prepare_assets(directory, *, domain=None):
+def prepare_assets(directory, *, domain=None, supplier_count=3):
+    if supplier_count not in (3, 5, 10):
+        raise ValueError("Controlled workloads support 3, 5 or 10 suppliers.")
     rows = generate_dataset() if domain is None else generate_dataset(domain=domain)
     split = prepare_dataset(rows, boundary=BOUNDARY, extracted_at=EXTRACTED_AT)
     model = train(split)
@@ -37,6 +40,7 @@ def prepare_assets(directory, *, domain=None):
         key=lambda a: (a.score, a.snapshot.context.supplier_id),
     )
     chosen = (assessments[-1], assessments[len(assessments) // 2], assessments[0])
+    chosen += tuple(a for a in assessments if a not in chosen)[: supplier_count - 3]
     context, cutoff = chosen[0].snapshot.context, chosen[0].snapshot.cutoff
     deadline = (cutoff + timedelta(days=7)).date().isoformat()
     source = {
@@ -62,7 +66,11 @@ def prepare_assets(directory, *, domain=None):
         "suppliers": [],
     }
     by_context = {row.context: row for row in rows if row.cutoff == cutoff}
-    for a, price, capacity in zip(chosen, ("10", "10.5", "11"), (6, 8, 10), strict=True):
+    prices = ("10", "10.5", "11") + tuple(
+        str(Decimal("11.5") + Decimal("0.5") * i) for i in range(supplier_count - 3)
+    )
+    capacities = (6, 8, 10) + (10,) * (supplier_count - 3)
+    for a, price, capacity in zip(chosen, prices, capacities, strict=True):
         row = by_context[a.snapshot.context]
         payload["suppliers"].append(
             {

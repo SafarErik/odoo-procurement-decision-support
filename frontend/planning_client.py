@@ -3,7 +3,7 @@
 import hashlib
 import json
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from uuid import UUID
 
 import httpx
@@ -20,6 +20,12 @@ class PlanningDisplay:
     provenance: list[dict[str, str]]
     scenario_suppliers: list[dict[str, str]]
     comparison_rows: list[dict[str, str]]
+
+
+FINAL_DECISION_CONFLICT = (
+    "Decision conflict (HTTP 409). The case may already be finalized or the request key "
+    "belongs to another intent. Reopen the recorded decision; do not approve again."
+)
 
 
 async def submit_planning_request(
@@ -59,10 +65,12 @@ async def submit_planning_request(
             403: "Planning access was rejected. Check the server-side service token.",
             404: "The base case was not found in this database. Load it again.",
             409: (
-                "This request key belongs to different inputs. Do not reuse it for changed inputs."
+                "Save conflict (HTTP 409). This request key belongs to different inputs. "
+                "Do not reuse it for changed inputs. Copy the exact request for support."
             ),
             422: (
-                "These inputs are outside the supported planning or model contract. Check "
+                "Inputs rejected (HTTP 422). These inputs are outside the supported planning "
+                "or model contract. Check "
                 "quantity, terms and the matched saved model."
             ),
             413: "The prepared request exceeds the API size limit.",
@@ -72,11 +80,10 @@ async def submit_planning_request(
                 return (
                     None,
                     (
-                        "The case is already finalized or the finalization key conflicts. "
-                        "Reopen it to review the recorded decision."
+                        FINAL_DECISION_CONFLICT
                         if response.status_code == 409
-                        else "Finalization was rejected. Review the explicit plan, actor, reason, "
-                        "saved hash and demo acknowledgement."
+                        else "Finalization was rejected (HTTP 422). Review the explicit plan, "
+                        "actor, reason, saved hash and demo acknowledgement."
                     ),
                     False,
                 )
@@ -98,6 +105,12 @@ async def submit_planning_request(
         if str(UUID(case_id)) != case_id:
             raise ValueError("Invalid response identity")
         display = _map_case(data, case_id)
+        catalog = payload.get("catalog_context")
+        if catalog is not None and (
+            data.get("workspace") != catalog["workspace"]
+            or data.get("example_id") != catalog.get("example_id")
+        ):
+            raise ValueError("Saved classification disagrees with creation intent")
         if url.endswith("/final-decision"):
             intent = dict(payload)
             intent["actor_reference"] = intent["actor_reference"].strip()
@@ -173,7 +186,9 @@ async def fetch_planning_case(
     except httpx.HTTPError:
         return (
             None,
-            "Planning data is unavailable. Check the FastAPI service and planning database.",
+            "Planning data is unavailable. Retry Load stored case when access returns. "
+            "Opening only reads saved work. If it persists, give the case ID to the owner "
+            "to check the FastAPI service and planning database.",
         )
     try:
         return _map_case(response.json(), case_id), ""
@@ -220,16 +235,42 @@ def _supplier_label(identity: str) -> str:
     )
 
 
+_BUYER_EXPLANATIONS = {
+    "zero_in_optimal_plan": (
+        "Not selected in this plan; this does not mean the supplier is excluded."
+    ),
+    "capacity_binding": "Uses all of this supplier's declared capacity.",
+    "concentration_binding": "Reaches the maximum quantity allowed for one supplier.",
+    "supplier_count_binding": "Uses the maximum allowed number of suppliers.",
+    "unavailable": "Excluded: declared unavailable for this saved case.",
+    "deadline_ineligible": "Excluded: the promised date is after the required date.",
+    "no_valid_quantity": "Excluded: no positive quantity satisfies the recorded limits.",
+    "moq_binding": "Reaches this supplier's minimum order quantity.",
+    "price_lower_binding": "Reaches the lower quantity limit for the saved price.",
+    "price_upper_binding": "Reaches the upper quantity limit for the saved price.",
+    "delivery_lower_binding": "Reaches the lower quantity limit for the delivery promise.",
+    "delivery_upper_binding": "Reaches the upper quantity limit for the delivery promise.",
+    "integer_concentration_ceiling": "Reaches the whole-unit limit for one supplier's share.",
+    "insufficient_effective_capacity": "The usable supplier quantities cannot cover demand.",
+    "supplier_count_capacity_shortfall": (
+        "Demand cannot be covered within the allowed number of suppliers."
+    ),
+}
+
+
 def _explanation(entry: dict) -> str:
-    phrases = {
-        "zero_in_optimal_plan": (
-            "Not selected in this plan; this does not mean the supplier is excluded."
-        ),
-        "capacity_binding": "Uses all of this supplier's declared capacity.",
-        "concentration_binding": "Reaches the maximum quantity allowed for one supplier.",
-        "supplier_count_binding": "Uses the maximum allowed number of suppliers.",
-    }
-    return phrases.get(entry["code"], entry["detail"])
+    return _BUYER_EXPLANATIONS.get(entry["code"], entry["detail"])
+
+
+def _buyer_explanations(entries: list[dict]) -> str:
+    return "\n".join(
+        dict.fromkeys(
+            ((_supplier_label(e["supplier_id"]) + ": ") if e["supplier_id"] else "")
+            + _explanation(e)
+            for e in entries
+            if e["code"] in _BUYER_EXPLANATIONS
+        )
+    )
 
 
 def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
@@ -301,7 +342,21 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         )
     policy = request["policy"]
     concentration = policy["concentration_limit"]
+    workspace = payload.get("workspace", "unclassified")
+    workspace_label = {
+        "practice": "Practice",
+        "controlled": "Controlled work",
+        "unclassified": "Earlier case · Unclassified",
+    }[workspace]
+    example_id = payload.get("example_id")
+    if example_id is not None and (
+        workspace != "practice" or not isinstance(example_id, str) or not 1 <= len(example_id) <= 80
+    ):
+        raise ValueError("Invalid saved example classification")
     details = {
+        "workspace": workspace,
+        "workspace_label": workspace_label,
+        "example_id": example_id or "",
         "case_id": expected_id,
         "parent_id": parent or "Base case",
         "created_at": _parse_datetime(payload["created_at"]).isoformat(),
@@ -353,6 +408,8 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         else requirement["product_id"],
         "decision_summary": "",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
+        "buyer_diagnostics": _buyer_explanations(result["explanations"]),
+        "snapshot_json": json.dumps(snapshot, indent=2, ensure_ascii=False, allow_nan=False),
     }
     comparison = snapshot["comparison"]
     comparison_rows = []
@@ -468,6 +525,18 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
             )
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
+        by_supplier = {}
+        for allocation in plan["allocations"]:
+            identity = _required_string(allocation, "supplier_id")
+            _integer(allocation["quantity"])
+            if identity in by_supplier or allocation["quantity"] < 0:
+                raise ValueError("Invalid recorded allocation")
+            by_supplier[identity] = allocation["quantity"]
+        if set(by_supplier) != supplier_ids or sum(by_supplier.values()) != quantity:
+            raise ValueError("Invalid recorded allocation supplier join or demand total")
+        with localcontext() as context:
+            context.prec = max(28, len(plan["total_cost"]) + len(minimum["total_cost"]))
+            extra_cost = _decimal(plan["total_cost"]) - _decimal(minimum["total_cost"])
         exposure = _ratio(plan["risk_exposure"])
         if not 0 <= exposure <= 1:
             raise ValueError("Invalid recorded exposure")
@@ -475,34 +544,37 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
             {
                 "label": label,
                 "number": str(index + 1),
+                "index": str(index),
                 "chart_x": "50%"
                 if high == low
                 else f"{100 * (_decimal(plan['total_cost']) - low) / (high - low):.4f}%",
                 "chart_y": f"{10 + 80 * (1 - exposure):.4f}%",
                 "cost": f"{_decimal(plan['total_cost']):,f} {currency}",
+                "cost_exact": plan["total_cost"],
                 "exposure": _rational(plan["risk_exposure"]),
                 "premium": _rational(plan["cost_premium"]),
+                "premium_absolute": f"{extra_cost:+,f} {currency}",
+                "premium_exact": (
+                    f"{plan['cost_premium']['numerator']}/{plan['cost_premium']['denominator']}"
+                ),
+                "exposure_exact": (
+                    f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}"
+                ),
+                "allocation_summary": "; ".join(
+                    f"{_supplier_label(identity)}: {by_supplier[identity]} "
+                    f"{requirement['quantity_unit']} (promised "
+                    f"{saved_suppliers[identity]['promised_date']})"
+                    for identity in sorted(by_supplier)
+                    if by_supplier[identity] > 0
+                ),
                 "exposure_display": f"{_ratio(plan['risk_exposure']) * 100:.1f} / 100",
                 "premium_display": "Minimum cost for these constraints"
                 if index == 0
                 else (
-                    f"+{_decimal(plan['total_cost']) - _decimal(minimum['total_cost']):,f} "
+                    f"+{extra_cost:,f} "
                     f"{currency} (+{_ratio(plan['cost_premium']) * 100:.1f}%) above minimum"
                 ),
-                "buyer_notes": "\n".join(
-                    dict.fromkeys(
-                        ((_supplier_label(e["supplier_id"]) + ": ") if e["supplier_id"] else "")
-                        + _explanation(e)
-                        for e in plan["explanations"]
-                        if e["code"]
-                        in {
-                            "zero_in_optimal_plan",
-                            "capacity_binding",
-                            "concentration_binding",
-                            "supplier_count_binding",
-                        }
-                    )
-                ),
+                "buyer_notes": _buyer_explanations(plan["explanations"]),
                 "explanations": "\n".join(
                     f"{e['supplier_id'] or 'Plan'} — {e['code']}: {e['detail']}"
                     for e in plan["explanations"]
@@ -512,12 +584,13 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         allocations.extend(
             {
                 "plan": label,
-                "supplier": _required_string(a, "supplier_id"),
-                "quantity": _integer(a["quantity"]),
-                "name": _supplier_label(a["supplier_id"]),
-                "share": f"{Decimal(a['quantity']) / requirement['approved_quantity'] * 100:.2f}",
+                "supplier": identity,
+                "quantity": str(by_supplier[identity]),
+                "name": _supplier_label(identity),
+                "promised": saved_suppliers[identity]["promised_date"],
+                "share": f"{Decimal(by_supplier[identity]) / quantity * 100:.2f}",
             }
-            for a in plan["allocations"]
+            for identity in sorted(by_supplier)
         )
     assessments = []
     for assessment in snapshot["assessments"]:
@@ -534,6 +607,13 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "score": str(_decimal(assessment["score"])),
                 "name": _supplier_label(feature["context"]["supplier_id"]),
                 "class_label": "Schedule watch" if predicted else "Schedule regular",
+                "class_meaning": (
+                    "Training label: at least two of five future synthetic receipts are late."
+                    if predicted
+                    else "Training label: fewer than two of five future synthetic receipts "
+                    "are late."
+                ),
+                "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
                 "score_display": f"{score * 100:.1f} / 100",
                 "history_summary": (
                     f"{feature['values'][0]:g}% on time across "

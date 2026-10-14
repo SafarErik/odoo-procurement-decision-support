@@ -2,67 +2,240 @@
 
 import reflex as rx
 
-from frontend.planning.decision import decision_view
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, INK, MUTED, SURFACE
+from frontend.theme import ACCENT, HAIRLINE, MUTED, SURFACE
 
 
-def _allocation_bar(row: rx.Var[dict[str, str]]) -> rx.Component:
-    return rx.cond(
-        row["quantity"] != "0",
-        rx.box(
-            rx.hstack(
-                rx.text(row["name"], size="2"),
-                rx.text(row["quantity"], font_weight="650"),
-                justify="between",
+def _selection_button(plan):
+    return rx.button(
+        rx.cond(
+            PlanningState.selected_plan.get("label", "") == plan["label"],
+            rx.cond(
+                PlanningState.details["final_outcome"] == "Approved",
+                "Approved plan",
+                "Selected for review",
             ),
-            rx.box(
-                rx.box(
-                    width=row["share"] + "%",
-                    height="0.4rem",
-                    background=ACCENT,
-                    border_radius="3px",
-                ),
-                background="#EEE8EF",
-                margin_top="0.4rem",
-                border_radius="3px",
-            ),
-            margin_bottom="0.85rem",
+            "Select for review",
         ),
+        aria_label="Select " + plan["label"] + " for review",
+        aria_pressed=PlanningState.selected_plan.get("label", "") == plan["label"],
+        on_click=PlanningState.choose_final_plan(plan["label"]),
+        disabled=PlanningState.has_pending
+        | PlanningState.is_loading
+        | (PlanningState.details["final_outcome"] != ""),
+        variant="outline",
+        color=ACCENT,
+        width="100%",
+        margin_top="0.75rem",
+    )
+
+
+def _plan_notes(plan):
+    return rx.el.details(
+        rx.el.summary("What shapes this allocation?", cursor="pointer"),
+        rx.text(plan["buyer_notes"], white_space="pre-line", size="2", margin_top="0.75rem"),
+        rx.text("Exact solver notes are available in Audit.", size="2", color=MUTED),
+    )
+
+
+def _metric(label, *content):
+    return rx.box(
+        rx.text(label, size="2", color=MUTED, margin_bottom="0.35rem"),
+        *content,
+        margin_top="1rem",
     )
 
 
 def _recorded_plan(plan: rx.Var[dict[str, str]]) -> rx.Component:
-    return rx.box(
-        rx.hstack(
-            rx.heading(plan["label"], as_="h3", size="4"),
-            rx.badge("Saved plan", color_scheme="gray"),
-            justify="between",
+    return rx.el.section(
+        rx.heading(plan["label"], as_="h3", size="5"),
+        _selection_button(plan),
+        _metric("Total cost", rx.text(plan["cost"], size="7", font_weight="650")),
+        _metric(
+            "Above minimum cost",
+            rx.text(plan["premium_absolute"], font_weight="650"),
+            rx.text(plan["premium_display"], size="2"),
+            rx.text("Exact relative premium: ", plan["premium_exact"], size="2"),
         ),
-        rx.text(
-            plan["cost"], size="8", font_weight="650", letter_spacing="-0.04em", margin_top="1rem"
+        _metric(
+            "Quantity by supplier",
+            rx.foreach(
+                PlanningState.allocations,
+                lambda row: rx.cond(
+                    row["plan"] == plan["label"],
+                    rx.box(
+                        rx.flex(
+                            rx.text(row["name"], size="2", flex="1", min_width="0"),
+                            rx.text(
+                                row["quantity"],
+                                " ",
+                                PlanningState.details["unit"],
+                                font_weight="650",
+                            ),
+                            gap="1rem",
+                            wrap="wrap",
+                            justify="between",
+                        ),
+                        rx.text("Promised ", row["promised"], size="1", color=MUTED),
+                        border_bottom=f"1px solid {HAIRLINE}",
+                        padding_y="0.5rem",
+                    ),
+                ),
+            ),
+            rx.text(
+                "Demand covered: ",
+                PlanningState.details["quantity"],
+                " ",
+                PlanningState.details["unit"],
+                size="2",
+                margin_top="0.5rem",
+            ),
         ),
-        rx.text(plan["premium_display"], color=MUTED, size="2", margin_bottom="1.5rem"),
-        rx.text("Quantity by supplier", font_weight="600", size="2", margin_bottom="0.75rem"),
-        rx.foreach(
-            PlanningState.allocations,
-            lambda row: rx.cond(row["plan"] == plan["label"], _allocation_bar(row)),
+        _metric(
+            "Synthetic model exposure",
+            rx.text(plan["exposure_exact"], font_weight="650"),
+            rx.text("Approximate scale: ", plan["exposure_display"], size="2"),
         ),
-        rx.hstack(
-            rx.text("Schedule-watch exposure", size="2"),
-            rx.text(plan["exposure_display"], font_weight="650", color=INK),
-            justify="between",
-            margin_top="1.5rem",
-        ),
-        rx.el.details(
-            rx.el.summary("What shapes this allocation?", cursor="pointer"),
-            rx.text(plan["buyer_notes"], white_space="pre-line", size="2", margin_top="0.75rem"),
-            margin_top="1.25rem",
+        rx.box(_plan_notes(plan), margin_top="1rem"),
+        background=rx.cond(
+            PlanningState.selected_plan.get("label", "") == plan["label"],
+            "#f1eff8",
+            SURFACE,
         ),
         border=f"1px solid {HAIRLINE}",
-        background=SURFACE,
-        border_radius="0.75rem",
-        padding=["1.25rem", "1.75rem"],
+        padding="1.25rem",
+        margin_bottom="1rem",
+    )
+
+
+def _plan_cell(plan, *content):
+    return rx.table.cell(
+        *content,
+        background=rx.cond(
+            PlanningState.selected_plan.get("label", "") == plan["label"],
+            "#f1eff8",
+            SURFACE,
+        ),
+        vertical_align="top",
+        padding="1rem",
+    )
+
+
+def _comparison_table():
+    return rx.box(
+        rx.table.root(
+            rx.table.header(
+                rx.table.row(
+                    rx.table.column_header_cell("Saved plan comparison", min_width="12rem"),
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: rx.table.column_header_cell(
+                            rx.heading(plan["label"], as_="h3", size="5"),
+                            rx.text("Saved plan index ", plan["index"], size="1", color=MUTED),
+                            _selection_button(plan),
+                            min_width="16rem",
+                            vertical_align="top",
+                            padding="1rem",
+                            background=rx.cond(
+                                PlanningState.selected_plan.get("label", "") == plan["label"],
+                                "#f1eff8",
+                                SURFACE,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            rx.table.body(
+                rx.table.row(
+                    rx.table.row_header_cell("Total cost"),
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: _plan_cell(
+                            plan, rx.text(plan["cost"], size="7", font_weight="650")
+                        ),
+                    ),
+                ),
+                rx.table.row(
+                    rx.table.row_header_cell("Above minimum cost"),
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: _plan_cell(
+                            plan,
+                            rx.text(plan["premium_absolute"], font_weight="650"),
+                            rx.text(plan["premium_display"], size="2"),
+                            rx.text("Exact relative premium: ", plan["premium_exact"], size="2"),
+                        ),
+                    ),
+                ),
+                rx.foreach(
+                    PlanningState.scenario_suppliers,
+                    lambda supplier: rx.table.row(
+                        rx.table.row_header_cell(
+                            supplier["name"],
+                            rx.text("Promised ", supplier["saved_date"], size="1", color=MUTED),
+                            rx.text(supplier["saved_available"], size="1", color=MUTED),
+                        ),
+                        rx.foreach(
+                            PlanningState.plans,
+                            lambda plan: _plan_cell(
+                                plan,
+                                rx.foreach(
+                                    PlanningState.allocations,
+                                    lambda row: rx.cond(
+                                        (row["plan"] == plan["label"])
+                                        & (row["supplier"] == supplier["supplier"]),
+                                        rx.text(
+                                            row["quantity"],
+                                            " ",
+                                            PlanningState.details["unit"],
+                                            font_weight="650",
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                rx.table.row(
+                    rx.table.row_header_cell("Demand covered"),
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: _plan_cell(
+                            plan,
+                            rx.text(
+                                PlanningState.details["quantity"],
+                                " ",
+                                PlanningState.details["unit"],
+                            ),
+                        ),
+                    ),
+                ),
+                rx.table.row(
+                    rx.table.row_header_cell("Synthetic model exposure"),
+                    rx.foreach(
+                        PlanningState.plans,
+                        lambda plan: _plan_cell(
+                            plan,
+                            rx.text(plan["exposure_exact"], font_weight="650"),
+                            rx.text("Approximate scale: ", plan["exposure_display"], size="2"),
+                        ),
+                    ),
+                ),
+                rx.table.row(
+                    rx.table.row_header_cell("Constraints and delivery"),
+                    rx.foreach(
+                        PlanningState.plans, lambda plan: _plan_cell(plan, _plan_notes(plan))
+                    ),
+                ),
+            ),
+            width="100%",
+        ),
+        role="region",
+        aria_label="Aligned saved plan comparison",
+        tab_index=0,
+        overflow_x="auto",
+        width="100%",
+        display=rx.breakpoints(initial="none", md="block"),
     )
 
 
@@ -82,6 +255,7 @@ def _plan_tradeoff_chart() -> rx.Component:
                 rx.box(
                     rx.text(
                         label,
+                        white_space="nowrap",
                         position="absolute",
                         right="100%",
                         padding_right="0.5rem",
@@ -152,6 +326,7 @@ def _plan_tradeoff_chart() -> rx.Component:
                         rx.table.column_header_cell("Point / plan"),
                         rx.table.column_header_cell("Total cost"),
                         rx.table.column_header_cell("Exposure / 100"),
+                        rx.table.column_header_cell("Exact exposure"),
                     )
                 ),
                 rx.table.body(
@@ -161,11 +336,15 @@ def _plan_tradeoff_chart() -> rx.Component:
                             rx.table.cell(plan["number"], ". ", plan["label"]),
                             rx.table.cell(plan["cost"]),
                             rx.table.cell(plan["exposure_display"]),
+                            rx.table.cell(plan["exposure_exact"]),
                         ),
                     )
                 ),
             ),
             overflow_x="auto",
+            role="region",
+            aria_label="Saved plan chart values",
+            tab_index=0,
             width="100%",
         ),
         rx.text(
@@ -183,22 +362,39 @@ def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
     return rx.box(
         rx.flex(
             rx.box(
-                rx.text(row["name"], font_weight="650"),
+                rx.heading(row["name"], as_="h3", size="3", overflow_wrap="anywhere"),
                 rx.text(row["history_summary"], color=MUTED, size="2"),
+                min_width="0",
+                flex="1",
             ),
             rx.box(
                 rx.badge(
                     row["class_label"], color_scheme=rx.cond(row["class"] == "0", "teal", "amber")
                 ),
-                rx.text("Exposure ", row["score_display"], size="2", margin_top="0.3rem"),
+                rx.text(
+                    "Synthetic exposure (approx.) ",
+                    row["score_display"],
+                    size="2",
+                    margin_top="0.3rem",
+                ),
             ),
             justify="between",
             gap="1rem",
             flex_wrap="wrap",
         ),
+        rx.text(row["class_meaning"], size="2", margin_top="0.75rem"),
+        rx.text("History window: ", row["history_window"], size="2"),
+        rx.text("Assessment reference (UTC): ", row["reference_time"], size="2"),
+        rx.text(
+            "Saved applicability: ",
+            row["quantity_range"],
+            " · valid until (UTC) ",
+            row["valid_until"],
+            size="2",
+            color=MUTED,
+        ),
         rx.el.details(
             rx.el.summary("How did the tree classify this supplier?", cursor="pointer"),
-            rx.text("History window: ", row["history_window"], size="2", margin_top="0.75rem"),
             rx.text(
                 "These conditions trace the saved model's branches. They are not receipt records.",
                 size="2",
@@ -213,30 +409,18 @@ def _recorded_assessment(row: rx.Var[dict[str, str]]) -> rx.Component:
             ),
             rx.text("Result: ", row["class_label"], font_weight="650", size="2"),
             rx.text(
-                "Thresholds above are rounded for reading. Exact branches and model "
-                "identity follow.",
+                "Thresholds above are rounded for reading. Inspect exact branches, leaf support "
+                "and model identity in Audit.",
                 size="1",
                 color=MUTED,
-            ),
-            rx.el.details(
-                rx.el.summary("Exact tree record", cursor="pointer"),
-                rx.text(row["path"], white_space="pre-line", size="1", margin_y="0.75rem"),
-                rx.text("Exact supplier ID: ", row["supplier"], size="2"),
-                rx.text("Recorded class: ", row["class"], " · Score: ", row["score"], size="2"),
-                rx.text("Recorded validity end: ", row["valid_until"], size="2"),
-                rx.text("Recorded score applicability: ", row["quantity_range"], size="2"),
-                rx.text(
-                    "Synthetic history reference: ",
-                    row["source"],
-                    size="2",
-                    overflow_wrap="anywhere",
-                ),
-                rx.text("Model: ", row["model"], size="2", overflow_wrap="anywhere"),
             ),
             margin_top="0.75rem",
         ),
         padding_y="1.25rem",
         border_bottom=f"1px solid {HAIRLINE}",
+        overflow_wrap="anywhere",
+        role="region",
+        aria_label="Supplier assessment: " + row["name"],
     )
 
 
@@ -254,30 +438,54 @@ def plans_view() -> rx.Component:
         rx.cond(
             PlanningState.plans.length() > 0,
             rx.box(
+                rx.heading("Your allocation options", as_="h2", size="5", margin_bottom="0.5rem"),
+                rx.text(
+                    "Same product · same ",
+                    PlanningState.details["quantity"],
+                    " ",
+                    PlanningState.details["unit"],
+                    " demand. Selection does not save or approve.",
+                    size="2",
+                    color=MUTED,
+                    margin_bottom="1rem",
+                ),
                 rx.cond(
                     PlanningState.details["decision_summary"] != "",
-                    rx.callout(
+                    rx.text(
                         PlanningState.details["decision_summary"],
-                        color_scheme="blue",
+                        size="2",
+                        color=MUTED,
+                        max_width="75ch",
                         margin_bottom="1rem",
                     ),
                 ),
-                rx.grid(
+                _comparison_table(),
+                rx.box(
                     rx.foreach(PlanningState.plans, _recorded_plan),
-                    columns=rx.breakpoints(initial="1", md="2"),
-                    gap="1rem",
-                    align_items="start",
+                    display=rx.breakpoints(initial="block", md="none"),
                 ),
                 rx.text(
                     "Exposure is the quantity-weighted saved supplier score. Lower "
                     "means less simulated exposure; it is not a failure probability. "
-                    "Exact values are in Audit.",
+                    "Exact fractions are shown above and retained in Audit.",
                     size="2",
                     color=MUTED,
                     margin_y="1rem",
                     max_width="75ch",
                 ),
-                _plan_tradeoff_chart(),
+                rx.cond(
+                    PlanningState.details["status"] != "optimal",
+                    rx.callout(
+                        "Comparison is incomplete. Only retained proven plans are shown; "
+                        "the saved solver outcome is available in Audit.",
+                        color_scheme="amber",
+                    ),
+                ),
+                rx.el.details(
+                    rx.el.summary("Cost–exposure chart and exact values", cursor="pointer"),
+                    _plan_tradeoff_chart(),
+                    margin_y="1rem",
+                ),
                 width="100%",
             ),
             rx.callout(
@@ -296,7 +504,6 @@ def plans_view() -> rx.Component:
             PlanningState.details["alternative_notice"] != "",
             rx.callout(PlanningState.details["alternative_notice"], color_scheme="gray"),
         ),
-        decision_view(),
         align="stretch",
         spacing="4",
         width="100%",
@@ -307,22 +514,82 @@ def suppliers_view() -> rx.Component:
     return rx.box(
         rx.heading("Why these supplier assessments?", as_="h2", size="4"),
         rx.text(
-            "The saved Decision Tree classifies each supplier from its prior "
-            "on-time delivery rate and completed-receipt count. The branch "
-            "sequence explains the classification; it does not prove why a "
-            "delivery was late.",
+            "Classes describe synthetic training outcomes, not observed supplier performance. "
+            "The saved tree uses prior on-time delivery and receipt counts; its branches explain "
+            "the classification, not why a delivery was late. Allocation constraints are separate.",
             size="2",
             color=MUTED,
             max_width="75ch",
             margin_y="0.75rem",
         ),
+        rx.text(
+            "Rates and branch thresholds are rounded for reading; Audit retains exact values.",
+            size="2",
+            color=MUTED,
+            margin_bottom="0.75rem",
+        ),
         rx.callout(
             "Synthetic history. These percentages describe generated receipts, "
             "including for Odoo suppliers. They are not performance measured "
-            "from your Odoo database.",
+            "from your Odoo database. Exposure is uncalibrated, not a failure probability.",
             color_scheme="amber",
         ),
         rx.foreach(PlanningState.assessments, _recorded_assessment),
+        rx.cond(
+            PlanningState.details["parent_id"] != "Base case",
+            rx.text(
+                "Stress scenarios reuse original saved assessments. Simulated supply changes "
+                "do not reclassify suppliers.",
+                size="2",
+                color=MUTED,
+                margin_y="0.75rem",
+            ),
+        ),
+        rx.heading("Saved allocation constraints", as_="h3", size="4", margin_top="1.5rem"),
+        rx.text(
+            "A zero allocation alone is not an exclusion. The notes below describe recorded "
+            "exclusions and limits reached by each saved plan; no constraints are recalculated.",
+            size="2",
+            color=MUTED,
+            max_width="75ch",
+            margin_y="0.75rem",
+        ),
+        rx.cond(
+            PlanningState.details["buyer_diagnostics"] != "",
+            rx.text(PlanningState.details["buyer_diagnostics"], white_space="pre-line", size="2"),
+        ),
+        rx.foreach(
+            PlanningState.plans,
+            lambda plan: rx.box(
+                rx.heading(plan["label"], as_="h4", size="3"),
+                rx.text(
+                    rx.cond(
+                        plan["buyer_notes"] != "",
+                        plan["buyer_notes"],
+                        "No exclusions or binding limits were recorded for this plan.",
+                    ),
+                    white_space="pre-line",
+                    size="2",
+                    margin_top="0.5rem",
+                ),
+                margin_bottom="1rem",
+            ),
+        ),
+        rx.cond(
+            PlanningState.plans.length() == 0,
+            rx.text(
+                "No proven allocation is saved for this outcome. Inspect recorded diagnostics "
+                "and inputs in Audit.",
+                size="2",
+            ),
+        ),
+        rx.button(
+            "Inspect exact evidence in Audit",
+            on_click=PlanningState.change_view("audit"),
+            variant="outline",
+            margin_y="1rem",
+            disabled=PlanningState.is_loading | PlanningState.has_pending,
+        ),
         rx.el.details(
             rx.el.summary("What was the model trained on?", font_weight="650", cursor="pointer"),
             rx.text(
@@ -354,4 +621,5 @@ def suppliers_view() -> rx.Component:
             ),
         ),
         width="100%",
+        overflow_wrap="anywhere",
     )

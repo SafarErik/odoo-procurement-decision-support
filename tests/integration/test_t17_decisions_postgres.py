@@ -29,7 +29,10 @@ def configured(postgres_runtime, stored_cases, monkeypatch):
     memory, base, child, _ = stored_cases
     with engine.begin() as connection:
         connection.execute(
-            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
+            text(
+                "TRUNCATE planning_case_catalog, planning_documents, "
+                "planning_final_decisions, planning_cases"
+            )
         )
     with SqlAlchemyPlanningUnitOfWork(factory) as uow:
         for row in memory.rows.values():

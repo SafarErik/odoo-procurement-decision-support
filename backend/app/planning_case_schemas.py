@@ -4,10 +4,11 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from application.decision_input_assembly import SourceAttribution
 from application.planning_cases import ScenarioDelta, SupplierChange
+from application.planning_catalog import CatalogContext
 from application.planning_input import PlanningFacts, SupplierFacts
 from backend.app.decision_case_schemas import StrictModel, _explicit_utc_text
 from decision_core.planning.models import (
@@ -107,6 +108,16 @@ class SupplierRequest(StrictModel):
         return RequirementRequest.date_text(value)
 
 
+class CatalogContextRequest(StrictModel):
+    workspace: Literal["practice", "controlled"]
+    example_id: (
+        Annotated[str, StringConstraints(strict=True, min_length=1, max_length=80)] | None
+    ) = None
+
+    def context(self):
+        return CatalogContext(self.workspace, self.example_id)
+
+
 class PlanningCreateRequest(StrictModel):
     source_type: Literal["t14_synthetic"]
     company_id: Text
@@ -117,6 +128,7 @@ class PlanningCreateRequest(StrictModel):
     policy: PolicyRequest
     policy_source: SourceRequest
     suppliers: list[SupplierRequest] = Field(min_length=1, max_length=10)
+    catalog_context: CatalogContextRequest | None = None
 
     @field_validator("as_of", mode="before")
     @classmethod
@@ -189,6 +201,13 @@ class PlanningCreateRequest(StrictModel):
 class OdooPlanningCreateRequest(StrictModel):
     purchase_group_id: PositiveCount
     controlled_input: PlanningCreateRequest
+    catalog_context: CatalogContextRequest | None = None
+
+    @model_validator(mode="after")
+    def outer_context_only(self):
+        if self.controlled_input.catalog_context is not None:
+            raise ValueError("Supply Odoo catalog context on the outer creation request only.")
+        return self
 
 
 class ChangeRequest(StrictModel):
@@ -231,6 +250,8 @@ class PlanningCaseResponse(StrictModel):
     snapshot: dict
     idempotent_replay: bool
     final_decision: dict | None = None
+    workspace: Literal["practice", "controlled", "unclassified"] = "unclassified"
+    example_id: str | None = None
 
 
 class PlanningFinalDecisionRequest(StrictModel):

@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 
 from application.decision_cases import RepositoryError
 from application.decision_input_assembly import SourceAttribution
+from application.planning_catalog import CatalogContext
 from application.planning_input import PlanningFacts, assemble_planning_input, validate_source
 from application.planning_serialization import (
     json_value,
@@ -55,6 +56,9 @@ class PlanningRepository(Protocol):
     def by_key(self, key: str) -> PlanningCase | None: ...
     def get(self, case_id: str) -> PlanningCase | None: ...
     def add(self, case: PlanningCase) -> None: ...
+    def list_saved(self, query) -> list[tuple]: ...
+    def add_catalog(self, case_id: str, context: CatalogContext) -> None: ...
+    def catalog_for(self, case_id: str) -> CatalogContext | None: ...
 
 
 class PlanningUnitOfWork(Protocol):
@@ -312,10 +316,15 @@ def create_planning_case(
     solver_factory: Callable,
     base_intent: dict | None = None,
     load_base: Callable | None = None,
+    catalog_context: CatalogContext | None = None,
 ) -> tuple[PlanningCase, bool]:
     """One locked transaction contains computation and immutable key/case insertion."""
     canonical_uuid(key)
     loaded_base = base_intent is not None and load_base is not None
+    if catalog_context is not None:
+        if parent_id is not None or not isinstance(catalog_context, CatalogContext):
+            raise ValueError("Only base creation accepts catalog context.")
+        catalog_context.validate(from_odoo=loaded_base)
     if (
         sum((facts is not None, parent_id is not None, loaded_base)) != 1
         or (base_intent is None) != (load_base is None)
@@ -336,6 +345,8 @@ def create_planning_case(
     else:
         normalized = normalize_planning_facts(facts)
         intent = {"operation": "base", "facts": normalized}
+    if catalog_context is not None:
+        intent["catalog_context"] = catalog_context
     request_hash = fingerprint(intent)
     with uow:
         uow.cases.lock(key)
@@ -421,6 +432,8 @@ def create_planning_case(
             )
             validate_snapshot(case)
             uow.cases.add(case)
+            if catalog_context is not None:
+                uow.cases.add_catalog(case.case_id, catalog_context)
             uow.commit()
             return case, False
         except (ValueError, TypeError, OverflowError) as error:

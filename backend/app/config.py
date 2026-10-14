@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     decision_database_url: SecretStr = SecretStr("")
     t12_trusted_caller_token: SecretStr = SecretStr("")
     t15_trusted_model_directory: Path | None = None
+    planning_library_company_id: str = ""
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     run_t6_live_contracts: bool = False
     run_t7s_live_contracts: bool = False

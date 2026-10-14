@@ -1,0 +1,10 @@
+protocol_version,session_id,role,participant_id,task_id,attempt,completed,independent,assistance,errors,human_seconds,comprehension,unintended_finalizations,critical_misunderstanding,resolution,evidence,comments
+UX41-v1,,,TEMPLATE,B01,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B02,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B03,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B04,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B05,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B06,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B07,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B08,1,,,,,,,,,,,
+UX41-v1,,,TEMPLATE,B09,1,,,,,,,,,,,

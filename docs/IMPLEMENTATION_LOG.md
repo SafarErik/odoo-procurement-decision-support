@@ -2478,3 +2478,1019 @@ README records the publication/correction state. The fix remains unstaged and
 uncommitted; new hosted CI awaits user publication. Drive remains untouched until
 the review boundary is cleared. No service, database, Odoo or GitHub mutation was
 performed during this correction.
+
+## 2026-10-11 — T17 issue evidence and confirmed T18 evaluation planning
+
+The user merged T17 PR #24 and created `feature/T18-implementation` from main
+`ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. GitHub readback confirms the merge;
+exact post-merge Quality 38150351508 and Container/API 38150351451 are SUCCESS.
+The user closed #19–#22. At their explicit request, updated the closed issue
+bodies: #20's 14, #21's 12 and #22's eight acceptance items are checked, and #19
+links its three completed slices. Each retains the specification/exclusions and
+adds pinned handoffs, PR/CI evidence and limitations. Independent readback confirms
+the exact bodies, all intended checkboxes and unchanged closed states.
+
+Used the user-invoked grill-with-docs flow to investigate current evaluation
+coverage and buyer friction. Two read-only fact investigations inspected existing
+tests, code and historical screenshots; no new services, browser interaction or
+tests were started. Existing negative/concurrency tests are substantial. Actual
+gaps include repeated workload measurements, a consolidated AC/NFR/RQ assessment,
+committed browser smoke and evidence about unfamiliar buyers. Source/visual
+observations are not fresh browser defects or participant measurements.
+
+The user confirmed all nine planning answers. [T18 plan](T18_EVALUATION_PLAN.md)
+records the current controlled hybrid, 3/5/10-supplier and 1/3-epsilon workloads,
+two warmups/30 measured attempts and operation-specific local p95 targets;
+local-first Chromium smoke with optional pytest-playwright dependencies; existing
+coverage reuse; agent/user walkthroughs; and fixes for evidenced blockers.
+Unfamiliar-participant usability remains NOT ASSESSED. Substantial UX/UI
+improvement and affected reassessment follow before final acceptance and thesis
+closure; T18 is not treated as the final development increment. The confirmed
+plan preserves accepted FR/AC/ADR meanings and read-only/API-only boundaries.
+
+README/index now expose the actual merged status and plan. Earlier handoffs and
+logs retain their dated evidence. No new glossary concept or substantive ADR was
+needed. Specification/ticket synthesis and granularity review are next; no new
+ticket, application implementation, dependency install, Drive edit, stage,
+commit, push or merge was performed in this planning session. Planning quality
+checks are recorded in the chat handoff; prior application-test evidence is not
+presented as a new run.
+
+## 2026-10-11 — Publish the confirmed T18 evaluation specification
+
+The user explicitly invoked to-spec after confirming Q9. Refreshed the canonical
+requirements, status, roadmap, ADR and research-question records; their pre-merge
+publication wording remains historical and is reconciled with the T17 merged
+baseline and confirmed later UX/UI stage. No accepted FR/AC/NFR/RQ meaning,
+domain vocabulary, ADR or technology baseline changed.
+
+[Specification #25](https://github.com/SafarErik/odoo-procurement-decision-support/issues/25)
+is open with `ready-for-agent`; [repository copy](T18_EVALUATION_SPEC.md) contains
+30 user stories, the agreed measurement and local-browser contracts, reused
+HTTP/real-PostgreSQL/browser test boundaries and seven completion criteria.
+Independent GitHub readback confirms the exact published body, state and label.
+Unfamiliar-participant usability remains NOT ASSESSED; substantial UX/UI work
+and reassessment precede final acceptance. Failed targets cannot become PASS
+merely because a report exists.
+
+README/index/plan now link the specification. Delivery-ticket granularity and
+dependencies still need review before child publication. This stage changes
+engineering documents only; no application code, dependencies, services, Drive
+content, stage, commit, push or merge changed. Ruff 0.17.0 whole-repository
+formatting (200 files) and lint pass, as do patch whitespace and local document
+link/specification-structure checks. Application/service/browser tests were not
+rerun for this documentation-only stage; historical runtime evidence stays dated.
+
+## 2026-10-11 — Draft bounded T18 delivery tickets for review
+
+The user invoked to-tickets. Read back the complete live specification #25 and
+open issue list; #25 is the sole open issue, and its state/body were not changed.
+[Draft breakdown](T18_TICKET_BREAKDOWN.md) proposes five independently verifiable
+slices: a complete 3-supplier/1-epsilon HTTP measurement flow; extension to the
+full workload/stress matrix and separate live validation; real-stack local
+Chromium smoke; buyer-task/keyboard/mobile/recovery assessment with bounded
+blocker fixes; and consolidated AC/NFR/RQ conclusions with a UX/UI follow-up.
+
+Only the expanded measurements depend on the first measurement slice. Browser
+smoke and manual assessment can start from the implemented workflow. The final
+report depends on the three evidence-producing branches; measurement slice 1 is
+a transitive blocker through slice 2. No preparatory refactor is justified.
+The earlier four-area plan remains the scope; five tickets refine delivery size.
+No specific code paths, speculative API/schema changes or general cleanup scope
+are introduced in the child descriptions.
+
+The skill requires user review of granularity and blocking edges before issue
+publication, so no child issues have been created. Native sub-issue/dependency
+mutation is not exposed by current connector metadata; if still unavailable at
+publication, child bodies will record parent/blocker links. The skill explicitly
+prohibits changing the parent, so no parent task list is added by this workflow.
+README/index/plan expose the review draft. No implementation, dependency install,
+runtime service, Drive write, stage, commit, push, merge or issue closure occurred.
+Ruff 0.17.0 formatting (201 files), lint, patch whitespace and local draft-link/
+structure checks pass. Application/service/browser gates were not rerun for
+this documentation-only proposal; the ticket outcomes remain planned.
+
+## 2026-10-11 — Publish approved T18 delivery tickets
+
+The user approved all five proposed slices and dependencies. Published open
+`ready-for-agent` children #26–#30 of specification #25 in dependency order.
+#27 is blocked by #26; #30 is blocked by #27/#28/#29. #26, #28 and #29 can start
+independently, with #26 recommended first. Each ticket has a complete behavior,
+bounded acceptance criteria, canonical traceability and inherited safety/scope
+boundaries; no implementation-only horizontal or speculative refactor ticket
+was introduced.
+
+Independent GitHub readback verifies exact bodies/titles, open states, labels,
+parent references and blocker links. Relationships are explicit body links,
+because native mutation is not exposed by the available connector. The parent
+#25 body/state remain unchanged, as required by to-tickets. No issue was closed.
+[Published breakdown](T18_TICKET_BREAKDOWN.md), plan, specification header,
+README and index now show the executable order and actual publication state.
+The earlier draft entry records the pre-approval moment, not a current blocker.
+
+No T18 implementation, runtime measurement, participant result, dependency
+installation, service startup, Drive write, stage, commit, push or merge is
+claimed. Next capability: a complete repeatable three-supplier HTTP evaluation
+through saved approval/PDF with raw timing/outcome evidence. Substantial UX/UI
+improvement and affected reassessment remain later development; unfamiliar-user
+usability stays NOT ASSESSED until real participant evidence exists.
+
+Final documentation verification: Ruff 0.17.0 formatting passes (201 files);
+lint passed for this documentation-only stage. Patch whitespace, published
+ticket/local links and structure pass; the repository specification body still
+matches unchanged parent #25 exactly. Application/service/browser tests were
+not rerun, and no new runtime acceptance is claimed.
+
+## 2026-10-11 — Implement #26's repeated three-supplier HTTP evaluation
+
+The user authorized #26 on `feature/T18-implementation`, starting from published
+planning HEAD `7536a54`. Added one bounded CLI reusing T15 offline synthetic
+preparation and existing HTTP/core/PDF contracts, plus seven meaningful accounting,
+failure, artifact-preservation and actual saved inference/CBC/API/PDF tests.
+No production endpoint, schema, business policy, frontend or dependency changed.
+
+The evaluator atomically retains exact POST intent before requests, distinguishes
+failed/pending/unattempted observations and stops ambiguous writes without retry.
+It measures seven operations separately, validates saved allocations/approval
+and PDF identity, excludes validation/report IO from HTTP time and records model,
+dataset/input/policy, solver/runtime, git/dirty-state and evaluator-source hashes.
+The first full development run passed but duplicated large response snapshots;
+compact identity/result reporting reduced checkpoint overhead. That first report
+is retained as history; the subsequent final-source run is authoritative.
+
+The existing Podman machine was stopped. Started it and only a fresh disposable
+helper project `procurement-t18-26-b7580128`, using PostgreSQL 16.15; Windows
+forwarding failed, so used a task-owned localhost SSH tunnel. Migrated that
+database only to `20261010_01` and served FastAPI on unused port 8002 with the
+matching offline model. Both warm-ups and all 210 measured operations passed;
+p95 seconds were create 0.571495, outage 0.602628, approval 0.258946, GET 0.142419,
+exact replay 0.281872, first PDF 0.244752 and cached PDF 0.172571. All agreed
+local targets passed for this 3-supplier/1-epsilon synthetic workload.
+
+Database readback found 128 base/child cases, 64 approvals and 64 artifacts across
+the two 32-flow executions, consistent with exact replay and cached downloads.
+[Raw timing/identity evidence](T18_26_EVALUATION.json),
+[initial canonical inventory](T18_EVIDENCE_MATRIX.md),
+[runbook](T18_26_EVALUATION_RUNBOOK.md) and [handoff](T18_26_HANDOFF.md) separate
+new measurement from retained component/live/browser evidence. README/index and
+planning headers now reflect the executed scope; original tracker bodies remain.
+
+Initial focused setup errors came from an absent parent temp directory, followed
+by a sandboxed Windows asyncio socket-pair stall before API startup. Fresh temp
+directories and permitted execution outside the socket sandbox resolved them;
+the focused five-test run passed. An earlier 584-pass fast run predates the final
+compact/failure changes; final checks and service cleanup are recorded at handoff.
+No Odoo read/write/UI mutation, application-database reset, Drive edit, GitHub
+issue mutation, stage, commit, push, PR or merge was performed. #27's larger
+matrix/live validation, #28 browser smoke, #29 usability and #30 final assessment
+remain separate. Unfamiliar-participant usability is NOT ASSESSED; modern UX/UI
+work and reassessment still precede final thesis acceptance.
+
+Final checks: 586 fast tests passed, 59 service/browser cases deselected; all seven
+new cases included. Ruff 0.17.0 formatting (206 files)/lint, compileall, pip check,
+both credential-safe Compose config validations, whitespace/local links and raw
+observation/summary/source-hash reproduction pass. No new hosted or browser/live
+Odoo result is claimed. Task-owned API/tunnel and disposable Compose database were
+stopped/removed; generated secret files deleted. No other containers were running,
+so the Podman machine returned to its initially stopped state. #26's local scope
+is complete; implementation changes remain unstaged/uncommitted for user review.
+
+## 2026-10-11 — Supported workload/stress and separate live evaluation (#27)
+
+Problem: repeated #26 evidence covered only three suppliers/one epsilon and
+outage. Decision: extend the existing offline helper/HTTP evaluator to all six
+supported sizes, five stress types and controlled infeasibility; reuse production
+rules/contracts and the fixed live demo. Behavior: every epsilon/run reference,
+exact allocation/cost/premium/exposure, original-base link, saved delta/provenance
+and changed-demand comparison is validated. No new API, schema, dependency or
+frontend behavior was introduced. Default T15 preparation remains compatible.
+
+Evidence: all 2,160 measured and 144 warm-up operations succeeded; all 72 fixed
+p95 gates passed. Highest p95 2.791729 s (10/3 price increase, target 5 s).
+[Raw/summary export](T18_27_EVALUATION.json) retains observations, templates,
+hashes and environment; [handoff](T18_27_HANDOFF.md) interprets them and links the
+[runbook](T18_27_EVALUATION_RUNBOOK.md). The earlier #26 report remains historical.
+The separate [live record](T18_27_LIVE_VALIDATION.json) reproduces fixed read-only
+Odoo quotations plus synthetic ML, all stress types, alternative approval/PDF,
+separate No-award and stored-only reopening with Odoo stopped/model unset.
+Readback matched 1,352 evaluation cases/194 decisions/193 documents exactly;
+three earlier integration-fixture cases and one decision/document are separated.
+
+Verification: 591 fast tests/59 deselected; actual CBC/ML and independent T13
+oracle executed. Ruff 0.17.0 formatting/lint, compileall, pip check, both safe
+Compose config checks, whitespace, export/source identity and document links
+passed. The existing Starlette TestClient deprecation remains. Real PostgreSQL
+contracts passed 36 checks and primary live Odoo 18. The two previously disabled
+T7-S/T8 gates were executed and failed HTTP 401 for the dedicated key: **current
+history/security validation remains BLOCKED**, with earlier bounded-history
+acceptance retained and no observed-model promotion or broader permissions.
+The user was asked to renew only the existing dedicated key; no key, Odoo UI,
+role, fixture or owner `.env` mutation was performed by the agent.
+
+Limitations: deterministic fixture, warmed sequential HTTP, fixed execution order
+and accumulating database; not arbitrary scaling, concurrent SLA, cold startup,
+observed prediction/calibration or real business savings. Browser/participant
+gates are separate; novice usability NOT ASSESSED. Initial focused source-type,
+Compose-provider and local guard/report-path errors were corrected before their
+dependent evidence; no hidden workflow retry or target relaxation occurred.
+Owned runtime/secret cleanup restored initially stopped Odoo/Podman and preserved
+owner artifacts/volumes. Changes remain uncommitted; no Drive/issue/PR/publication
+mutation. Next: independent #28 browser smoke/recovery, then #29/#30 and later
+substantial UX/UI reassessment. Chapter 7 owns measurements/limits; chapters
+3/4/6 and conclusions use only the supported integration and traceability results.
+
+
+## 2026-10-11 — #27 history/security credential gate resolved
+
+Problem: the initial service run's two dedicated T7-S/T8 checks failed HTTP 401.
+The user renewed the existing dedicated key in ignored local `.env`. Decision:
+rerun only those two affected read-only contracts with process-local opt-in flags;
+retain the original failure and all already passing measurements/tests.
+
+Evidence: **2 passed in 2.21 s, no failures/skips**, using Python 3.11.16 and the
+existing Odoo loopback listener on 8069. Bounded method-only projection, denied
+generic CRUD/direct stock/cross-company access and invalid bounds passed. The
+production history/KPI slice verified 33.33% adherence, sample 3, controlled
+backorder relationships and supplier-return exclusion. The [live evidence](T18_27_LIVE_VALIDATION.json)
+binds the rerun log/XML/source hashes separately from the original 54-pass/2-fail
+run. [#27's handoff](T18_27_HANDOFF.md) now records all scoped local gates complete.
+
+Limitations: no observed-model promotion or new supplier-promise semantics; keys
+remain short-lived operational prerequisites. No code, .env, Odoo UI, ACL, fixture
+or database mutation was performed by the agent. The user's already running
+Podman/Odoo/listener were preserved; no helper process/service needed cleanup.
+Previously passing quality/matrix/database checks were not repeated after this
+credential-only change. Hosted CI, browser and novice usability remain separate.
+No commit, publication, issue closure or Drive update. Chapter 7 gains fresh
+controlled history/security evidence; next capability remains #28 browser smoke.
+
+
+## 2026-10-11 — #28 real buyer-flow browser smoke and backend recovery
+
+Problem: compiled Reflex and backend tests do not prove a buyer can complete the
+real browser workflow or recover when Reflex's server-side API client loses its
+backend. Decision: one optional local Chromium smoke with owned services and a
+unique disposable helper database; reuse production modules and existing offline
+synthetic preparation/Compose/migrations. Behavior: UI cost/supplier quantities
+match saved results; explicit alternative approval preserves the original; browser
+reload/reopening with no configured model renders/downloads the byte-identical
+approved PDF. Actual owned FastAPI downtime gives GET and unconfirmed-create
+errors; explicit recovery preserves exact intent/key and produces a stored
+idempotent replay. No production API/UI/core/schema/CI changes.
+
+Evidence: final full Chromium run **1 passed in 82.10 s**, including setup/teardown.
+Earlier full PASS 81.73 s retained separately. Three development assertion failures
+(envelope level, approve/Approved, unconfirmed/uncertain) remain recorded; no
+application defect or automatic workflow retry was concealed. Final cleanup
+refinement reuses owned process-tree handling for command timeouts; a real Windows
+parent/child timeout probe and the final full E2E run passed. Plugin-disabled fast
+collection selected 591/651 tests; selected E2E without plugin or browser binaries
+failed clearly before service startup. [Handoff](T18_28_HANDOFF.md),
+[runbook](T18_28_BROWSER_RUNBOOK.md) and [small evidence record](T18_28_BROWSER_EVIDENCE.json)
+bind tested source/copy/PDF/log/trace hashes. Large screenshots/traces/service logs
+remain ignored local artifacts; prior #27 evidence is preserved.
+
+Required fast gates: **591 passed, 60 deselected**, actual ML/CBC and independent
+T13 oracle; Ruff 0.17.0 formatting (211 files)/lint, compileall, pip check, both
+credential-suppressed Compose configs and whitespace passed. One existing Starlette
+TestClient deprecation remains. Those gates preceded the final E2E-only timeout
+refinement; focused Ruff/compile, probe and full E2E passed afterwards, with fast
+code/selection unchanged. No redundant fast-suite rerun. Owned database/projects
+and API/Reflex/tunnel processes were removed; owner Podman/Odoo/8069 and saved
+application data remain unchanged. Trace generated-secret scan and owner-secret
+artifact checks passed; no generated credential file was written.
+
+Limits: one controlled desktop Chromium flow, synthetic model, technical actor
+text; no new live Odoo acquisition, hosted/Ubuntu browser, mobile/keyboard/visual
+or accessibility acceptance, No-award/scenario browser test or lost-after-commit
+browser claim. Novice usability NOT ASSESSED. Forced pytest termination can prevent
+teardown; fresh frontend dependencies require registry access and remain local
+until manually removed. User controls review/publication; no Drive/issue mutation,
+commit/push/PR/merge. Next: #29 buyer-task/keyboard/mobile walkthrough and blockers,
+then #30 synthesis and later substantial UX/UI reassessment. Chapter 7 gains
+reproducible functional browser/recovery evidence; chapters 4/6 explain the saved
+result/document and server-side credential boundary.
+
+## 2026-10-11 — #29 buyer-task assessment and bounded feedback fixes
+
+**Problem → decision → behavior:** The user authorized #29 on
+`feature/T18-implementation`, clean at committed #28 `b3cf8f3`. Functional smoke
+does not establish first-time-buyer usability. Assess real owned Reflex/FastAPI/
+disposable PostgreSQL through the built-in browser; retain only bounded evidenced
+fixes. PDF errors lacked alert semantics; save/PDF-ready feedback lacked status
+semantics. Add those roles in the shared saved-decision component/page notice,
+and extend the existing smoke with genuine API downtime before PDF viewing,
+preserved approval, no false download and explicit stored-only recovery.
+
+**Evidence:** [Assessment/run sheet](T18_29_BUYER_ASSESSMENT.md) and
+[small artifact/source record](T18_29_BUYER_EVIDENCE.json) record informed-agent
+creation/comparison, exact EUR 102/109 allocations/exposure, all five disruptions,
+infeasible demand 1000, original-base return, alternative reason validation,
+separate keyboard No-award/reopen, narrow 390/320-pixel audit/PDF tasks and genuine
+GET/uncertain-create/PDF fault recovery. Original snapshot stayed unchanged;
+pending create payload/key stayed identical. Keyboard focus, table horizontal
+scroll and PDF 200% viewer zoom were exercised; successful save/PDF readiness and
+failure roles were rechecked after the fix. Raw screenshots/DOM/PDF/case records
+remain ignored locally; selected hashes are committed-document candidates.
+
+Final extended Chromium smoke passed **1 test in 87.51 s**, including byte/hash-
+identical actual PDF download and owned teardown. Required fast gates passed
+**591 tests, 60 deselected in 104.56 s**, actual CBC/ML; Ruff 0.17 format (212
+files)/lint, compileall, pip check, credential-suppressed Odoo/persistence Compose
+configurations and whitespace checks passed. Existing Starlette warning remains.
+The first fast attempt's 408 passes/183 setup errors (inaccessible Windows default
+pytest temp) remain recorded; a full fresh workspace-local-temp rerun passed.
+No dependency/CI/runtime baseline change. Both owned projects/process trees and
+HTTP listeners were removed; owner Odoo/data/8069 listener and running machine
+were preserved; browser viewport reset and temporary tab closed.
+
+**Limits → chapter relevance → next:** Task clocks are agent/tool wall time, not
+human usability times or API latency. Owner sessions PENDING; 3–5 unfamiliar
+participants PENDING and novice usability NOT ASSESSED. In-app browser zoom
+shortcuts had no effect; actual 200% browser text zoom NOT VERIFIED. Screen-reader
+speech, formal accessibility, physical mobile, other engines/hosted browser and
+new-SHA CI are unverified. Odoo was not read or changed; #27 live evidence remains
+separate, synthetic ML stays synthetic. The report ranks entry/retrieval,
+hierarchy, final-choice context, focus continuity, infeasible comparisons,
+recovery, PDF navigation and buyer copy for substantial later UX/UI development.
+Chapter 7 gains bounded task/fault/findings evidence; chapters 4/6 explain the
+feedback/document boundary. #30 synthesis is next, retaining pending gates;
+modern UX/UI and reassessment follow before final acceptance/thesis closure.
+No commit/push/PR/merge, issue mutation or Drive edit; publication stays with user.
+
+## 2026-10-11 — #30 consolidated controlled acceptance and UX/UI follow-up
+
+**Problem → decision → delivered behavior:** The user authorized #30 after
+publishing #29 and reporting green CI. Entry branch was clean at
+`65acfbe9bf31d89f6ed5e3c94812ecf65a82764b`. Refresh canonical requirements/RQs
+read-only and consolidate the dated evidence; add no runtime subsystem or broad
+rerun. [Controlled assessment](T18_CONTROLLED_ASSESSMENT.md) maps every
+FR-V2-01–12 / AC-V2-01–13 / NFR-V2-01–08, answers RQ-V2-01–07 and prioritizes
+the next buyer-visible UX/UI work. Scoped controlled functional outcomes pass;
+novice usability and final product/thesis acceptance do not follow from that.
+
+**Evidence:** [Small reconciliation/gate record](T18_30_CONSOLIDATION_EVIDENCE.json)
+binds refreshed Drive source reads, reports and current revision. All six original
+#27 raw-report hashes, 2,304 exported timing/outcome observations, full-value
+template identities, medians/maxima/p95 and 72 unchanged targets independently
+reconciled. There are 2,160 measured successes and 144 warm-up successes, no
+failed/pending/missing timings or partial solver proof. Slowest p95 is 2.791729 s
+(10 suppliers/3 epsilons price increase), target 5 s. Hardware, sequential order,
+warm-state/excluded work and separate live/browser/agent timings remain explicit.
+The two initial T7-S/T8 401 failures and successful post-renewal two-test rerun,
+prior test-setup/automation failures and existing warning remain historical evidence.
+
+Current evaluator/helper/live-tool hashes and #29 post-fix source/artifact hashes
+match recorded execution. Only the two frontend feedback-role files changed in
+production since #27; HTTP/model/solver/storage/PDF behavior is unchanged. #29's
+affected tasks and 87.51 s real-stack smoke are retained; no new local
+service/live/browser/timing run was justified or started. Exact #29-SHA hosted
+Quality run 38172043161/job 114566515649 and Container/API run 38172043167/job
+114566485440 succeeded; connector job/step metadata confirms integration execution
+and frontend compilation, not hosted browser or every optional live fixture.
+
+New required local gates passed: **591 fast tests, 60 deselected in 103.93 s**,
+actual CBC/ML; Ruff 0.17 format (213 files)/lint, compileall, pip check, both
+credential-suppressed Compose configs and whitespace. Fresh workspace-local temp
+avoided the earlier Windows pytest temp problem. Source/report/link/matrix
+reconciliation checks verify this documentation-only increment; unchanged gates
+were not repeated after passing. No new dependency, CI, migration or production
+code; no owner/Odoo/data/service change.
+
+**Limits → chapter relevance → handoff:** Owner walkthrough PENDING; unfamiliar
+3–5 participants PENDING and novice usability NOT ASSESSED; actual browser text
+zoom NOT VERIFIED; screen-reader output NOT ASSESSED. Focus loss/infeasible base
+visibility and broader navigation/hierarchy/choice/recovery/document friction
+remain ranked follow-up findings. Plan substantial modern buyer-focused UX/UI
+development and reassess before final acceptance; preserve T19 thesis closure
+after necessary development. Chapter 7 owns canonical assessment/measurements/
+RQ answers; chapters 3/4/5/6 and conclusions use only supported scoped findings.
+Drive's retained pre-merge T17/future-T18 status was explicitly reconciled, not
+edited. Report is delivered for review; no commit/push/PR/merge, GitHub issue or
+parent #25 mutation/closure, or Hungarian Drive edit. Publication remains user-controlled.
+
+## 2026-10-12 — Approved buyer workspace specification and ticket publication
+
+**Problem → decision:** T18's controlled workflow evidence does not establish an
+understandable first-time buyer experience. The user confirmed Decision editorial,
+a bounded saved-case library, curated Practice without reset, guided creation,
+aligned comparison, deliberate approval, recovery/document access and reassessment.
+Ten complete buyer slices refine the six specification areas without changing the
+accepted baseline. The user approved all sizes/dependencies, a new parent and the
+prospective library/usability gates before publication.
+
+**Published behavior → evidence:** [Specification #42](https://github.com/SafarErik/odoo-procurement-decision-support/issues/42)
+links delivery #32–#41; the [ticket index](UX_UI_TICKET_BREAKDOWN.md) records their
+actual blockers. Readback verified all eleven exact bodies, titles, open states and
+`ready-for-agent` labels, parent links and 48 unchecked delivery criteria. Explicit
+Markdown relationships are used because native sub-issue/dependency tools are
+unavailable. Only #32 is initially unblocked. Two temporary automatic-review rate
+limits resolved through the same approval process; existing issues were untouched.
+
+**Acceptance → limitation:** Library: 1,000 disposable bases plus children, two
+warm-ups/30 measurements per selected 20-row query, local p95 ≤1s. Buyer tasks:
+3–5 unfamiliar participants, ≥80% independent completion per essential task
+(round successes up), zero unintended finalizations or unresolved critical source/
+decision misunderstandings. These are future scoped gates, not measured results.
+Missing participants remain NOT ASSESSED. Planning/document readback is not
+implementation or buyer acceptance; no runtime services or application tests were
+started for publication. No commit/push/merge, Drive write or existing-parent change.
+
+**Chapter relevance → next:** Chapters 4/6 use the design/integration decisions;
+chapter 7 needs actual task/query/browser evidence. Preserve read-only Odoo,
+synthetic-model limitations, immutable stored decisions/PDF and T19 closure after
+development/reassessment. Next capability is #32's saved-case library.
+
+## 2026-10-12 — Find and reopen saved cases (#32)
+
+**Problem → decision:** Returning buyers needed UUIDs to reopen saved work, while
+test history had no purpose classification. Implement the first complete task of
+parent #42 with bounded company-owned library queries and a working Reflex entry.
+Reuse stored validation and existing API/repository seams; keep all legacy cases
+unclassified instead of deriving Practice from synthetic model evidence.
+
+**Implemented behavior:** `/cases` filters/pages original summaries, lazily expands
+stored scenarios and opens bookmarkable saved results. Backend collections require
+the service token and explicit `PLANNING_LIBRARY_COMPANY_ID`; unknown parameters,
+bad/mismatched cursors and unsupported/corrupt saved data fail explicitly. Migration
+`20261012_01` adds an empty immutable original-base catalog and workspace index.
+Hashes, creation/replay, V1 records, approved content/PDF and read-only Odoo boundaries
+remain unchanged. Pending navigation preserves the original route/key/payload and
+explicit recovery. [Runbook](UX32_LIBRARY_RUNBOOK.md) owns configuration, migration,
+commands, disposable benchmark and cleanup; [handoff](UX32_LIBRARY_HANDOFF.md) owns
+the full dated evidence and failed-attempt record.
+
+**Evidence:** 605 fast tests passed; final guard/recovery-focused checks passed 20.
+32 real PostgreSQL integration checks passed, covering old migration/readability,
+immutable V2 data and catalog constraints/joins. New library browser acceptance and
+existing approval/PDF/recovery browser regression passed; the latter's final extension
+verified blocked pending navigation and exact retry in a real browser. Library
+find → expand → keyboard reopen/reload, 768/390/320 reflow, corruption and genuine
+backend downtime/recovery passed with model/Odoo configuration cleared for stored
+reads. Built-in browser visual inspection and the mechanical detector completed.
+Format/lint/compileall/pip/Compose configuration passed. Owned test stacks/tunnels
+were removed; no owner/Odoo database reset or application migration occurred.
+
+**Measured gate → limitation:** The owned fixture contains 1,000 company bases and
+60 children, plus cross-company and concurrent-insertion checks. Six 20-row queries,
+two warm-ups and 30 observations each, passed local p95 ≤1 second (0.170–0.244s).
+[Raw timings/query plans](UX32_LIBRARY_MEASUREMENTS.json) preserve all 192 observations.
+No additional snapshot indexes were justified. This is a bounded PoC result, not a
+production SLA or new business/ML evidence. Failed setup/compatibility/form/collection
+attempts remain recorded alongside final PASS. Owner/novice usability, text zoom,
+screen-reader speech, physical phones and hosted new-SHA CI remain unverified.
+
+**Traceability → next:** UX-AC-01/03, FR/AC-V2-09/10, NFR-V2-04/05/06/07/08 and UX29-03;
+chapters 4/6 explain architecture/UI choices, chapter 7 uses scoped verification.
+Changes remain uncommitted; user controls commit/push/merge and owner migration.
+Drive and GitHub issues were not edited. #33's explicit creation classification and
+curated Practice is next; #34–#41 and final buyer/thesis acceptance remain open.
+
+## 2026-10-12 — Curated Practice and explicit classification (#33)
+
+**Problem → decision:** Synthetic evidence does not identify a saved case's purpose,
+and a buyer needed deliberate exercises. Reuse #32's catalog storage and existing
+prepared synthetic/scenario APIs; add presentation context outside hashed planning
+facts and a labelled `/practice` entry. Preserve all accepted architecture/source
+boundaries and old omitted-context intent fingerprints.
+
+**Behavior:** Compare/outage/infeasibility selection fills a fresh draft without
+saving. Explicit actions save genuine new bases/scenarios; finalized examples are
+never silently reused as editable work. New synthetic UI saves use Practice, prepared
+Odoo UI saves use controlled work, and legacy callers remain unclassified. Context
+validation follows the server path; case/catalog commit atomically. Exact replay
+writes no metadata, changed context/key conflicts, and children inherit the original.
+Workspace/source remain separate in case/history/decision/document access, without
+rewriting snapshots, approved content or PDF bytes. Pending requests keep exact
+context/payload/key and explicit recovery. No new migration or dependency.
+
+**Evidence:** 617 fast tests passed; affected recovery/frontend/API checks passed 59.
+36 real PostgreSQL integration checks covered rollback/commit ambiguity/concurrency,
+replay/conflict/inheritance and old V1/hash compatibility. The new real Practice
+browser flow and existing approval/PDF/navigation regression passed separately;
+entry selections wrote nothing, actual outage/infeasibility and model-unconfigured
+library reopening/PDF download succeeded, and classified pending retry stayed exact.
+Entry screenshots/reflow checks covered 1280/1440/768/390/320, with built-in-browser
+desktop/focus/reflow/contrast inspection. Format/lint/compileall/pip/Compose gates
+passed; owned test/preview services were removed. Failed assertions/setup/preview
+attempts and Windows cache warnings remain in the [dated handoff](UX33_PRACTICE_HANDOFF.md).
+[Runbook](UX33_PRACTICE_RUNBOOK.md) owns preparation/configuration/run/cleanup.
+
+**Limitation → traceability → next:** Odoo path validation used controlled mocked
+HTTP; fresh live Odoo, hosted CI, owner/novice/zoom/speech/physical-phone gates remain
+unverified. Practice persists without isolation/reset or operational-validity claims.
+No owner/Odoo database migration/reset, Drive update, commit/push/merge or issue edit.
+UX-AC-02/03/05, FR/AC-V2-09/10, NFR-V2-05/06/07 and UX29-03/10 support chapters 4/6/7.
+Next is #34's responsive workspace/navigation; broader UX and final acceptance remain open.
+
+
+## 2026-10-12 — Responsive workspace and safe navigation (#34)
+
+**Problem -> decision:** Buyers needed consistent destinations and case context,
+and explicit navigation could lose unsaved creation/scenario drafts. Apply the
+approved Decision editorial shell through existing frontend modules and put the
+navigation guard in the existing HTTP-only planning state. Preserve the accepted
+architecture, immutable contracts and legacy entries.
+
+**Behavior:** Cases/Open RFQs/Practice share rail/drawer navigation. Saved product,
+demand/unit/currency, source/dates, lineage and status lead the cockpit; case views
+are bookmarkable. Stay retains a draft; Discard clears it before the requested
+navigation and focuses the destination. Pending writes have no Discard, retain
+exact request/key and return to the original recovery route. Exact tables keep
+named keyboard scroll regions; drawer/reduced-motion cleanup and RFQ error roles
+are verified. No backend, migration, dependency or Odoo mutation was added.
+
+**Evidence:** 622 fast tests passed; affected 69 and final UI/RFQ 47 passed after
+relevant corrections. Workspace, curated Practice and existing approval/PDF browser
+flows passed separately against real disposable helper storage/API/Reflex. Scoped
+keyboard, 1280/1440/768/390/320 reflow, drawer/dialog focus, reduced motion and actual
+200% native Chromium zoom passed. Built-in-browser inspection confirmed the final
+320 drawer geometry/focus. Required format/lint/compile/dependency/Compose checks
+passed; owned stacks cleaned up. The [handoff](UX34_WORKSPACE_HANDOFF.md) preserves
+failed runs, exact scope and limits; the [runbook](UX34_WORKSPACE_RUNBOOK.md) owns
+execution and cleanup.
+
+**Limitation -> chapter relevance -> next:** Hosted/live Odoo, speech, physical
+phone and owner/novice gates remain unverified; session-local recovery is not a
+closed-session outbox. UX-AC-04/06/13/15, FR/AC-V2-09/10, NFR-V2-05/06/07 and
+UX29-03/04/06/08/10 support chapters 4/6/7. User controls commit/push/merge; Drive and
+issues remain untouched. Next are attributed input review (#35), aligned comparison
+(#36) or explanation (#39); final buyer acceptance and thesis closure remain open.
+
+## 2026-10-12 — Review attributed inputs before saving (#35)
+
+**Problem -> decision:** Immediate calculation made captured quotation facts,
+explicit business terms and policy harder to review together. Reuse the existing
+prepared requests and HTTP state for validate -> read-only review -> deliberate
+save. Freeze reviewed intent; preserve accepted architecture and immutable contracts.
+
+**Behavior:** Demo, curated Practice and prepared Odoo show exact context, supplier
+terms/ranges/availability and policy. Review saves/solves nothing; Edit retains
+values and invalidates review. Labelled inline errors focus the first invalid field;
+review/saved headings receive purposeful focus and exact tables support keyboard
+scrolling. Odoo preview stays captured/local until FastAPI rereads quotations on
+save; ML history stays synthetic. Genuine saved classification and exact pending
+payload/key/retry remain intact. No backend, migration or dependency change.
+
+**Evidence:** Required 632 fast tests passed; final affected 42 passed after focus
+and feedback corrections. New synthetic/controlled creation, existing Practice,
+approval/PDF recovery and workspace browser flows passed in separately identified
+runs against real HTTP/model/CBC/disposable helper PostgreSQL. Controlled quotation
+transport is mocked, not live ERP evidence. Built-in-browser invalid-field/review
+focus, desktop and 320-pixel keyboard table access passed. Static/runtime gates
+passed; all owned stacks cleaned up. [Handoff](UX35_CREATION_HANDOFF.md) retains
+failed runs, actual scope and limits; [runbook](UX35_CREATION_RUNBOOK.md) owns commands.
+
+**Limitation -> chapter relevance -> next:** Fresh live Odoo, hosted CI, speech,
+physical phones and owner/novice gates remain unverified. Practice shares storage;
+session-local review/recovery does not establish closed-session durability. UX-AC-07,
+FR/AC-V2-01/09, NFR-V2-05/07 and UX29-04/06/10 support chapters 4/6/7. User controls
+commit/push/merge; Drive/issues remain untouched. Next is #36 aligned saved allocation
+comparison and explicit selection; reassessment and thesis closure remain separate.
+
+## 2026-10-12 — Compare and explicitly select saved allocations (#36)
+
+**Problem -> decision:** Independent cards and a distant label-only selector made
+allocation comparison and the contemplated decision harder to follow. Use aligned
+saved-plan columns/supplier rows, labelled narrow sections and an exact in-flow
+review strip through the existing HTTP-only frontend mapping/selection state.
+
+**Behavior:** Costs, absolute/exact relative premium, zero/nonzero quantities,
+promised dates, exact exposure and saved explanations align across plans. Selection
+is explicit, semantically pressed and performs no write. Review mirrors the exact
+saved plan/context across views and focuses the existing finalization form; original
+reason/acknowledgement/No-award and immutable approval/PDF remain functional. The
+chart stays subordinate with an exact table. Single/infeasible/incomplete outcomes
+remain honest; bad allocation joins/totals fail mapping and tiny decimal cost
+differences retain precision. No backend, solver/model, migration or dependency change.
+
+**Evidence:** Required 646 fast tests passed; final affected 69 passed after
+component/focus corrections. Real saved 3/5/10-supplier comparisons, variable
+alternatives, long non-Latin identity, read-only selection across views, keyboard
+review, five viewport widths and native 200% zoom passed. Genuine infeasibility and
+separate No-award passed; existing alternative approval/immutable snapshot/PDF and
+real outage/exact retry regression passed, as did curated Practice. Built-in-browser
+desktop/320 inspection confirmed selected-state grammar and unobscured focus.
+Static/runtime/Compose gates passed and owned stacks cleaned up. [Handoff](UX36_COMPARISON_HANDOFF.md)
+retains failures and scope; [runbook](UX36_COMPARISON_RUNBOOK.md) owns execution/cleanup.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, speech, physical
+phones and owner/novice sessions remain unverified. Draft selection/recovery stays
+session-local; Practice shares storage. Incomplete solver states are mapping fixtures,
+distinct from actual CBC saves; palette/DOM checks are not whole-app WCAG acceptance.
+UX-AC-08/09, FR-V2-06/07/09, AC-V2-05/07/09, NFR-V2-07 and UX29-04/05/10 support
+chapters 4/6/7. User controls commit/push/merge; Drive/issues remain untouched.
+Next is #37 original-base disruption comparison, followed by #38 final review;
+#39 explanation and later reassessment/thesis closure remain separate.
+
+## 2026-10-12 — Test disruptions against the original base (#37)
+
+**Problem -> decision:** An infeasible child lacks minimum-plan comparison deltas,
+so reconstructed baseline values disappeared. Retrieve/retain the actual immutable
+original through the existing HTTP GET and compare saved minimum-cost plans. Reuse
+the existing five-type composer, validation and MILP scenario API.
+
+**Behavior:** What-if aligns original/child feasibility, demand, exact cost/exposure
+and supplier allocations. Missing child results say Unavailable; original values
+remain. Context/class/Practice-group/supplier joins are checked. Original-only read
+failure preserves the child and entered draft; explicit GET retry creates nothing.
+New scenarios always target the original, inherit classification/grouping and run
+the same MILP with saved assessments. Draft/caveat text, purposeful error/save focus,
+bookmarking and explicit guarded return are visible. Immediate submit throttling
+prevents rapid duplicate saves; uncertain requests retain exact URL/payload/key and
+require explicit replay. No backend, model/solver, API, migration or dependency change.
+
+**Evidence:** Required full fast run passed 656 tests; final affected 97 passed
+after the submit refinement. Final scenario browser passed all five actual saves,
+bounded combined rejection, exact allocation cells, genuine infeasibility, original
+retention, class/lineage, single-save double-click, keyboard/focus, five viewport
+widths, draft Stay, controlled original-GET 503 and real API process-outage recovery.
+Final-source Practice and existing immutable approval/PDF recovery each passed in
+a separately identified mixed run; its earlier new-test locator failure was resolved
+by the final standalone scenario PASS, not relabelled a suite PASS. Built-in-browser
+desktop/320 comparison, keyboard scroll and unobscured error focus passed. Required
+static/runtime/Compose gates passed; owned stacks/tab/viewport cleaned up. The
+[handoff](UX37_SCENARIO_HANDOFF.md) preserves failures, evidence scope and limits;
+the [runbook](UX37_SCENARIO_RUNBOOK.md) owns execution and cleanup.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, speech, physical
+phones and owner/novice sessions remain unverified. Practice shares storage and
+recovery is session-local. Original-read outage is controlled HTTP fault injection;
+POST uncertainty is a real stopped API, both on disposable helper storage. No new
+timing workload or independent persistence rerun was needed. UX-AC-10, FR/AC-V2-08,
+AC-V2-07/09, NFR-V2-06/07 and UX29-04/06/07 support chapters 4/6/7. User controls
+commit/push/merge; Drive/issues remain untouched. Next is #38 deliberate approval/
+No-award review; #39 explanations and later human reassessment/thesis closure remain
+separate.
+
+## 2026-10-13 — Deliberate original-base approval and separate No-award (#38)
+
+**Problem -> decision:** Immediate final-form submission made the immutable choice
+too easy to record without reviewing its exact saved allocation and attribution.
+Keep the accepted backend contract and insert a read-only confirmation step.
+
+**Implemented behavior:** Selecting a plan still writes nothing. Review validates
+original-base eligibility, actor, demonstration acknowledgement and required reasons,
+then freezes exact intent on the Reflex server. The confirmation shows original
+identity/context/dates, selected quantities/cost/exposure, actor and reason; Cancel
+or Escape preserves the form without a save/key. Confirm sends once with existing
+snapshot/idempotency/conflict rules. No-award has a separate reasoned action, no
+approved allocation and no PDF. Saved outcome focuses immutable choice/time/reason;
+uncertain requests retain exact URL/body/key and guarded explicit retry. Safe Cancel
+focus, named review, local error focus and separately scrolling narrow content keep
+actions visible. Practice/source/identity limits and no Odoo order creation remain
+explicit. No backend, model/solver, API, migration or dependency change.
+
+**Evidence:** Required full fast suite: 668 PASS; final affected tests: 69 PASS
+after focus/layout corrections. Final browser selection: 2 PASS, including actual
+alternative review/cancel/single-save double-click, immutable model-unconfigured
+reopening, separate No-award with stopped-API exact recovery, child UI/API rejection,
+long labels, keyboard focus and 1280/1440/768/390/320 reflow. Updated comparison
+regression also passes native 200% zoom. Existing Practice and approval/PDF passed
+earlier in a mixed run whose new-test failure is preserved, not called a suite PASS.
+Real PostgreSQL transaction/document regressions: 14 PASS with no skips. Built-in
+browser confirms final desktop/320 review, visible actions and Cancel-retained form.
+Required static/runtime/Compose checks pass; all owned stacks/tab/viewport cleaned
+up. The [handoff](UX38_DECISION_HANDOFF.md) records exact artifacts, retained failures,
+verification timing and limitations; the [runbook](UX38_DECISION_RUNBOOK.md) owns
+prerequisites, commands, expected outcomes and cleanup.
+
+**Limitation -> chapter relevance -> next:** Fresh live Odoo, hosted CI, speech,
+physical phones and owner/novice usability remain unverified. Practice shares storage,
+actor references are not authenticated identity and exact recovery is session-local.
+UX-AC-11, FR/AC-V2-11, AC-V2-09/10/12, NFR-V2-06/07 and UX29-05/06 support chapters
+4/6/7. Commit/push/merge remain user-controlled; Drive/issues were untouched.
+Next: #39 readable explanations; #40 recovery/documents is also unblocked. #41 human
+reassessment remains separate.
+
+## 2026-10-13 — Readable supplier assessments and exact Audit evidence (#39)
+
+**Problem -> decision:** Reference time/applicability were buried, raw solver prose
+dominated expanded ordinary notes and Audit omitted some exact model/path fields.
+Reuse the stored-only frontend projection and organize interpretation separately
+from exact evidence.
+
+**Implemented behavior:** Suppliers leads with saved classes, generated sample,
+history/reference time and saved quantity/time applicability. Recorded exclusions
+and binding constraints use readable wording; zero allocation alone is explicitly
+not an exclusion. Child assessments remain unchanged even when no allocation is
+feasible. Critical synthetic/source limits stay visible. Guarded navigation focuses
+Audit, where native disclosures retain exact inputs/policy, paths/model references,
+solver/allocations/provenance, final decision and complete snapshot JSON including
+node/leaf support and versions. Pretty-printing preserves values, not hash bytes.
+Tables and long JSON scroll in labelled keyboard regions; the workflow checklist
+remains in Practice/empty-entry help. No backend/core/solver/model/API/persistence,
+migration, dependency, upstream-refresh or source-promotion change.
+
+**Evidence:** Required full fast suite: 673 PASS, 73 deselected; focused contracts:
+57 PASS. Final supplier/Audit browser passes original/feasible/infeasible cases,
+exact input/full JSON equality, long/non-Latin and missing-business-name labels,
+keyboard disclosure/focus/local scrolling, five viewport widths, native 200% zoom,
+model-unconfigured reads and real stopped-API different-case GET/reopening without
+inspection writes. Approval/No-award regression passed in an earlier mixed run;
+its new fixture failure is preserved, not relabelled a suite PASS. Built-in desktop/
+320 inspection confirms visible limits/timing and a 768px table locally scrolling
+40px within a 198px region, with document width 305. Required static/runtime/Compose
+gates pass; owned service/tunnel/Compose cleanup and viewport restoration confirmed.
+Browser policy blocked explicit closure of the expired unmarked preview tab; normal
+turn cleanup is not independently verified. The [handoff](UX39_EVIDENCE_HANDOFF.md)
+records failures/timing/limits, and the [runbook](UX39_EVIDENCE_RUNBOOK.md) owns execution.
+
+**Limitation -> chapter relevance -> next:** Live Odoo, hosted CI, physical phones,
+speech and unfamiliar participants remain unverified. Synthetic exposure is not
+calibrated probability; Practice shares storage and recovery remains session-local.
+UX-AC-12, FR-V2-02/03/07/09, AC-V2-02/03/07/09, NFR-V2-03/07 and UX29-04/10 support
+chapters 4/6/7. No independent transaction rerun or timing benchmark was required
+for unchanged contracts. Commit/push/merge remain user-controlled, with Drive/issues
+untouched. Next: #40 recovery and approved documents; #41 human reassessment remains
+separate before T19 thesis closure.
+
+## 2026-10-13 — Safe recovery and approved document access (#40, parent #42)
+
+**Problem -> decision:** Uncertain saves were technically safe but unclear, finalized
+conflicts left approval controls available, and the PDF lacked page controls. Reuse
+the existing HTTP state/projection and React-PDF; preserve immutable backend content.
+
+**Implemented behavior:** Distinct rejection/conflict/pending/unavailable/document
+copy supplies explicit actions and copyable original request/support identity.
+Uncertain create/scenario/decision retains URL/payload/key and navigation guards;
+retry remains explicit. Session-loss limits are visible, with no durable outbox.
+Finalization conflict pauses approval for stored-only GET reopening; failed/no-record
+GET preserves context/proof. Approved product/demand/date/cost/allocations remain
+visible through document failure. One-page preview has announced page status,
+previous/next/end states, fit/zoom and byte-identical full download. Practice/actor/
+synthetic limits and PDF eligibility remain. No backend/core/model/solver/Odoo/
+persistence/renderer/content contract, migration, dependency or service change.
+
+**Evidence:** Final full fast 675 PASS, 74 deselected; focused development 72 PASS.
+Both final real-stack browsers PASS: actual GET/create/scenario/finalization/PDF
+outages; exact replay/guards; one child/decision and unchanged stored content; real
+competing HTTP 409 and GET-only reopening; five rendered PDF pages and exact SHA-256
+download; keyboard, narrow/long/non-Latin labels and native 200% browser zoom.
+A fresh isolated browser context had no pending recovery while the original kept
+its proof. Initial locator failures and passing reruns are preserved in the
+[handoff](UX40_RECOVERY_HANDOFF.md); commands/cleanup are in the
+[runbook](UX40_RECOVERY_RUNBOOK.md). Built-in desktop/320 inspection confirms page
+navigation, scoped PDF zoom and saved terms/retry/support through a real owned API
+failure. Fast/static/runtime/pip/Compose gates pass. Owned storage/process/tunnel
+cleanup, explicit preview tab closure and viewport restoration confirmed.
+
+**Limitation -> chapter relevance -> next:** Recovery is session-local; copied JSON
+does not restore a session. Practice shares storage, exposure is uncalibrated and
+actor attribution is not authenticated identity. Unchanged transaction contracts
+retain historical #38 evidence; no standalone rollback/contention or benchmark
+rerun was needed. Live Odoo, hosted CI, physical devices, speech and human tasks
+remain unverified/NOT ASSESSED. UX-AC-13/14, FR/AC-V2-09/10/11/12, NFR-V2-05/06/07
+and UX29-06/08/09 support chapters 4/6/7. Local #32–#40 technical delivery is complete;
+#41 participant/owner reassessment remains next before T19 closure. Commit/push/merge
+remain user-controlled; Drive/issues were untouched.
+
+## 2026-10-13 — Complete buyer reassessment: technical delivery, human gate open (#41)
+
+**Problem -> decision:** Passing slices/CI do not establish the redesigned buyer
+experience. Consolidate one real original through the existing Practice browser
+test, reuse unchanged slice evidence, and freeze neutral human tasks and scoring.
+
+**Implemented behavior:** One original now traverses Practice creation, exact
+supplier comparison, saved feasible disruption, return/explicit alternative
+approval, product/status library reopening without UUID and PDF failure/recovery/
+byte-identical download. Separate feasible/infeasible exercises, reasoned No-award
+and actual uncertain-create exact retry remain; reduced-motion preference runs
+throughout. Harness evidence adds Git HEAD and actual copied frontend hashes.
+The versioned human protocol and blank nine-task observation template separate owner
+pilot/visual judgment from 3–5 unfamiliar people and preserve the approved threshold.
+No production code, architectural boundary, dependency, migration or CI workflow change.
+
+**Evidence:** Current full fast 675 PASS, 74 deselected; consolidated real-stack
+browser 1 PASS in 95.37s. Static/runtime/pip/Compose gates pass. Current built-in
+desktop/320 reference review, reflow, drawer keyboard focus/return and sampled
+foreground/focus contrast pass; 200% native browser zoom, long/non-Latin/missing
+labels, variable supplier/alternative outcomes and transaction gates retain linked
+slice evidence. All 192 retained library observations were rechecked (six ×2 warm-ups
++30 measurements, p95 0.170–0.244s); query functions are unchanged, so no new timed
+workload was run. Exact baseline `6535b0e` GitHub Quality and Container/API overviews
+report success; Container step details are inconsistent/partial and not claimed as
+independently verified. Hosted browser remains deferred. Owned stack/preview cleanup,
+explicit tab closure and viewport restoration are confirmed.
+
+**Limitation -> chapter relevance -> next:** Owner pilot/visual approval and novice
+participants have zero recorded sessions: NOT ASSESSED, no human success/time/error
+rates. Required successes remain 3/3, 4/4 or 4/5 per essential task, plus zero
+unintended finalizations/unresolved critical misunderstandings. No threshold
+relaxation or fabricated observations. Speech/physical-device checks and new-HEAD
+CI retain their gates. UX-AC-01–16, AC-V2-09/13, NFR-V2-04/08 and UX29-03–10 map
+to the official Python UI/integrated demonstration and chapters 4/6/7 in the
+[assessment/handoff](UX41_ASSESSMENT.md); [runbook](UX41_REASSESSMENT_RUNBOOK.md) owns
+commands and the [frozen protocol](UX41_BUYER_PROTOCOL.md) owns human tasks/scoring.
+#41 remains open for owner/novice observations, critical-finding fixes and affected
+retests; T19/final buyer acceptance are not implied. Commit/push/merge and tracker/
+Drive publication remain user-controlled.
+
+### 2026-10-14 — #41 partial owner walkthrough evidence
+
+The owner reported a successful demo save and a missing saved-UUID lookup. A
+stored-only session export confirms the new optimal Practice original remains
+awaiting decision. The first report and post-attempt source/storage correction
+are retained in [owner observations](UX41_OWNER_OBSERVATIONS.csv) and the
+[assessment](UX41_ASSESSMENT.md#owner-pilot-observation--2026-10-14). Human timing,
+independence and complete comprehension remain unassessed; owner evidence does
+not enter the 3–5 unfamiliar-buyer denominator. No production code, Odoo data or
+frozen protocol changed.
+
+### 2026-10-14 — #41 owner requests clearer buyer workspace
+
+Problem: owner B03 feedback describes improved appearance but excess metadata,
+unclear No-award wording, raw source UUIDs and a need for a clearer real-Odoo
+workflow. Decision: preserve the first report/screenshot and discuss desktop
+hierarchy and RFQ-versus-confirmed-PO discovery before a new design contract.
+Evidence: [owner observations](UX41_OWNER_OBSERVATIONS.csv) and
+[assessment](UX41_ASSESSMENT.md#b03-and-broader-owner-feedback--2026-10-14).
+The exposure definition was understood in part; no selected plan, measured time
+or complete B03 outcome was reported. Owner visual approval has not been given.
+No production code, accepted scope or frozen novice protocol changed. This is
+owner feedback relevant to thesis chapters 4/6/7, not final buyer acceptance.
+
+### 2026-10-14 — owner confirms case-focused dashboard direction
+
+The owner selected a primary single-case workspace with supplier evaluation, MILP
+plans, scenarios, explanations and human approval, plus a lightweight quotation/
+saved-case overview. Open RFQs/quotations lead the workflow; confirmed POs/receipts
+are supporting historical context. Spacious layout, tabs, contextual panels and
+progressive disclosure are agreed design constraints. The
+[confirmed brief](UX41_ASSESSMENT.md#confirmed-case-workspace-direction--2026-10-14)
+and PRODUCT.md retain this direction separately from implemented capability.
+No UI/backend code or frozen protocol changed; observed-history/model promotion,
+B03 completion and final buyer acceptance remain open.
+
+### 2026-10-14 — critical owner recovery/approval finding
+
+Problem: O01 approved the B08 recovered case believing final approval was needed
+for recovery, and did not understand uncertainty/session-loss limits. Decision:
+record a failed first attempt and one task-unintended additional finalization,
+then stop before B09 under the frozen protocol. Technical exact-key/input recovery
+and single-case persistence passed; no database consistency defect was established.
+Evidence: [assessment](UX41_ASSESSMENT.md#b08-critical-first-attempt-finding--2026-10-14),
+[raw observations](UX41_OWNER_OBSERVATIONS.csv), and
+[proposed correction brief](UX41_RECOVERY_CLARITY_BRIEF.md). No product-code change,
+rollback or retest was performed. Novice gate remains unassessed; buyer acceptance
+is not given. Relevant to chapters 4/6/7, AC-V2-09/13 and UX-AC-11/13/16.
+
+### 2026-10-14 — Requested Drive synchronization and B09 instruction feedback
+
+Owner explicitly skipped B09, then explained that the facilitator instruction was
+not understood. Preserve this as facilitation clarity feedback, not an inferred
+PDF product failure or success. No PDF fault was staged. B08 remains a critical
+first-attempt failure; no novice acceptance or measured human time is inferred.
+
+User requested Hungarian Drive updates. Updated/read back 00_THESIS_STATUS,
+02_ROADMAP and 06_REQUIREMENTS_BASELINE with dated technical capability, owner
+findings, dashboard direction, source boundaries and open gates. Native tab identity,
+exact added text, historical paragraphs and existing rich links were verified.
+07_DEVELOPMENT_STATUS and 03_ARCHITECTURE_DECISIONS writes were rejected by automatic
+approval review as sensitive external assessment export without exact-payload
+approval. No workaround or retry; prepared reviewable local drafts and request user
+approval for those two existing destinations. Drive metadata reports both not shared;
+ownership fields were not returned, so ownership is not independently verified.
+
+Detailed payloads/readback outcomes are in ignored .artifacts/ux41-drive-update-20261014.
+No new runtime/fast/hosted check, rendered PDF layout check, production edit, Odoo
+write or Git publication occurred during this documentation synchronization.
+
+### 2026-10-14 — Approved Drive synchronization completed
+
+After explicit user approval of the exact pending Hungarian draft and its two
+existing Drive destinations, 07_DEVELOPMENT_STATUS and
+03_ARCHITECTURE_DECISIONS were updated successfully. Readback verifies exact
+approved additions, native headings, document/tab identity and preservation of
+historical text and rich links. Together with the prior three verified writes,
+the requested five-document sync is complete. The earlier approval-review
+rejections remain in the historical partial record; no workaround was used.
+
+B09's unclear facilitator instruction and owner-requested skip are recorded,
+without inferred PDF failure or completion. B08 remains open, novice evidence is
+absent and the new dashboard direction remains proposed. No application tests,
+rendered PDF-layout check, ERP writes or Git publication occurred in this follow-up.
+Completion/readback evidence: ignored .artifacts/ux41-drive-update-20261014/completed.json.
+
+### 2026-10-14 — Dashboard references and case workspace design brief
+
+The owner supplied eight visual references and confirmed keeping the existing
+green/mint/purple palette. [The proposed design brief](CASE_WORKSPACE_DESIGN_BRIEF.md)
+maps horizontal case/task layouts, focused tabs and contextual panels to the current
+saved-data contracts. It separates UI work from general Odoo quotation selection,
+supplier/history discovery and observed-model promotion, and retains the B08 fix/
+retest and B09 facilitation feedback. Reference values, branding and unsupported
+statuses are not adopted as facts. Original image identities/hashes are recorded
+in ignored .artifacts/case-workspace-reference-20261014/references.json; images remain
+unchanged outside the repository. No UI implementation, new application verification,
+Drive update, issue mutation or Git publication occurred in this planning step.
+
+### 2026-10-14 — Confirmed case structure and next implementation specification
+
+The owner explicitly confirmed the lightweight RFQ/Saved cases overview and
+Overview/Suppliers/Plans/Scenarios/Decision & PDF primary views with secondary Audit,
+retaining green/mint/purple. Prepared [the local specification](CASE_WORKSPACE_INCREMENT_SPEC.md)
+and [eight proposed delivery slices](CASE_WORKSPACE_TICKET_BREAKDOWN.md), with the
+save/recovery/approval correction first and the existing #41 human gate carried
+forward rather than duplicated. Five task views do not remove legacy case URLs;
+new Overview/Decision routes extend the whitelist and Scenarios retains whatif.
+
+Refreshed Drive 00/06/02/03 read-only, used CodeGraph first and inspected relevant
+flagged/current code ranges. RFQ summaries currently expose reference/vendor/date/
+status/total and returned count/time, not product quantities, due date or generic
+comparison groups. New quotation selection, supporting supplier/history and
+observed-model promotion retain separate evidence/contract investigations.
+Local HEAD dc2cf57 contains the owner's #41 commit; Drive's earlier uncommitted
+publication wording remains a dated snapshot, not a claim about the new draft.
+
+Document/source/traceability/dependency checks verify planning consistency only.
+No UI build, application/runtime/hosted tests, service mutation, new canonical
+requirements/ADRs, GitHub publication/closure, Drive write or commit/push/merge
+occurred. Thesis use: buyer problem → confirmed structure → specified behavior →
+contract inspection → data/human limits; chapters 3/4/6/7.
+
+### 2026-10-14 — Generated workspace concepts and implementation workflow guidance
+
+User explicitly requested images in the retained palette and Ask Matt guidance.
+Generated three raster concepts: case Overview, Plans and Saved cases overview.
+Inspected all three; made one targeted source-label edit to each case screen and
+re-inspected them. Final PNGs, exact prompts, metadata/hashes and a review gallery
+are in ignored .artifacts/case-workspace-mockups-20261014; original generated/input
+files remain unchanged. Numeric comparison, allocation percentages, source context
+and approval-only library PDF affordances were visually checked. These are design
+concepts, not implemented/approved UI, measured contrast or usability evidence.
+
+Read ask-matt/phase-boundaries, grill-with-docs and its two primitives, implement
+and reflex-docs. Recommend staying in this chat through image review and a focused
+remaining-decision grilling pass, finalizing existing drafts, then a fresh same-project
+chat per self-contained implementation ticket starting S1. No grilling interview,
+new glossary/ADR, application code, runtime test, issue creation/closure, Drive write,
+new chat, commit/push/merge or scope expansion was performed. The gallery includes
+a starter prompt retaining owner Git control over the implement skill's default.
+
+### 2026-10-14 — Stabilize T18 runtime and clarify comparison recovery
+
+Problem: owner B08 recovered a saved comparison then approved under the mistaken
+belief that finalization completed recovery. Implement the existing correction
+brief without changing business/API/storage/PDF contracts. Creation consistently
+uses Calculate and save comparison; saved, selected, final and unconfirmed states
+are explicit. New-comparison navigation/bookmarks clear stale decision feedback;
+pending guards and exact request/key replay remain. Practice uses the same save
+wording and no longer labels a saved or uncertain comparison a fresh draft.
+
+Publication baseline: PR #31/local b94ff780, Quality failed the runbook snippet's
+formatting; Container/API passed. Fix that wrapping and pin both Reflex declarations
+to the locally/browser-tested 0.9.12 instead of silently resolving hosted 0.10.0.
+No framework, architecture, backend/schema or Odoo-write change is introduced.
+
+Broad fast gate: 677 PASS / 75 deselected, latest broad run 206.24 s, actual ML/CBC; existing
+Starlette warning retained. Static/dependency/quiet Compose and production export
+checks passed. Final transition checks: 54 PASS in 23.11 s. Eleven distinct browser
+tests passed across recorded runs; the six-case remainder passed in 582.79 s and
+the further final conflict-status check in 104.97 s. Genuine comparison recovery
+saved one case, zero final decisions and zero documents. The
+[correction handoff](UX41_CLARITY_HANDOFF.md) records versions,
+source identity, exact browser/publication outcomes, retained setup/test failures,
+cleanup and the next fixed-group live-Odoo browser-to-PDF verification. Windows
+checks use a space-free CBC temp path and UTF-8 for dirty-diff evaluation metadata.
+
+Keep the original B08 failure, B09 skip and frozen first-attempt evidence unchanged.
+Technical checks do not close fresh owner/novice acceptance or #41/#42. The owner
+explicitly authorized committing/pushing this correction; merge and Hungarian
+Drive updates remain user-controlled. Exact publication/CI is reported at delivery.
+Thesis relevance:
+FR/AC-V2-09/10/11/12/13, NFR-V2-05/06/07, UX-AC-11/13; chapters 4/6/7.
+
+
+### 2026-10-14 — Corrected-source B08 owner retest and sign-off
+
+The save/recovery clarity correction on `11979618fe3af0904c93cdf3ae06b5ed1e1f684d`
+was exercised in fresh owned session `t18-browser-32a580aed5e8`. One case matched
+the original pending key and replay returned that case; seeded records remained
+unchanged. The owner subsequently approved Alternative 1 and viewed its PDF, then
+explicitly accepted B08 and deferred further UI work. Record technical recovery
+PASS and assisted owner acceptance, retaining incomplete independent comprehension
+and unscored extra-approval purpose. Preserve attempt 1 FAIL and novice NOT ASSESSED.
+See [dated assessment](UX41_ASSESSMENT.md#b08-corrected-source-owner-retest-and-directed-sign-off--2026-10-14)
+and [owner observations](UX41_OWNER_OBSERVATIONS.csv) for evidence and deviations.
+B09's full human document-recovery task remains pending. No application changes
+or new regression runs were needed; this is an evidence-only append.
+
+
+### 2026-10-14 — B09 document recovery/download owner check
+
+Technical PASS and assisted owner completion on source
+`11979618fe3af0904c93cdf3ae06b5ed1e1f684d`: fresh-tab library reopening, real
+owned API unavailability during PDF access, preserved approved terms, restored
+document access and an actual downloaded five-page PDF identical to the pre-fault
+artifact. Full case/decision/document and record counts remained unchanged; no
+additional approval occurred. Page 4 was observed; individual zoom changes and
+independent source/eligibility comprehension were not continuously assessed.
+The owner reported no problem. Preserve original failed/skipped attempts and
+novice NOT ASSESSED. [Assessment](UX41_ASSESSMENT.md) and
+[observations](UX41_OWNER_OBSERVATIONS.csv) hold the evidence and deviations.
+Only documentation/evidence changed; no new application regression suite was run.
+
+The completed owner session was exported and cleaned up: owned project/processes
+stopped and listeners closed; the user download and evidence remain available.
+Owner/Odoo services and the existing running Podman machine were preserved.

@@ -155,6 +155,13 @@ separate stored planning view below. Check RFQ rendering/refresh, stop FastAPI t
 state, then restart it and confirm recovery. Record browser evidence separately
 from `reflex export --frontend-only --no-zip`, which checks compilation only.
 
+For repeatable local Chromium acceptance of create/compare/approval/stored
+reopening/PDF and real backend-unavailable recovery, use the
+[#28 browser runbook](T18_28_BROWSER_RUNBOOK.md). It owns a separate disposable
+helper database, frontend copy and service processes; it does not reuse/reset
+this application database or your running frontend. Optional browser tooling is
+required only for selected E2E; required Quality remains unchanged.
+
 ### Controlled live tests are explicit fixture acceptance
 
 Use [T6 fixture setup](T6_FIXTURE_SETUP.md), [T7-S manual setup](T7S_MANUAL_SETUP.md)
@@ -334,10 +341,15 @@ needed for synthetic creation, scenarios or stored GET.
    <http://localhost:3000/planning>. Both servers read the same service token from
 the ignored root `.env`; clear stale process overrides before restarting.
 
-4. Choose **Create a demo plan**, then **Load demo inputs**. Read the supplier
-   prices/capacities and policy. Keep demand **10**, then **Create and save plan**.
+4. Choose **Demo**, then **Load demo inputs**. Read the supplier
+   prices/capacities and policy. Keep demand **10**, then **Review demo terms**.
+   Inspect the exact review, then **Create and save plan**. Review saves nothing;
+   **Edit terms** returns to the preserved draft. See [creation review](UX35_CREATION_RUNBOOK.md).
    Expect EUR 102 minimum and EUR 109 alternative (+7 EUR / approximately 6.9%).
-   The allocation bars show quantities, not probabilities. Schedule classes and
+   Aligned supplier rows show quantities, including zero allocations. Use
+   **Select for review**, then **Review decision** to inspect the exact saved
+   selection without finalizing. See [comparison instructions](UX36_COMPARISON_RUNBOOK.md).
+   Schedule classes and
    exposure use synthetic saved-model evidence; exact fractions remain expandable.
    Copy the returned case ID. Creation saves a new immutable case in the database.
 
@@ -382,7 +394,8 @@ case IDs/evidence. No Odoo writes, approval or PDF are performed by this slice.
 Updated 2026-10-08 after usability feedback. The earlier walkthroughs below record
 the preceding layout; the cockpit now uses **Saved case / Odoo / Demo** to start,
 then **Plans / What-if / Suppliers / Audit** for the loaded result. Open the
-in-app **What should I test?** guide for the same workflow.
+in-app **What should I test?** guide in Practice for the same workflow. The current
+Suppliers → Audit inspection is documented in [#39's runbook](UX39_EVIDENCE_RUNBOOK.md).
 
 Start only FastAPI, Reflex and the planning PostgreSQL service for saved-case and
 scenario testing. Odoo is needed for new Odoo case creation, not saved retrieval
@@ -415,7 +428,7 @@ comparison procedure below. Expected amounts here apply to the documented fixtur
 | What-if: Combined changes, Supplier 53, demand 220 and capacity 100; leave price blank | USD 2,400 minimum, allocations 120/100/0. Two changes are required. |
 | What-if: Demand increase, enter 500 | Saved No feasible plan. No invented allocations, chart points or zero-valued cost/exposure. View the base again to recover the original comparison. |
 | Copy a child case ID and reopen it through Saved case | Same costs, allocations and Audit snapshot hash. Viewing does not call Odoo, run the Decision Tree or solve MILP. |
-| Suppliers: expand a classification path and the training explanation | Readable branch conditions lead to the saved class; exact float32 inputs/thresholds remain in Exact tree record. Histories are explicitly synthetic. |
+| Suppliers: expand a classification path and the training explanation | Readable branch conditions lead to the saved class; Audit → Supplier tree paths and model evidence / Complete saved snapshot JSON retains exact float32 inputs, thresholds, support and versions. Histories are explicitly synthetic. |
 
 Scenarios always start from the original base, including when viewing a child.
 The draft shows assumptions before saving; it does not promise feasibility.
@@ -440,7 +453,8 @@ user acceptance and is not implied by repository documentation changes.
 
 Added 2026-10-08. This uses the prepared three-quotation comparison from T15,
 not a general quotation selector. **Load prepared Odoo comparison** reads a fixed
-local JSON preview; it does not refresh Odoo. **Create and save Odoo plan** calls
+local JSON preview; it does not refresh Odoo. **Review Odoo terms** also uses only
+the prepared draft. **Create and save Odoo plan** after review calls
 `POST /api/v2/procurement/planning-cases/from-odoo`; FastAPI independently reads
 the comparison and currency, checks expectations, runs the matching saved model
 and unchanged MILP, then saves an immutable snapshot. There are no Odoo writes.
@@ -504,7 +518,7 @@ port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
    Pop-Location
    ```
 
-   Open <http://localhost:3000/planning>, choose **Plan from Odoo**, then
+   Open <http://localhost:3000/planning>, choose **Odoo**, then
    **Load prepared Odoo comparison**. Inspect the captured prices/context and
    dates. Supplier IDs identify the prepared suppliers; display names are not
    acquired by this form. Never enter either API credential in the browser.
@@ -515,7 +529,9 @@ port. Ctrl+C closes this tunnel; it does not stop containers or remove records.
    Demand/MOQ accept integers 1–1,000; blank MOQ explicitly means none; capacity
    accepts 0–1,000. Required date must be today or later. Policy, availability,
    applicability ranges and synthetic history remain the prepared values.
-   Click **Create and save Odoo plan**. Expect USD 1,850 with allocations 50/0/150,
+   Click **Review Odoo terms** to inspect exact facts, explicit terms and policy
+   without saving or refreshing Odoo. Then **Create and save Odoo plan**.
+   Expect USD 1,850 with allocations 50/0/150,
    and USD 2,200 with allocations 100/100/0 (+350 USD, approximately 18.9%).
    Keep the case UUID. The source banner must say **Live Odoo quotations;
    synthetic ML history**. The ML assessments are not observed supplier evidence.
@@ -540,6 +556,19 @@ comparison discovery, observed receipt/model promotion,
 approval/PDF and full V2 acceptance remain separate work.
 
 ## What-if scenarios and stored comparisons
+
+Current update, 2026-10-12 (#37): **Saved scenario comparison** now retrieves the
+original immutable result through the existing stored GET, rather than reconstructing
+it from deltas as described in the historical walkthrough below. The original's
+cost/exposure/allocations remain visible when the child has no proven plan. A fresh
+child bookmark may need one additional original GET; failure keeps the child visible,
+labels missing original cells **Unavailable**, and offers **Retry original-base
+retrieval** without rerunning the scenario. Save/recovery focuses the comparison
+and bookmarks `view=whatif`. **Return to original base** is explicit; children remain
+analytical. The five-type composer is headed **Test changed assumptions. Save a new
+scenario.** See the [current scenario procedure](UX37_SCENARIO_RUNBOOK.md) and
+[dated verification](UX37_SCENARIO_HANDOFF.md). This update supersedes the comparison
+display/recovery wording below; fixture inputs/results remain applicable.
 
 Added 2026-10-08. Open a saved base or child at `/planning`. This requires only
 Reflex, FastAPI, the existing planning database/tunnel and matching server-side
@@ -800,6 +829,16 @@ or saved data. See the dated [implementation log](IMPLEMENTATION_LOG.md).
 
 ## Saved human decision
 
+Current update, 2026-10-13 (#38): **Saved plan for approval** and the separate
+**Record No-award** action replace the combined selector below. Enter actor/reason
+and acknowledgement, then **Review approval** or **Review No-award**. The exact
+confirmation dialog writes nothing until **Confirm approval** or **Confirm
+No-award**; Cancel/Escape retain entered values. Actions remain visible while the
+review scrolls on narrow screens. Saved outcome/time/reason replace controls and
+receive focus; pending finalizations retain the existing exact-request recovery.
+The [current decision runbook](UX38_DECISION_RUNBOOK.md) supersedes historical
+control names below; backend eligibility, immutability, reasons and PDF rules remain.
+
 T17 issue #20 extends the existing `/planning` workspace. First activate the
 Python 3.11 environment, apply current revision `20261010_01` to the intended helper
 database as described in the [persistence guide](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations),
@@ -813,7 +852,9 @@ or reopening an already stored case; new case creation retains its existing prer
    case**, then **Plans**. Check allocations, exact costs, supplier classes and
    saved dates. Scenario children explain their analytical restriction and have
    no finalization action; open their original base instead.
-2. In **Record the final decision**, explicitly select **Minimum cost**, a saved
+2. Use **Select for review** beside a saved plan, check its exact selection summary,
+   then **Review decision** to focus **Record the final decision**. Selection alone
+   saves nothing. The compatible selector also offers **Minimum cost**, a saved
    alternative, or **No-award**. There is no selected default. Enter **Actor audit
    reference**; enter **Reason** for an alternative or No-award. No-award is also
    available on a base with no proven plan.
@@ -863,6 +904,8 @@ already approved content.
 
 1. Load an **approved original base**, then open **Plans** or **Audit**. Its saved
    human outcome, selected plan and original UTC decision time remain visible.
+   **Saved approved terms** retains product/demand, required date, exact cost and
+   supplier quantities/promised dates even while document access is unavailable.
 2. Choose **View approved PDF**. FastAPI validates the saved content and either
    atomically stores its first rendered artifact or serves the existing one.
    Expect the document pages and **Download approved PDF** link. The viewer
@@ -872,7 +915,9 @@ already approved content.
    and exact case/content hashes follow. The document approves only the original
    base; stress results are analytical. An incomplete comparison warning appears
    when later calculations failed after the selected plan was proven.
-4. Use **PDF zoom** for fit-width, 150%, 200% or 300% viewing. The document region
+4. **Previous PDF page** and **Next PDF page** show one page at a time with an
+   announced page indicator and disabled end controls. Use keyboard focus/Enter.
+   Use **PDF zoom** for fit-width, 150%, 200% or 300% viewing. The document region
    scrolls independently, including horizontal scrolling when zoomed. It is
    keyboard-focusable; Page Up/Down and arrow keys navigate. Mobile layout retains
    the download/zoom controls without expanding the whole page horizontally.
@@ -882,9 +927,13 @@ already approved content.
    plugin. The service token remains on the Reflex server and is absent from
    document URLs, browser state and the file.
 6. On **PDF unavailable**, the saved approval stays visible. Restore the backend
-   or renderer dependency, then choose **View approved PDF** explicitly again.
+   or renderer dependency, then choose **Retry approved PDF** explicitly.
+   **Document identity for support** exposes the original case/content hash.
    Do not finalize again or replace its key/content. No-award, unapproved bases
    and stress children have no approved-PDF action and are rejected by the API.
+
+See [#40 recovery/document procedures](UX40_RECOVERY_RUNBOOK.md) for distinct
+rejection/conflict/uncertainty, exact explicit retry and session-loss limits.
 
 Backend contract:
 `GET /api/v2/procurement/planning-cases/{case_id}/approved-pdf/{approved_content_hash}`
@@ -937,7 +986,21 @@ ruff format --check .
 ruff check .
 python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter document_adapter supplier_evaluation persistence migrations
 $taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Path $taskRun | Out-Null
+New-Item -ItemType Directory -Path "$taskRun/cache" -Force | Out-Null
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+# CBC needs a temp path without spaces; resolve this owned directory's Windows short path.
+$taskAbsoluteRun = (Resolve-Path $taskRun).Path
+$taskShortTemp = @'
+import ctypes, sys
+buffer = ctypes.create_unicode_buffer(32768)
+assert ctypes.windll.kernel32.GetShortPathNameW(sys.argv[1], buffer, len(buffer))
+assert " " not in buffer.value, "Choose a writable temp directory without spaces."
+print(buffer.value)
+'@ | python -X utf8 - "$taskAbsoluteRun"
+if ($LASTEXITCODE -ne 0) { throw "A space-free CBC temp path is required." }
+$env:TEMP = $taskShortTemp
+$env:TMP = $taskShortTemp
 python -m pytest -m "not integration and not e2e" -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 python -m pip check
 git diff --check
@@ -953,6 +1016,11 @@ terminal and an agent execution identity. Generate a new `$taskRun` for each run
 pytest clears its `--basetemp` directory. See the persistence guide's
 [permission-error explanation](PERSISTENCE_DEVELOPMENT.md#windows-permissionerror-winerror-5-during-fixture-setup)
 if fixture setup fails under the shared Windows temporary directory.
+
+The UTF-8 settings also let evaluation metadata read a Unicode working-tree diff
+without Windows cp1252 decoding failures. These are current-terminal settings, not
+global configuration. Use the same space-free TEMP/TMP for browser tests; restore
+your previous values or close this terminal after checking and preserving evidence.
 
 When Compose configuration changed, or a service handoff needs configuration validation:
 

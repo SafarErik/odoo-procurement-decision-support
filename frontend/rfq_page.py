@@ -5,6 +5,7 @@ import reflex as rx
 from frontend.config import settings
 from frontend.rfq_client import fetch_rfq_dashboard
 from frontend.theme import ACCENT, CONNECTED, ERROR, HAIRLINE, INK, MUTED, PAPER, SURFACE
+from frontend.workspace import workspace_shell
 
 
 class RfqState(rx.State):
@@ -224,6 +225,7 @@ def _error_state() -> rx.Component:
         border=f"1px solid {HAIRLINE}",
         border_radius="0.7rem",
         padding="2rem",
+        role="alert",
         width="100%",
     )
 
@@ -241,6 +243,7 @@ def _loading_state() -> rx.Component:
         border=f"1px solid {HAIRLINE}",
         border_radius="0.7rem",
         width="100%",
+        role="status",
     )
 
 
@@ -259,119 +262,95 @@ def _content() -> rx.Component:
 def index() -> rx.Component:
     """Render a restrained, responsive RFQ procurement ledger."""
 
-    return rx.box(
+    return workspace_shell(
         rx.box(
-            rx.vstack(
-                rx.hstack(
-                    rx.hstack(
-                        rx.box(
-                            width="0.8rem",
-                            height="1.7rem",
-                            background=ACCENT,
-                            border_radius="0.18rem",
-                        ),
-                        rx.text(
-                            "Procurement decision support",
-                            color=INK,
-                            font_size="0.95rem",
-                            font_weight="650",
-                        ),
-                        spacing="3",
-                        align="center",
-                    ),
-                    rx.hstack(
-                        rx.link("Stored plans", href="/planning", color=ACCENT),
-                        _connection_badge(),
-                        spacing="4",
-                        align="center",
-                    ),
-                    justify="between",
-                    align="center",
-                    width="100%",
-                ),
-                rx.box(height="1px", background=HAIRLINE, width="100%"),
-                rx.hstack(
-                    rx.vstack(
-                        rx.heading(
-                            "Open requests for quotation",
-                            color=INK,
-                            font_size=["2rem", "2.5rem", "3rem"],
-                            line_height="1.08",
-                            font_weight="650",
-                            letter_spacing="-0.035em",
-                        ),
-                        rx.text(
-                            "A live, read-only ledger of purchasing activity in Odoo.",
-                            color=MUTED,
-                            font_size="1rem",
-                            line_height="1.6",
-                            max_width="42rem",
-                        ),
-                        spacing="3",
-                        align="start",
-                    ),
-                    rx.button(
-                        rx.icon("refresh-cw", size=16),
-                        "Refresh data",
-                        on_click=RfqState.refresh_rfqs,
-                        disabled=RfqState.is_loading,
-                        background=ACCENT,
-                        color="white",
-                        border_radius="0.5rem",
-                        padding="0.65rem 1rem",
-                        cursor="pointer",
-                        _hover={"background": "#5D3E55"},
-                        _focus_visible={"outline": f"3px solid {ACCENT}55"},
-                    ),
-                    justify="between",
-                    align=rx.breakpoints(initial="start", md="center"),
-                    direction=rx.breakpoints(initial="column", md="row"),
-                    gap="5",
-                    width="100%",
-                    padding_top=["1.2rem", "2rem"],
-                ),
-                rx.grid(
-                    _summary_item("Open RFQs", RfqState.rfq_count),
-                    _summary_item("Vendors", RfqState.vendor_count),
-                    _summary_item("Last refreshed", RfqState.last_refreshed),
-                    columns=rx.breakpoints(initial="1", md="3"),
-                    gap="5",
-                    padding="1.15rem 0",
-                    border_top=f"1px solid {HAIRLINE}",
-                    border_bottom=f"1px solid {HAIRLINE}",
-                    width="100%",
-                ),
+            rx.box(
                 rx.vstack(
                     rx.hstack(
-                        rx.text("Latest open RFQs", color=INK, font_weight="650"),
-                        rx.text("Newest first", color=MUTED, font_size="0.82rem"),
+                        rx.vstack(
+                            rx.heading(
+                                "Open requests for quotation",
+                                color=INK,
+                                font_size=["2rem", "2.5rem", "3rem"],
+                                line_height="1.08",
+                                font_weight="650",
+                                letter_spacing="-0.035em",
+                            ),
+                            rx.text(
+                                "A live, read-only ledger of purchasing activity in Odoo.",
+                                color=MUTED,
+                                font_size="1rem",
+                                line_height="1.6",
+                                max_width="42rem",
+                            ),
+                            spacing="3",
+                            align="start",
+                        ),
+                        rx.button(
+                            rx.icon("refresh-cw", size=16),
+                            "Refresh data",
+                            on_click=RfqState.refresh_rfqs,
+                            disabled=RfqState.is_loading,
+                            background=ACCENT,
+                            color="white",
+                            border_radius="0.5rem",
+                            padding="0.65rem 1rem",
+                            cursor="pointer",
+                            _hover={"background": "#5D3E55"},
+                            _focus_visible={"outline": f"3px solid {ACCENT}"},
+                        ),
                         justify="between",
+                        align=rx.breakpoints(initial="start", md="center"),
+                        direction=rx.breakpoints(initial="column", md="row"),
+                        gap="5",
+                        width="100%",
+                        padding_top=["1.2rem", "2rem"],
+                    ),
+                    _connection_badge(),
+                    rx.grid(
+                        _summary_item("Open RFQs", RfqState.rfq_count),
+                        _summary_item("Vendors", RfqState.vendor_count),
+                        _summary_item("Last refreshed", RfqState.last_refreshed),
+                        columns=rx.breakpoints(initial="1", md="3"),
+                        gap="5",
+                        padding="1.15rem 0",
+                        border_top=f"1px solid {HAIRLINE}",
+                        border_bottom=f"1px solid {HAIRLINE}",
                         width="100%",
                     ),
-                    _content(),
-                    spacing="4",
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("Latest open RFQs", color=INK, font_weight="650"),
+                            rx.text("Newest first", color=MUTED, font_size="0.82rem"),
+                            justify="between",
+                            width="100%",
+                        ),
+                        _content(),
+                        spacing="4",
+                        align="stretch",
+                        width="100%",
+                    ),
+                    rx.hstack(
+                        rx.text("Source: Odoo 19", color=MUTED, font_size="0.78rem"),
+                        rx.text("Read-only integration", color=MUTED, font_size="0.78rem"),
+                        justify="between",
+                        width="100%",
+                        padding_top="1rem",
+                    ),
+                    spacing="6",
                     align="stretch",
                     width="100%",
                 ),
-                rx.hstack(
-                    rx.text("Source: Odoo 19", color=MUTED, font_size="0.78rem"),
-                    rx.text("Read-only integration", color=MUTED, font_size="0.78rem"),
-                    justify="between",
-                    width="100%",
-                    padding_top="1rem",
-                ),
-                spacing="6",
-                align="stretch",
+                max_width="72rem",
+                margin="0 auto",
+                padding=["1.25rem", "2rem", "2.5rem"],
                 width="100%",
             ),
-            max_width="72rem",
-            margin="0 auto",
-            padding=["1.25rem", "2rem", "2.5rem"],
+            background=PAPER,
+            color=INK,
+            font_family='"Segoe UI Variable", Aptos, "Segoe UI", sans-serif',
+            min_height="100vh",
             width="100%",
         ),
-        background=PAPER,
-        color=INK,
-        font_family='"Segoe UI Variable", Aptos, "Segoe UI", sans-serif',
-        min_height="100vh",
-        width="100%",
+        active="rfqs",
     )

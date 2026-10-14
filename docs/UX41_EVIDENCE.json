@@ -1,0 +1,866 @@
+{
+  "schema_version": "ux41-assessment-v1",
+  "date": "2026-10-13",
+  "baseline_sha": "6535b0ef4e829acd36ba2284d9e1e3658987b95d",
+  "technical_delivery": "PASS",
+  "final_buyer_acceptance": "NOT ACCEPTED: critical owner finding; novice gate NOT ASSESSED",
+  "protocol_version": "UX41-v1",
+  "protocol_sha256": "7e4fbd3d5c750da0a1d99385c18f2784308d3856036c33a0323667bd3e1f61c4",
+  "owner": {
+    "status": "FIRST ATTEMPT STOPPED: CRITICAL UX FAILURE",
+    "recorded_sessions": 1,
+    "observations": [
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B01",
+        "user_report": "I receive this, So I think all in all the case id-s come from the postgre database for now, we need to integrate this to odoo later, and also I was able to create a plan with the demo",
+        "saved_substep": "VERIFIED: Practice original; optimal; awaiting decision",
+        "case_id": "ab95c843-c2d3-4441-8fe5-ba71ef878dfc",
+        "not_found_id": "e183f917-fc33-4e28-a7a8-0aea22679176",
+        "human_seconds": null,
+        "independent": null,
+        "full_task_completion": null,
+        "remaining": "Measured time, curated entry/review path and full source comprehension remain unreported; creation help is now owner-reported as unnecessary.",
+        "post_attempt_explanation": "Application generates UUIDs and persists snapshots in its PostgreSQL. Controlled read-only Odoo integration exists; this demo is synthetic. Old IDs need the original configured storage; provenance of the missing ID is unknown.",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "the creation was really fast, I didn't really need help",
+            "perceived_speed": "really fast",
+            "creation_help_needed": "no, owner-reported",
+            "human_seconds": null,
+            "clarification_requested": "What is meant by where the demo figures came from?",
+            "prompt_clarification": "Before the explanation, what did you think supplied the example prices, demand and supplier ratings?"
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "I think these was supplied by the backend as well, but yeah, so we should not be able to create po-s in odoo from the frontend, but the data we will work on, train our decision tree and in general use will be from odoo yeah?",
+            "interpretation": "Owner identifies backend delivery and no frontend Odoo PO creation; requests clarification of Odoo input and training scope.",
+            "source_comprehension": "Transport layer identified; demo data origin not independently explained.",
+            "facilitator_explanation": "Odoo is the intended ERP source for real procurement facts. Current controlled Odoo comparisons combine read-only quotations with explicit business terms and separately synthetic ML history. Current Decision Tree training is offline on synthetic data; observed-history/model promotion remains open."
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "Great then we are align! We can move on to the next test so B02",
+            "interpretation": "Owner acknowledges the explained source distinction and authorizes proceeding to B02. This is post-explanation acknowledgement, not independent first-attempt comprehension."
+          }
+        ],
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv"
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B02",
+        "attempt": 1,
+        "user_report": "where can i open the case with product or quantity/date? could you help me?",
+        "completed": true,
+        "independent": false,
+        "human_seconds": null,
+        "assistance": "Workspace menu > Cases; Workspace Practice; search product in Product or case ID and Refresh; identify row using quantity, required date and save time; Open case.",
+        "finding": "Task wording was interpreted as separate product/quantity/date opening or search controls. Product is searchable; quantity/date/save time are identifying row details, not dedicated filters.",
+        "resolution": "Owner reports successful reopening after instructions and describes stored retrieval.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "Great I was able to locate it! after receiving the proper instructions It was quiet fast. when reopening, through the backend from the database we receive the proper case info",
+            "completed": "yes, owner-reported",
+            "perceived_speed": "quite fast after instructions",
+            "human_seconds": null,
+            "comprehension": "Owner describes retrieval of case information through the backend from the database; consistent with stored-only reopening."
+          }
+        ],
+        "completion_basis": "Owner report after navigation instructions; current referenced Practice original exists in stored-only export.",
+        "referenced_case_id": "de560f84-a155-4c3b-b1ae-51b96e64afa5",
+        "identity_match_to_initial_B01_case": null,
+        "identity_limitation": "Referenced saved original differs from the initial B01 screenshot; an additional original was created. Library click path and exact intended target were not observed directly."
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B03",
+        "attempt": 1,
+        "user_report": "Yes the quantities differ and the prices as well, exposure menas the quantity weighted saved supplier score, it looks far better than the previous site(so before the ui improvement increment) but i want it to pop more, I don't know yet where we can improve but for example there are many many data, and there are many metadata as well, I think A dashboard with great solutions and UX decisions would provide a better handling experience overall, for example with a horizontal structure if you get what I mean. Also we should make data more understandable, like we should use human terms, and when there is needed to explain, we can get into more details, so all in all we need to structure the data better, and also later the main concept of this cockpit/dashboard like frontend is that, you can see the PO-s from the odoo system, and the suppliers as well and create plans see charts and so on. But for now what I can see is that we can create somehow demo data and do some things with them, also what does no award mean? why we need to reference the source cases as plain id-s? and so on, I know that we are testing right now, but I wanted to tell you this, that we are getting there but there is much work to do especially regarding the integration with odoo, what do you think? Is this good feedback? do you agree with this, or is there things we should speak through before we move on with the testing?",
+        "completed": true,
+        "independent": null,
+        "human_seconds": null,
+        "selected_plan": 1,
+        "comprehension": "Owner identifies changed allocation/cost and quantity-weighted saved supplier-score exposure. Exact allocations, premium, explicit choice and no-probability interpretation were not supplied in this report.",
+        "visual_judgment": "Improved versus earlier UI, but further hierarchy/layout/copy changes requested; no overall visual approval.",
+        "findings": [
+          {
+            "topic": "Data hierarchy",
+            "observation": "Many data and metadata compete for attention; stronger dashboard/horizontal organisation requested."
+          },
+          {
+            "topic": "Buyer terminology",
+            "observation": "Requests human terms and explanations on demand; No-award meaning unclear."
+          },
+          {
+            "topic": "Recognizable references",
+            "observation": "Plain UUID source references questioned; business labels/links preferred."
+          },
+          {
+            "topic": "Real Odoo workflow",
+            "observation": "Wants to browse Odoo POs/suppliers and create comparisons; meaning of POs and desired discovery workflow need clarification."
+          }
+        ],
+        "proposed_direction": "Decision-first desktop overview, side-by-side related information, business labels; exact audit detail remains available. Discussion proposal only, not an accepted redesign contract.",
+        "scope_distinction": "Existing read-only quotation integration versus unfinished arbitrary quotation selection and observed-history/model promotion; no ERP writes authorized.",
+        "pre_task_explanation": "No-award means deliberately approve none of the offered plans, record a reason and retain that final decision; no approved plan/PDF. Supplied in response to an owner question before B07.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B03-density-feedback.png",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "I choose alternative 1, I sent you a picture about this",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B03-selected-alternative.png",
+            "selected_plan_index": 1,
+            "allocations": [
+              {
+                "quantity": 8,
+                "supplier_id": "synthetic-S161"
+              },
+              {
+                "quantity": 2,
+                "supplier_id": "synthetic-S184"
+              },
+              {
+                "quantity": 0,
+                "supplier_id": "synthetic-S226"
+              }
+            ],
+            "total_cost": "109",
+            "absolute_premium": "7",
+            "selection_evidence": "User report and Selected for review screenshot agree with the saved alternative.",
+            "approval_check": "Current stored-only export has no final decision."
+          }
+        ],
+        "completion_basis": "Owner selected Alternative 1; screenshot supplies allocation and premium evidence, earlier report identifies quantity-weighted exposure.",
+        "remaining_assessment": "Human duration, assistance/independence and independent synthetic-versus-calibrated interpretation not fully reported. No novice task success inferred."
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B04",
+        "attempt": 1,
+        "user_report": "Yeah again, like If I get this correct we save the simulated scenario then watch it, for a simulation why do we need to save it? I sent a picture about what I did, all in all I was able to get there fairly fast",
+        "completed": true,
+        "independent": false,
+        "human_seconds": null,
+        "perceived_speed": "fairly fast",
+        "supplier": "synthetic-S161",
+        "original_case_id": "de560f84-a155-4c3b-b1ae-51b96e64afa5",
+        "scenario_case_id": "e8e31267-d595-494f-97fd-d016eaba52b2",
+        "scenario_creation": "VERIFIED: saved feasible supplier-outage child; S161 unavailable; no final decision",
+        "minimum_plan": {
+          "cost": "102",
+          "allocations": {
+            "S161": 0,
+            "S184": 4,
+            "S226": 6
+          }
+        },
+        "original_immutability": "PASS: current original response equals owner-B04-original-before.json exactly",
+        "return_to_original_observed": true,
+        "remaining": "Measured duration and independent uncoached comprehension remain unreported; owner pilot only.",
+        "findings": [
+          "Purpose of persisting a simulation is unclear to owner.",
+          "Comparison reference needs explicit minimum-cost wording: the previously selected alternative used S161, while the compared minimum plan did not.",
+          "Original/scenario alternative labels and return navigation need clearer context within Plans."
+        ],
+        "facilitator_explanation": "Current scenario computation and immutable saving happen together. Separate saved assumptions/results enable exact comparison, reopening, audit and sharing without changing the original or creating an Odoo order. The 102 EUR minimum plan already allocates zero to S161; the original 109 EUR alternative has eight S161 units and is infeasible under the outage assumption.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B04-outage.png",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "alternative 1 changed",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B04-scenario-alternative.png",
+            "observed_context": "Screenshot matches outage child Plans (S161 unavailable; 104 EUR, quantities 0/8/2).",
+            "original_recheck": "PASS: original response unchanged, alternative remains 109 EUR with quantities 8/2/0.",
+            "interpretation_limit": "Owner observes a changed alternative; does not explicitly claim original mutation. Return to original is still not demonstrated.",
+            "finding": "Alternative 1 is local to each case; repeating the label across base/child needs clearer context at the comparison.",
+            "assistance": "Explained local alternative numbering and supplied What-if > Return to original base > Plans navigation."
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "This is what i see",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B04-return-original.png",
+            "return_evidence": "Screenshot matches original Plans: S161 available; minimum 102 EUR, alternative 109 EUR, quantities 8/2/0; provided current URL also names original case.",
+            "completion": "Return step demonstrated after supplied navigation instructions."
+          }
+        ]
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B05",
+        "attempt": 1,
+        "user_report": "This happens",
+        "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B05-infeasible-demand.png",
+        "demand": 1000,
+        "scenario_case_id": "ccb09885-2980-42ae-bb29-6d24c3a8c07e",
+        "original_case_id": "de560f84-a155-4c3b-b1ae-51b96e64afa5",
+        "scenario_creation": "VERIFIED: original-base demand-increase child; infeasible; no minimum-cost plan or alternatives; no final decision",
+        "original_immutability": "PASS: original response exactly matches owner-B05-original-before.json",
+        "completed": true,
+        "independent": false,
+        "human_seconds": null,
+        "comprehension": "So because we can't sufice this order there is no feasible plan, and unavailable means they don't have enough capacity",
+        "remaining": "Measured duration and independent uncoached full comprehension remain unreported; completion includes result-semantics clarification.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "So because we can't sufice this order there is no feasible plan, and unavailable means they don't have enough capacity",
+            "assessment": "Owner correctly associates infeasibility with insufficient capacity for 1000 units. Unavailable is explained causally; precision about absent result values versus supplier capacity is supplied afterwards.",
+            "facilitator_explanation": "Unavailable cost/exposure/allocation cells mean no valid scenario plan exists to supply those values; they are not zero values or a supplier-capacity status.",
+            "original_preservation_comprehension": null
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "Nothing",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B05-original-unchanged.png",
+            "original_preservation_comprehension": "Owner explicitly reports no change; screenshot shows original demand 10, minimum cost 102 EUR and alternative 109 EUR with quantities 8/2/0.",
+            "assessment": "Original-preservation understanding demonstrated after neutral follow-up; infeasibility cause was understood and unavailable-result precision was explained earlier."
+          }
+        ],
+        "original_preservation_comprehension": "Nothing changed, owner-reported and screenshot supported."
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B06",
+        "attempt": 1,
+        "user_report": "Great, we choose this because we prefer the premium here",
+        "case_id": "de560f84-a155-4c3b-b1ae-51b96e64afa5",
+        "approval_verified": true,
+        "outcome": "approve",
+        "plan_index": 1,
+        "total_cost": "109",
+        "absolute_premium": "7",
+        "allocations": {
+          "S161": 8,
+          "S184": 2,
+          "S226": 0
+        },
+        "actor_reference": "Practice buyer",
+        "saved_rationale": "we prefer the premium right now.",
+        "demonstration_acknowledged": true,
+        "recorded_at": "2026-10-14T13:04:01.222714Z",
+        "approved_content_hash": "7560184be9dc8ccf41fc6fa6b49b6d90f09f39ff01a2fd85fceba5cc784b341d",
+        "planning_snapshot_unchanged": true,
+        "screenshots": [
+          ".artifacts/t18-browser-05367976e5cd/owner-B06-approval-draft.png",
+          ".artifacts/t18-browser-05367976e5cd/owner-B06-confirmation.png",
+          ".artifacts/t18-browser-05367976e5cd/owner-B06-approved.png"
+        ],
+        "completed": true,
+        "independent": false,
+        "human_seconds": null,
+        "finalization_comprehension": "Tentative permanence understanding; exact approval-versus-case distinction clarified afterwards.",
+        "remaining": "Independent detailed finalization understanding, help/confusion self-report and measured duration remain unassessed; owner task actions completed with clarification.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "the saved case became permanent I think",
+            "assessment": "Owner recognizes permanence tentatively, but does not distinguish pre-existing immutable planning snapshot from newly frozen final decision and approved terms.",
+            "facilitator_explanation": "The case was already saved. Approval freezes the selected plan, approved terms and decision record (reason, actor reference and time); it cannot be replaced on this case. Reopening/document access remain available.",
+            "independent_comprehension": "Not established from this first response; clarification supplied."
+          }
+        ]
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B07",
+        "attempt": 1,
+        "user_report": "Where can I decline it?",
+        "case_id": "d8c34b1e-616d-4393-b5e6-b0eb5f4c38fa",
+        "fresh_original": "VERIFIED: separate unfinalized Practice original created after B06 approval",
+        "approved_B06_preserved": true,
+        "completed": null,
+        "independent": false,
+        "human_seconds": null,
+        "assistance": "On Plans scroll below comparison to Record the final decision. Record No-award is the decline action below Saved plan for approval. Enter actor reference/reason, acknowledge demonstration, Review No-award, then review and Confirm No-award. No plan selection required.",
+        "finding": "Owner cannot locate decline action; existing No-award label and placement do not match task language.",
+        "pre_task_context": "No-award meaning was explained earlier during B03 discussion.",
+        "remaining": "Fixed 10-unit feasible-offer decline and meaningful reason not demonstrated: retained 20-unit infeasible/placeholder-reason variant. Independent detailed comprehension and measured duration remain unassessed.",
+        "evidence_csv": "docs/UX41_OWNER_OBSERVATIONS.csv",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "This is what I receive",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B07-no-award.png",
+            "saved_outcome": "VERIFIED: no_award, plan_index null, approved content/hash null",
+            "actor_reference": "Practice buyer",
+            "rationale": "asd",
+            "recorded_at": "2026-10-14T13:17:50.220398Z",
+            "fixture_deviation": "Fresh original demand is 20, with infeasible solver outcome, rather than the fixed 10-unit feasible demo. Retain this owner deviation; do not claim refusal of feasible offered plans was tested.",
+            "reason_limitation": "asd is a placeholder/nonempty reason; no meaningful buyer rationale inferred.",
+            "approved_B06_preserved": true
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "This case was not approved and there is no award, readonly I think for now",
+            "assessment": "Owner identifies no approved plan and a read-only outcome. Permanence phrased tentatively as for now; approved-PDF eligibility not explicitly stated.",
+            "facilitator_explanation": "The saved No-award decision stays read-only and cannot later be replaced by approval on this case. No approved-plan PDF exists; a new comparison is needed for a new decision."
+          }
+        ],
+        "no_award_saved": true,
+        "variant_actions_completed": true,
+        "fixed_protocol_task_completed": false,
+        "comprehension": "No approval/no award/read-only recognized; precise permanence and no approved PDF explained afterwards."
+      },
+      {
+        "date": "2026-10-14",
+        "participant_id": "O01",
+        "role": "owner",
+        "task": "B08",
+        "attempt": 1,
+        "user_report": "ready",
+        "readiness": "Owner confirmed; read-only browser inspection shows reviewed Practice draft for synthetic-product, demand 10, EUR and required date 2026-03-08. Create and save plan available; no facilitator click.",
+        "stage": "FIRST ATTEMPT FAILED; CRITICAL UX FINDING; B09 NOT ATTEMPTED",
+        "staged_at": "2026-10-14T13:32:46.700897+00:00",
+        "runtime_check": "PASS: only API 57174 closed; Reflex 57175/frontend 57176 listening, frontend HTTP 200",
+        "baseline_count": 8,
+        "baseline": ".artifacts/t18-browser-05367976e5cd/owner-B08-cases-before.json",
+        "browser_tab_id": "3",
+        "review_evidence": [
+          ".artifacts/t18-browser-05367976e5cd/owner-B08-reviewed-dom.txt",
+          ".artifacts/t18-browser-05367976e5cd/owner-B08-reviewed.png"
+        ],
+        "agent_observation": "Start a comparison also retains Final decision saved feedback from previous task; possible stale-success feedback, not owner-reported or proof a new draft was saved.",
+        "completed": false,
+        "independent": false,
+        "human_seconds": null,
+        "remaining": "Clarification, focused UI correction and fresh retest required. Technical recovery passed; first-attempt human task did not. Measured duration absent.",
+        "follow_up_reports": [
+          {
+            "date": "2026-10-14",
+            "user_report": "I receive this",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B08-uncertain-save.png",
+            "observation": "Pending save warning and Retry the same request action; new-comparison section collapsed.",
+            "pending_record": ".artifacts/t18-browser-05367976e5cd/owner-B08-pending-request.json",
+            "capture_method": "Read-only DOM value of the exact recovery JSON; no disclosure, clipboard or retry control activated by facilitator.",
+            "key": "04f3a81c-c294-427a-be73-0784f5725e6e",
+            "expected_intent_fingerprint": "44c4af9c66db45a3e7243c20752065679d8e04d50b3dedbad2f4c0d3bfd7821f",
+            "restored_at": "2026-10-14T13:39:35.078989+00:00",
+            "restoration": "Owned API controller reports health-ready; stored-only snapshot verifies original 8 records unchanged before owner recovery.",
+            "remaining": "Owner recovery action, result and uncertainty/session-loss comprehension pending."
+          },
+          {
+            "date": "2026-10-14",
+            "user_report": "I approved it",
+            "screenshot": ".artifacts/t18-browser-05367976e5cd/owner-B08-recovered-and-approved.png",
+            "new_case_id": "07e75c1e-1b61-47d8-849c-765800cbd348",
+            "recovery_verification": {
+              "method": "Read-only psql transaction in verified disposable helper container; SELECT creation mapping for canonical captured UUID only. No frontend database access or Odoo access.",
+              "mapping": {
+                "case_id": "07e75c1e-1b61-47d8-849c-765800cbd348",
+                "idempotency_key": "04f3a81c-c294-427a-be73-0784f5725e6e",
+                "fingerprint": "44c4af9c66db45a3e7243c20752065679d8e04d50b3dedbad2f4c0d3bfd7821f",
+                "snapshot_hash": "1fe072c7b766b5a8333811f1b97000d004e20cd181281bc9cf637cbb4c2eb767"
+              },
+              "original_pending_key_matches": true,
+              "canonical_payload_fingerprint_matches": true,
+              "new_cases": 1,
+              "prior_records_unchanged": true
+            },
+            "additional_approval": {
+              "outcome": "approve",
+              "plan_index": 1,
+              "rationale": "asdasd",
+              "recorded_at": "2026-10-14T13:40:33.551681Z",
+              "intended": null,
+              "classification": "Additional finalization beyond B08 save/recovery task. User acknowledges approval; intention or perceived necessity requires clarification. Do not classify as accidental or intentional without the answer."
+            }
+          },
+          {
+            "date": "2026-10-14",
+            "participant_id": "O01",
+            "role": "owner",
+            "task": "B08",
+            "attempt": 1,
+            "user_report": "1. yes it was needed I think\n2. I don't know this, i think we need to make the database consistent so this does not become saved or something like that",
+            "finding": "Critical save/recovery/approval distinction not understood. Additional approval was confirmed because owner thought it was required for recovery, not as an independent extra procurement decision. Uncertain-response and lost-session meaning unknown.",
+            "classification": "One task-unintended additional finalization in B08; deliberately confirmed under a mistaken recovery purpose, not an accidental click.",
+            "technical_boundary": "Earlier read-only verification proves original key/canonical input reuse, one new case and unchanged prior records; no consistency defect established.",
+            "protocol_stop": "First-attempt owner walkthrough stops before B09; corrections and fresh retest required."
+          }
+        ],
+        "pending_key": "04f3a81c-c294-427a-be73-0784f5725e6e",
+        "expected_intent_fingerprint": "44c4af9c66db45a3e7243c20752065679d8e04d50b3dedbad2f4c0d3bfd7821f",
+        "recovery_verified": true,
+        "new_case_id": "07e75c1e-1b61-47d8-849c-765800cbd348",
+        "new_cases": 1,
+        "prior_records_unchanged": true,
+        "additional_approval_intent": "Thought approval was required for save recovery",
+        "task_unintended_finalizations": 1,
+        "critical_misunderstanding": true,
+        "comprehension": "Approval believed required for recovery; uncertain-save/session-loss meaning unknown; database consistency assumed to require preventing a save."
+      }
+    ],
+    "availability": "confirmed",
+    "session_preparation": "running; B01-B07 owner observations retained",
+    "session": {
+      "id": "t18-browser-05367976e5cd",
+      "root": "C:\\Users\\Erik Safar\\personal-projects\\odoo-procurement-decision-support\\.artifacts\\t18-browser-05367976e5cd",
+      "starting_url": "http://127.0.0.1:57176/cases",
+      "context": {
+        "document_width": 794,
+        "starting_heading": "Saved cases",
+        "viewport_height": 764,
+        "viewport_width": 794
+      },
+      "runtime": "intentionally retained for owner walkthrough",
+      "facilitator_control_selfcheck": "PASS: API stop, restoration, and read-only export of both preparation cases",
+      "restart": {
+        "date": "2026-10-14",
+        "retained_records_verified": 2,
+        "database": "existing container retained; no reseeding or migration",
+        "service_health": "PASS: API health and frontend /cases HTTP 200",
+        "export": "PASS: snapshot exported 2 retained records",
+        "browser": "Connection-error tab cannot be controlled under browser URL policy; manual refresh required; UI recovery not independently verified.",
+        "human_observations": "Owner B01 demo-save report received; partial task evidence retained separately."
+      }
+    },
+    "active_task": "Owner walkthrough ended: B09 skipped at user request; B08 critical finding and correction/retest remain open",
+    "confirmed_direction": {
+      "date": "2026-10-14",
+      "participant_id": "O01",
+      "role": "owner",
+      "layout_answer": "Option 2. I want the primary dashboard to focus on one selected procurement case, showing its supplier evaluation, MILP-generated allocation plans, scenario analysis, explanations, and human approval workflow. However, I also want a separate, lightweight overview page where users can browse Odoo quotations and previously saved procurement cases before opening a case workspace. Keep the UI clean and spacious. Use progressive disclosure, tabs, and contextual detail panels instead of displaying every chart, table, and control simultaneously.",
+      "odoo_answer": "Option 3. The workflow should cover both, but it should start from open RFQs and supplier quotations, because the buyer’s main task is to prepare a new comparison and decision case. Confirmed purchase orders and receipt history should remain available as supporting historical context for supplier evaluation, ML-based assessment, and explanation, rather than as the primary starting point.",
+      "status": "OWNER-CONFIRMED UX DIRECTION; implementation and visual approval pending",
+      "brief": {
+        "primary_workspace": "One selected procurement case: supplier evaluation, MILP alternatives, original-base scenarios, explanations, deliberate human approval and saved document.",
+        "overview": "Lightweight discovery of open RFQs/supplier quotations and saved comparisons; opening existing work stays stored-only.",
+        "historical_context": "Confirmed POs/receipts support evaluation and explanation; they are not the default start. Real-history ML training remains dependent on a separately validated observed-data pipeline.",
+        "hierarchy": "Clean, spacious desktop layout; related information side by side; tabs, progressive disclosure and contextual panels; only current-task charts/controls visible.",
+        "references": "Recognizable product/quantity/date and Odoo references where available; UUID and exact provenance remain accessible in details.",
+        "boundaries": "Read-only Odoo behind adapter; frontend uses backend HTTP only; no order creation; explicit business terms remain separate; offline training; exact snapshots and recovery unchanged."
+      },
+      "brief_source": "docs/UX41_ASSESSMENT.md#confirmed-case-workspace-direction--2026-10-14"
+    },
+    "b08_preparation": {
+      "status": "TECHNICAL RECOVERY PASS; HUMAN FIRST ATTEMPT FAIL",
+      "baseline_count": 8,
+      "baseline": ".artifacts/t18-browser-05367976e5cd/owner-B08-cases-before.json",
+      "api": "running; records retained unchanged; no rollback or PDF fault",
+      "instruction": "Prepare fresh standard 10-unit demo and stop at review before final calculate/save.",
+      "readiness_verified": true
+    },
+    "pilot_outcome": "FAIL: save/recovery/approval comprehension with additional task-unintended finalization",
+    "known_task_unintended_finalizations": 1,
+    "critical_finding_resolution": "OPEN: explanation is not a corrected-source retest",
+    "correction_brief": "docs/UX41_RECOVERY_CLARITY_BRIEF.md",
+    "protocol_stop_basis": "UX41-v1: Stop promptly on an unintended finalization or critical source/decision misunderstanding; first failure retained before explanation.",
+    "b09_assisted_continuation": {
+      "date": "2026-10-14",
+      "task": "B09",
+      "status": "SKIPPED AT OWNER REQUEST",
+      "authorization": "Owner explicitly requested a quick B09 walkthrough after the critical B08 finding.",
+      "deviation": "Continue as assisted exploration after the protocol stop; retain the failed first attempt and unresolved B08 correction/retest.",
+      "target_case_id": "de560f84-a155-4c3b-b1ae-51b96e64afa5",
+      "assistance": "Guide owner to Cases, Practice, Approved and the B06 approval reason; no UUID shortcut or facilitator task clicks.",
+      "human_seconds": null,
+      "document_fault_staged": false,
+      "drive": "Discussion requested; no Drive edit performed or authorized yet.",
+      "readiness_observation": {
+        "case_id": "7973e881-95a0-4d5b-9a6e-067405b0f8fe",
+        "state": "Approved",
+        "reason": "asdasdasdas",
+        "created_at": "2026-10-14T14:58:36.932402+00:00",
+        "decision_at": "2026-10-14T14:59:07.994171+00:00",
+        "finding": "Ready response points to a newly approved case, not the earlier B06 approval. Do not infer why this additional case/approval was created or count an unintended finalization without owner evidence.",
+        "evidence": "owner-B09-ready-ax.txt; owner-B09-ready.png"
+      },
+      "completed": null,
+      "independent": null,
+      "skip_reason": "Owner reports not understanding what the facilitator meant by B09, then requests recording this and skipping the task.",
+      "owner_feedback": "For b09 Ididn't really got what you mean, write this there",
+      "interpretation": "Task/facilitation instruction clarity finding. The product PDF workflow was not attempted; do not infer product failure, completion, independent success or novice outcome."
+    }
+  },
+  "unfamiliar_buyers": {
+    "status": "NOT ASSESSED",
+    "recorded_participants": 0,
+    "declared_cohort": null,
+    "observations": null,
+    "minimum_n": 3,
+    "maximum_n": 5,
+    "required_independent_by_n": {
+      "3": 3,
+      "4": 4,
+      "5": 4
+    },
+    "unintended_finalizations": null,
+    "unresolved_critical_misunderstandings": null
+  },
+  "runtime_versions": {
+    "reflex": "0.9.12",
+    "pytest-playwright": "0.10.0",
+    "playwright": "1.63.0",
+    "pulp": "3.3.0",
+    "scikit-learn": "1.8.0"
+  },
+  "copied_frontend_sha256": {
+    "frontend\\app.py": "cdb4dde9282190743aaa1e045c5f38416c058d90cce078b7099e3a92e848ee75",
+    "frontend\\config.py": "7994d9ca46337512706b55e8423f6c3f886cd8ac22c5e69ef91406d5b5ad8d7c",
+    "frontend\\planning\\__init__.py": "983f4de910390ca04b2037d2462ba363dd5938ead4ee8d67f8749716d644bef2",
+    "frontend\\planning\\audit.py": "86c403d68f97c70071b11368f9a311fa9b6e4133ee2eac6c8ee53bb209e13312",
+    "frontend\\planning\\creation.py": "463ed7d3c6b81354fa8301526aae49863ba85a25d0f2235183587f2231c3be7f",
+    "frontend\\planning\\decision.py": "c55148fbe4c739083a065deac734d65c86e3c38446f8c455238609f1451ca74d",
+    "frontend\\planning\\inputs.py": "e4c0a56448941c288b114b41811ec2433f7d6e72216f2e28c14652d042bb5084",
+    "frontend\\planning\\library.py": "f16b159ed0090f8f770962cc1d1b545a453f68a9795c1c17f66544a4d26dfe31",
+    "frontend\\planning\\page.py": "1c137c3941c2342265e4274e0b9cec2cf5f44bd0b1374a958f38fdc645a87527",
+    "frontend\\planning\\pdf.py": "b889a4e95f12ca6456a48f5a374039f7397468ec648ca70625f875b5d456e92a",
+    "frontend\\planning\\practice.py": "1e7dc3d507bbf22fcaebae14444492dd5035b3dea0da2706d20d6d349619802a",
+    "frontend\\planning\\results.py": "682b933a8db168a8fa3da5e3cb72d149c8431398db160419538ac45b09d03852",
+    "frontend\\planning\\scenarios.py": "63182d54f283bb6bdb9d6618c8cb52eb57d54e6d1f376d09e23aebc2977170a7",
+    "frontend\\planning\\state.py": "1a1a68cdb5707553bd95fcc0b8ae1fddc3025dd8983d9638576797ade8f9a92d",
+    "frontend\\planning_client.py": "d64bdb725066d029766753960964bdd92f31077690034414ebc6cf333bb60ee7",
+    "frontend\\planning_library_client.py": "050708ff5b80e2ada2035b946630bcdc1655926fbf30d2deb397673aaae55dab",
+    "frontend\\planning_pdf_client.py": "e2ad11b4d504acb266b93723c4780b467dded23683c6bfbad563917824ba5294",
+    "frontend\\rfq_client.py": "578bd971c27b5b7c7bbc88366d2b2316612ff2f7679dbcb0a88435df148dff4b",
+    "frontend\\rfq_page.py": "8a50fd9dfaa8bf435313d9d70c27b6f9e2591690b2f084031c9919fc36f83c9a",
+    "frontend\\rxconfig.py": "cae463dd2906b483ea70413b7fdc59a96bae0c652b4a412f47c71538e1c8bfc4",
+    "frontend\\theme.py": "0ff06ce990e9d81fad45c68cec78fbf1d27dbd484b62a93ec933bee426d6c5d0",
+    "frontend\\workspace.py": "13ccc15cf04547080893461b784ff990d75c6b7c409b61a988fa7aeec31d63e2"
+  },
+  "source_tests_sha256": {
+    "tests\\e2e\\conftest.py": "58000f3a2e841164b1b05707d19874c02e7c10d264e0c6a7bac1c327164835fa",
+    "tests\\e2e\\test_creation_review_browser.py": "64562b7b417b7eaba55651bdb9e0e6657599d14e894966e4fbfb9dc322e4dde8",
+    "tests\\e2e\\test_curated_practice_browser.py": "6bafabe13217b4480317835b1cece6920dcc16a1386ec2248da24d4a659cc92e",
+    "tests\\e2e\\test_decision_confirmation_browser.py": "1e32e2c65db43c29ed109fd3c4e19adf4564839e6307325a8384824e5dc85756",
+    "tests\\e2e\\test_plan_comparison_browser.py": "0dd9e24730ec24864ca799b063e5fbc914de910807500957a6f57352eeccdcd7",
+    "tests\\e2e\\test_planning_smoke.py": "ff8af7c17adf37ceb11b4f7f00b90fcad789f250f1821462899f09008f806a9f",
+    "tests\\e2e\\test_recovery_documents_browser.py": "5ffc8179043d7f5c560281fb73ccc3c5d07fe097d00be333d3bb23a4fea42784",
+    "tests\\e2e\\test_saved_library_browser.py": "8d27b171b6165a99fb92a26e2e35d99891e260204e190fe566cf088c5184c0a0",
+    "tests\\e2e\\test_scenario_comparison_browser.py": "29b6b4397f0b99f563e085ba42c6f5bfa028885a3367e1f690e4d236a911d474",
+    "tests\\e2e\\test_supplier_evidence_browser.py": "46923f26be95ea8e18c41c8615b094ca721bd2d05cb0e201e07b17e87a7656d1",
+    "tests\\e2e\\test_workspace_browser.py": "46510ad49d1ce8e93034c744bc9d5d6ff6f33440956ae8833dbd6ef7a0e1370f"
+  },
+  "local_fast": {
+    "result": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "675",
+      "time": "127.762",
+      "timestamp": "2026-10-13T22:58:12.076969+02:00",
+      "hostname": "EU-PF5CKA4B"
+    },
+    "junit": ".artifacts/ux41-fast/result.xml"
+  },
+  "local_browser": {
+    "result": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "95.371",
+      "timestamp": "2026-10-13T22:54:57.342690+02:00",
+      "hostname": "EU-PF5CKA4B"
+    },
+    "root": ".artifacts\\t18-browser-07523263a6bc",
+    "approved_case": "bc8a7fc9-f3c3-49be-9ba0-85dba1b81682",
+    "approved_content_hash": "1376c8f3b73f86bd172a8bf80d2862e461b767d7954fba2b43be569b1656506c",
+    "pdf_sha256": "f52c6fbb6b13cab4ccc93ddbdf7b41c57c8ccc35ec82c22dc227ed3bf96b8d76",
+    "no_award_case": "f743e510-b5a4-43cf-903d-def92d37cd02",
+    "reduced_motion": true,
+    "checks": [
+      "Three entry tasks write nothing; three fresh classified bases, outage/infeasibility children, keyboard/narrow entry, stored-only Practice library/approval/PDF and exact pending recovery PASS; one original through compare/scenario/alternative approval, product/status library reopening without UUID, real PDF failure and exact download; separate No-award; reduced-motion preference enabled throughout."
+    ],
+    "cleanup": "Owned processes stopped and disposable Compose project removed; owner services/data untouched."
+  },
+  "hosted_baseline": {
+    "queried_sha": "6535b0ef4e829acd36ba2284d9e1e3658987b95d",
+    "runs": {
+      "workflow_runs": [
+        {
+          "id": 38464973082,
+          "name": "Quality",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 73,
+          "jobs_url": "https://api.github.com/repos/SafarErik/odoo-procurement-decision-support/actions/runs/38464973082/jobs",
+          "logs_url": "https://api.github.com/repos/SafarErik/odoo-procurement-decision-support/actions/runs/38464973082/logs",
+          "workflow_id": 359649279
+        },
+        {
+          "id": 38464973113,
+          "name": "Container and API integration",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 69,
+          "jobs_url": "https://api.github.com/repos/SafarErik/odoo-procurement-decision-support/actions/runs/38464973113/jobs",
+          "logs_url": "https://api.github.com/repos/SafarErik/odoo-procurement-decision-support/actions/runs/38464973113/logs",
+          "workflow_id": 359649280
+        }
+      ]
+    },
+    "container_step_readback": {
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Set up Python 3.11",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Set up Node.js for frontend compilation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Install project and development dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Create temporary Compose environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Start Odoo and PostgreSQL",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 7
+        },
+        {
+          "name": "Start FastAPI",
+          "status": "pending",
+          "conclusion": null,
+          "number": 8
+        },
+        {
+          "name": "Run integration tests only",
+          "status": "pending",
+          "conclusion": null,
+          "number": 9
+        },
+        {
+          "name": "Verify frontend compilation",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10
+        },
+        {
+          "name": "Verify technical named-volume persistence",
+          "status": "pending",
+          "conclusion": null,
+          "number": 11
+        },
+        {
+          "name": "Collect failure logs",
+          "status": "pending",
+          "conclusion": null,
+          "number": 12
+        },
+        {
+          "name": "Upload failure logs",
+          "status": "pending",
+          "conclusion": null,
+          "number": 13
+        },
+        {
+          "name": "Clean up runtime",
+          "status": "pending",
+          "conclusion": null,
+          "number": 14
+        },
+        {
+          "name": "Post Set up Node.js for frontend compilation",
+          "status": "pending",
+          "conclusion": null,
+          "number": 26
+        },
+        {
+          "name": "Post Set up Python 3.11",
+          "status": "pending",
+          "conclusion": null,
+          "number": 27
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "pending",
+          "conclusion": null,
+          "number": 28
+        }
+      ]
+    }
+  },
+  "hosted_browser": "NOT IMPLEMENTED",
+  "new_head_ci": "USER DEPENDENT AFTER PUBLICATION",
+  "retained_list_query_gate": {
+    "new_measurements": false,
+    "raw": "docs/UX32_LIBRARY_MEASUREMENTS.json",
+    "recomputed": {
+      "library_query": {
+        "unchanged_from": "5f09e91",
+        "current_file_sha256": "f84b9eee5712f73965a022d3232bdf7d3f5d17a33d6dfef50d52d0efad7b18d6"
+      },
+      "library_statement": {
+        "unchanged_from": "5f09e91",
+        "current_file_sha256": "d1c16586e30fe3210b21ca6fc79f6bd9a9210f58ea1cae340d2eef718a7f9326"
+      },
+      "base-first": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.17076340003404766,
+        "status": "historical PASS, recomputed"
+      },
+      "base-next": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.17047790001379326,
+        "status": "historical PASS, recomputed"
+      },
+      "base-product": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.2438191000255756,
+        "status": "historical PASS, recomputed"
+      },
+      "base-draft": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.2010321999550797,
+        "status": "historical PASS, recomputed"
+      },
+      "children-first": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.1898695999989286,
+        "status": "historical PASS, recomputed"
+      },
+      "children-next": {
+        "warmups": 2,
+        "measurements": 30,
+        "p95_seconds": 0.1843792999861762,
+        "status": "historical PASS, recomputed"
+      }
+    }
+  },
+  "accessibility": {
+    "current_builtin_metrics": {
+      "body": "rgb(23, 62, 61)",
+      "documentWidth": 320,
+      "focus": "workspace-menu",
+      "focusColor": "rgb(65, 59, 118)",
+      "menu": "rgb(65, 59, 118)",
+      "muted": "rgb(83, 105, 100)",
+      "rail": "rgb(239, 245, 241)",
+      "surface": "rgba(0, 0, 0, 0)",
+      "width": 320
+    },
+    "scoped_text_focus_contrast": {
+      "ink/white": 11.713090665073441,
+      "muted/white": 5.878318650100716,
+      "muted/mint": 5.3188377278243495,
+      "white/selection": 9.943414874825182,
+      "white/rail": 11.558010439938768,
+      "selection/white": 9.943414874825182
+    },
+    "actual_200_percent_browser_zoom": "RETAINED PASS UX34/36/39/40",
+    "screen_reader_speech": "NOT ASSESSED",
+    "physical_phone": "NOT ASSESSED",
+    "owner_visual_approval": "NOT GIVEN: owner requests hierarchy, layout and terminology improvements",
+    "whole_app_wcag_conformance": "NOT CLAIMED"
+  },
+  "essential_human_tasks": [
+    {
+      "task": "B01",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B02",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B03",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B04",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B05",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B06",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B07",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B08",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    },
+    {
+      "task": "B09",
+      "status": "NOT ASSESSED",
+      "independent_successes": null,
+      "denominator": null,
+      "human_seconds": null
+    }
+  ]
+}
