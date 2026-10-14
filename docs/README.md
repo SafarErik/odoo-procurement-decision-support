@@ -59,6 +59,12 @@ explicitly supersedes them. They are not a second live dashboard.
 
 ## Active V2: understand the product flow
 
+[Bounded Odoo history feasibility assessment](ODOO_HISTORY_FEASIBILITY_ASSESSMENT.md)
+records the 2026-10-14 canonical/published-state reconciliation, live fixture
+mismatch and history-key 401, reusable T7S/T8/T14 components, source/model validity
+gates, manual test-data prerequisites and a conditional small increment. It is an
+assessment, not an implemented Odoo-history/model connection.
+
 [Buyer workspace redesign proposal](UX_UI_INCREMENT_PLAN.md) captures the next
 substantial UX/UI discovery after T18. Curated Practice without resets and a bounded
 case library, Decision editorial direction and the final brief are confirmed.

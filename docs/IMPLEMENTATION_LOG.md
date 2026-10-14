@@ -3494,3 +3494,29 @@ Only documentation/evidence changed; no new application regression suite was run
 The completed owner session was exported and cleaned up: owned project/processes
 stopped and listeners closed; the user download and evidence remain available.
 Owner/Odoo services and the existing running Podman machine were preserved.
+
+### 2026-10-14 — Assess bounded Odoo history compatibility with V2 supplier evaluation
+
+Problem: V2 reads controlled Odoo quotations but evaluates separately generated
+synthetic history. Read all five canonical Drive status/roadmap/ADR/requirements/
+development documents and current source; live GitHub confirms PR #24/#31 merged,
+local/published main `86c389c` and exact merge-SHA Quality/Container/API SUCCESS.
+Older open-PR statements in Drive are stale publication evidence, not new scope.
+
+Decision: GO WITH CONDITIONS for one bounded history-readiness export; NO-GO for
+attaching the current T7 supplier/product or directly promoting the synthetic
+artifact. Live quotation/PO/line/commercial-partner reads confirm planning company
+1, suppliers 51/52/53, product 54, UoM 1 versus T7 supplier 55/product 57. No
+confirmed orders returned for the exact three planning vendor IDs. Dedicated
+history adapter returned HTTP 401; receipt timestamps and historical n=3/33.33%
+KPI were not refreshed. This is not empty-history or observed-model acceptance.
+
+[Assessment](ODOO_HISTORY_FEASIBILITY_ASSESSMENT.md) contains current/proposed flows,
+component/consumer gaps, cutoff/label/split/artifact gates, conditional test-data
+prerequisites, regression/leakage/provenance/E2E tests and chapter 3–7/8–9 relevance.
+No runtime code, fixture, model, schema, requirement, Drive or tracker change was
+made. No training or training tests were run. The two existing stopped Odoo
+containers and an owned localhost-only tunnel were temporarily used for reads and
+returned to their prior state; machine, volumes and existing helper container retained.
+Assessment documentation is uncommitted; no commit/push/merge. Next dependency:
+human dedicated-key renewal, then exact matching data readiness before model/runtime work.
