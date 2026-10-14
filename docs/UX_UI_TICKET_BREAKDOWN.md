@@ -20,6 +20,9 @@ progressive exact records and stored-only keyboard/reflow/zoom verification.
 [#40 recovery/document handoff](UX40_RECOVERY_HANDOFF.md) adds distinct conflict recovery,
 session limits and exact approved summary/page/zoom/download with genuine API fault evidence.
 #41 remains open; local implementation does not close GitHub issues or establish human acceptance.
+[#41 assessment](UX41_ASSESSMENT.md) now consolidates the real flow, all UX criteria,
+retained technical gates and a frozen human protocol. Owner/novice observations
+remain NOT ASSESSED; technical delivery is not final buyer acceptance.
 The approved criteria below remain the contract; later tickets are not implemented
 by the saved-case library.
 The selected direction is Decision editorial; T19 remains thesis closure after

@@ -15,6 +15,8 @@ Delivery update 2026-10-13: #32–#40 have local implementation/technical eviden
 the [#40 handoff](UX40_RECOVERY_HANDOFF.md) covers recovery and approved documents.
 #41 and unfamiliar-buyer acceptance remain pending. The publication status and
 prospective criteria above are historical; the ticket index owns current delivery status.
+The [#41 assessment](UX41_ASSESSMENT.md) supplies technical consolidation and the
+frozen protocol; absent owner/participant observations remain NOT ASSESSED.
 
 The [approved ticket breakdown](UX_UI_TICKET_BREAKDOWN.md) refines the six delivery
 areas into ten complete buyer tasks. On 2026-10-12 the user approved all ten tickets,

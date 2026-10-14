@@ -87,3 +87,27 @@ and [implementation specification](docs/UX_UI_INCREMENT_SPEC.md). The user confi
 the full brief and authorized specification work on the same date. The chosen
 static reference is preserved in [the repository](docs/design/decision-editorial.html).
 This records user intent, not a finished design system or responsive implementation.
+
+## Owner-confirmed workspace direction — 2026-10-14
+
+The primary dashboard focuses on one selected procurement case: supplier evaluation,
+MILP alternatives, scenario analysis, explanations and human approval. A separate
+lightweight overview provides open RFQ/supplier quotation discovery and saved-case
+entry. Confirmed POs and receipts are supporting historical context, not the primary
+start. Keep the interface spacious, with tabs, progressive disclosure and contextual
+panels rather than every chart/table/control visible at once. Related information
+can sit side by side on desktop with narrow-screen reflow.
+
+This is the owner-confirmed direction from the #41 pilot, not a claim that buyer
+quotation discovery or observed-history training is implemented. Preserve read-only
+Odoo, API-only frontend, explicit terms, offline training and immutable retrieval/
+approval boundaries. [Brief and evidence](docs/UX41_ASSESSMENT.md#confirmed-case-workspace-direction--2026-10-14).
+
+## Critical save/recovery/approval clarification — 2026-10-14
+
+Owner B08 treated approval as necessary for recovery. Make durable comparison
+saving distinct from optional later finalization; uncertainty means the response
+could not confirm the save, not that approval/database rollback is needed. Pending
+recovery is session-bound while already saved cases remain in backend storage.
+The [correction brief](docs/UX41_RECOVERY_CLARITY_BRIEF.md) is proposed, not
+implemented/retested; the first-attempt failure must remain in the evidence.

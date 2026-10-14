@@ -39,6 +39,11 @@ explicitly supersedes them. They are not a second live dashboard.
 - [Safe recovery and documents #40](UX40_RECOVERY_RUNBOOK.md): distinct rejection/conflict/
   uncertainty, exact explicit replay, session limits and approved summary/page/zoom/download.
   [Handoff](UX40_RECOVERY_HANDOFF.md) records genuine API faults and exact artifact recovery.
+- [Complete buyer reassessment #41](UX41_ASSESSMENT.md): current consolidated flow,
+  UX-AC-01–16/canonical mapping, retained accessibility/query evidence and CI limitations.
+  [Runbook](UX41_REASSESSMENT_RUNBOOK.md), [frozen human protocol](UX41_BUYER_PROTOCOL.md),
+  [blank observations](UX41_OBSERVATIONS_TEMPLATE.csv) and [evidence JSON](UX41_EVIDENCE.json)
+  retain owner/novice sessions as NOT ASSESSED until actual observations exist.
 - [T15 terminal demonstration](T15_DEMO.md): generate matched synthetic inputs,
   create a base/outage, inspect saved evidence and retrieve after backend restart.
 - [T17 complete controlled demonstration](T17_FULL_FLOW_DEMO.md): reproduce read-only
@@ -66,7 +71,8 @@ responsive guarded navigation, attributed input review and aligned explicit
 comparison, original-base disruptions, deliberate final review and exact supplier
 evidence, safe recovery and approved-document navigation; their dated handoffs
 distinguish technical evidence from pending participants.
-Next is #41 complete buyer reassessment; final buyer acceptance stays open.
+#41 technical consolidation and a frozen protocol are ready; its owner/participant
+sessions remain next, and final buyer acceptance stays open.
 
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |

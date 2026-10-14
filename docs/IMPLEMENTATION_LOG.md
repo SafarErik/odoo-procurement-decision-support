@@ -3244,3 +3244,130 @@ remain unverified/NOT ASSESSED. UX-AC-13/14, FR/AC-V2-09/10/11/12, NFR-V2-05/06/
 and UX29-06/08/09 support chapters 4/6/7. Local #32–#40 technical delivery is complete;
 #41 participant/owner reassessment remains next before T19 closure. Commit/push/merge
 remain user-controlled; Drive/issues were untouched.
+
+## 2026-10-13 — Complete buyer reassessment: technical delivery, human gate open (#41)
+
+**Problem -> decision:** Passing slices/CI do not establish the redesigned buyer
+experience. Consolidate one real original through the existing Practice browser
+test, reuse unchanged slice evidence, and freeze neutral human tasks and scoring.
+
+**Implemented behavior:** One original now traverses Practice creation, exact
+supplier comparison, saved feasible disruption, return/explicit alternative
+approval, product/status library reopening without UUID and PDF failure/recovery/
+byte-identical download. Separate feasible/infeasible exercises, reasoned No-award
+and actual uncertain-create exact retry remain; reduced-motion preference runs
+throughout. Harness evidence adds Git HEAD and actual copied frontend hashes.
+The versioned human protocol and blank nine-task observation template separate owner
+pilot/visual judgment from 3–5 unfamiliar people and preserve the approved threshold.
+No production code, architectural boundary, dependency, migration or CI workflow change.
+
+**Evidence:** Current full fast 675 PASS, 74 deselected; consolidated real-stack
+browser 1 PASS in 95.37s. Static/runtime/pip/Compose gates pass. Current built-in
+desktop/320 reference review, reflow, drawer keyboard focus/return and sampled
+foreground/focus contrast pass; 200% native browser zoom, long/non-Latin/missing
+labels, variable supplier/alternative outcomes and transaction gates retain linked
+slice evidence. All 192 retained library observations were rechecked (six ×2 warm-ups
++30 measurements, p95 0.170–0.244s); query functions are unchanged, so no new timed
+workload was run. Exact baseline `6535b0e` GitHub Quality and Container/API overviews
+report success; Container step details are inconsistent/partial and not claimed as
+independently verified. Hosted browser remains deferred. Owned stack/preview cleanup,
+explicit tab closure and viewport restoration are confirmed.
+
+**Limitation -> chapter relevance -> next:** Owner pilot/visual approval and novice
+participants have zero recorded sessions: NOT ASSESSED, no human success/time/error
+rates. Required successes remain 3/3, 4/4 or 4/5 per essential task, plus zero
+unintended finalizations/unresolved critical misunderstandings. No threshold
+relaxation or fabricated observations. Speech/physical-device checks and new-HEAD
+CI retain their gates. UX-AC-01–16, AC-V2-09/13, NFR-V2-04/08 and UX29-03–10 map
+to the official Python UI/integrated demonstration and chapters 4/6/7 in the
+[assessment/handoff](UX41_ASSESSMENT.md); [runbook](UX41_REASSESSMENT_RUNBOOK.md) owns
+commands and the [frozen protocol](UX41_BUYER_PROTOCOL.md) owns human tasks/scoring.
+#41 remains open for owner/novice observations, critical-finding fixes and affected
+retests; T19/final buyer acceptance are not implied. Commit/push/merge and tracker/
+Drive publication remain user-controlled.
+
+### 2026-10-14 — #41 partial owner walkthrough evidence
+
+The owner reported a successful demo save and a missing saved-UUID lookup. A
+stored-only session export confirms the new optimal Practice original remains
+awaiting decision. The first report and post-attempt source/storage correction
+are retained in [owner observations](UX41_OWNER_OBSERVATIONS.csv) and the
+[assessment](UX41_ASSESSMENT.md#owner-pilot-observation--2026-10-14). Human timing,
+independence and complete comprehension remain unassessed; owner evidence does
+not enter the 3–5 unfamiliar-buyer denominator. No production code, Odoo data or
+frozen protocol changed.
+
+### 2026-10-14 — #41 owner requests clearer buyer workspace
+
+Problem: owner B03 feedback describes improved appearance but excess metadata,
+unclear No-award wording, raw source UUIDs and a need for a clearer real-Odoo
+workflow. Decision: preserve the first report/screenshot and discuss desktop
+hierarchy and RFQ-versus-confirmed-PO discovery before a new design contract.
+Evidence: [owner observations](UX41_OWNER_OBSERVATIONS.csv) and
+[assessment](UX41_ASSESSMENT.md#b03-and-broader-owner-feedback--2026-10-14).
+The exposure definition was understood in part; no selected plan, measured time
+or complete B03 outcome was reported. Owner visual approval has not been given.
+No production code, accepted scope or frozen novice protocol changed. This is
+owner feedback relevant to thesis chapters 4/6/7, not final buyer acceptance.
+
+### 2026-10-14 — owner confirms case-focused dashboard direction
+
+The owner selected a primary single-case workspace with supplier evaluation, MILP
+plans, scenarios, explanations and human approval, plus a lightweight quotation/
+saved-case overview. Open RFQs/quotations lead the workflow; confirmed POs/receipts
+are supporting historical context. Spacious layout, tabs, contextual panels and
+progressive disclosure are agreed design constraints. The
+[confirmed brief](UX41_ASSESSMENT.md#confirmed-case-workspace-direction--2026-10-14)
+and PRODUCT.md retain this direction separately from implemented capability.
+No UI/backend code or frozen protocol changed; observed-history/model promotion,
+B03 completion and final buyer acceptance remain open.
+
+### 2026-10-14 — critical owner recovery/approval finding
+
+Problem: O01 approved the B08 recovered case believing final approval was needed
+for recovery, and did not understand uncertainty/session-loss limits. Decision:
+record a failed first attempt and one task-unintended additional finalization,
+then stop before B09 under the frozen protocol. Technical exact-key/input recovery
+and single-case persistence passed; no database consistency defect was established.
+Evidence: [assessment](UX41_ASSESSMENT.md#b08-critical-first-attempt-finding--2026-10-14),
+[raw observations](UX41_OWNER_OBSERVATIONS.csv), and
+[proposed correction brief](UX41_RECOVERY_CLARITY_BRIEF.md). No product-code change,
+rollback or retest was performed. Novice gate remains unassessed; buyer acceptance
+is not given. Relevant to chapters 4/6/7, AC-V2-09/13 and UX-AC-11/13/16.
+
+### 2026-10-14 — Requested Drive synchronization and B09 instruction feedback
+
+Owner explicitly skipped B09, then explained that the facilitator instruction was
+not understood. Preserve this as facilitation clarity feedback, not an inferred
+PDF product failure or success. No PDF fault was staged. B08 remains a critical
+first-attempt failure; no novice acceptance or measured human time is inferred.
+
+User requested Hungarian Drive updates. Updated/read back 00_THESIS_STATUS,
+02_ROADMAP and 06_REQUIREMENTS_BASELINE with dated technical capability, owner
+findings, dashboard direction, source boundaries and open gates. Native tab identity,
+exact added text, historical paragraphs and existing rich links were verified.
+07_DEVELOPMENT_STATUS and 03_ARCHITECTURE_DECISIONS writes were rejected by automatic
+approval review as sensitive external assessment export without exact-payload
+approval. No workaround or retry; prepared reviewable local drafts and request user
+approval for those two existing destinations. Drive metadata reports both not shared;
+ownership fields were not returned, so ownership is not independently verified.
+
+Detailed payloads/readback outcomes are in ignored .artifacts/ux41-drive-update-20261014.
+No new runtime/fast/hosted check, rendered PDF layout check, production edit, Odoo
+write or Git publication occurred during this documentation synchronization.
+
+### 2026-10-14 — Approved Drive synchronization completed
+
+After explicit user approval of the exact pending Hungarian draft and its two
+existing Drive destinations, 07_DEVELOPMENT_STATUS and
+03_ARCHITECTURE_DECISIONS were updated successfully. Readback verifies exact
+approved additions, native headings, document/tab identity and preservation of
+historical text and rich links. Together with the prior three verified writes,
+the requested five-document sync is complete. The earlier approval-review
+rejections remain in the historical partial record; no workaround was used.
+
+B09's unclear facilitator instruction and owner-requested skip are recorded,
+without inferred PDF failure or completion. B08 remains open, novice evidence is
+absent and the new dashboard direction remains proposed. No application tests,
+rendered PDF-layout check, ERP writes or Git publication occurred in this follow-up.
+Completion/readback evidence: ignored .artifacts/ux41-drive-update-20261014/completed.json.

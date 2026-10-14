@@ -34,6 +34,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | How do I reproduce the supported workload/stress matrix and separate live flow? | [T18 #27 evaluation runbook](docs/T18_27_EVALUATION_RUNBOOK.md) |
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
 | How do I recover an uncertain save or reopen an approved PDF? | [Recovery/document runbook #40](docs/UX40_RECOVERY_RUNBOOK.md), [handoff](docs/UX40_RECOVERY_HANDOFF.md) — exact explicit retry, conflict reopening, saved terms and PDF page/zoom/download controls |
+| What does the redesigned buyer reassessment establish? | [#41 assessment](docs/UX41_ASSESSMENT.md), [frozen human protocol](docs/UX41_BUYER_PROTOCOL.md), [runbook](docs/UX41_REASSESSMENT_RUNBOOK.md) — technical consolidation passes; owner B08 found a critical recovery/approval misunderstanding, B09 was skipped, and novice acceptance remains NOT ASSESSED |
 | What did the buyer/keyboard/mobile assessment find? | [T18 #29 assessment, UX priorities and pending owner run sheet](docs/T18_29_BUYER_ASSESSMENT.md) |
 | What does the complete controlled evaluation establish? | [T18 #30 acceptance matrix, RQ answers and UX/UI follow-up](docs/T18_CONTROLLED_ASSESSMENT.md) |
 | How do I find and reopen earlier saved work? | [Saved-case library runbook](docs/UX32_LIBRARY_RUNBOOK.md), [#32 handoff](docs/UX32_LIBRARY_HANDOFF.md) — migrate the helper and configure its library company, then open `/cases` |
@@ -68,6 +69,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Automated buyer-flow smoke | T18 #28 adds optional local Chromium coverage through real Reflex/FastAPI/disposable PostgreSQL: create, compare saved allocations, explicit alternative approval, model-unconfigured reopening, rendered PDF and byte-identical download. Real backend downtime shows GET/uncertain-save errors and requires explicit recovery with the same intent/key. [Handoff](docs/T18_28_HANDOFF.md) records the local PASS; hosted browser/visual/novice usability remain separate. |
 | Buyer-task and interaction assessment | T18 #29 exercises all five scenarios, infeasibility, alternative approval, separate keyboard No-award, stored reopen, narrow exact-value/PDF navigation and real backend recovery. Bounded feedback roles are fixed and regression-tested. [Assessment](docs/T18_29_BUYER_ASSESSMENT.md) records UX priorities; owner sessions, browser text zoom and unfamiliar-buyer usability remain pending/unverified. |
 | Consolidated controlled evaluation | [T18 #30 report](docs/T18_CONTROLLED_ASSESSMENT.md) maps all FR/AC/NFR outcomes and seven RQs to dated evidence, reconciles 2,304 retained observations and confirms all 72 local p95 targets. Controlled functional outcomes pass; modern buyer experience remains open with human/accessibility gates explicit. |
+| Redesigned buyer reassessment | [#41 assessment](docs/UX41_ASSESSMENT.md) consolidates Practice → exact comparison → scenario → deliberate approval → product/status library reopening → exact PDF, separate No-award/recovery and UX-AC-01–16 evidence. Current technical checks and baseline CI overviews pass. Owner pilot found critical save/recovery/approval confusion with an additional finalization; [UI correction and retest](docs/UX41_RECOVERY_CLARITY_BRIEF.md) are required before continuing. The first attempt and frozen protocol are retained, 3–5 unfamiliar-buyer sessions remain unassessed and final buyer acceptance is not given. |
 
 **2026-10-11 post-merge and planning update:** T17 [PR #24](https://github.com/SafarErik/odoo-procurement-decision-support/pull/24)
 is merged at `ed4be413b11dc469307fc1bb1ed4bd6c16c17b88`. Exact post-merge
@@ -261,7 +263,8 @@ claimed. Browser milestone procedures are in the runbook.
    Commit/push/merge and issue closure remain user-controlled; the report does not
    establish final product/thesis acceptance.
 2. Continue the [published buyer-workspace increment](docs/UX_UI_TICKET_BREAKDOWN.md)
-   with #41 complete buyer reassessment.
+   with [#41's owner/participant reassessment](docs/UX41_BUYER_PROTOCOL.md).
+   Its [technical consolidation](docs/UX41_ASSESSMENT.md) is complete;
    #32–#40 have local technical evidence. Complete
    remaining owner/assistive checks and #41 unfamiliar-participant reassessment
    before validating the buyer experience and proceeding to T19 thesis closure.

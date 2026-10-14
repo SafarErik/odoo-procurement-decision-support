@@ -1,4 +1,4 @@
-"""#33 deliberate fresh exercises, genuine scenarios, stored classification and PDF."""
+"""#33/#41 complete real Practice chain, deliberate decisions and exact recovery."""
 
 import hashlib
 import json
@@ -16,6 +16,8 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
 
     expect.set_options(timeout=45000)
     stack, page = smoke_stack, smoke_page
+    page.emulate_media(reduced_motion="reduce")
+    assert page.evaluate("matchMedia('(prefers-reduced-motion:reduce)').matches")
     engine = create_engine(stack.env["DECISION_DATABASE_URL"])
 
     def counts():
@@ -77,6 +79,43 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             expect(page.get_by_text("Saved case " + identity, exact=True)).to_be_visible()
             expect(page.locator("body")).to_contain_text("Workspace: Practice")
             if example == "compare-plans":
+                comparison = page.get_by_role("region", name="Aligned saved plan comparison")
+                cost = comparison.get_by_role("row").filter(
+                    has=page.get_by_role("rowheader", name="Total cost", exact=True)
+                )
+                expect(cost.get_by_role("cell").nth(0)).to_have_text("102 EUR")
+                expect(cost.get_by_role("cell").nth(1)).to_have_text("109 EUR")
+                result = base["snapshot"]["result"]
+                for index, plan in enumerate(
+                    [result["minimum_cost_plan"], *result["alternatives"]]
+                ):
+                    for allocation in plan["allocations"]:
+                        name = "Demo supplier " + allocation["supplier_id"].removeprefix(
+                            "synthetic-"
+                        )
+                        row = comparison.get_by_role("row").filter(
+                            has=page.get_by_role("rowheader").filter(has_text=name)
+                        )
+                        expect(row.get_by_role("cell").nth(index)).to_have_text(
+                            f"{allocation['quantity']} piece"
+                        )
+                expect(
+                    page.get_by_role("button", name="Review decision", exact=True)
+                ).to_be_disabled()
+                page.get_by_role("tab", name="What-if", exact=True).click()
+                page.get_by_label("Scenario type").select_option("supplier_outage")
+                page.get_by_label("Supplier to change (original terms)").select_option(
+                    stack.payload["suppliers"][0]["supplier_id"]
+                )
+                page.get_by_role("button", name="Create and save scenario").click()
+                expect(page.locator("#scenario-result-heading")).to_be_focused()
+                expect(
+                    page.get_by_role("heading", name="Saved scenario comparison")
+                ).to_be_visible()
+                page.get_by_role("button", name="Return to original base", exact=True).click()
+                expect(page.get_by_text("Saved case " + identity, exact=True)).to_be_visible()
+                page.get_by_role("tab", name="Plans", exact=True).click()
+                assert stack.client.get(f"{BASE}/{identity}").json() == base
                 page.get_by_label("Saved plan for approval", exact=True).select_option(
                     "Alternative 1"
                 )
@@ -89,6 +128,7 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                 page.get_by_role("button", name="Confirm approval", exact=True).click()
                 expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
                 expect(page.locator("body")).to_contain_text("Practice document access")
+                cases[example] = stack.client.get(f"{BASE}/{identity}").json()
             else:
                 page.get_by_role("button", name="Prepare exercise scenario", exact=True).click()
                 expect(page.get_by_role("tab", name="What-if", exact=True)).to_have_attribute(
@@ -118,15 +158,21 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
         page.get_by_role("button", name="Refresh", exact=True).click()
         expect(page.get_by_role("button", name="Open case", exact=True)).to_have_count(3)
         approved = cases["compare-plans"]
-        page.get_by_label("Product or case ID", exact=True).fill(approved["case_id"])
+        page.get_by_label("Product or case ID", exact=True).fill("synthetic-product")
+        page.get_by_label("Decision status", exact=True).select_option("approved")
         page.get_by_role("button", name="Refresh", exact=True).click()
         expect(page.get_by_role("button", name="Open case", exact=True)).to_have_count(1)
         page.get_by_role("button", name="Open case", exact=True).click()
         expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
         expect(page.locator("body")).to_contain_text("Workspace: Practice")
         reopened = stack.client.get(f"{BASE}/{approved['case_id']}").json()
-        assert reopened["snapshot_hash"] == approved["snapshot_hash"]
+        assert reopened == approved
+        stack.stop(stack.api)
         page.get_by_role("button", name="View approved PDF", exact=True).click()
+        expect(page.get_by_role("alert")).to_contain_text("Approval remains saved")
+        expect(page.get_by_role("region", name="Saved approved terms")).to_contain_text("109 EUR")
+        stack.start_api(stored_only=True)
+        page.get_by_role("button", name="Retry approved PDF", exact=True).click()
         region = page.get_by_role("region", name="Approved procurement PDF", exact=True)
         expect(region.locator("canvas").first).to_be_visible()
         with page.expect_download() as download_info:
@@ -137,10 +183,25 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
         )
         assert (stack.root / "practice-approved.pdf").read_bytes() == document.content
         assert hashlib.sha256(document.content).hexdigest() == document.headers["x-pdf-sha256"]
+        page.screenshot(path=str(stack.root / "complete-practice-approved-pdf.png"))
+        declined = cases["supplier-outage"]
+        page.goto(stack.frontend_url + f"/planning?case_id={declined['case_id']}&view=plans")
+        page.get_by_role("button", name="Record No-award", exact=True).click()
+        page.get_by_label("Actor audit reference", exact=True).fill("ux41-no-award-buyer")
+        page.get_by_label("Reason", exact=True).fill("Decline these saved demonstration terms")
+        page.get_by_role("checkbox").check()
+        page.get_by_role("button", name="Review No-award", exact=True).click()
+        page.get_by_role("button", name="Confirm No-award", exact=True).click()
+        expect(page.locator("#saved-decision-heading")).to_be_focused()
+        expect(page.get_by_role("button", name="View approved PDF", exact=True)).to_have_count(0)
+        saved_decline = stack.client.get(f"{BASE}/{declined['case_id']}").json()
+        assert saved_decline["snapshot"] == declined["snapshot"]
+        assert saved_decline["final_decision"]["intent"]["outcome"] == "no_award"
+        assert saved_decline["final_decision"]["approved_content"] is None
         page.goto(stack.frontend_url + "/practice")
         page.get_by_role("button", name="Choose compare plans", exact=True).click()
         expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
-        assert counts() == (5, 3)
+        assert counts() == (6, 3)
         page.get_by_role("button", name="Review Practice terms", exact=True).click()
         stack.stop(stack.api)
         page.get_by_role("button", name="Calculate and save fresh Practice case").click()
@@ -163,11 +224,20 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             pending["url"], json=pending["payload"], headers={"Idempotency-Key": pending["key"]}
         )
         assert replay.status_code == 200 and replay.json()["idempotent_replay"]
-        assert replay.json()["case_id"] != approved["case_id"] and counts() == (6, 4)
+        assert replay.json()["case_id"] != approved["case_id"] and counts() == (7, 4)
         stack.evidence["checks"].append(
             "Three entry tasks write nothing; three fresh classified bases, outage/infeasibility "
             "children, keyboard/narrow entry, stored-only Practice library/approval/PDF "
-            "and exact pending recovery PASS"
+            "and exact pending recovery PASS; one original through compare/scenario/alternative "
+            "approval, product/status library reopening without UUID, real PDF failure and "
+            "exact download; separate No-award; reduced-motion preference enabled throughout."
+        )
+        stack.evidence.update(
+            approved_case_id=approved["case_id"],
+            approved_content_hash=reopened["final_decision"]["approved_content_hash"],
+            pdf_sha256=hashlib.sha256(document.content).hexdigest(),
+            no_award_case_id=declined["case_id"],
+            reduced_motion=True,
         )
         stack.evidence["outcome"] = "PASS"
     finally:

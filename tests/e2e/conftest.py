@@ -78,6 +78,9 @@ class SmokeStack:
         self.evidence = {
             "started_at": datetime.now(UTC).isoformat(),
             "project": self.project,
+            "git_head": subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
+            ).strip(),
             "python": sys.version,
             "versions": {
                 name: importlib.metadata.version(name)
@@ -180,6 +183,10 @@ class SmokeStack:
             self.root / "frontend",
             ignore=shutil.ignore_patterns(".web", ".states", ".reflex", "__pycache__"),
         )
+        self.evidence["frontend_sha256"] = {
+            str(path.relative_to(self.root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted((self.root / "frontend").rglob("*.py"))
+        }
         self.payload = prepare_demo(self.root / ".artifacts/t15-demo")
         self.env["PLANNING_LIBRARY_COMPANY_ID"] = self.payload["company_id"]
         self.database_started = True  # Clean up even when Compose startup fails partway.
