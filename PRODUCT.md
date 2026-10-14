@@ -111,3 +111,20 @@ could not confirm the save, not that approval/database rollback is needed. Pendi
 recovery is session-bound while already saved cases remain in backend storage.
 The [correction brief](docs/UX41_RECOVERY_CLARITY_BRIEF.md) is proposed, not
 implemented/retested; the first-attempt failure must remain in the evidence.
+
+## Reference-led case workspace brief — 2026-10-14
+
+The owner supplied eight dashboard references and explicitly confirmed retaining
+the current green/mint/purple palette. Use their horizontal task layout, compact
+case summary, tabs and contextual detail panels to develop the selected-case
+workspace and separate procurement overview. The references' branding, numerical
+claims, statuses and unsupported features are illustrative, not product facts.
+
+The [design brief](docs/CASE_WORKSPACE_DESIGN_BRIEF.md) maps the references to current
+capabilities, safe state wording and separate Odoo/history dependencies. The owner
+confirmed Overview, Suppliers, Plans, Scenarios and Decision & PDF as primary views,
+secondary exact Audit, and the lightweight RFQ/Saved cases overview for the next
+specification. The [specification](docs/CASE_WORKSPACE_INCREMENT_SPEC.md) and
+[ticket breakdown](docs/CASE_WORKSPACE_TICKET_BREAKDOWN.md) are local planning
+artifacts; this is not implemented UI, a published increment or completed #41/#42
+acceptance.

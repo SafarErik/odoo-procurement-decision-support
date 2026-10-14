@@ -74,6 +74,16 @@ distinguish technical evidence from pending participants.
 #41 technical consolidation and a frozen protocol are ready; its owner/participant
 sessions remain next, and final buyer acceptance stays open.
 
+**2026-10-14 update:** the owner pilot exposed a critical save/recovery/approval
+misunderstanding; B09 was skipped because facilitator instructions were unclear.
+Keep [the assessment](UX41_ASSESSMENT.md) and [correction brief](UX41_RECOVERY_CLARITY_BRIEF.md)
+as the current evidence. The owner confirmed the reference-led case structure and
+retained palette: [design brief](CASE_WORKSPACE_DESIGN_BRIEF.md),
+[implementation specification](CASE_WORKSPACE_INCREMENT_SPEC.md) and
+[proposed ticket breakdown](CASE_WORKSPACE_TICKET_BREAKDOWN.md). These local plans
+extend the workspace, preserve old links and separate new Odoo data dependencies;
+they are not implemented/published or closure of #41/#42's human gate.
+
 | Step | Design | Evidence and boundary |
 | --- | --- | --- |
 | Integer allocation and cost/exposure alternatives | [T13 MILP](T13_V2_MILP_DESIGN.md) | [T13 handoff](T13_HANDOFF.md) |

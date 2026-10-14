@@ -29,7 +29,7 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 | Where are the designs, spikes and historical evidence? | [Documentation index](docs/README.md) |
 | Which principles should agents follow across chats? | [Development guidance](AGENTS.md) |
 | How should engineering skills align with the official thesis task and Drive? | [Project and thesis alignment](docs/agents/project-baseline.md) |
-| What is specified next? | [T18 evaluation specification](docs/T18_EVALUATION_SPEC.md), [confirmed plan](docs/T18_EVALUATION_PLAN.md) |
+| What is specified next? | [Reference-led case workspace specification](docs/CASE_WORKSPACE_INCREMENT_SPEC.md), [proposed delivery slices](docs/CASE_WORKSPACE_TICKET_BREAKDOWN.md) — confirmed structure; local draft, not implemented or published |
 | How do I reproduce repeated three-supplier HTTP measurements? | [T18 #26 evaluation runbook](docs/T18_26_EVALUATION_RUNBOOK.md) |
 | How do I reproduce the supported workload/stress matrix and separate live flow? | [T18 #27 evaluation runbook](docs/T18_27_EVALUATION_RUNBOOK.md) |
 | How do I run the real buyer-flow Chromium smoke and backend recovery? | [T18 #28 browser runbook](docs/T18_28_BROWSER_RUNBOOK.md) |
@@ -262,17 +262,21 @@ claimed. Browser milestone procedures are in the runbook.
 1. Review [#30's controlled acceptance/RQ report](docs/T18_CONTROLLED_ASSESSMENT.md).
    Commit/push/merge and issue closure remain user-controlled; the report does not
    establish final product/thesis acceptance.
-2. Continue the [published buyer-workspace increment](docs/UX_UI_TICKET_BREAKDOWN.md)
-   with [#41's owner/participant reassessment](docs/UX41_BUYER_PROTOCOL.md).
-   Its [technical consolidation](docs/UX41_ASSESSMENT.md) is complete;
-   #32–#40 have local technical evidence. Complete
-   remaining owner/assistive checks and #41 unfamiliar-participant reassessment
-   before validating the buyer experience and proceeding to T19 thesis closure.
-3. Synchronize the post-merge/T18 clarification into affected Hungarian Drive
-   records only when authorized. Observed-history/model promotion, arbitrary quotation
-   selection and broader combined scenarios remain separate capabilities;
-   [the controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md)
-   is Odoo quotations plus separately synthetic ML history.
+2. Correct [#41's save/recovery/approval misunderstanding](docs/UX41_RECOVERY_CLARITY_BRIEF.md)
+   and retest on a fresh case, retaining the failed first attempt and B09's skipped
+   instruction feedback. #32–#40 technical delivery and #41's technical consolidation
+   do not establish final buyer acceptance.
+3. Review the [reference-led case workspace specification](docs/CASE_WORKSPACE_INCREMENT_SPEC.md)
+   and [proposed slices](docs/CASE_WORKSPACE_TICKET_BREAKDOWN.md): compact Overview,
+   contextual supplier/plan/scenario views, Decision & PDF, secondary Audit and a
+   lightweight RFQ/Saved cases overview in the retained palette. Structure is
+   owner-confirmed; detailed contracts remain local drafts, not a published increment.
+4. Carry remaining owner/assistive and 3–5 unfamiliar-buyer gates into #41 before
+   final buyer/T19 acceptance. General Odoo quotation selection, supporting history
+   and observed-model promotion have separate data/API prerequisites; the current
+   [controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains
+   Odoo quotations plus separately synthetic ML history. Further Hungarian Drive
+   updates require their own explicit request.
 
 ## Documentation responsibilities
 

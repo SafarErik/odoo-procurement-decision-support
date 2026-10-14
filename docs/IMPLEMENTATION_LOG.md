@@ -3371,3 +3371,59 @@ without inferred PDF failure or completion. B08 remains open, novice evidence is
 absent and the new dashboard direction remains proposed. No application tests,
 rendered PDF-layout check, ERP writes or Git publication occurred in this follow-up.
 Completion/readback evidence: ignored .artifacts/ux41-drive-update-20261014/completed.json.
+
+### 2026-10-14 — Dashboard references and case workspace design brief
+
+The owner supplied eight visual references and confirmed keeping the existing
+green/mint/purple palette. [The proposed design brief](CASE_WORKSPACE_DESIGN_BRIEF.md)
+maps horizontal case/task layouts, focused tabs and contextual panels to the current
+saved-data contracts. It separates UI work from general Odoo quotation selection,
+supplier/history discovery and observed-model promotion, and retains the B08 fix/
+retest and B09 facilitation feedback. Reference values, branding and unsupported
+statuses are not adopted as facts. Original image identities/hashes are recorded
+in ignored .artifacts/case-workspace-reference-20261014/references.json; images remain
+unchanged outside the repository. No UI implementation, new application verification,
+Drive update, issue mutation or Git publication occurred in this planning step.
+
+### 2026-10-14 — Confirmed case structure and next implementation specification
+
+The owner explicitly confirmed the lightweight RFQ/Saved cases overview and
+Overview/Suppliers/Plans/Scenarios/Decision & PDF primary views with secondary Audit,
+retaining green/mint/purple. Prepared [the local specification](CASE_WORKSPACE_INCREMENT_SPEC.md)
+and [eight proposed delivery slices](CASE_WORKSPACE_TICKET_BREAKDOWN.md), with the
+save/recovery/approval correction first and the existing #41 human gate carried
+forward rather than duplicated. Five task views do not remove legacy case URLs;
+new Overview/Decision routes extend the whitelist and Scenarios retains whatif.
+
+Refreshed Drive 00/06/02/03 read-only, used CodeGraph first and inspected relevant
+flagged/current code ranges. RFQ summaries currently expose reference/vendor/date/
+status/total and returned count/time, not product quantities, due date or generic
+comparison groups. New quotation selection, supporting supplier/history and
+observed-model promotion retain separate evidence/contract investigations.
+Local HEAD dc2cf57 contains the owner's #41 commit; Drive's earlier uncommitted
+publication wording remains a dated snapshot, not a claim about the new draft.
+
+Document/source/traceability/dependency checks verify planning consistency only.
+No UI build, application/runtime/hosted tests, service mutation, new canonical
+requirements/ADRs, GitHub publication/closure, Drive write or commit/push/merge
+occurred. Thesis use: buyer problem → confirmed structure → specified behavior →
+contract inspection → data/human limits; chapters 3/4/6/7.
+
+### 2026-10-14 — Generated workspace concepts and implementation workflow guidance
+
+User explicitly requested images in the retained palette and Ask Matt guidance.
+Generated three raster concepts: case Overview, Plans and Saved cases overview.
+Inspected all three; made one targeted source-label edit to each case screen and
+re-inspected them. Final PNGs, exact prompts, metadata/hashes and a review gallery
+are in ignored .artifacts/case-workspace-mockups-20261014; original generated/input
+files remain unchanged. Numeric comparison, allocation percentages, source context
+and approval-only library PDF affordances were visually checked. These are design
+concepts, not implemented/approved UI, measured contrast or usability evidence.
+
+Read ask-matt/phase-boundaries, grill-with-docs and its two primitives, implement
+and reflex-docs. Recommend staying in this chat through image review and a focused
+remaining-decision grilling pass, finalizing existing drafts, then a fresh same-project
+chat per self-contained implementation ticket starting S1. No grilling interview,
+new glossary/ADR, application code, runtime test, issue creation/closure, Drive write,
+new chat, commit/push/merge or scope expansion was performed. The gallery includes
+a starter prompt retaining owner Git control over the implement skill's default.
