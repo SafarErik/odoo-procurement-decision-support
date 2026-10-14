@@ -3460,3 +3460,37 @@ explicitly authorized committing/pushing this correction; merge and Hungarian
 Drive updates remain user-controlled. Exact publication/CI is reported at delivery.
 Thesis relevance:
 FR/AC-V2-09/10/11/12/13, NFR-V2-05/06/07, UX-AC-11/13; chapters 4/6/7.
+
+
+### 2026-10-14 — Corrected-source B08 owner retest and sign-off
+
+The save/recovery clarity correction on `11979618fe3af0904c93cdf3ae06b5ed1e1f684d`
+was exercised in fresh owned session `t18-browser-32a580aed5e8`. One case matched
+the original pending key and replay returned that case; seeded records remained
+unchanged. The owner subsequently approved Alternative 1 and viewed its PDF, then
+explicitly accepted B08 and deferred further UI work. Record technical recovery
+PASS and assisted owner acceptance, retaining incomplete independent comprehension
+and unscored extra-approval purpose. Preserve attempt 1 FAIL and novice NOT ASSESSED.
+See [dated assessment](UX41_ASSESSMENT.md#b08-corrected-source-owner-retest-and-directed-sign-off--2026-10-14)
+and [owner observations](UX41_OWNER_OBSERVATIONS.csv) for evidence and deviations.
+B09's full human document-recovery task remains pending. No application changes
+or new regression runs were needed; this is an evidence-only append.
+
+
+### 2026-10-14 — B09 document recovery/download owner check
+
+Technical PASS and assisted owner completion on source
+`11979618fe3af0904c93cdf3ae06b5ed1e1f684d`: fresh-tab library reopening, real
+owned API unavailability during PDF access, preserved approved terms, restored
+document access and an actual downloaded five-page PDF identical to the pre-fault
+artifact. Full case/decision/document and record counts remained unchanged; no
+additional approval occurred. Page 4 was observed; individual zoom changes and
+independent source/eligibility comprehension were not continuously assessed.
+The owner reported no problem. Preserve original failed/skipped attempts and
+novice NOT ASSESSED. [Assessment](UX41_ASSESSMENT.md) and
+[observations](UX41_OWNER_OBSERVATIONS.csv) hold the evidence and deviations.
+Only documentation/evidence changed; no new application regression suite was run.
+
+The completed owner session was exported and cleaned up: owned project/processes
+stopped and listeners closed; the user download and evidence remain available.
+Owner/Odoo services and the existing running Podman machine were preserved.

@@ -519,3 +519,74 @@ Owner clarification: “For b09 Ididn't really got what you mean, write this the
 The owner did not understand the facilitator instruction. Record this as a task/
 facilitation clarity finding; the unattempted product PDF workflow is not assessed
 as failed or successful. Keep owner evidence separate from novice acceptance.
+
+
+### B08 corrected-source owner retest and directed sign-off — 2026-10-14
+
+Owner O01 attempt 2 used source `11979618fe3af0904c93cdf3ae06b5ed1e1f684d`
+and fresh owned session `t18-browser-32a580aed5e8`. Technical recovery PASS:
+exactly one case matches the retained pending idempotency key, the API replay
+returned the existing case, and the two seeded records remain unchanged. A
+separate distinct-key case predates the outage; it is not a retry duplicate.
+The owned API launcher/child were suspended/resumed, rather than stopped/restarted,
+because controller stdin was unavailable. Health timeout and restored HTTP 200
+were verified; no Odoo or shared services were interrupted.
+
+The owner subsequently approved Alternative 1 and viewed its approved PDF.
+The owner reported recovery messages helpful and described atomicity, then
+explicitly requested B08 approval and deferred further UI work. Record this as
+**technical recovery PASS and assisted owner acceptance by direction**. The
+purpose of the additional approval and independent session-loss comprehension
+were not established. Full protocol completion and unintended-finalization count
+remain unscored; do not infer an independent PASS or zero unintended decisions.
+No measured human duration exists. The review checkpoint clarification and
+post-response explanation are assistance, not independent comprehension evidence.
+
+[Owner observations](UX41_OWNER_OBSERVATIONS.csv) retain the exact responses and
+artifact references; `.artifacts/t18-browser-32a580aed5e8/owner-B08-attempt2-signoff.json`
+records the directed acceptance. B08 attempt 1 remains FAIL. B09 attempt 1 remains
+skipped; PDF display here does not establish B09 library reopening, document fault
+recovery, navigation or exact download. Novice acceptance remains NOT ASSESSED;
+this sign-off does not close #41 or final thesis acceptance. No further UI change
+is included in this record.
+
+
+### B09 corrected-source assisted owner completion — 2026-10-14
+
+O01 attempt 2 continued in the same owned helper stack on
+`11979618fe3af0904c93cdf3ae06b5ed1e1f684d`, using the approved B08 retest case
+instead of original B06. A fresh browser tab prevented the already loaded PDF
+from masking the outage. The owner received explicit library/filter/open guidance
+and reopened the approved 10-unit, 109 EUR original. Before first document access,
+the verified owned API launcher/child were suspended. The owner supplied a
+screenshot showing PDF unavailable, Retry approved PDF and unchanged approved
+terms (8/2/0 units). The API was resumed and health HTTP 200 verified.
+
+After retry/page/zoom/download instructions, the owner reported: 'There was no
+problem and I received the pdf', supplying the actual downloaded file. It is
+byte-for-byte identical to the pre-interruption stored five-page PDF. SHA-256:
+`2c374f2c6cdff789e983bc5824bc9c75388bb68e205b7eb664b455eef41b7ab3`.
+The approved case, full final decision, document identity and bytes are unchanged;
+counts remain 4 planning cases, 1 final decision and 1 document. No new approval
+or case was needed. Four session records were exported before cleanup.
+
+Record **technical PASS and assisted owner completion**. Page 4 of 5 and download
+focus were independently observed; individual zoom changes were not continuously
+observed. Source/eligibility comprehension was not independently reassessed, no
+human duration was measured, and no novice evidence is inferred. Full-page fault
+screenshot capture failed; the owner's original attachment is retained. A download
+event observer timed out/reset, so exact-file verification used the user-provided
+Downloads file. These observation failures are not application failures.
+
+See [owner observations](UX41_OWNER_OBSERVATIONS.csv) and
+`.artifacts/t18-browser-32a580aed5e8/owner-B09-attempt2-result.json`. Preserve
+original B09 SKIPPED and B08 attempt 1 FAIL. Owner sign-off is separate from
+independent/full-protocol and final thesis acceptance; novice remains NOT ASSESSED.
+Further UI work is deferred by owner direction.
+
+Session cleanup verified after exporting all four cases and retaining the actual
+download: owned helper container/process tree stopped, ports 50400/50401/50402
+closed, shared Podman machine still running and owner/Odoo services untouched.
+The initial immediate process-exit assertion was premature; a subsequent wait
+confirmed every reported process exited. See
+`.artifacts/t18-browser-32a580aed5e8/owner-session-cleanup.json`.

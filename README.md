@@ -20,8 +20,10 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 now have distinct labels/states. Exact recovery saves/reopens a comparison without
 approval, and a new comparison clears stale decision feedback. Reflex is pinned to
 the tested 0.9.12 runtime. See the [correction handoff](docs/UX41_CLARITY_HANDOFF.md)
-for verification/publication status; the failed B08 attempt remains evidence and
-a fresh owner retest is still required.
+for verification/publication status. The corrected-source owner retest verified
+B08 recovery and B09 document recovery/download, with assisted owner sign-off.
+The original B08 failure remains evidence; independent comprehension and novice
+acceptance remain open. See the dated [owner assessment](docs/UX41_ASSESSMENT.md).
 
 | Your question | Read |
 | --- | --- |

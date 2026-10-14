@@ -2,7 +2,9 @@
 
 Date: 2026-10-14. Status: implemented locally; technical verification/publication
 recorded in [the correction handoff](UX41_CLARITY_HANDOFF.md). A fresh owner retest
-has not occurred; B08 attempt 1 remains FAIL and novice acceptance NOT ASSESSED.
+is recorded in the [dated assessment](UX41_ASSESSMENT.md): technical recovery PASS
+with assisted owner sign-off; independent comprehension remains unverified.
+B08 attempt 1 remains FAIL and novice acceptance NOT ASSESSED.
 
 ## Observed problem
 
