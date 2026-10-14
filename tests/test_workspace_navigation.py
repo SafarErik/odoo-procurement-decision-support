@@ -102,3 +102,41 @@ def test_invalid_route_clears_previous_case_without_http(monkeypatch):
         assert state.navigate_global("https://invalid") is None
 
     asyncio.run(run())
+
+
+def test_new_comparison_clears_previous_decision_feedback_but_pending_blocks_it():
+    _, state = state_at()
+    state.has_case = True
+    state.details = {"final_outcome": "Approved"}
+    state.notice = "Final decision saved."
+    state.error_message = "Previous decision conflict"
+    state.error_target = "decision"
+    state.decision_conflict = True
+    state.final_choice = "Alternative 1"
+    state.decision_review = {"choice": "Alternative 1"}
+    state.has_pending = True
+    state._pending = {"url": "http://test", "payload": {"quantity": 10}, "key": "exact"}
+    pending = deepcopy(state._pending)
+    assert state.new_comparison() is None
+    assert state._pending == pending and state.notice == "Final decision saved."
+    state.has_pending = False
+    state._pending = {}
+    state.new_comparison()
+    assert not state.has_case and not state.details and not state.notice
+    assert not state.error_message and not state.error_target and not state.decision_conflict
+    assert not state.final_choice and not state.decision_review
+    assert state.comparison_state == "Unsaved draft"
+
+
+def test_direct_new_comparison_bookmark_clears_stale_approval_feedback():
+    _, state = state_at("/planning")
+    state.has_case = True
+    state.details = {"final_outcome": "Approved"}
+    state.notice = "Final decision saved."
+
+    async def load():
+        return [event async for event in state.load_bookmark()]
+
+    assert asyncio.run(load()) == []
+    assert not state.has_case and not state.notice and not state.details
+    assert state.comparison_state == "Unsaved draft"

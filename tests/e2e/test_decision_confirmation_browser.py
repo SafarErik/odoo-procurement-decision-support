@@ -49,7 +49,7 @@ def test_deliberate_decisions_cancel_reopen_child_and_recovery(smoke_stack, smok
     route = stack.frontend_url + f"/planning?case_id={identity}&view=plans"
     page.goto(route)
     page.get_by_role("button", name="Select Alternative 1 for review", exact=True).click()
-    page.get_by_role("button", name="Review decision", exact=True).click()
+    page.get_by_role("button", name="Review selected plan", exact=True).click()
     actor = "Buyer Árvíztűrő " * 10
     reason = "Review the saved exposure trade-off. " + "A" * 400
     page.get_by_label("Actor audit reference", exact=True).fill(actor)
@@ -97,7 +97,7 @@ def test_deliberate_decisions_cancel_reopen_child_and_recovery(smoke_stack, smok
     expect(page.get_by_label("Reason", exact=True)).to_have_value(reason)
     assert stack.client.get(f"{BASE}/{identity}").json()["final_decision"] is None
     page.get_by_role("button", name="Review approval", exact=True).click()
-    page.get_by_role("button", name="Confirm approval", exact=True).dblclick()
+    page.get_by_role("button", name="Approve plan", exact=True).dblclick()
     expect(page.locator("#saved-decision-heading")).to_be_focused()
     expect(page.get_by_role("button", name="Review approval", exact=True)).to_have_count(0)
     approved = stack.client.get(f"{BASE}/{identity}").json()

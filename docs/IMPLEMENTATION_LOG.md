@@ -3427,3 +3427,36 @@ chat per self-contained implementation ticket starting S1. No grilling interview
 new glossary/ADR, application code, runtime test, issue creation/closure, Drive write,
 new chat, commit/push/merge or scope expansion was performed. The gallery includes
 a starter prompt retaining owner Git control over the implement skill's default.
+
+### 2026-10-14 — Stabilize T18 runtime and clarify comparison recovery
+
+Problem: owner B08 recovered a saved comparison then approved under the mistaken
+belief that finalization completed recovery. Implement the existing correction
+brief without changing business/API/storage/PDF contracts. Creation consistently
+uses Calculate and save comparison; saved, selected, final and unconfirmed states
+are explicit. New-comparison navigation/bookmarks clear stale decision feedback;
+pending guards and exact request/key replay remain. Practice uses the same save
+wording and no longer labels a saved or uncertain comparison a fresh draft.
+
+Publication baseline: PR #31/local b94ff780, Quality failed the runbook snippet's
+formatting; Container/API passed. Fix that wrapping and pin both Reflex declarations
+to the locally/browser-tested 0.9.12 instead of silently resolving hosted 0.10.0.
+No framework, architecture, backend/schema or Odoo-write change is introduced.
+
+Broad fast gate: 677 PASS / 75 deselected, latest broad run 206.24 s, actual ML/CBC; existing
+Starlette warning retained. Static/dependency/quiet Compose and production export
+checks passed. Final transition checks: 54 PASS in 23.11 s. Eleven distinct browser
+tests passed across recorded runs; the six-case remainder passed in 582.79 s and
+the further final conflict-status check in 104.97 s. Genuine comparison recovery
+saved one case, zero final decisions and zero documents. The
+[correction handoff](UX41_CLARITY_HANDOFF.md) records versions,
+source identity, exact browser/publication outcomes, retained setup/test failures,
+cleanup and the next fixed-group live-Odoo browser-to-PDF verification. Windows
+checks use a space-free CBC temp path and UTF-8 for dirty-diff evaluation metadata.
+
+Keep the original B08 failure, B09 skip and frozen first-attempt evidence unchanged.
+Technical checks do not close fresh owner/novice acceptance or #41/#42. The owner
+explicitly authorized committing/pushing this correction; merge and Hungarian
+Drive updates remain user-controlled. Exact publication/CI is reported at delivery.
+Thesis relevance:
+FR/AC-V2-09/10/11/12/13, NFR-V2-05/06/07, UX-AC-11/13; chapters 4/6/7.

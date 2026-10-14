@@ -14,7 +14,7 @@ def field_error(identity):
     )
 
 
-def creation_review(kind: str, save_label: str):
+def creation_review(kind: str):
     return rx.cond(
         PlanningState.creation_review.get("kind", "") == kind,
         rx.box(
@@ -27,6 +27,14 @@ def creation_review(kind: str, save_label: str):
                 on_mount=rx.set_focus("creation-review-heading"),
             ),
             rx.text(PlanningState.creation_review["product"], font_weight="650", margin_top="1rem"),
+            rx.text(
+                rx.cond(
+                    PlanningState.has_pending,
+                    "Save awaiting confirmation. Recover the same request; "
+                    "do not approve to finish saving.",
+                    "Unsaved draft. Calculating saves the comparison; it does not approve a plan.",
+                )
+            ),
             rx.text(
                 PlanningState.creation_review["quantity"],
                 " ",
@@ -139,7 +147,7 @@ def creation_review(kind: str, save_label: str):
                     disabled=PlanningState.has_pending | PlanningState.is_loading,
                 ),
                 rx.button(
-                    save_label,
+                    "Calculate and save comparison",
                     on_click=PlanningState.save_reviewed_creation,
                     disabled=PlanningState.has_pending | PlanningState.is_loading,
                     background=ACCENT,

@@ -59,7 +59,9 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
             expect(page.get_by_role("heading", name="Your allocation options")).to_be_visible()
             summary = page.get_by_role("region", name="Selected plan and next step")
             expect(summary).to_contain_text("Select a saved plan explicitly")
-            expect(page.get_by_role("button", name="Review decision", exact=True)).to_be_disabled()
+            expect(
+                page.get_by_role("button", name="Review selected plan", exact=True)
+            ).to_be_disabled()
             result = case["snapshot"]["result"]
             plans = [result["minimum_cost_plan"], *result["alternatives"]]
             labels = ["Minimum cost", *[f"Alternative {i}" for i in range(1, len(plans))]]
@@ -117,7 +119,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
                 expect(page.get_by_label("Saved plan for approval", exact=True)).to_have_value(
                     label
                 )
-                page.get_by_role("button", name="Review decision", exact=True).click()
+                page.get_by_role("button", name="Review selected plan", exact=True).click()
                 expect(page.locator("#final-decision-heading")).to_be_focused()
                 assert counts() == before
             if len(plans) == 1:
@@ -137,7 +139,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
                 )
             page.get_by_role("tab", name="Suppliers", exact=True).click()
             expect(summary).to_contain_text(labels[-1])
-            page.get_by_role("button", name="Review decision", exact=True).click()
+            page.get_by_role("button", name="Review selected plan", exact=True).click()
             expect(page.locator("#final-decision-heading")).to_be_focused()
             assert counts() == before
             assert stack.client.get(f"{BASE}/{identity}").json() == case
@@ -145,7 +147,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
         page.goto(stack.frontend_url + f"/planning?case_id={infeasible['case_id']}&view=plans")
         expect(page.get_by_text("No feasible plan", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name="Select Minimum cost for review")).to_have_count(0)
-        expect(page.get_by_role("button", name="Review decision", exact=True)).to_be_disabled()
+        expect(page.get_by_role("button", name="Review selected plan", exact=True)).to_be_disabled()
         assert infeasible["snapshot"]["result"]["minimum_cost_plan"] is None
 
         # Native browser zoom, in an owned temporary profile/extension only.
@@ -195,7 +197,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
             zoom_page.get_by_role(
                 "button", name="Select Alternative 1 for review", exact=True
             ).click()
-            zoom_page.get_by_role("button", name="Review decision", exact=True).click()
+            zoom_page.get_by_role("button", name="Review selected plan", exact=True).click()
             expect(zoom_page.locator("#final-decision-heading")).to_be_focused()
             zoom_page.screenshot(
                 path=str(stack.root / "comparison-200-percent.png"), full_page=True
@@ -208,7 +210,7 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
         expect(page.get_by_role("region", name="Selected plan and next step")).to_contain_text(
             "No-award: no allocation is selected"
         )
-        page.get_by_role("button", name="Review decision", exact=True).click()
+        page.get_by_role("button", name="Review No-award decision", exact=True).click()
         page.get_by_label("Actor audit reference", exact=True).fill("comparison keyboard test")
         page.get_by_label("Reason", exact=True).fill("Decline this controlled demonstration.")
         page.get_by_role("checkbox").check()

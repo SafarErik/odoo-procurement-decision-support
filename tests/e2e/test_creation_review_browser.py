@@ -53,7 +53,7 @@ def test_review_validate_edit_and_save_both_sources(smoke_stack, smoke_page):
         demand.fill("10")
         page.get_by_role("button", name="Review demo terms", exact=True).focus()
         page.keyboard.press("Enter")
-        page.get_by_role("button", name="Create and save plan", exact=True).dblclick()
+        page.get_by_role("button", name="Calculate and save comparison", exact=True).dblclick()
         expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
         expect(page.locator("#saved-case-heading")).to_be_focused()
         assert count() == 1
@@ -121,7 +121,7 @@ def test_review_validate_edit_and_save_both_sources(smoke_stack, smoke_page):
             page.set_viewport_size({"width": width, "height": 900})
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
             page.screenshot(path=str(stack.root / f"creation-review-{width}.png"), full_page=True)
-        page.get_by_role("button", name="Create and save Odoo plan", exact=True).focus()
+        page.get_by_role("button", name="Calculate and save comparison", exact=True).focus()
         page.keyboard.press("Enter")
         expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
         expect(page.locator("#saved-case-heading")).to_be_focused()

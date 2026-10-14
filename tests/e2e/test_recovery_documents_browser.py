@@ -10,6 +10,83 @@ pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 BASE = "/api/v2/procurement/planning-cases"
 
 
+def test_comparison_recovery_saves_once_without_approval(smoke_stack, smoke_page):
+    from playwright.sync_api import expect
+    from sqlalchemy import create_engine, text
+
+    stack, page = smoke_stack, smoke_page
+    engine = create_engine(stack.env["DECISION_DATABASE_URL"])
+
+    def counts():
+        with engine.connect() as connection:
+            return tuple(
+                connection.execute(text("SELECT count(*) FROM " + table)).scalar_one()
+                for table in ("planning_cases", "planning_final_decisions", "planning_documents")
+            )
+
+    try:
+        page.goto(stack.frontend_url + "/planning")
+        expect(page.get_by_text("Unsaved draft", exact=True)).to_be_visible()
+        page.get_by_role("tab", name="Demo", exact=True).click()
+        page.get_by_role("button", name="Load demo inputs", exact=True).click()
+        page.get_by_role("button", name="Review demo terms", exact=True).click()
+        assert counts() == (0, 0, 0)
+        stack.stop(stack.api)
+        page.get_by_role("button", name="Calculate and save comparison", exact=True).click()
+        expect(
+            page.get_by_role("button", name="Retry the same request", exact=True)
+        ).to_be_visible()
+        expect(page.locator("body")).to_contain_text("Approval is not a recovery step.")
+        expect(
+            page.get_by_text("Save response unconfirmed — recover the same request", exact=True)
+        ).to_be_visible()
+        expect(page.locator("body")).to_contain_text(
+            "it does not delete comparisons already saved in the database"
+        )
+        pending = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
+        for width in (1280, 320):
+            page.set_viewport_size({"width": width, "height": 900})
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            page.screenshot(
+                path=str(stack.root / f"comparison-pending-{width}.png"), full_page=True
+            )
+        page.set_viewport_size({"width": 1280, "height": 900})
+        stack.start_api()
+        page.get_by_role("button", name="Retry the same request", exact=True).click()
+        expect(page.get_by_text("Comparison saved. Approval is a separate choice.")).to_be_visible()
+        expect(
+            page.get_by_text("Saved comparison — awaiting a decision", exact=True)
+        ).to_be_visible()
+        expect(page.locator("#saved-case-heading")).to_be_focused()
+        assert counts() == (1, 0, 0)
+        replay = stack.client.post(
+            pending["url"], json=pending["payload"], headers={"Idempotency-Key": pending["key"]}
+        )
+        assert replay.status_code == 200 and replay.json()["idempotent_replay"]
+        saved = replay.json()
+        assert saved["final_decision"] is None and counts() == (1, 0, 0)
+        page.get_by_role("button", name="Select Alternative 1 for review", exact=True).click()
+        expect(page.get_by_text("Selected plan — not yet approved", exact=True)).to_be_visible()
+        page.get_by_role("button", name="Review selected plan", exact=True).click()
+        assert counts() == (1, 0, 0)
+        page.screenshot(path=str(stack.root / "comparison-recovered-selected.png"), full_page=True)
+        page.reload()
+        expect(
+            page.get_by_role("heading", name="Record the final decision", exact=True)
+        ).to_be_visible()
+        assert stack.client.get(f"{BASE}/{saved['case_id']}").json() == saved | {
+            "idempotent_replay": False
+        }
+        assert counts() == (1, 0, 0)
+        stack.evidence["checks"].append(
+            "Real API outage; exact comparison replay saves one case, zero final decisions and "
+            "zero documents. Selection/review/reopening require no approval."
+        )
+        stack.evidence["outcome"] = "PASS"
+    finally:
+        engine.dispose()
+
+
 def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_page):
     from playwright.sync_api import expect
 
@@ -61,7 +138,7 @@ def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_
 
     page.goto(stack.frontend_url + f"/planning?case_id={identity}&view=plans")
     page.get_by_role("button", name="Select Alternative 1 for review").click()
-    page.get_by_role("button", name="Review decision", exact=True).click()
+    page.get_by_role("button", name="Review selected plan", exact=True).click()
     page.get_by_label("Actor audit reference").fill("browser buyer")
     page.get_by_label("Reason", exact=True).fill("Prefer the alternative")
     page.get_by_role("checkbox").check()
@@ -79,13 +156,16 @@ def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_
     )
     assert reply.status_code == 201
     approved = reply.json()
-    page.get_by_role("button", name="Confirm approval", exact=True).click()
+    page.get_by_role("button", name="Approve plan", exact=True).click()
     expect(page.get_by_role("heading", name="Reopen the recorded decision")).to_be_visible()
     expect(page.locator("#request-recovery-heading")).to_be_focused()
     expect(page.locator("body")).to_contain_text("another approval attempt cannot replace it")
     expect(page.get_by_role("button", name="Review approval")).to_have_count(0)
     expect(page.get_by_role("button", name="Retry the same request")).to_have_count(0)
     conflict_record = recovery.input_value()
+    expect(
+        page.get_by_text("Decision conflict — reopen the saved comparison", exact=True)
+    ).to_be_visible()
     for width in (1280, 390, 320):
         page.set_viewport_size({"width": width, "height": 900})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

@@ -93,8 +93,9 @@ page = response.json()
 assert not page["next_cursor"]  # This fixed session is small; never truncate evidence silently.
 identities = [row["case_id"] for row in page["items"]]
 for identity in list(identities):
-    response = stack.client.get(f"{base_url}/{identity}/scenarios",
-                                params={"workspace": "practice", "limit": 50})
+    response = stack.client.get(
+        f"{base_url}/{identity}/scenarios", params={"workspace": "practice", "limit": 50}
+    )
     response.raise_for_status()
     children = response.json()
     assert not children["next_cursor"]

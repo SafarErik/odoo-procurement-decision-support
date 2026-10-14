@@ -1,6 +1,8 @@
 # Save, recovery and approval clarity — #41 correction brief
 
-Date: 2026-10-14. Status: proposed correction; not implemented or retested.
+Date: 2026-10-14. Status: implemented locally; technical verification/publication
+recorded in [the correction handoff](UX41_CLARITY_HANDOFF.md). A fresh owner retest
+has not occurred; B08 attempt 1 remains FAIL and novice acceptance NOT ASSESSED.
 
 ## Observed problem
 

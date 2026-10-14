@@ -70,6 +70,12 @@ def practice_page():
     from frontend.planning.page import _recovery
 
     busy = PlanningState.is_loading | PlanningState.has_pending
+    saved = (
+        PlanningState.practice_run_saved
+        & PlanningState.has_case
+        & (PlanningState.details["workspace"] == "practice")
+        & (PlanningState.details["example_id"] == PlanningState.practice_task)
+    )
     return workspace_shell(
         rx.box(
             rx.el.style("""
@@ -134,7 +140,15 @@ def practice_page():
                     PlanningState.practice_task != "",
                     rx.box(
                         rx.heading(
-                            "Fresh Practice draft",
+                            rx.cond(
+                                saved,
+                                "Saved Practice comparison",
+                                rx.cond(
+                                    PlanningState.has_pending,
+                                    "Practice save awaiting confirmation",
+                                    "Fresh Practice draft",
+                                ),
+                            ),
                             as_="h2",
                             size="4",
                             id="practice-draft-heading",
@@ -143,10 +157,7 @@ def practice_page():
                         rx.text(PlanningState.demo_details, size="2", margin_y="0.75rem"),
                         rx.text(PlanningState.demo_policy, size="2", color="#536964"),
                         rx.cond(
-                            PlanningState.practice_run_saved
-                            & PlanningState.has_case
-                            & (PlanningState.details["workspace"] == "practice")
-                            & (PlanningState.details["example_id"] == PlanningState.practice_task),
+                            saved,
                             rx.box(
                                 rx.heading(
                                     "Practice case saved",
@@ -157,7 +168,8 @@ def practice_page():
                                     size="4",
                                 ),
                                 rx.text(
-                                    "Practice case saved. Reopening uses this stored run; choosing "
+                                    "Comparison saved. Approval is a separate choice. "
+                                    "Reopening uses this stored run; choosing "
                                     "an exercise again starts a fresh draft, even after "
                                     "finalization.",
                                     role="status",
@@ -213,7 +225,7 @@ def practice_page():
                                 reset_on_submit=False,
                             ),
                         ),
-                        creation_review("demo", "Calculate and save fresh Practice case"),
+                        creation_review("demo"),
                         background="white",
                         padding="1.25rem",
                         margin_top="1rem",

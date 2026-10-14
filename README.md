@@ -16,6 +16,13 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 
 ## Start here
 
+**2026-10-14 recovery correction:** comparison saving, selection and final approval
+now have distinct labels/states. Exact recovery saves/reopens a comparison without
+approval, and a new comparison clears stale decision feedback. Reflex is pinned to
+the tested 0.9.12 runtime. See the [correction handoff](docs/UX41_CLARITY_HANDOFF.md)
+for verification/publication status; the failed B08 attempt remains evidence and
+a fresh owner retest is still required.
+
 | Your question | Read |
 | --- | --- |
 | What works and what comes next? | Current capability and next steps below |

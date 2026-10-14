@@ -54,6 +54,10 @@ def form(choice="Alternative 1", **changes):
 
 def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepared):
     state, uow, base, _, posts = prepared
+    assert state.comparison_state == "Saved comparison — awaiting a decision"
+    state.choose_final_plan("Alternative 1")
+    assert state.comparison_state == "Selected plan — not yet approved"
+    assert not posts and not uow.decisions.rows
     submitted = form()
     state.review_final_decision(submitted)
     expected = deepcopy(state._decision_payload)
@@ -63,6 +67,7 @@ def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepa
     state.change_decision_confirmation(False)
     assert not state.decision_open and not state._decision_payload and not posts
     assert state.final_choice == "Alternative 1"
+    assert state.comparison_state == "Selected plan — not yet approved"
     state.review_final_decision(submitted)
     submitted["actor"] = "different unreviewed value"
     events = consume(state, PlanningState.confirm_final_decision)
@@ -71,6 +76,7 @@ def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepa
     assert state.details["final_outcome"] == "Approved" and not state.decision_open
     assert "ref_saved_decision_heading" in str(events)
     assert len(uow.decisions.rows) == 1
+    assert state.comparison_state == "Final approved plan"
     assert consume(state, PlanningState.confirm_final_decision) == [] and len(posts) == 1
 
 
@@ -118,7 +124,11 @@ def test_no_award_requires_reason_has_no_plan_and_child_cannot_review(prepared):
     consume(state, PlanningState.confirm_final_decision)
     assert posts[0][1]["outcome"] == "no_award" and posts[0][1]["plan_index"] is None
     assert state.details["final_outcome"] == "No-award"
+    assert state.comparison_state == "Final No-award recorded — no plan approved"
     state._show(_map_case(child, child["case_id"]))
+    assert (
+        state.comparison_state == "Saved scenario — analytical; decide on the original comparison"
+    )
     state.review_final_decision(form("No-award"))
     assert not state.decision_open and len(posts) == 1
 
@@ -149,6 +159,7 @@ def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
         state.review_final_decision(form())
         consume(state, PlanningState.confirm_final_decision)
     assert state.decision_conflict and "HTTP 409" in state.error_message
+    assert state.comparison_state == "Decision conflict — reopen the saved comparison"
     assert "ref_request_recovery_heading" in str(PlanningState.focus_pending_save.fn(state))
     assert len(posts) == len(uow.decisions.rows) == 1
     recovery = state.recovery_json

@@ -96,7 +96,7 @@ def test_workspace_navigation_and_recovery(smoke_stack, smoke_page, playwright):
     page.get_by_role("button", name="Choose compare plans", exact=True).click()
     page.get_by_role("button", name="Review Practice terms", exact=True).click()
     stack.stop(stack.api)
-    page.get_by_role("button", name="Calculate and save fresh Practice case").click()
+    page.get_by_role("button", name="Calculate and save comparison").click()
     expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
     recovery = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
     for destination in ("/", "/cases", f"/planning?case_id={earlier['case_id']}&view=audit"):

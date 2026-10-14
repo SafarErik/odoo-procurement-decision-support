@@ -126,9 +126,7 @@ class PlanningState(rx.State):
         self.drawer_open = False
         if action == "route":
             if value == "/planning":
-                self.has_case = False
-                self.details = {}
-                self.input_mode = "stored"
+                self._clear_comparison_context()
             return rx.redirect(value)
         if action == "view":
             self.view = value
@@ -147,6 +145,16 @@ class PlanningState(rx.State):
             self._prepare_odoo()
         elif action == "scenario":
             self._prepare_practice_scenario()
+
+    def _clear_comparison_context(self):
+        self.has_case = False
+        self.details = {}
+        self.input_mode = "stored"
+        self.notice = ""
+        self.error_message = self.error_target = ""
+        self.decision_conflict = False
+        self.final_choice = ""
+        self._clear_decision_review()
 
     def _discard_drafts(self):
         self._clear_review()
@@ -287,6 +295,7 @@ class PlanningState(rx.State):
             return
         params = self.router.url.query_parameters
         if "case_id" not in params and "view" not in params:
+            self._clear_comparison_context()
             return
         view = params.get("view", "plans")
         if (
@@ -993,7 +1002,7 @@ class PlanningState(rx.State):
             self.notice = (
                 "Final decision saved. Reopening preserves its selected plan and audit."
                 if self.details["final_outcome"]
-                else "Case saved. Keep its case ID to reopen this exact result."
+                else "Comparison saved. Approval is a separate choice."
             )
         return result
 
@@ -1026,6 +1035,31 @@ class PlanningState(rx.State):
             self._clear_decision_review()
             if value in {"", "No-award"}:
                 return rx.set_focus("final-decision-heading")
+
+    @rx.var
+    def comparison_state(self) -> str:
+        if self.decision_conflict:
+            return "Decision conflict — reopen the saved comparison"
+        if self.has_pending:
+            return (
+                "Saving — awaiting confirmation"
+                if self.is_loading
+                else "Save response unconfirmed — recover the same request"
+            )
+        if not self.has_case:
+            return "Unsaved draft"
+        outcome = self.details.get("final_outcome", "")
+        if outcome == "Approved":
+            return "Final approved plan"
+        if outcome == "No-award":
+            return "Final No-award recorded — no plan approved"
+        if self.details.get("parent_id", "Base case") != "Base case":
+            return "Saved scenario — analytical; decide on the original comparison"
+        if self.final_choice == "No-award":
+            return "No-award selected — not yet recorded"
+        if self.final_choice:
+            return "Selected plan — not yet approved"
+        return "Saved comparison — awaiting a decision"
 
     @rx.var
     def selected_plan(self) -> dict[str, str]:

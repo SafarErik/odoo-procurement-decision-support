@@ -58,6 +58,7 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     assert state._odoo_payload == original
     consume(state, PlanningState.save_reviewed_creation)
     assert len(requests) == 1 and state.has_pending and len(uow.rows) == 1 and upstream
+    assert state.comparison_state == "Save response unconfirmed — recover the same request"
     recovery = json.loads(state.recovery_json)
     assert recovery["payload"] == reviewed
     PlanningState.edit_creation_terms.fn(state)
@@ -69,6 +70,9 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     assert requests[0] == requests[1] and len(uow.rows) == 1 and upstream == upstream_before
     assert state.has_case and not state.has_pending and not state._review_payload
     assert state.details["workspace"] == "controlled"
+    assert state.notice == "Comparison saved. Approval is a separate choice."
+    assert state.comparison_state == "Saved comparison — awaiting a decision"
+    assert not state.final_choice and not state.details["final_outcome"]
 
 
 @pytest.mark.parametrize(

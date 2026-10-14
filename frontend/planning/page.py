@@ -63,7 +63,7 @@ def _recovery() -> rx.Component:
                 rx.cond(
                     PlanningState.decision_conflict,
                     "Reopen the recorded decision",
-                    "Confirm the pending save before continuing",
+                    "Recover the same save before continuing",
                 ),
                 as_="h2",
                 size="3",
@@ -76,8 +76,10 @@ def _recovery() -> rx.Component:
                     PlanningState.decision_conflict,
                     "The server reported a conflict. Read the saved outcome before continuing; "
                     "another approval attempt cannot replace it.",
-                    "The response is uncertain: this save may have succeeded. Retry sends only "
-                    "the original inputs and key. Do not create a replacement or change context.",
+                    "The response was not received. This save may already be stored. "
+                    "Retry retrieves or completes the same save using the original inputs and key. "
+                    "Approval is not a recovery step. "
+                    "Do not create a replacement or change context.",
                 ),
                 size="2",
                 margin_y="0.75rem",
@@ -94,10 +96,10 @@ def _recovery() -> rx.Component:
                 rx.button("Retry the same request", on_click=PlanningState.recover_request),
             ),
             rx.text(
-                "Recovery is held only in this Reflex session. Closing or losing the session, "
-                "or a server restart, can lose the pending intent. Copy the recovery record "
-                "before leaving and give it to the owner if recovery fails; it is not an "
-                "automatic restore or a durable outbox.",
+                "Recovery details stay in this session. Closing it or a server restart can lose "
+                "these details; it does not delete comparisons already saved in the database. "
+                "Copy the recovery record before leaving and give it to the owner if recovery "
+                "fails. Recovery across sessions is not automatic.",
                 size="2",
                 margin_top="0.75rem",
                 max_width="75ch",
@@ -332,6 +334,7 @@ def planning_page() -> rx.Component:
                     PlanningState.notice, color_scheme="green", role="status", margin_bottom="1rem"
                 ),
             ),
+            rx.text(PlanningState.comparison_state, role="status", font_weight="650"),
             rx.cond(PlanningState.has_case, _workspace()),
             rx.el.details(
                 rx.el.summary(

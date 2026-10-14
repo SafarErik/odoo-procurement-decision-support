@@ -986,7 +986,21 @@ ruff format --check .
 ruff check .
 python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter document_adapter supplier_evaluation persistence migrations
 $taskRun = Join-Path ".artifacts" ("pytest-run-" + [guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Path $taskRun | Out-Null
+New-Item -ItemType Directory -Path "$taskRun/cache" -Force | Out-Null
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+# CBC needs a temp path without spaces; resolve this owned directory's Windows short path.
+$taskAbsoluteRun = (Resolve-Path $taskRun).Path
+$taskShortTemp = @'
+import ctypes, sys
+buffer = ctypes.create_unicode_buffer(32768)
+assert ctypes.windll.kernel32.GetShortPathNameW(sys.argv[1], buffer, len(buffer))
+assert " " not in buffer.value, "Choose a writable temp directory without spaces."
+print(buffer.value)
+'@ | python -X utf8 - "$taskAbsoluteRun"
+if ($LASTEXITCODE -ne 0) { throw "A space-free CBC temp path is required." }
+$env:TEMP = $taskShortTemp
+$env:TMP = $taskShortTemp
 python -m pytest -m "not integration and not e2e" -v --basetemp "$taskRun/temp" -o "cache_dir=$taskRun/cache"
 python -m pip check
 git diff --check
@@ -1002,6 +1016,11 @@ terminal and an agent execution identity. Generate a new `$taskRun` for each run
 pytest clears its `--basetemp` directory. See the persistence guide's
 [permission-error explanation](PERSISTENCE_DEVELOPMENT.md#windows-permissionerror-winerror-5-during-fixture-setup)
 if fixture setup fails under the shared Windows temporary directory.
+
+The UTF-8 settings also let evaluation metadata read a Unicode working-tree diff
+without Windows cp1252 decoding failures. These are current-terminal settings, not
+global configuration. Use the same space-free TEMP/TMP for browser tests; restore
+your previous values or close this terminal after checking and preserving evidence.
 
 When Compose configuration changed, or a service handoff needs configuration validation:
 

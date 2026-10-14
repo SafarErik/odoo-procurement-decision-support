@@ -66,8 +66,12 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
             expect(page.get_by_role("button", name="Review Practice terms")).to_be_visible()
             assert counts() == before
             page.get_by_role("button", name="Review Practice terms", exact=True).click()
-            page.get_by_role("button", name="Calculate and save fresh Practice case").click()
+            page.get_by_role("button", name="Calculate and save comparison").click()
             expect(page.get_by_role("button", name="Open saved Practice case")).to_be_visible()
+            expect(page.get_by_role("heading", name="Saved Practice comparison")).to_be_visible()
+            expect(page.locator("body")).to_contain_text(
+                "Comparison saved. Approval is a separate choice."
+            )
             assert counts() == (before[0] + 1, before[1] + 1)
             page.get_by_role("button", name="Open saved Practice case").click()
             expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
@@ -100,7 +104,7 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                             f"{allocation['quantity']} piece"
                         )
                 expect(
-                    page.get_by_role("button", name="Review decision", exact=True)
+                    page.get_by_role("button", name="Review selected plan", exact=True)
                 ).to_be_disabled()
                 page.get_by_role("tab", name="What-if", exact=True).click()
                 page.get_by_label("Scenario type").select_option("supplier_outage")
@@ -125,7 +129,7 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                 )
                 page.get_by_role("checkbox").check()
                 page.get_by_role("button", name="Review approval", exact=True).click()
-                page.get_by_role("button", name="Confirm approval", exact=True).click()
+                page.get_by_role("button", name="Approve plan", exact=True).click()
                 expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
                 expect(page.locator("body")).to_contain_text("Practice document access")
                 cases[example] = stack.client.get(f"{BASE}/{identity}").json()
@@ -137,7 +141,11 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
                 assert counts() == (before[0] + 1, before[1] + 1)
                 page.get_by_role("button", name="Create and save scenario", exact=True).click()
                 expect(page.get_by_text("Saved case " + identity, exact=True)).to_have_count(0)
-                expect(page.get_by_role("status").filter(has_text="Case saved.")).to_be_visible()
+                expect(
+                    page.get_by_role("status").filter(
+                        has_text="Comparison saved. Approval is a separate choice."
+                    )
+                ).to_be_visible()
                 children = stack.client.get(
                     f"{BASE}/{identity}/scenarios", params={"workspace": "practice"}
                 ).json()["items"]
@@ -204,8 +212,11 @@ def test_curated_practice_real_saved_workflow(smoke_stack, smoke_page):
         assert counts() == (6, 3)
         page.get_by_role("button", name="Review Practice terms", exact=True).click()
         stack.stop(stack.api)
-        page.get_by_role("button", name="Calculate and save fresh Practice case").click()
+        page.get_by_role("button", name="Calculate and save comparison").click()
         expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
+        expect(
+            page.get_by_role("heading", name="Practice save awaiting confirmation")
+        ).to_be_visible()
         pending = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
         assert pending["payload"]["catalog_context"] == {
             "workspace": "practice",

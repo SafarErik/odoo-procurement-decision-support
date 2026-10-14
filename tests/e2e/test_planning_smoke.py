@@ -20,10 +20,14 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page, playwright):
     page.get_by_role("button", name="Load demo inputs", exact=True).click()
     expect(page.get_by_label("Demand quantity", exact=True)).to_have_value("10")
     page.get_by_role("button", name="Review demo terms", exact=True).click()
-    page.get_by_role("button", name="Create and save plan", exact=True).click()
+    page.get_by_role("button", name="Calculate and save comparison", exact=True).click()
     expect(page.get_by_role("heading", name="Minimum cost", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Alternative 1", exact=True)).to_be_visible()
-    expect(page.get_by_role("status").filter(has_text="Case saved.")).to_be_visible()
+    expect(
+        page.get_by_role("status").filter(
+            has_text="Comparison saved. Approval is a separate choice."
+        )
+    ).to_be_visible()
     ids = re.findall(
         r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", page.locator("body").inner_text()
     )
@@ -53,7 +57,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page, playwright):
         "Created base; both saved costs and supplier quantities match API"
     )
     page.get_by_role("button", name="Select Alternative 1 for review", exact=True).click()
-    page.get_by_role("button", name="Review decision", exact=True).click()
+    page.get_by_role("button", name="Review selected plan", exact=True).click()
     expect(page.locator("#final-decision-heading")).to_be_focused()
     page.get_by_label("Actor audit reference", exact=True).fill("t18-browser-buyer")
     page.get_by_label("Reason", exact=True).fill(
@@ -62,7 +66,7 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page, playwright):
     page.get_by_role("checkbox").check()
     page.get_by_role("button", name="Review approval", exact=True).click()
     stack.stop(stack.api)
-    page.get_by_role("button", name="Confirm approval", exact=True).click()
+    page.get_by_role("button", name="Approve plan", exact=True).click()
     expect(page.get_by_role("button", name="Retry the same request")).to_be_visible()
     pending_decision = json.loads(page.get_by_label("Exact request recovery JSON").input_value())
     expect(page.locator("body")).to_contain_text("server restart")
@@ -228,9 +232,11 @@ def test_buyer_flow_and_backend_recovery(smoke_stack, smoke_page, playwright):
     pending_route = page.url
     stack.stop(stack.api)
     page.get_by_role("button", name="Review demo terms", exact=True).click()
-    page.get_by_role("button", name="Create and save plan", exact=True).click()
+    page.get_by_role("button", name="Calculate and save comparison", exact=True).click()
     expect(page.get_by_role("button", name="Retry the same request", exact=True)).to_be_visible()
-    expect(page.get_by_role("button", name="Create and save plan", exact=True)).to_be_disabled()
+    expect(
+        page.get_by_role("button", name="Calculate and save comparison", exact=True)
+    ).to_be_disabled()
     expect(page.get_by_role("alert")).to_contain_text("The outcome is unconfirmed")
     recovery = page.get_by_label("Exact request recovery JSON", exact=True)
     pending = json.loads(recovery.input_value())

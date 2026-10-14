@@ -208,7 +208,11 @@ def selection_review() -> rx.Component:
             (PlanningState.details["parent_id"] == "Base case")
             & (PlanningState.details["final_outcome"] == ""),
             rx.button(
-                "Review decision",
+                rx.cond(
+                    PlanningState.final_choice == "No-award",
+                    "Review No-award decision",
+                    "Review selected plan",
+                ),
                 on_click=rx.set_focus("final-decision-heading"),
                 disabled=PlanningState.is_loading
                 | PlanningState.has_pending
@@ -313,7 +317,7 @@ def _decision_confirmation() -> rx.Component:
                     as_child=True,
                 ),
                 rx.button(
-                    rx.cond(no_award, "Confirm No-award", "Confirm approval"),
+                    rx.cond(no_award, "Confirm No-award", "Approve plan"),
                     on_click=PlanningState.confirm_final_decision.throttle(500),
                     disabled=PlanningState.is_loading | PlanningState.has_pending,
                     background=rx.cond(no_award, "#173e3d", ACCENT),
@@ -371,7 +375,9 @@ def decision_view() -> rx.Component:
                         tab_index=-1,
                     ),
                     rx.text(
-                        "Explicitly choose a saved plan or No-award. This one-time decision "
+                        "This comparison is already saved. Selection does not approve it. "
+                        "Approval is a separate, optional choice. Explicitly choose a saved plan "
+                        "or No-award. This one-time decision "
                         "cannot be replaced. Alternative approval and No-award require a reason.",
                         size="2",
                         color=MUTED,
