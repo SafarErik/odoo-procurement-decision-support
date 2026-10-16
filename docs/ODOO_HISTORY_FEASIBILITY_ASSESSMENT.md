@@ -500,3 +500,37 @@ handling (3), architecture (4), algorithms/ML-to-MILP mapping (5), implementatio
 decision -> implemented behavior -> evidence -> limitation with exact source and
 model identities. This research note establishes compatibility gaps; it does not
 claim an observed model, validated business benefit, or completed new acceptance.
+
+## Renewed-key readiness update — 2026-10-14
+
+After the owner renewed the dedicated key and saved it locally, the guarded
+projection returned HTTP 200 with six events. The two existing focused live
+contracts passed: **2 passed in 2.11 s**, Python 3.11.16. They prove bounded
+same-company projection access, denied generic CRUD/direct stock reads,
+cross-company/invalid-bound rejection, and the production T8 adapter/calculator
+flow. A pytest cache-write permission warning did not affect either assertion;
+passing checks were not rerun merely to remove that warning.
+
+Current production capture at `2026-10-14T21:02:42.197053+00:00` independently
+confirms company 1/supplier 55/product 57/UoM 1, lines 31–34, six stock-move
+events, **delivery_schedule_adherence 33.33%, eligible sample size 3**, and
+`supplier_return_observed` excluding line 34. Receipt completion times are
+2026-09-20 11:20:16 through 11:37:41 UTC. Line 33 completes across 40+60 receipts;
+line 34 has its explicit 20-unit supplier return. Thus the earlier authentication
+blocker is resolved; the original 401 evidence above remains historical.
+
+A bounded partner query (`commercial_partner_id in [51,52,53]`, limit 31)
+returned only IDs 51/52/53, so no child contacts were present in that scoped
+result. A fresh company-1 confirmed-order query for those exact vendors returned
+no records (limit 11). Matching planning history is still absent in the checked
+fixture, and the supplier/product mismatch remains. Access is ready for the
+assessment; data/model readiness for a direct V2 connection remains **NO-GO**.
+Conditional matching test-data preparation and compatible offline artifact
+validation remain separate next phases, not enabled by a successful key check.
+
+Raw local capture: `.artifacts/odoo-history-key-refresh/live-readiness.jsonl`,
+SHA-256 `188eb63b22bef1344a96acb52a0c3374cc78e2bdfae8b5f5e505ad2c6579745a`.
+Live test flags were process-only; `.env` was not edited by the agent. The Odoo
+containers and existing forwarding were already running at this update's start
+and were left running. No fixture, model, runtime code, schema, requirements,
+Drive/tracker or Git publication changes were made; no training/E2E was run.

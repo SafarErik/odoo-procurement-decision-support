@@ -3520,3 +3520,39 @@ containers and an owned localhost-only tunnel were temporarily used for reads an
 returned to their prior state; machine, volumes and existing helper container retained.
 Assessment documentation is uncommitted; no commit/push/merge. Next dependency:
 human dedicated-key renewal, then exact matching data readiness before model/runtime work.
+
+### 2026-10-14 — Renewed history key removes access blocker
+
+Owner renewed the dedicated key. Read-only bounded projection now returns HTTP
+200/six events; existing T7S security and T8 production KPI contracts: 2 passed
+in 2.11 s, with a pytest cache-write permission warning. Fresh production capture
+confirms 33.33%, n=3, return exclusion and 40+60 backorder for supplier 55/product
+57. Exact planning commercial suppliers 51/52/53 have no child contacts in the
+bounded read and no confirmed company-1 orders returned. Access readiness passes;
+matching history and source/model compatibility still block a direct V2 connection.
+See the appended [readiness update](ODOO_HISTORY_FEASIBILITY_ASSESSMENT.md#renewed-key-readiness-update--2026-10-14).
+Original 401 evidence retained. No data/model/code/schema/requirements mutation,
+training, browser E2E or commit/push/merge; already-running services left running.
+
+### 2026-10-14 — Plan the minimum matching V2 Odoo history fixture
+
+Refreshed repository guidance and canonical Drive 00/02/03/06/07; local/published
+main remains `86c389c`, working branch `bd44b3b` adds assessment documentation.
+Read-only Odoo database listing exposes only `procurement_poc`; a separate test
+database and its backup/restoration are not available/verified. Exact reads confirm
+V2 supplier IDs 51/52/53, product 54, company/UoM/currency 1, draft group-2 RFQs.
+Product 54 is Goods/untracked but its lines use stock-move receipt calculation;
+official source supports a pilot without changing product settings.
+
+[Owner approval plan](V2_ODOO_HISTORY_FIXTURE_PLAN.md) defines a proposed neutralized
+test copy and nine independent one-line synthetic-origin orders, three per
+supplier; exact KPI targets 100.00/66.67/33.33%, each n=3, one 40+60 late backorder.
+Final planned markers are absent in the bounded duplicate check. Preserve unrelated
+T7 55/57 history and original RFQs. Backup/restore and a single-receipt pilot are
+human-controlled gates; stop before any administrator operation or fixture creation.
+Nine lines yield three inference snapshots, not a training dataset or model promotion.
+
+No code, Odoo/admin data, model, schema, requirements, Drive/tracker or Git writes;
+no repeated credential renewal or passing live tests. Added the plan/index/log
+documentation, preserving prior dirty assessment updates. Next: explicit owner
+approval, then human backup/neutralized restore and clone verification before pilot.

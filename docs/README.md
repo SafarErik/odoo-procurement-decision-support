@@ -65,6 +65,11 @@ mismatch and history-key 401, reusable T7S/T8/T14 components, source/model valid
 gates, manual test-data prerequisites and a conditional small increment. It is an
 assessment, not an implemented Odoo-history/model connection.
 
+[Controlled V2 history fixture plan](V2_ODOO_HISTORY_FIXTURE_PLAN.md) defines the
+owner-approved-next-phase proposal: a neutralized test copy, nine exact synthetic
+history orders, pilot and bounded read-only checks, expected KPIs, restoration
+and effort. Access is resolved; no test database or fixture has been created.
+
 [Buyer workspace redesign proposal](UX_UI_INCREMENT_PLAN.md) captures the next
 substantial UX/UI discovery after T18. Curated Practice without resets and a bounded
 case library, Decision editorial direction and the final brief are confirmed.
