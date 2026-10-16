@@ -53,11 +53,11 @@ acceptance remain open. See the dated [owner assessment](docs/UX41_ASSESSMENT.md
 | How do I compare and select an exact saved allocation? | [Comparison runbook #36](docs/UX36_COMPARISON_RUNBOOK.md), [handoff](docs/UX36_COMPARISON_HANDOFF.md) — aligned supplier rows, explicit selection and exact review summary |
 | How do I compare a disruption with its original result? | [Scenario runbook #37](docs/UX37_SCENARIO_RUNBOOK.md), [handoff](docs/UX37_SCENARIO_HANDOFF.md) — five bounded types, retained original values, infeasibility and exact retry |
 
-## Current capability — updated 2026-10-12
+## Current capability — updated 2026-10-16
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
-| Odoo facts and supplier history | V2 independently reads selected quotations/currency, verifies expectations and assembles attributed business terms. The controlled demonstration uses synthetic ML history; matching Odoo receipt history/model promotion remains open. |
+| Odoo facts and supplier history | V2 independently reads selected quotations/currency, verifies expectations and assembles attributed business terms. Matching controlled synthetic receipt history is now verified in a dedicated Odoo test copy: [fixture evidence](docs/V2_ODOO_HISTORY_FIXTURE_PLAN.md#completed-fixture-receipts-verified--2026-10-16). The V2 demonstration still uses its separately synthetic ML history; history-to-model integration and compatible model validation remain open. |
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |

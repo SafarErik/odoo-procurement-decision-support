@@ -368,3 +368,240 @@ separate limitation/future direction. No new CORE requirement or architecture.
   selects `type=consu` for stock-move receipt calculation/generation without making
   `is_storable` the entry gate. This source review and live metadata support the
   proposed pilot; they do not replace actual acceptance on the pinned local image.
+
+## Staged A01 pilot evidence — 2026-10-16
+
+Owner performed backup/neutralized restoration and manual pilot entry; the agent
+used restricted read-only acquisition. Test-copy rollback ZIP
+`procurement_v2_history_test_v1_2026-10-16_07-08-47.zip` passed CRC/dump/manifest/
+filestore checks (669 files), SHA-256
+`87126f3592cf7eff9b02370b704d07b35bb521e807d873591bfa8eaf1de21f81`.
+Its own restoration was not exercised. Source backup restoration was previously
+verified through the copied identities/addons. Clone neutralization banner and
+method-only security checks passed; a dedicated test-copy key is kept separately
+from the source configuration.
+
+Pilot: independent PO **P00023 / ID 23**, source marker
+`V2-SYNTH-HIST-v1-A01`, line **35**, supplier/company/product/UoM **51/1/54/1**,
+100 Units at USD 10, zero discount/no tax. Guarded projection returned exactly
+one done supplier-to-internal event: move **77**, picking **53**. Owner screenshot
+shows receipt `WH/IN/00013`. No return/backorder relationship; product tracking
+remains false. Completion: **2026-10-16 07:20:02 UTC / 09:20:02 Budapest**.
+
+**Receipt-path PASS; exact schedule manifest DEVIATION.** The initial strict
+timestamp check failed and is retained: planned Expected Arrival was
+2026-10-17 21:00:00 UTC; actual PO-line and projected schedule is
+**2026-10-17 21:00:46 UTC / 23:00:46 Budapest**, a +46-second difference.
+The screenshot's minute-level display did not expose it. The origin of the
+retained seconds is not established. Completion precedes both deadlines, so
+the discrepancy does not affect the on-schedule classification. Do not edit
+the completed record to erase this evidence; recommend owner acceptance of
+the recorded deviation before authorizing further fixture work.
+
+Production T8 result: n=1, value null, `withheld_insufficient_sample`, warning
+`insufficient_history`; sourced-history feature conversion also rejects it.
+No model was loaded/trained. Only A01 exists among the nine planned markers;
+none exists in the source. Original RFQ identities/group membership/draft states
+were checked in both databases. This is scoped preservation evidence, not a
+forensic comparison of all database records.
+
+Raw evidence: `.artifacts/v2-history-fixture-plan/pilot-A01/pilot-evidence.json`,
+SHA-256 `f8b609bb717d28bc77bdf434ed57de9659c9ab5c2db3337182417f223cd3e002`;
+separate `pilot-checks.json` records receipt PASS and exact-time mismatch.
+Remaining eight orders are technically feasible through this path, but **STOP**:
+owner disposition of the deviation and separate execution authorization are still
+required. Freeze their actual preparation dates before any later entry. No Odoo
+writes, application/model/schema changes, integration or Git publication by agent.
+
+## Owner-operated eight-draft import preparation — 2026-10-16
+
+Owner requested preparation of the remaining eight RFQs using Odoo's built-in
+import. This prepares a reviewable file; no import, order confirmation or receipt
+validation was performed. Preserve A01 and its recorded +46-second deviation.
+
+File: `.artifacts/v2-history-fixture-plan/import-eight/v2-history-eight-draft-rfqs-2026-10-16.csv`.
+SHA-256: `91c73701ad2b4ad3f1e6542f2894aa5454feaca63124baac2be528c5bda3b1df`.
+The ignored file contains eight independent, one-line drafts: A02/A03, B01–B03,
+C01–C03. A01 is excluded. Source markers and line descriptions label controlled
+synthetic history. No order/line Database ID or External ID is supplied: no existing
+order is targeted, but reimporting creates duplicates. Related Database IDs resolve
+existing vendors/company/currency/product/unit in this copy only.
+
+Read-only preflight: `base_import`, `purchase`, `purchase_stock` installed; all
+12 paths appear in the installed import field tree; Mitchell Admin's timezone is
+Europe/Budapest; only A01 exists among the nine markers. The product has default
+supplier tax ID 2, so **map the empty Taxes column explicitly** rather than omit it.
+Restricted access to `ir.model.data` returned 403; no permissions were expanded.
+New external IDs are unnecessary for this one-time import. Evidence:
+`.artifacts/v2-history-fixture-plan/import-eight/import-metadata.json`.
+
+### Owner steps: Test first, stop before Import
+
+1. Sign in manually as the test-copy administrator. Verify the selected database
+   is **procurement_v2_history_test_v1**, the neutralization banner is present,
+   active company is **My Company (San Francisco)** and user timezone remains
+   **Europe/Budapest**. Never upload to `procurement_poc`. Preserve both backups.
+2. This file freezes D=2026-10-16. Complete the planned receipt work on that date;
+   if execution moves to another date, stop and refresh the manifest/file first.
+   Do not backdate completion timestamps. Search Source for each remaining marker
+   and stop if any already exists, including after an uncertain import outcome.
+3. Open **Purchase > Orders > Requests for Quotation**, use list view, click the
+   **gear (Action) > Import records > Upload Data File** and select the CSV.
+   Use UTF-8, comma separator, double-quote delimiter and a header row. Preserve
+   datetime format `YYYY-MM-DD HH:mm:ss` (Python format `%Y-%m-%d %H:%M:%S`).
+4. Review every mapping below. Enable **Show fields of relation fields (advanced)**
+   if needed. Database ID means the existing related record, not External ID.
+   Keep the blank Taxes column mapped. Do not enable creation of missing related
+   records or skip errors. Do not map any column to Status or order Number.
+
+   | CSV column | Odoo field |
+   | --- | --- |
+   | `origin` | Source |
+   | `partner_id/.id` | Vendor / Database ID |
+   | `company_id/.id` | Company / Database ID |
+   | `currency_id/.id` | Currency / Database ID |
+   | `order_line/product_id/.id` | Order Lines / Product / Database ID |
+   | `order_line/name` | Order Lines / Description |
+   | `order_line/product_qty` | Order Lines / Quantity |
+   | `order_line/product_uom_id/.id` | Order Lines / Unit / Database ID |
+   | `order_line/price_unit` | Order Lines / Unit Price |
+   | `order_line/discount` | Order Lines / Discount (%) |
+   | `order_line/tax_ids/.id` | Order Lines / Taxes / Database ID (empty) |
+   | `order_line/date_planned` | Order Lines / Expected Arrival |
+
+5. Click **Test**, then stop and report its exact result and any mapping warnings.
+   Do **not** click Import, Confirm Order, Receive Products or Validate yet.
+   Test is Odoo's transaction-rollback validation, not proof of persisted drafts
+   or correct receipt history. The agent has not run it.
+
+After a successful owner Test, the next owner-controlled gate is a single Import,
+followed by bounded read-only verification **before confirmation**: exactly eight
+new drafts, one line each, markers/vendor IDs 51/52/53, company 1, product 54,
+unit 1, USD 1, quantity 100, prices 10/12/9, discount 0, taxes empty, no comparison
+group, and no receipt events. Five F deadlines must be exactly
+2026-10-17 21:00:00 UTC; three P deadlines exactly 2026-10-14 22:00:00 UTC.
+Stop on any difference, especially default tax or retained seconds. Do not retry
+Import on a timeout without checking the markers. A restore, if needed, remains
+an owner operation against the test copy only; preserve completed pilot evidence.
+
+Confirmation and receipts remain separate manual work under the existing manifest:
+B03 needs 40 then 60 with an explicit backorder, all other remaining orders one
+100-unit receipt. Importing drafts alone adds **no historical performance evidence**.
+Expected final A/B/C support is 3 each and schedule adherence 100.00/66.67/33.33%.
+These yield three feature snapshots, not a training dataset or a compatible model.
+
+Local CSV structure, exact values, eight unique markers, A01 exclusion, blank taxes
+and Budapest-to-UTC conversion passed independent readback checks. Odoo Test,
+Import, persisted postconditions and receipts remain unrun. No app/schema/model
+change or Git publication. Existing FR-V2-01/02 and AC-V2-01/02 traceability applies.
+Estimated owner Test/import/review: 15–30 minutes; subsequent manual confirmations,
+receipts and bounded evidence: 45–90 minutes, excluding corrections or waiting.
+Official [Odoo 19 import documentation](https://www.odoo.com/documentation/19.0/applications/essentials/export_import_data.html)
+describes purchase-order lines, relation IDs, empty values and Test/Import steps.
+
+## Owner import verified — 2026-10-16
+
+Owner imported the CSV. Bounded read-only verification passed for exactly one
+order per planned marker: A02/A03 = P00032/P00033 (lines 44/45), B01/B02/B03 =
+P00034/P00035/P00036 (46/47/48), C01/C02/C03 = P00037/P00038/P00039 (49/50/51).
+All eight are independent drafts with the correct company/vendor/product/unit/
+currency, one 100-unit line, prices 10/12/9, zero discount, empty taxes, explicit
+synthetic labels and zero quantity received. Sum USD 8,300. All five F and three
+P deadlines match the exact UTC manifest, including zero seconds.
+
+Pilot P00023/line 35 retains its original schedule deviation; separate guarded
+history read returns its existing move 77/picking 53. Source contains none of the
+nine fixture markers. Original RFQ 16/17/18 identities, states and group/line
+relationships still match the prior evidence in both databases. This is bounded
+preservation evidence, not a full database comparison.
+
+The initial combined history read returned HTTP 422: the projection rejects
+draft purchase orders (`purchase order state is unsupported`). A supplemental
+RFQ `picking_ids` read returned HTTP 403 under the restricted account. Both were
+preserved; no privileges or credentials changed. Therefore zero received quantity
+and draft state are verified, but a zero-stock-event count for the drafts is **not
+independently verified**. History acquisition remains restricted to the guarded
+projection after the supported order/receipt states exist.
+
+Evidence: `.artifacts/v2-history-fixture-plan/import-eight/imported-drafts-evidence.json`,
+SHA-256 `4350780d6ecf4fa0d9e062383bfc019fe320dde2beb6dd1835d0debfccee9c9c`.
+Earlier attempts retained as `initial-projection-rejected-drafts.json` and
+`receipt-link-read-denied.json` in the same directory. No application tests were
+run for this read-only data check; no app/model/schema/Git writes occurred.
+Draft import gate passed. Stop before owner confirmation/receipt execution;
+the staged authorization for those remaining eight orders is still required.
+
+## Owner confirmations verified — 2026-10-16
+
+Owner explicitly approved the remaining-order confirmation/receipt stage, then
+confirmed all eight. Bounded read-only comparison against the imported-draft
+evidence passed: P00032–P00039 are `purchase`; all captured line values remain
+identical, including exact UTC deadlines, quantities, product/unit, prices, labels,
+discount and empty taxes. New lines 44–51 still have zero quantity received.
+Pilot line 35 remains unchanged. Original RFQ identities/states/group relationships
+in both databases and absence of fixture markers in the source still pass.
+
+Evidence: `.artifacts/v2-history-fixture-plan/import-eight/confirmed-orders-evidence.json`.
+Only RFQ/order-line read methods were used; pending inventory transfers were not
+acquired and no projection/generic-stock permission retry was performed.
+Confirmation gate passed. Owner may now perform the seven single 100-unit receipts
+and P00036's explicit 40 + 60 backorder under the unchanged October 16 manifest,
+then report completion for final guarded projection/KPI verification. No further
+approval is required within that authorized manual stage. No model/integration,
+schema, application code or Git publication is authorized by this gate.
+
+## Completed fixture receipts verified — 2026-10-16
+
+Owner completed the authorized receipts. Existing restricted acquisition through
+`OdooHistoricalPerformanceReader` and the guarded T7S projection succeeded for
+exact supplier line sets A=[35,44,45], B=[46,47,48], C=[49,50,51]. The current
+365-day half-open window ends at **2026-10-16 20:51:31 UTC**. The existing T8
+calculator returned the exact expected results, all usable with no warnings:
+
+| Supplier | Eligible lines | Done inbound events | Schedule adherence |
+| --- | --- | --- | --- |
+| A / 51 | 3 | 3 | 100.00% |
+| B / 52 | 3 | 4 | 66.67% |
+| C / 53 | 3 | 3 | 33.33% |
+
+All nine purchase lines report 100 Units received, with ten unique move/picking
+pairs. Each event retains company 1, product 54, UoM 1 and the correct commercial
+supplier. All completions occurred on October 16 Budapest time; all deadlines,
+prices, tax/discount settings and explicit synthetic labels match the preceding
+evidence. There are no returns or unexpected backorders in this bounded result.
+Pilot A01's previously recorded +46-second schedule deviation remains unchanged.
+
+B03 / P00036 / line 48: move **82**, picking **58**, received **40** at
+20:49:36 UTC; move **86**, picking **62**, received **60** at 20:49:55 UTC.
+Picking 62 explicitly references picking 58 as its backorder predecessor. The
+full 100-unit completion is late against 2026-10-14 22:00:00 UTC. The two events
+count as one eligible purchase line. No intermediate live partial-receipt KPI was
+captured; final evidence does not establish a prior n=2 live result.
+
+The existing `from_sourced_history` feature contract accepted all three results
+with exact verified product/unit contexts and new cutoffs after acquisition.
+Vectors are (100.0,3.0), (66.67,3.0), (33.33,3.0). Acquisition source remains
+`odoo_projection`; enclosing evidence independently records database, fixture
+reference and **controlled_synthetic** origin. No backdated prediction cutoff,
+existing-artifact compatibility or genuine production evidence is implied.
+These are three inference snapshots, not a training/holdout dataset or target labels.
+
+Original RFQ 16/17/18 identities, draft states and group/line relationships still
+match in both databases; none of the nine fixture markers exists in the source.
+This is bounded preservation evidence, not a complete source/volume audit.
+No administrator acquisition, permission expansion, new services, Odoo writes,
+model loading/training/promotion, planning integration or Git publication by agent.
+
+Evidence: `.artifacts/v2-history-fixture-plan/import-eight/completed-receipts-evidence.json`,
+SHA-256 `ec552e1dadbadb4bd71d91285390f788524bf389aaecc8da71c9de4fe710289f`.
+All live receipt/KPI/feature-contract assertions passed. No application source was
+changed and no broad application test suite was run for this data-verification task.
+
+**Fixture stage complete; GO for a separately authorized bounded capture increment.**
+The smallest implementation remains the planned read-only, source-attributed
+history/feature capture command with provenance, temporal and context regressions
+(estimated 1–2 engineering days). Existing synthetic V2 behavior remains unchanged.
+Runtime source/model compatibility, accepted offline artifact validity and later
+immutable V2 integration remain separate gates. No implementation is authorized
+by completing this receipt stage. Traceability remains FR-V2-01/02/03 and
+AC-V2-01/02/03; official task and all five CORE functions remain unchanged.

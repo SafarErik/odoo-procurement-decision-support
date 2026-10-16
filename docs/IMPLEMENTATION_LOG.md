@@ -3556,3 +3556,69 @@ No code, Odoo/admin data, model, schema, requirements, Drive/tracker or Git writ
 no repeated credential renewal or passing live tests. Added the plan/index/log
 documentation, preserving prior dirty assessment updates. Next: explicit owner
 approval, then human backup/neutralized restore and clone verification before pilot.
+
+### 2026-10-16 — Owner-created A01 pilot, bounded read-only evidence
+
+Owner restored the neutralized copy, prepared its rollback backup and manually
+completed P00023. Guarded test-copy projection proves line 35/move 77/picking 53,
+correct 51/1/54/1 supplier/company/product/unit and one 100-unit done inbound
+receipt with no return/backorder, retaining untracked Goods configuration.
+Completion 07:20:02 UTC; actual Expected Arrival 2026-10-17 21:00:46 UTC differs
+by +46 seconds from the agreed exact deadline. Preserve the initial failed exact-
+time assertion; receipt is on schedule under both deadlines. KPI n=1 is withheld
+and feature conversion rejects insufficient support. No model loading/training.
+See [pilot evidence](V2_ODOO_HISTORY_FIXTURE_PLAN.md#staged-a01-pilot-evidence--2026-10-16)
+for exact hashes, clone security/backup gates and scoped preservation checks.
+Stop: remaining eight require owner disposition of the recorded deviation and
+separate execution authorization. No agent Odoo write/code/schema/Git publication.
+
+### 2026-10-16 — Eight-draft CSV prepared for owner validation
+
+Prepared the remaining eight controlled RFQs as a one-time CSV, excluding A01.
+Read-only test-copy metadata confirms built-in import availability and field paths;
+product default tax requires an explicitly mapped empty Taxes column. Local CSV
+checks passed for markers, identities, quantities, prices and exact timezone
+conversion. No order/line IDs target existing records; repeat import would create
+duplicates. See the [owner Test handoff](V2_ODOO_HISTORY_FIXTURE_PLAN.md#owner-operated-eight-draft-import-preparation--2026-10-16).
+Stop before Import pending owner Test result. No Odoo write, model/app/schema
+change, Git publication or changed claim about A01's timestamp deviation.
+
+### 2026-10-16 — Owner-imported eight draft RFQs verified
+
+Read-only checks passed for P00032–P00039 / lines 44–51: exact manifest identities,
+synthetic markers, 100 units each, prices, empty taxes and exact UTC deadlines;
+all draft with zero received quantity, USD 8,300 total. Pilot history and bounded
+original-RFQ/source-marker preservation checks passed. Draft history projection
+rejects unconfirmed state (422); restricted RFQ receipt-link read is denied (403),
+so no independent zero-event claim. Preserved both results without broadening
+access. See the [import evidence](V2_ODOO_HISTORY_FIXTURE_PLAN.md#owner-import-verified--2026-10-16).
+Stop before remaining-order confirmations/receipts pending staged owner approval.
+No Odoo write, app/model/schema change, application test run or Git publication.
+
+### 2026-10-16 — Owner confirmations verified before receipt validation
+
+After explicit owner approval and manual confirmation, bounded read-only comparison
+proves P00032–P00039 are purchase orders with all captured line values unchanged,
+exact deadlines retained and zero quantities received. Pilot line and scoped
+original/source preservation checks pass. No inventory acquisition for pending
+transfers or permission expansion. Owner receipt instructions retain seven 100-unit
+receipts and P00036's 40 + 60 backorder; final guarded history/KPI evidence remains
+pending. See the [confirmation gate](V2_ODOO_HISTORY_FIXTURE_PLAN.md#owner-confirmations-verified--2026-10-16).
+No agent Odoo write, application/model/schema change, test-suite run or Git publication.
+
+### 2026-10-16 — Controlled Odoo history fixture completed and verified
+
+Owner completed receipts; restricted T7S/T8 acquisition/calculation proves nine
+fully received lines and ten done inbound events in the neutralized test copy.
+Supplier A/B/C each have n=3 and exact schedule adherence 100.00/66.67/33.33%,
+usable with no warnings. B03's 40 + 60 events are explicitly linked (pickings
+58 -> 62); full completion is late. Exact saved contexts/deadlines and scoped
+original-RFQ/source-marker preservation checks pass. A01's earlier deviation stays.
+The existing feature conversion contract accepted three current source-attributed
+snapshots; no model was loaded, trained, validated or connected to planning.
+See [completed receipt evidence](V2_ODOO_HISTORY_FIXTURE_PLAN.md#completed-fixture-receipts-verified--2026-10-16)
+for the window, IDs, hash, provenance and limits. README now distinguishes verified
+test history from the still-separate V2 synthetic pipeline. No app/schema/requirements,
+Drive/Git publication or agent Odoo write. Broad application tests were not run;
+all bounded live receipt/KPI/feature-contract assertions passed. Fixture stage is
+complete; a capture increment and compatible-model work require separate scope.
