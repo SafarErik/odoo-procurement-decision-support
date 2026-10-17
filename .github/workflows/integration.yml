@@ -157,7 +157,8 @@ jobs:
       - name: Start FastAPI
         shell: bash
         run: |
-          uvicorn backend.app.main:app \
+          # Synthetic per-run token: the planning routes must answer 401, not "unconfigured".
+          API_SERVICE_TOKEN="$(openssl rand -hex 24)" uvicorn backend.app.main:app \
             > "$RUNNER_TEMP/uvicorn.log" 2>&1 &
           echo "UVICORN_PID=$!" >> "$GITHUB_ENV"
 

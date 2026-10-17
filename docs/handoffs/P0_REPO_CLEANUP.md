@@ -77,7 +77,10 @@ Fast-test count fell from 707 to 511: the removed tests covered deleted V1 code
   and recreating it (`podman machine rm -f`, `podman machine init`).
 - e2e browser tests were updated mechanically but not run; the Practice navigation
   e2e test was deleted (P3 adds navigation e2e for the new UI).
-- Hosted CI not run (no push).
+- Hosted Container/API CI on the pushed branch: 25 passed, 1 failed — the new
+  planning-route token check got 503 because CI started uvicorn without
+  `API_SERVICE_TOKEN`. Fixed by giving the CI uvicorn a synthetic per-run token;
+  the rerun after this fix is pending.
 - `test_runtime_services.py`: the V1 decision-endpoint check was replaced by a
   planning-route token check.
 - Test files still carry increment numbers (`test_t13_planning.py`, …).
