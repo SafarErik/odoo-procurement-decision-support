@@ -224,7 +224,7 @@ def test_invalid_hybrid_input_never_solves_or_stores(configured, monkeypatch, pr
     elif problem == "future_cutoff":
         body["as_of"] = "2099-01-01T00:00:00Z"
     elif problem == "observed_history":
-        body["source_type"] = "odoo_projection"
+        body["source_type"] = "odoo_purchase_history"
     else:
         from application.errors import RepositoryError
 

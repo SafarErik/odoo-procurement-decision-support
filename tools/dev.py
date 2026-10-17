@@ -53,6 +53,12 @@ def _compose(file: str, *args: str) -> None:
     _run(shutil.which("podman") or "podman", "compose", "--env-file", ".env", "-f", file, *args)
 
 
+def _venv_tool(name: str) -> str:
+    """Prefer the tool installed next to this interpreter (works without activation)."""
+    local = Path(sys.executable).with_name(name + (".exe" if os.name == "nt" else ""))
+    return str(local) if local.exists() else shutil.which(name) or name
+
+
 def check() -> None:
     py = sys.executable
     _run(py, "-m", "ruff", "format", "--check", ".")
@@ -100,7 +106,7 @@ COMMANDS = {
         "--port",
         "8000",
     ),
-    "ui": lambda: _run(shutil.which("reflex") or "reflex", "run", cwd=ROOT / "frontend"),
+    "ui": lambda: _run(_venv_tool("reflex"), "run", cwd=ROOT / "frontend"),
     "odoo-up": lambda: _compose("infra/odoo/compose.yaml", "up", "-d", "db", "odoo"),
     "odoo-down": lambda: _compose("infra/odoo/compose.yaml", "stop"),
 }

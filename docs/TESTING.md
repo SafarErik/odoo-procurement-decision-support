@@ -19,10 +19,11 @@ Docker Compose on Ubuntu.
 | Area | Main test files |
 | --- | --- |
 | MILP model: bounds, optimum vs. brute-force reference, alternatives, tie-break, infeasible / time-limit / solver-error states | `test_t13_planning.py`, `test_t13_solver_runtime.py` |
-| ML: dataset generation, label window, leakage guards, time/supplier split, training, metrics, artifact reload, tree path | `test_t14_dataset.py`, `test_t14_model.py`, `test_t14_runtime.py` |
+| ML on Odoo purchase history: export policy, adapter, as-of features, next-window label, supplier/time split, depth selection, baselines, artifact, inference, readable path, seeding guards, full case lifecycle | `test_odoo_purchase_history.py` |
+| Demo ML (synthetic V1 tree): dataset generation, label window, leakage guards, training, artifact reload | `test_t14_dataset.py`, `test_t14_model.py`, `test_t14_runtime.py` |
 | ML → MILP risk bridge and score validity | `test_t14_planning_bridge.py` |
 | Historical KPI (delivery schedule adherence) and the bounded Odoo projection | `test_historical_performance.py`, `test_t7s_projection_policy.py`, `test_odoo_historical_performance_adapter.py` |
-| Odoo readers (RFQs, comparison groups, history) with mocked transport | `test_odoo_adapter.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_history_integration.py` |
+| Odoo readers (RFQs, comparison groups, purchase history) with mocked transport | `test_odoo_adapter.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
 | Planning API: creation, provenance, fail-closed inputs, idempotent replay, stored-only GET | `test_t15_planning_api.py`, `test_t15_odoo_planning.py` |
 | Stress scenarios against the original base | `test_t16_scenarios.py`, `test_scenario_baseline.py` |
 | Human decision, No-award, conflicts, approved PDF content | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
@@ -38,5 +39,5 @@ capability when they are next changed.
 
 Temporal train/test split with a gap so label windows never cross the boundary,
 disjoint suppliers between train and test, preprocessing fitted on train only,
-fixed seed, metrics reported per class with support. See [MODEL_ML.md](MODEL_ML.md)
-(written in P1).
+fixed seed, metrics reported per class with support, majority-class and single-rule
+baselines. See [MODEL_ML.md](MODEL_ML.md).

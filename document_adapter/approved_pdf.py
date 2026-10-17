@@ -157,13 +157,13 @@ def render_approved_pdf(content):
         fields(
             [
                 ("Acquisition database", capture["evidence"]["database"]),
-                ("Record origin", capture["evidence"]["origin"]),
+                (
+                    "Record origin",
+                    snapshot["model_manifest"]["metadata"]["data_origin"],
+                ),
                 ("History cutoff (UTC)", capture["evidence"]["cutoff"]),
                 ("History capture SHA-256", capture["capture_hash"]),
-                (
-                    "Model training source",
-                    snapshot["model_manifest"]["metadata"]["training_source_type"],
-                ),
+                ("Model training source", snapshot["model_manifest"]["metadata"]["source_type"]),
             ]
         )
     section(

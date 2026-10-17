@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+from decimal import Decimal
 from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
@@ -25,6 +26,22 @@ def scenario_requests(payload):
         ("combined", {"capacity": 150, "unit_price": "10"}, 220),
         ("demand_increase", {}, 500),
     )
+    if "terms" in payload:  # live Odoo history: changes relative to the read quotation
+        terms = facts["suppliers"][-1]
+        price, capacity = Decimal(terms["unit_price"]), terms["capacity"]
+        demand = facts["requirement"]["approved_quantity"]
+        changes = (
+            ("supplier_outage", {"available": False}, None),
+            ("capacity_reduction", {"capacity": capacity * 5 // 6}, None),
+            ("demand_increase", {}, demand + demand // 4),
+            ("price_increase", {"unit_price": str((price * Decimal("1.3")).quantize(price))}, None),
+            (
+                "combined",
+                {"capacity": capacity * 5 // 6, "unit_price": str(price + 1)},
+                demand + 20,
+            ),
+            ("demand_increase", {}, demand * 5),
+        )
     return [
         {
             "kind": kind,
@@ -62,20 +79,17 @@ def download_pdf(client, case, path):
     return {"sha256": digest, "bytes": len(response.content), "content_hash": content_hash}
 
 
-def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=False):
+def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=None):
     if not actor.strip() or not reason.strip() or not no_award_reason.strip():
         raise ValueError("Explicit demonstration actor and both outcome reasons are required.")
     if odoo_history:
-        preview = checked(client.get(f"{BASE}/odoo-history/local-v1"), 200)
-        if (
-            preview["model_readiness"] != "ready"
-            or preview["database"] != "procurement_v2_history_test_v1"
-            or preview["origin"] != "controlled_synthetic"
-            or [p["value"] for p in preview["history"]] != ["100.00", "66.67", "33.33"]
-            or [p["sample_size"] for p in preview["history"]] != [3, 3, 3]
-        ):
-            raise ValueError("The controlled Odoo history profile is not ready.")
-        payload = {k: preview[k] for k in ("profile_id", "profile_revision", "terms")}
+        preview = checked(
+            client.get(f"{BASE}/odoo-history/preview", params={"purchase_group_id": odoo_history}),
+            200,
+        )
+        if preview["model_readiness"] != "ready":
+            raise ValueError("The Odoo-history supplier model is not ready.")
+        payload = {"purchase_group_id": odoo_history, "terms": preview["terms"]}
     else:
         payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
     create_path = f"{BASE}/from-odoo-history" if odoo_history else f"{BASE}/from-odoo"
@@ -179,8 +193,9 @@ def main():
     parser.add_argument("--no-award-reason")
     parser.add_argument(
         "--odoo-history",
-        action="store_true",
-        help="Acquire the fixed local history preview; never prepare or train a model.",
+        type=int,
+        metavar="PURCHASE_GROUP_ID",
+        help="Use live Odoo purchase history for this quotation group; never trains a model.",
     )
     parser.add_argument("--base-url", type=local_url, default="http://127.0.0.1:8000")
     args = parser.parse_args()

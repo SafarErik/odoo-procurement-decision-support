@@ -17,8 +17,34 @@ FEATURES = ("delivery_schedule_adherence", "historical_completed_count")
 CLASSES = ("schedule_regular", "schedule_watch")
 SEED = 17
 SYNTHETIC = "t14_synthetic"
-ODOO_HISTORY = "odoo_projection"
-ODOO_MAPPING_VERSION = "t14-leaf-exposure-odoo-controlled-v1"
+
+# V2: features computed from the bounded Odoo purchase-history export (docs/MODEL_ML.md).
+HISTORY_SOURCE = "odoo_purchase_history"
+HISTORY_FEATURE_VERSION = "odoo-purchase-history-features-v2"
+HISTORY_FEATURES = (
+    "on_time_rate",
+    "mean_lateness_days",
+    "lateness_spread_days",
+    "fill_rate",
+    "partial_share",
+    "order_count",
+    "days_since_last_receipt",
+)
+HISTORY_DATASET_VERSION = "odoo-purchase-history-dataset-v2"
+HISTORY_LABEL_VERSION = "next-60d-problematic-v2"
+HISTORY_MAPPING_VERSION = "leaf-exposure-odoo-history-v2"
+HISTORY_LOOKBACK = timedelta(days=120)
+HISTORY_SETTLEMENT = timedelta(days=14)
+FEATURE_SETS = {FEATURE_VERSION: FEATURES, HISTORY_FEATURE_VERSION: HISTORY_FEATURES}
+# (source_type, mapping_version) -> (dataset_version, label_version, feature_version)
+ASSESSMENT_VERSIONS = {
+    (SYNTHETIC, MAPPING_VERSION): (DATASET_VERSION, LABEL_VERSION, FEATURE_VERSION),
+    (HISTORY_SOURCE, HISTORY_MAPPING_VERSION): (
+        HISTORY_DATASET_VERSION,
+        HISTORY_LABEL_VERSION,
+        HISTORY_FEATURE_VERSION,
+    ),
+}
 
 
 def canonical(value: object) -> str:
@@ -45,10 +71,26 @@ def utc(value: datetime) -> None:
 
 
 def feature_vector(names: tuple[str, ...], values: tuple[float, ...]) -> tuple[float, ...]:
-    if names != FEATURES or not isinstance(values, tuple) or len(values) != len(FEATURES):
+    if (
+        names not in FEATURE_SETS.values()
+        or not isinstance(values, tuple)
+        or len(values) != len(names)
+    ):
         raise ValueError("Exact ordered feature schema required.")
     if any(type(x) not in (int, float) or not math.isfinite(x) for x in values):
         raise ValueError("Missing or nonfinite feature.")
+    if names == HISTORY_FEATURES:
+        on_time, lateness, spread, fill, partial, count, recency = values
+        if (
+            not all(0 <= x <= 1 for x in (on_time, fill, partial))
+            or not -30 <= lateness <= 400
+            or not 0 <= spread <= 400
+            or not 3 <= count <= 500
+            or int(count) != count
+            or not 0 <= recency <= 400
+        ):
+            raise ValueError("Invalid feature range or insufficient history support.")
+        return tuple(float(x) for x in values)
     adherence, count = values
     if not 0 <= adherence <= 100 or not 3 <= count <= 50 or int(count) != count:
         raise ValueError("Invalid feature range or insufficient history support.")
@@ -112,14 +154,19 @@ class FeatureSnapshot:
             self.evidence_available_at,
         ):
             utc(value)
-        if (
-            self.history_end - self.history_start != timedelta(days=365)
-            or not self.history_end <= self.evidence_available_at <= self.cutoff
-            or not timedelta(0) <= self.cutoff - self.history_end <= timedelta(days=7)
-        ):
-            raise ValueError("Future, stale or incompatible history cutoff.")
-        if self.feature_version != FEATURE_VERSION:
+        if FEATURE_SETS.get(self.feature_version) != self.feature_names:
             raise ValueError("Incompatible feature version.")
+        if self.feature_version == HISTORY_FEATURE_VERSION:
+            window_ok = (
+                self.history_end - self.history_start == HISTORY_LOOKBACK
+                and self.cutoff - self.history_end == HISTORY_SETTLEMENT
+            )
+        else:
+            window_ok = self.history_end - self.history_start == timedelta(days=365) and timedelta(
+                0
+            ) <= self.cutoff - self.history_end <= timedelta(days=7)
+        if not window_ok or not self.history_end <= self.evidence_available_at <= self.cutoff:
+            raise ValueError("Future, stale or incompatible history cutoff.")
         feature_vector(self.feature_names, self.values)
         text_identity(self.source_type)
         text_identity(self.source_reference)
@@ -151,7 +198,7 @@ class PathStep:
         if (
             type(self.node_id) is not int
             or self.node_id < 0
-            or self.feature not in FEATURES
+            or self.feature not in FEATURES + HISTORY_FEATURES
             or type(self.value_float32) is not float
             or not math.isfinite(self.value_float32)
             or type(self.threshold) is not float
@@ -185,11 +232,13 @@ class Assessment:
         utc(self.valid_until)
         if self.valid_until != self.snapshot.cutoff + timedelta(days=30):
             raise ValueError("Invalid assessment time validity.")
-        if (
-            (self.snapshot.source_type, self.mapping_version)
-            not in {(SYNTHETIC, MAPPING_VERSION), (ODOO_HISTORY, ODOO_MAPPING_VERSION)}
-            or self.dataset_version != DATASET_VERSION
-            or self.label_version != LABEL_VERSION
+        versions = ASSESSMENT_VERSIONS.get((self.snapshot.source_type, self.mapping_version))
+        if versions != (
+            self.dataset_version,
+            self.label_version,
+            self.snapshot.feature_version,
+        ) or any(
+            getattr(step, "feature", None) not in self.snapshot.feature_names for step in self.path
         ):
             raise ValueError("Incompatible assessment version/provenance.")
         if type(self.predicted_class) is not int or self.predicted_class not in (0, 1):

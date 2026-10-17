@@ -71,7 +71,7 @@ async def fetch_library(url, token, params, *, transport=None):
                     "source": {
                         "controlled_synthetic": "Synthetic inputs and ML history",
                         "odoo_quotations_odoo_history": (
-                            "Odoo quotations and receipts · controlled synthetic origin"
+                            "Odoo quotations · Odoo purchase history (generated test data)"
                         ),
                         "odoo_quotations_synthetic_history": (
                             "Captured Odoo quotations · synthetic ML history"

@@ -159,3 +159,21 @@ def test_orchestration_and_http_boundaries_are_narrow() -> None:
         assert all(
             not name.startswith(("backend", "frontend", "odoo_adapter")) for name in _imports(path)
         )
+
+
+def test_purchase_history_reader_uses_only_the_bounded_export() -> None:
+    source = (PROJECT_ROOT / "odoo_adapter" / "product_history_reader.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'MODEL = "procurement.product.history.export"' in source
+    for forbidden in ('"stock.move"', '"stock.picking"', '"create"', '"write"', '"unlink"'):
+        assert forbidden not in source
+
+
+def test_seeding_tool_is_never_reachable_from_runtime_code() -> None:
+    for package in ("application", "backend", "odoo_adapter", "supplier_evaluation", "frontend"):
+        for path in (PROJECT_ROOT / package).rglob("*.py"):
+            if ".web" in path.parts:
+                continue
+            assert "seed_odoo_history" not in path.read_text(encoding="utf-8"), path
+            assert all(not name.startswith("tools") for name in _imports(path)), path

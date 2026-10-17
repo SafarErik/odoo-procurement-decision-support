@@ -32,16 +32,14 @@ from supplier_evaluation.contracts import (
     DATASET_VERSION,
     FEATURE_VERSION,
     FEATURES,
+    HISTORY_SOURCE,
     LABEL_VERSION,
     MAPPING_VERSION,
-    ODOO_HISTORY,
-    ODOO_MAPPING_VERSION,
     SYNTHETIC,
     text_identity,
     utc,
 )
 from supplier_evaluation.planning_bridge import risk_inputs
-from supplier_evaluation.qualified_odoo import PACKAGE_VERSION
 
 DECISION_VERSION = "t17-final-decision-v1"
 CONTENT_VERSION = "t17-approved-planning-v1"
@@ -115,24 +113,34 @@ def _saved_evidence(case: PlanningCase) -> dict:
         result = read_result(value["result"])
         metadata = value["model_manifest"]["metadata"]
         history = value["facts"].get("input_kind") == HISTORY_INPUT_KIND
-        source_type = ODOO_HISTORY if history else SYNTHETIC
+        source_type = HISTORY_SOURCE if history else SYNTHETIC
+        if history:
+            from supplier_evaluation.history_model import check_manifest_metadata
+
+            check_manifest_metadata(metadata)
+            if metadata["company_id"] != facts["company_id"]:
+                raise ValueError("Unsupported saved model metadata.")
         for name, expected in (
-            ("artifact_version", PACKAGE_VERSION if history else ARTIFACT_VERSION),
-            ("feature_version", FEATURE_VERSION),
-            ("feature_names", list(FEATURES)),
-            ("label_version", LABEL_VERSION),
-            ("class_names", list(CLASSES)),
-            ("mapping_version", ODOO_MAPPING_VERSION if history else MAPPING_VERSION),
-            ("dataset_version", DATASET_VERSION),
-            ("source_type", source_type),
-            (
-                "domain",
-                [
-                    facts["company_id"],
-                    request.requirement.product_id,
-                    request.requirement.quantity_unit,
-                ],
-            ),
+            ()
+            if history
+            else (
+                ("artifact_version", ARTIFACT_VERSION),
+                ("feature_version", FEATURE_VERSION),
+                ("feature_names", list(FEATURES)),
+                ("label_version", LABEL_VERSION),
+                ("class_names", list(CLASSES)),
+                ("mapping_version", MAPPING_VERSION),
+                ("dataset_version", DATASET_VERSION),
+                ("source_type", source_type),
+                (
+                    "domain",
+                    [
+                        facts["company_id"],
+                        request.requirement.product_id,
+                        request.requirement.quantity_unit,
+                    ],
+                ),
+            )
         ):
             if metadata[name] != expected:
                 raise ValueError("Unsupported saved model metadata.")

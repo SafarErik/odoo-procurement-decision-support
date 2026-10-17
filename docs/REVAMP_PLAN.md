@@ -1,6 +1,6 @@
 # Revamp plan — completeness audit and delivery plan
 
-Date: 2026-10-17. Status: P0 implemented on `feature/p0-repo-cleanup` (see docs/handoffs/P0_REPO_CLEANUP.md); P1–P5 open.
+Date: 2026-10-17. Status: P0 merged; P1 implemented (see docs/handoffs/P1_ODOO_HISTORY_ML.md); P2–P5 open.
 Baseline read: official task sheet (423.589/25/140), Drive 00/01/02/03/06/07/08,
 README, AGENTS.md, source tree at `main` `0c9f228`.
 

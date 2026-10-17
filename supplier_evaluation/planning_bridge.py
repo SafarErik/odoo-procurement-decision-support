@@ -6,7 +6,13 @@ from datetime import datetime
 from application.procurement_planning import ExternalRiskContext
 from decision_core.planning.models import PlanningRequest, QuantityRange, RiskCoefficient
 from decision_core.planning.rules import validate_risk
-from supplier_evaluation.contracts import Assessment, digest, text_identity, utc
+from supplier_evaluation.contracts import (
+    HISTORY_MAPPING_VERSION,
+    Assessment,
+    digest,
+    text_identity,
+    utc,
+)
 
 
 def risk_inputs(
@@ -55,7 +61,11 @@ def risk_inputs(
     )
     validate_risk(replace(request, risk_coefficients=coefficients))
     context = ExternalRiskContext(
-        f"docs/history/T14_ML_DESIGN.md#{assessments[0].mapping_version}",
+        (
+            f"docs/MODEL_ML.md#{assessments[0].mapping_version}"
+            if assessments[0].mapping_version == HISTORY_MAPPING_VERSION
+            else f"docs/history/T14_ML_DESIGN.md#{assessments[0].mapping_version}"
+        ),
         "t14-assessments:" + digest([a.reference for a in ordered]),
         "t14-quantity-independent-controlled-proxy:"
         + digest(

@@ -49,6 +49,7 @@ Running the UI, database and Odoo: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 | Document | Use |
 | --- | --- |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, flow, boundaries, API, persistence |
+| [MODEL_ML.md](docs/MODEL_ML.md) | Supplier model: Odoo-history dataset card, features, label, evaluation |
 | [MODEL_MILP.md](docs/MODEL_MILP.md) | Allocation model and its limitations |
 | [RUNBOOK.md](docs/RUNBOOK.md) | Setup and running services |
 | [TESTING.md](docs/TESTING.md) | Test levels and coverage map |
@@ -66,6 +67,7 @@ All five required capabilities work end to end in a controlled local setup:
 Decision Tree supplier evaluation, MILP allocation with alternatives, Reflex UI,
 stress scenarios, and human approval with PDF. The current revamp (see the plan)
 cleans the repository (P0, done), retrains the model from Odoo-sourced history
-(P1), extends scenarios/PDF/API (P2), rebuilds the UI in Hungarian/English (P3)
-and closes validation (P4). The supplier model is trained on generated data and
-does not claim real-world predictive accuracy.
+(P1, done), extends scenarios/PDF/API (P2), rebuilds the UI in Hungarian/English (P3)
+and closes validation (P4). The supplier model is trained from purchase history read
+from Odoo; in the test database that history is generated, so no real-world predictive
+accuracy is claimed.

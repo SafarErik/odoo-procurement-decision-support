@@ -235,7 +235,7 @@ def test_live_odoo_identity_has_read_only_purchase_order_access() -> None:
         {"ids": direct_group_ids, "fields": ["name"]},
     )
     assert {group["name"] for group in group_records} == {
-        "Procurement RFQ API Reader",
+        "PDSS Quotation Reader",
         "Role / User",
     }
 

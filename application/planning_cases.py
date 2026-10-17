@@ -28,7 +28,7 @@ from application.procurement_planning import PlanningCommand, create_procurement
 from application.provenance import SourceAttribution
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import exact_decimal
-from supplier_evaluation.contracts import ODOO_HISTORY, utc
+from supplier_evaluation.contracts import HISTORY_SOURCE, utc
 from supplier_evaluation.planning_bridge import risk_inputs
 
 SNAPSHOT_VERSION = "t15-controlled-planning-v1"
@@ -152,20 +152,15 @@ def validate_snapshot(case: PlanningCase) -> dict:
             raise ValueError("Incomplete stored assessments.")
         metadata = value["model_manifest"]["metadata"]
         if value["facts"].get("input_kind") == HISTORY_INPUT_KIND:
-            from supplier_evaluation.qualified_odoo import qualification_metadata
+            from supplier_evaluation.history_model import check_manifest_metadata
 
-            manifest = value["model_manifest"]
             facts = value["facts"]
+            check_manifest_metadata(metadata)
             captured = capture_features(facts["history"])
             if (
-                facts["source_type"] != ODOO_HISTORY
+                facts["source_type"] != HISTORY_SOURCE
                 or facts["input_kind"] != HISTORY_INPUT_KIND
-                or metadata
-                != qualification_metadata(
-                    manifest["candidate_manifest"], manifest["compatibility_report"]
-                )
-                or metadata["domain"] != list(captured[0].context.domain)
-                or manifest["artifact_sha256"] != manifest["candidate_manifest"]["artifact_sha256"]
+                or metadata["company_id"] != facts["company_id"]
                 or snapshot_json(sorted(captured, key=lambda f: f.context.supplier_id))
                 != snapshot_json(
                     [
