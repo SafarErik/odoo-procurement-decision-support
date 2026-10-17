@@ -342,6 +342,54 @@ record origin; model training remains synthetic. Classes/allocations are the act
 saved tree/MILP output, not assigned by the UI. Existing separately synthetic
 creation still requires its own original model configuration.
 
+### Offline model and evidence reproduction
+
+For a thesis demonstration without Odoo or database access, preserve the owner-only
+local kit `.artifacts/thesis-repro-20261017-c217b8ae/thesis-offline-demo-windows-py311.zip`.
+It contains committed source `080ff320c083ad90395fab7d8b9abf98343a2ea6`, exact
+Windows x64/Python 3.11 dependency wheels, trusted saved model and controlled
+technical evidence. It excludes credentials, database backups and environments.
+The host's Python installer, Reflex/Node/browser and full database deployment are
+not included. Do not copy the whole `.artifacts` directory into a presentation kit.
+
+Before extraction/execution, compare against this separately retained hash:
+
+```powershell
+$demoArchive = '.artifacts/thesis-repro-20261017-c217b8ae/thesis-offline-demo-windows-py311.zip'
+$demoExpectedHash = '9b06bb647b34ea7713b44a7dd443a5d42d9856e9f73c61a2c2c8b136598769e9'
+if ((Get-FileHash -LiteralPath $demoArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $demoExpectedHash) {
+    throw 'Unexpected demonstration archive; do not execute it.'
+}
+$demoDirectory = Join-Path '.artifacts' ('thesis-demo-' + [guid]::NewGuid().ToString('N'))
+Expand-Archive -LiteralPath $demoArchive -DestinationPath $demoDirectory
+Get-Content (Join-Path $demoDirectory 'README.md')
+```
+
+Follow that README in a new PowerShell terminal with a trusted Python 3.11
+installation: verify payload checksums, create a new venv, install the hashed
+wheelhouse using `--isolated --no-index --require-hashes`, extract/install the
+source with `--no-deps --no-build-isolation`, then run its offline verifier from
+the extracted source. Use a new output directory on each run; do not use `python -O`.
+The README gives exact commands, expected values and the 69-test focused check.
+It starts no services, fits no model, writes only new local evidence and needs no
+administrator access. Preserve original inputs; no database cleanup is required.
+
+Expected: exact frozen evaluation hash and byte-identical qualified package,
+100.00/66.67/33.33% at n=3, B03's two events counted once, classes 0/1/1, independent
+CBC calculations matching eight recorded plans, and the unchanged saved PDF hash.
+The PDF is existing saved evidence, not freshly rendered. This is recorded replay
+and independent calculation, not HTTP/database reopening or a fresh Odoo capture.
+Joblib can execute code: trust the owner/source and external hash, not just an
+archive's internal manifest. Copy this ignored ZIP and its separate hash to an
+owner-controlled backup before relying on it for a future presentation.
+
+For a later live demonstration, retain a separately secured complete Odoo test-copy
+backup/filestore and addon configuration; restore only through an approved owner
+procedure and supply fresh restricted keys. Do not distribute backups or keys in
+this kit. The exact IDs/profile must still match. A new real acquisition uses its
+actual cutoff; after fixtures leave the 365-day window it must reject insufficient
+history. Offline replay retains its recorded cutoff and synthetic-origin labels.
+
 ### Repeatable functional verification and restart
 
 The existing helper may be older than the code. On 2026-10-17 it was still at

@@ -1,5 +1,21 @@
 # Implementation log
 
+## 2026-10-17 — Isolated offline model/evidence reproduction
+
+A committed clean source archive and second empty Python 3.11 environment reproduce
+the exact compatibility report and byte-identical qualified package using hashed
+local wheels without package-index access or fitting. Captured raw receipts/KPIs,
+inference, eight independent CBC recalculations and saved PDF hash match. Focused
+receipt/MILP/architecture checks: 69 passed; dependency consistency passes.
+An allowlisted 73-file local demonstration ZIP contains source/wheels/model and
+controlled technical evidence; configured-key matching finds no credentials.
+Private environment files, backups and installed environments are excluded.
+See [evidence and portability limits](ODOO_HISTORY_INTEGRATION_HANDOFF.md#offline-reproducibility-check--2026-10-17)
+and [reproduction procedure](LOCAL_DEVELOPMENT_AND_SSH.md#offline-model-and-evidence-reproduction).
+This is same-host Windows isolation, not a second-machine/full-stack/live-Odoo or
+training-rebuild claim. No application/dependency/schema/runtime changes, Odoo
+writes, Git publication or Drive edits. Pre-existing frontend lock changes remain.
+
 ## T16 procurement cockpit usability and decomposition (2026-10-08)
 
 **Problem:** functional success left buyers interpreting raw IDs, long tree/solver

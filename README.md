@@ -28,6 +28,14 @@ credentials have their own setting, independent of the original database.
 See [current functional evidence](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md#functional-operation-follow-up--2026-10-17)
 and [run/reopen instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#repeatable-functional-verification-and-restart).
 
+**2026-10-17 offline reproducibility check:** a clean committed checkout and a
+second empty Python 3.11 environment installed from hashed local wheels reproduce
+the exact compatibility report/package, recorded history, all eight technical
+case plans and saved PDF hash. A credential-free local demonstration ZIP and
+[repeat instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#offline-model-and-evidence-reproduction)
+are prepared. This is same-host Windows verification, not a fresh full-stack or
+second-machine acceptance. [Evidence and limits](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md#offline-reproducibility-check--2026-10-17).
+
 **2026-10-16 controlled Odoo history integration:** the existing Odoo creation form
 now offers **Use history from Odoo** for the fixed test-copy case. Quotations and
 completed receipts are acquired through restricted readers, evaluated by a separately
