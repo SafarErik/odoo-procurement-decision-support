@@ -14,7 +14,7 @@ from tools.t15_demo import BASE, local_url, write_json
 
 
 def scenario_requests(payload):
-    facts = payload["controlled_input"]
+    facts = payload["terms"] if "terms" in payload else payload["controlled_input"]
     supplier = facts["suppliers"][-1]["supplier_id"]
     source = facts["requirement_source"]
     changes = (
@@ -62,10 +62,25 @@ def download_pdf(client, case, path):
     return {"sha256": digest, "bytes": len(response.content), "content_hash": content_hash}
 
 
-def run_flow(directory, client, actor, reason, no_award_reason):
-    payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
+def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=False):
     if not actor.strip() or not reason.strip() or not no_award_reason.strip():
         raise ValueError("Explicit demonstration actor and both outcome reasons are required.")
+    if odoo_history:
+        preview = checked(client.get(f"{BASE}/odoo-history/local-v1"), 200)
+        if (
+            preview["model_readiness"] != "ready"
+            or preview["database"] != "procurement_v2_history_test_v1"
+            or preview["origin"] != "controlled_synthetic"
+            or [p["value"] for p in preview["history"]] != ["100.00", "66.67", "33.33"]
+            or [p["sample_size"] for p in preview["history"]] != [3, 3, 3]
+        ):
+            raise ValueError("The controlled Odoo history profile is not ready.")
+        payload = {k: preview[k] for k in ("profile_id", "profile_revision", "terms")}
+        payload["catalog_context"] = {"workspace": "controlled"}
+    else:
+        payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
+    create_path = f"{BASE}/from-odoo-history" if odoo_history else f"{BASE}/from-odoo"
+    directory.mkdir(parents=True, exist_ok=True)
     report_path = directory / f"t17-run-{uuid4()}.json"
     report = {"request": payload, "operations": [], "scenarios": []}
 
@@ -81,7 +96,7 @@ def run_flow(directory, client, actor, reason, no_award_reason):
 
     print(f"Evidence and exact replay intents: {report_path}")
     started = perf_counter()
-    base = post(f"{BASE}/from-odoo", payload)
+    base = post(create_path, payload)
     report["base"] = base
     for delta in scenario_requests(payload):
         child = post(f"{BASE}/{base['case_id']}/scenarios", delta)
@@ -92,7 +107,7 @@ def run_flow(directory, client, actor, reason, no_award_reason):
         raise ValueError("Controlled demand-500 case must be infeasible.")
     if not base["snapshot"]["result"]["alternatives"]:
         raise ValueError("A valid saved alternative is required for this demonstration.")
-    no_award = post(f"{BASE}/from-odoo", payload)
+    no_award = post(create_path, payload)
     for name, case, outcome, index in (
         ("approved", base, "approve", 1),
         ("no_award", no_award, "no_award", None),
@@ -163,6 +178,11 @@ def main():
     parser.add_argument("--actor")
     parser.add_argument("--reason")
     parser.add_argument("--no-award-reason")
+    parser.add_argument(
+        "--odoo-history",
+        action="store_true",
+        help="Acquire the fixed local history preview; never prepare or train a model.",
+    )
     parser.add_argument("--base-url", type=local_url, default="http://127.0.0.1:8000")
     args = parser.parse_args()
     if args.command == "run" and (not args.actor or not args.reason or not args.no_award_reason):
@@ -180,7 +200,14 @@ def main():
             follow_redirects=False,
         ) as client:
             if args.command == "run":
-                run_flow(args.directory, client, args.actor, args.reason, args.no_award_reason)
+                run_flow(
+                    args.directory,
+                    client,
+                    args.actor,
+                    args.reason,
+                    args.no_award_reason,
+                    odoo_history=args.odoo_history,
+                )
             else:
                 verify_stored(args.report, client)
     except (OSError, ValueError, KeyError, httpx.HTTPError) as error:

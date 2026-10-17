@@ -16,6 +16,18 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 
 ## Start here
 
+**2026-10-17 functional operation:** the existing helper database is now at the
+accepted approval/PDF/catalog schema, with all 36 prior planning cases preserved
+and reopened after database/API restart without source/model access. The existing
+demo command now supports `--odoo-history` for the complete functional matrix.
+After owner key renewal, both restricted test-copy readers pass. All five stress
+types, infeasible demand, alternative approval, No-award and immutable PDF/replay
+pass on the persistent setup and expanded live browser stack. Eight new technical
+cases are retained; the normal UI runs at localhost:3000. Test-copy quotation
+credentials have their own setting, independent of the original database.
+See [current functional evidence](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md#functional-operation-follow-up--2026-10-17)
+and [run/reopen instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#repeatable-functional-verification-and-restart).
+
 **2026-10-16 controlled Odoo history integration:** the existing Odoo creation form
 now offers **Use history from Odoo** for the fixed test-copy case. Quotations and
 completed receipts are acquired through restricted readers, evaluated by a separately

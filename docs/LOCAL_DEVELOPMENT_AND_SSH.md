@@ -299,14 +299,19 @@ Prerequisites: the existing Odoo service and test copy, the Python 3.11 environm
 a working Node runtime, and the already configured **separate helper PostgreSQL**
 database at the current Alembic head. Use the existing
 [persistence procedure](PERSISTENCE_DEVELOPMENT.md); never point helper migrations
-or reset tests at Odoo. This increment adds no SQL migration. The owner database
-was not migrated, reset or populated during implementation acceptance.
+or reset tests at Odoo. This increment adds no new SQL migration. The 2026-10-16
+integration acceptance did not migrate, reset or populate the owner helper. The
+2026-10-17 follow-up below applied already accepted migrations and retained new
+technical verification cases.
 
-The prepared ignored `.env.v2-history-runtime` contains the dedicated clone reader,
+The prepared ignored `.env.v2-history-runtime` contains the dedicated clone readers,
 fixed database, qualified model directory and library company scope. Original
-`.env` and `.env.v2-history-test` remain unchanged. It adds only the history
-configuration; ordinary restricted RFQ access, helper database URL and shared
-service token still come from existing `.env`/process configuration. Never use an
+`.env` is preserved; the owner supplies renewed test-copy keys in
+`.env.v2-history-test`. The runtime file adds only the history
+configuration; the original database's RFQ access, helper database URL and shared
+service token still come from existing `.env`/process configuration. Test-copy
+quotations use `ODOO_HISTORY_QUOTATION_API_KEY`, while the projection uses
+`ODOO_HISTORY_API_KEY`; neither falls back to the original database's key. Never use an
 administrator key. The original candidate artifact remains unchanged under
 `.artifacts/t15-odoo-demo/model`; the separately qualified package is under
 `.artifacts/v2-odoo-history-integration/qualified-model`.
@@ -336,6 +341,67 @@ approval and open its PDF. The history is Odoo-acquired, with controlled synthet
 record origin; model training remains synthetic. Classes/allocations are the actual
 saved tree/MILP output, not assigned by the UI. Existing separately synthetic
 creation still requires its own original model configuration.
+
+### Repeatable functional verification and restart
+
+The existing helper may be older than the code. On 2026-10-17 it was still at
+`20261005_01`. A helper-only archive backup and row fingerprints were taken before
+applying the existing additive approval/PDF/catalog migrations to `20261012_01`;
+all 36 prior planning cases and the earlier V1 records remained unchanged. This
+does not authorize running resetting integration tests against that database.
+Inspect/apply already accepted revisions only through the
+[existing migration procedure](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations).
+No new migration is introduced by this increment.
+
+With the normal API running, the existing demo command can now acquire the fixed
+Odoo-history preview instead of loading separately synthetic request history:
+
+```powershell
+$env:T12_TRUSTED_CALLER_TOKEN = & python -c "from backend.app.config import settings; print(settings.t12_trusted_caller_token.get_secret_value())"
+python -m tools.t17_demo run --odoo-history --directory .artifacts/odoo-history-owner-run --actor "Controlled owner verification" --reason "Verify the saved lower-exposure alternative." --no-award-reason "No purchase authorized in this separate technical verification."
+```
+
+This creates **two new technical base cases, six scenario children** (five types
+plus infeasible demand), an alternative-plan technical approval, a separate
+No-award and the saved PDF. It never modifies an existing owner's case or an Odoo
+record. The actor is supplied test audit text, not authenticated buyer acceptance.
+The report is written before every POST; uncertain calls are not automatically
+retried. Preserve the printed `t17-run-<uuid>.json` path and its adjacent PDF.
+
+After closing/restarting API and the existing helper container, verify the same
+report without creating another run:
+
+```powershell
+python -m tools.t17_demo reopen --report .artifacts/odoo-history-owner-run/t17-run-<uuid>.json
+```
+
+Expect unchanged snapshots/decisions, exact idempotent replays, identical PDF bytes
+and No-award PDF denial. Reopen also works with upstream/model configuration
+unavailable. Use the isolated browser harness for fault injection; leave the owner
+Odoo service running. Repeated `run` creates additional technical cases, while
+`reopen` reuses saved identities. Closing an app or tunnel does not delete cases.
+
+**HTTP 401 from Odoo:** renew only the rejected restricted-user keys in the test
+copy, following the existing manual setup. A rejected key is an acquisition
+failure, not a reason to grant Inventory rights, use an administrator key or train
+a model. Store the test-copy quotation key as `ODOO_API_KEY` and the projection key
+as `ODOO_T7S_API_KEY` in `.env.v2-history-test`. Normal runtime reads their values
+as `ODOO_HISTORY_QUOTATION_API_KEY` and `ODOO_HISTORY_API_KEY` respectively from
+`.env.v2-history-runtime`. Update both runtime fields after renewal and restart
+the API; keep the original `.env` key unchanged. Keep all files
+ignored and never display their values. The first 2026-10-17 run independently
+observed 401 for both readers. After owner renewal, uid 7 and uid 8 were verified
+non-admin, quotation read-only ACLs remained intact, and live acquisition passed.
+
+The persistent technical result is available at
+`http://localhost:3000/planning?case_id=725988fb-79fe-483d-b556-d9cecc8911e8&view=plans`;
+the separate No-award is `ebb0ef54-b48a-4dab-a09f-59d583c740b0`. These are retained
+technical verification records, not a real purchase authorization. API 8000,
+Reflex 8001/frontend 3000 and the existing containers/tunnels are running after
+the verified handoff. After reboot, use the existing startup/recovery instructions.
+The API log, frontend log and owned root PIDs are recorded under
+`.artifacts/odoo-history-functional-43457854b415/`. Stop only those owned API/Reflex
+process trees after use; keep the helper container/volume and saved cases intact.
 
 New interfaces (existing trusted-caller authentication applies):
 

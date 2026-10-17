@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     t15_trusted_model_directory: Path | None = None
     odoo_history_database: str = ""
     odoo_history_api_key: SecretStr = SecretStr("")
+    odoo_history_quotation_api_key: SecretStr = SecretStr("")
     odoo_history_model_directory: Path | None = None
     planning_library_company_id: str = ""
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)

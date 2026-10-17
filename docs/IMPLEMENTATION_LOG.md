@@ -3653,3 +3653,45 @@ No SQL migration, owner application database change, Git publication or Drive ed
 Remaining scope is owner review/publication, hosted CI and separately supported
 operational history/model validity; this technical flow does not establish novice
 acceptance, calibrated failure probabilities or real-world predictive superiority.
+
+### 2026-10-17 — Persistent local operation and functional matrix; live keys blocked
+
+Restored the existing Podman machine/Odoo/helper services in place. The normal
+helper was at `20261005_01`; verified a helper-only archive and all prior row hashes
+before applying the already accepted additive approval/PDF/catalog migrations to
+`20261012_01`. All 36 original planning cases and earlier V1 records remain
+unchanged, including after helper/API restart with upstream/model access disabled.
+No new migration, resource replacement, reset or Odoo write.
+
+Extended the existing HTTP demo with `--odoo-history` and the browser regression
+with all five scenarios, infeasible demand, alternative approval, No-award and
+database restart/reopening. Added separate test-copy quotation-key configuration
+with no fallback to original-database credentials. Full fast run: 706 passed;
+post-isolation focused run: 34 passed. Static/dependency/configuration checks pass.
+Live acquisition newly returns 401 for both restricted readers; backend preview
+fails closed with 503 and the browser run fails before creation. No renewed keys,
+permissions expansion or substituted scores. Owner renewal is required before
+normal persistent-history matrix and expanded live browser acceptance can finish.
+See [functional follow-up](ODOO_HISTORY_INTEGRATION_HANDOFF.md#functional-operation-follow-up--2026-10-17)
+for actual artifacts, migration/backup and credential boundaries. No UX acceptance,
+model training/promotion, Git publication or Drive edits.
+
+### 2026-10-17 — Renewed test-copy readers; persistent functional closure PASS
+
+After owner confirmation, both renewed keys authenticate the intended non-admin
+identities (quotation uid 7/history uid 8). Quotation ACLs remain read-only.
+Dedicated runtime key fields were refreshed without changing original `.env` or
+Odoo business data. The previous 401/browser failure remains historical evidence.
+
+Actual persistent history matrix passes all five stress types plus infeasible
+demand, alternative approval, No-award and saved PDF in 8.427 seconds. The helper
+now retains 44 cases: 36 original cases unchanged and eight labelled new technical
+cases. Actual helper/API restart without source/model configuration passes saved
+retrieval, every exact replay and byte-identical PDF; normal API was restored.
+Expanded live Chromium/database-restart flow: one PASS in 104.65 seconds, with
+owned disposable resources removed. Normal localhost:3000 also reopens the retained
+approved case/PDF and supplier evidence read-only. API/Reflex and existing services
+are left running for owner use. See the [completed functional record](ODOO_HISTORY_INTEGRATION_HANDOFF.md#completed-after-owner-key-renewal--2026-10-17)
+and [run/reopen procedure](LOCAL_DEVELOPMENT_AND_SSH.md#repeatable-functional-verification-and-restart).
+Five CORE functions and model/MILP boundaries unchanged; no UX assessment, new
+model training/promotion, new migration code, Git publication or Drive edit.

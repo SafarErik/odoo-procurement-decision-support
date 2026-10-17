@@ -166,14 +166,18 @@ def resolve_odoo_planning_input(group_id, facts):
 def capture_local_history(revision):
     if revision != digest(local_profile()):
         raise PlanningCaseError("history_profile_changed", "Reload the changed history profile.")
-    if not settings.odoo_history_database or not settings.odoo_history_api_key.get_secret_value():
+    if (
+        not settings.odoo_history_database
+        or not settings.odoo_history_api_key.get_secret_value()
+        or not settings.odoo_history_quotation_api_key.get_secret_value()
+    ):
         raise PlanningCaseError(
             "odoo_history_unavailable", "The dedicated history reader is not configured."
         )
     reader = OdooPlanningHistoryReader(
         base_url=settings.odoo_base_url,
         database=settings.odoo_history_database,
-        api_key=settings.odoo_api_key.get_secret_value(),
+        api_key=settings.odoo_history_quotation_api_key.get_secret_value(),
         history_key=settings.odoo_history_api_key.get_secret_value(),
     )
     try:

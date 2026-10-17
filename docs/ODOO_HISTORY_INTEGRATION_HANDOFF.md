@@ -200,3 +200,154 @@ Not rerun: the entire optional integration/browser/UX matrix, hosted CI or new
 mobile/assistive/novice assessment. The bounded live PostgreSQL/Chromium flow is
 the executed integration scope. Owner-facing runtime services were not left
 running; use the prepared runtime profile and existing helper database to start them.
+
+## Functional operation follow-up — 2026-10-17
+
+Initial status before key renewal: **implemented functional extensions; live
+completion blocked by restricted-reader credentials**. This blocker is resolved
+in the completion record below. UX acceptance/redesign is deferred by the owner.
+Traceability remains AC-V2-08/10/11/12/13, preserving all five CORE functions.
+
+Problem: the prior acceptance database was disposable, while the normal owner
+helper remained at `20261005_01` and lacked approval/PDF/catalog tables. Existing
+Podman/Odoo/helper containers were stopped. Decision: restore those existing
+services in place, preserve owner rows, apply only the already accepted additive
+migrations, and reuse the existing HTTP-only demonstration for the new source.
+
+Implemented and verified:
+
+- Started `podman-machine-default` and the three existing containers; no machine,
+  container, Odoo record or volume replacement. Existing helper storage is its
+  original anonymous volume; preserve its container and volume. Windows reported
+  the known proxy failure; owned localhost SSH tunnels restored 8069 and 55433.
+- Captured helper-only `helper-before.dump` before any schema operation. Both the
+  archive listing and a complete `pg_restore --file=/dev/null` read pass. No restore
+  was performed against any database. Applied the existing three additive
+  revisions through `20261012_01`; no new migration/schema design was added.
+- Fingerprinted every pre-existing row: 36 planning cases, one V1 decision and
+  one creation record. All remain unchanged after upgrade and actual helper/API
+  restart. All 36 cases return HTTP 200 with identical snapshot hashes when API
+  source/model configuration is disabled. No existing case was finalized.
+- `tools.t17_demo run --odoo-history` acquires the fixed ready preview and reuses
+  existing scenario/finalization/PDF/replay logic. It creates two new technical
+  bases, five scenario types plus infeasible demand, alternative approval and a
+  separate No-award; `reopen --report ...` verifies exact saved evidence. Intent is
+  recorded before each POST; uncertain responses do not trigger automatic retry.
+- New fast tests check reference scenario costs, unchanged saved assessments,
+  alternative index, No-award PDF denial, IO-free exact replay, unready-source
+  rejection and retained uncertain intents. The expanded Chromium test adds the
+  same matrix and actual disposable helper/database restart before stored replay.
+- Test-copy keys are database-specific after renewal. New server setting
+  `ODOO_HISTORY_QUOTATION_API_KEY` isolates that reader from original
+  `ODOO_API_KEY`; empty configuration fails closed without fallback. The projection
+  still uses only its separate `ODOO_HISTORY_API_KEY`. No model/artifact changes.
+
+Evidence directory: `.artifacts/odoo-history-functional-43457854b415/`.
+`helper-upgrade.json`, `existing-row-hashes.json`, `existing-case-restart.json`,
+`archive-check.json` and backup archive retain actual state/results. The normal
+owner database has no new history cases: acquisition rejected before any POST.
+
+Verification:
+
+- Full fast suite: **706 passed, 76 deselected**, 253.90 seconds. One existing
+  Starlette/httpx deprecation warning; `fast-checks.log` preserves the output.
+- After adding credential separation: **34 focused checks passed**, including
+  all history gates, full matrix, legacy demo and unchanged architecture checks.
+- Ruff format/lint, compilation, `pip check`, redacted Compose configuration and
+  whitespace checks pass. No dependency, fixture or fitted-artifact change.
+- Live attempt: restricted quotation identity read **401** and independent exact
+  three-line guarded projection **401**. The backend preview returns **503**;
+  the browser displays unavailable history and creates no case. Expanded live
+  browser result is **FAILED due to the authentication blocker**, not PASS or a
+  skipped acceptance. `.artifacts/t18-browser-c927dbfbfd1c/evidence.json` records
+  cleanup of its owned disposable services. Original 2026-10-16 PASS remains.
+
+Initial manual prerequisite (subsequently met): in `procurement_v2_history_test_v1`, renew keys for the
+existing restricted quotation reader uid 7 and method-only projection uid 8,
+without changing permissions. Save both in ignored `.env.v2-history-test` as
+`ODOO_API_KEY` and `ODOO_T7S_API_KEY`. Preserve original `.env`. After explicit owner
+confirmation, map those values to the two dedicated runtime fields and restart
+the API, then rerun only the blocked live gates. Never use an administrator key,
+generic inventory read, fixture rewrite or model fallback to bypass this failure.
+
+Remaining work at the first handoff (completed below): authenticated live matrix against the normal persistent helper;
+expanded browser/database-restart acceptance; final runtime startup and preserved
+technical-case bookmarks. No UX assessment, Git publication or Drive edit. The
+completed upgrade/restart evidence is useful for thesis chapters 6/7; the live
+authentication limitation must remain distinct from model compatibility and
+operational predictive validity.
+
+First handoff runtime state: the owned diagnostic API was stopped and port 8000 released,
+with process-tree termination verified. The existing Odoo/helper containers and
+owned localhost tunnels remain available for manual key renewal. No frontend is
+left running. Original services/volumes and the verified helper backup are retained.
+
+### Completed after owner key renewal — 2026-10-17
+
+Owner confirmed both renewed test-copy keys. Non-mutating identity/ACL checks
+verify quotation uid 7, history uid 8, neither a Settings administrator. Quotation
+purchase-order permissions remain read=true, create/write/unlink=false. Full
+bounded capture reproduces 100.00/66.67/33.33% with three eligible lines each.
+Updated only the dedicated ignored runtime key fields; original `.env` is preserved.
+No permission expansion, Odoo business write or fitted-model change occurred.
+
+**Normal persistent setup: PASS.** The actual HTTP matrix completed in 8.427 s:
+
+| Scenario | Minimum USD | Result |
+| --- | ---: | --- |
+| Supplier C outage | 2,200 | feasible |
+| C capacity 100 | 2,200 | feasible; MOQ prevents C allocation |
+| Demand 250 | 2,340 | feasible |
+| C price 13 | 2,200 | feasible |
+| Demand 220, C capacity 150/price 10 | 2,200 | feasible |
+| Demand 500 | — | infeasible; no fabricated plan |
+
+All children retain the original captured assessments. The new original base has
+USD 1,850 minimum and its saved lower-exposure alternative is deliberately
+technically approved. A separate base records No-award and rejects approved-PDF
+retrieval. These records are labelled functional verification, not real purchasing
+authority or UX acceptance.
+
+Persistent cases retained in the existing helper:
+
+- Approved alternative: `725988fb-79fe-483d-b556-d9cecc8911e8`.
+- No-award: `ebb0ef54-b48a-4dab-a09f-59d583c740b0`.
+- Six scenario children. Total helper cases: **44 = 36 unchanged originals + 8 new**;
+  two new final decisions and one saved PDF.
+- Saved report `t17-run-1e90b7d0-3be8-49c5-b15b-02b00b04f92f.json` under the evidence
+  directory above; PDF SHA-256
+  `2f09067f37b09a41740d2a925b9f627956620d2a0442191b9f0f12b237b98d30`.
+
+Actual owner helper/API restart with all Odoo keys and model directories disabled
+passes stored case/scenario/decision checks, every exact idempotent replay,
+byte-identical PDF retrieval and No-award PDF denial. All prior row fingerprints
+remain present unchanged. Normal API configuration was then restored.
+`persistent-restart-pass.json` and `functional-final-summary.json` retain the result.
+
+**Expanded live Chromium stack: PASS**, one test in 104.65 s. It completes UI
+creation/supplier evidence/scenario/minimum-cost approval/PDF, then the entire
+functional matrix, owned database/API restart and stored replay without upstream.
+Evidence: `.artifacts/t18-browser-cf6c39026580/evidence.json`. Its disposable
+containers/processes were removed; owner Odoo was never stopped. Preserve the
+earlier authentication failure separately.
+
+**Normal owner frontend: PASS.** At localhost:3000, a read-only browser check
+reopens the persistent approved case, retrieves its saved PDF and displays the
+Odoo-history supplier evidence without creating/finalizing anything new.
+`owner-browser-reopen.json` records this check. API 8000, Reflex 8001/frontend
+3000 and existing containers/localhost tunnels are intentionally left running
+for owner use. Existing local startup/recovery instructions apply after reboot.
+
+The 706-test full fast run and 34 post-isolation focused checks above remain the
+code verification; only the credential-blocked live gates were rerun. No further
+code change required retraining or altered the solver/contracts. This closes the
+declared functional increment locally. Hosted CI for these new uncommitted changes,
+UX assessment and genuine operational model validation remain outside this result.
+
+Owner Reflex startup regenerated its tracked lock files. Those startup-generated
+edits were preserved under ignored evidence and restored to their original tracked
+contents; no dependency update is part of this increment. To stop the current
+background app after use, verify the command lines for the root PIDs recorded in
+`api.pid` / `frontend.pid`, then stop those process trees only. At this handoff the
+roots are API 39940 and Reflex 30048; do not reuse these numbers after a restart.
+The existing helper's original volume and all saved records must remain intact.

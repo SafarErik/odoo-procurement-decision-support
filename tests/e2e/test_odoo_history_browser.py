@@ -10,6 +10,9 @@ from uuid import uuid4
 import pytest
 from dotenv import dotenv_values
 
+from tests.e2e.conftest import wait_until
+from tools.t17_demo import run_flow, verify_stored
+
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.e2e,
@@ -36,6 +39,7 @@ def test_live_history_to_saved_approval_pdf(smoke_stack, smoke_page):
         ODOO_API_KEY=original["ODOO_API_KEY"],
         ODOO_HISTORY_DATABASE=testcopy["ODOO_DATABASE"],
         ODOO_HISTORY_API_KEY=testcopy["ODOO_T7S_API_KEY"],
+        ODOO_HISTORY_QUOTATION_API_KEY=testcopy["ODOO_API_KEY"],
         ODOO_HISTORY_MODEL_DIRECTORY=str(
             root / ".artifacts/v2-odoo-history-integration/qualified-model"
         ),
@@ -94,15 +98,35 @@ def test_live_history_to_saved_approval_pdf(smoke_stack, smoke_page):
     stack.evidence["checks"].append(
         "Live Odoo history -> UI creation -> actual tree/CBC -> scenario -> approval/PDF"
     )
+    matrix_report = run_flow(
+        stack.root,
+        stack.client,
+        "Odoo history functional acceptance",
+        "Approve the saved lower exposure alternative.",
+        "No purchase authorized in this separate functional test.",
+        odoo_history=True,
+    )
+    matrix = json.loads(matrix_report.read_text())
+    assert len(matrix["scenarios"]) == 6
+    stack.evidence["checks"].append(
+        "Odoo-history: all five stress types, infeasible demand, alternative approval and No-award"
+    )
     stack.stop(stack.api)
+    stack.compose("restart", "decision-db")
     stack.env.update(
         ODOO_BASE_URL="http://127.0.0.1:1",
         ODOO_API_KEY="",
         ODOO_HISTORY_API_KEY="",
+        ODOO_HISTORY_QUOTATION_API_KEY="",
         ODOO_HISTORY_MODEL_DIRECTORY="",
         ODOO_HISTORY_DATABASE="",
     )
     stack.start_api(stored_only=True)
+    wait_until(
+        lambda: stack.client.get(BASE + "/" + case_id).status_code == 200,
+        "stored helper cases after database/API restart",
+    )
+    verify_stored(matrix_report, stack.client)
     page.reload()
     expect(page.get_by_role("heading", name="Approved", exact=True)).to_be_visible()
     replay = stack.client.get(BASE + "/" + case_id)
@@ -120,7 +144,7 @@ def test_live_history_to_saved_approval_pdf(smoke_stack, smoke_page):
         row["case_id"] == case_id for row in library.json()["items"]
     )
     stack.evidence["checks"].append(
-        "Stored reopening/exact POST replay/library/PDF succeed with Odoo/model unavailable; "
+        "Database/API restart: scenarios/decisions, exact replay/library/PDF without upstream; "
         "owner Odoo never stopped"
     )
     stack.evidence["odoo_history"] = {
