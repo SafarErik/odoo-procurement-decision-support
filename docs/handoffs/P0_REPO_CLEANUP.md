@@ -62,28 +62,30 @@ moved, plus V1 code/tests). Python in `application`, `backend`, `decision_core`,
 | Integration/e2e collection (`pytest -m "integration or e2e" --collect-only`) | collects without import errors |
 | `reflex export --frontend-only --no-zip` | compiles 19 pages/components |
 | Built-in browser, `/cases` without backend | Data origin filter shown, backend-unavailable message shown, navigation lists only Cases and Open RFQs |
+| `pytest -m "integration and not e2e"` on the disposable PostgreSQL 16 (Podman 6.1.4) | 23 passed: squashed migration, immutability triggers, idempotency/concurrency, decisions, PDFs, origin filter; 19 live-Odoo tests skipped (no Odoo credentials) |
+| `python -m tools.dev db-up` with temporary credentials | container healthy, `alembic upgrade head` creates `planning_cases`, `planning_final_decisions`, `planning_documents`; volume removed afterwards |
+| `tests/integration/test_runtime_services.py` against a running FastAPI | health and planning-token (401) checks pass; Odoo HTTP check fails because Odoo was not started |
 
 Fast-test count fell from 707 to 511: the removed tests covered deleted V1 code
 (WSM core, V1 decision API/cases/orchestration, T9 scoring) and the Practice catalog.
 
 ## Not verified / remaining
 
-- **PostgreSQL integration tests were not run**: the Podman machine fails to start
-  on this host (`win-sshproxy.exe failed to start`, also outside the sandbox). The
-  squashed migration, the origin SQL filter (`snapshot->'facts'->>'input_kind'`) and
-  the rewritten `test_saved_library_postgres.py` are therefore unverified on a real
-  database. Run `pytest -m "integration and not e2e"` after Podman works.
+- Live Odoo contract tests and the Odoo HTTP runtime test were not run: Odoo is not
+  set up on the recreated Podman machine (its earlier volumes did not carry over).
+- Podman setup note: on this host the machine only started after `wsl --update`
+  and recreating it (`podman machine rm -f`, `podman machine init`).
 - e2e browser tests were updated mechanically but not run; the Practice navigation
   e2e test was deleted (P3 adds navigation e2e for the new UI).
 - Hosted CI not run (no push).
+- `test_runtime_services.py`: the V1 decision-endpoint check was replaced by a
+  planning-route token check.
 - Test files still carry increment numbers (`test_t13_planning.py`, …).
 
 ## Owner action
 
-1. Fix Podman (try a reboot, then `podman machine start`; if it still fails,
-   `podman machine rm` + `podman machine init`).
-2. Fill `.env` from the new `.env.example` (new setting names).
-3. Review and commit the branch.
+1. Fill `.env` from the new `.env.example` (new setting names).
+2. Review and commit the branch.
 
 ## Thesis relevance
 
