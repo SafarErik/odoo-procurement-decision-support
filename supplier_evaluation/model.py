@@ -171,6 +171,10 @@ class TreeModel:
             or snapshot.cutoff < datetime.fromisoformat(self.metadata["trained_through"])
         ):
             raise ValueError("Unsupported observed context or inference before training cutoff.")
+        return self._assess(snapshot, quantities)
+
+    def _assess(self, snapshot, quantities, *, mapping_version=MAPPING_VERSION, model_id=None):
+        """Shared tree execution after the source-specific loader has validated applicability."""
         x = np.asarray([snapshot.values], dtype=np.float32)
         leaf = int(self.tree.apply(x)[0])
         predicted = int(self.tree.predict(x)[0])
@@ -200,11 +204,12 @@ class TreeModel:
             snapshot.cutoff + timedelta(days=30),
             predicted,
             score,
-            self.metadata["model_id"],
+            model_id or self.metadata["model_id"],
             self.metadata["training_id"],
             leaf,
             counts,
             tuple(path),
+            mapping_version=mapping_version,
         )
 
     def global_explanation(self) -> dict:

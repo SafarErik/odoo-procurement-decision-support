@@ -150,7 +150,27 @@ def render_approved_pdf(content):
             ("Reason", audit["rationale"] or "No rationale supplied for minimum-cost selection"),
         ]
     )
-    section("Saved supplier terms and synthetic assessments")
+    history = snapshot["facts"].get("input_kind") == "odoo_quotations_odoo_history"
+    if history:
+        capture = json.loads(snapshot["facts"]["history"])
+        section("Saved Odoo history provenance")
+        fields(
+            [
+                ("Acquisition database", capture["evidence"]["database"]),
+                ("Record origin", capture["evidence"]["origin"]),
+                ("History cutoff (UTC)", capture["evidence"]["cutoff"]),
+                ("History capture SHA-256", capture["capture_hash"]),
+                (
+                    "Model training source",
+                    snapshot["model_manifest"]["metadata"]["training_source_type"],
+                ),
+            ]
+        )
+    section(
+        "Saved supplier terms and assessments"
+        if history
+        else "Saved supplier terms and synthetic assessments"
+    )
     for identity, supplier in suppliers.items():
         assessment = assessments[identity]
         fields(
@@ -168,6 +188,21 @@ def render_approved_pdf(content):
                 ("ML source type", assessment["snapshot"]["source_type"]),
             ]
         )
+        if history:
+            feature = assessment["snapshot"]
+            fields(
+                [
+                    (
+                        "Schedule adherence (%) / eligible completed lines",
+                        saved_json(feature["values"]),
+                    ),
+                    ("History reference", feature["source_reference"]),
+                    (
+                        "History window (UTC)",
+                        feature["history_start"] + " to " + feature["history_end"],
+                    ),
+                ]
+            )
         story.append(Spacer(1, 8))
     section("Saved policy and model references")
     fields(

@@ -94,8 +94,8 @@ def _odoo_creation_controls() -> rx.Component:
     return rx.tabs.content(
         rx.text(
             "Use the prepared Odoo quotation comparison. FastAPI reads Odoo again before saving. "
-            "You supply demand and supplier limits; the Decision Tree uses synthetic history, "
-            "so this is a controlled demonstration, not an observed supplier assessment.",
+            "You supply demand and supplier limits. Choose separately synthetic history or "
+            "the controlled synthetic receipts stored in the configured Odoo test copy.",
             color=MUTED,
             size="2",
             max_width="75ch",
@@ -107,6 +107,37 @@ def _odoo_creation_controls() -> rx.Component:
             on_click=PlanningState.prepare_odoo,
             disabled=busy,
             variant="soft",
+        ),
+        rx.button(
+            "Use history from Odoo",
+            id="load-odoo-history",
+            on_click=PlanningState.prepare_odoo_history,
+            disabled=busy,
+            variant="soft",
+            margin_left="0.75rem",
+        ),
+        rx.cond(
+            PlanningState.odoo_history_mode,
+            rx.box(
+                rx.text(
+                    "Receipts are read from Odoo; these test records retain controlled "
+                    "synthetic origin. No training occurs here.",
+                    size="2",
+                ),
+                rx.foreach(
+                    PlanningState.odoo_history_rows,
+                    lambda row: rx.text(
+                        row["supplier"],
+                        ": ",
+                        row["adherence"],
+                        " · eligible lines ",
+                        row["sample"],
+                        size="2",
+                    ),
+                ),
+                rx.text("Model status: ", PlanningState.odoo_history_readiness, size="2"),
+                margin_y="1rem",
+            ),
         ),
         rx.cond(
             PlanningState.odoo_ready,
@@ -187,7 +218,16 @@ def _odoo_creation_controls() -> rx.Component:
                         max_width="75ch",
                         margin_y="1rem",
                     ),
-                    rx.button("Review Odoo terms", type="submit", disabled=busy, size="3"),
+                    rx.button(
+                        "Review Odoo terms",
+                        type="submit",
+                        disabled=busy
+                        | (
+                            PlanningState.odoo_history_mode
+                            & (PlanningState.odoo_history_readiness != "ready")
+                        ),
+                        size="3",
+                    ),
                     on_submit=PlanningState.review_odoo,
                     no_validate=True,
                     reset_on_submit=False,

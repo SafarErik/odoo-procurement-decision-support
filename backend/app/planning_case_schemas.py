@@ -87,7 +87,7 @@ class PolicyRequest(StrictModel):
     epsilons: list[Money] = Field(min_length=1, max_length=3)
 
 
-class SupplierRequest(StrictModel):
+class CommercialSupplierRequest(StrictModel):
     supplier_id: Text
     offer_id: Text
     unit_price: Money
@@ -98,14 +98,17 @@ class SupplierRequest(StrictModel):
     delivery_quantities: RangeRequest
     promised_date: date
     source: SourceRequest
-    receipts: list[ReceiptRequest] = Field(min_length=3, max_length=50)
-    history_reference: Text
-    score_quantities: ValidityRequest
 
     @field_validator("promised_date", mode="before")
     @classmethod
     def date_text(cls, value):
         return RequirementRequest.date_text(value)
+
+
+class SupplierRequest(CommercialSupplierRequest):
+    receipts: list[ReceiptRequest] = Field(min_length=3, max_length=50)
+    history_reference: Text
+    score_quantities: ValidityRequest
 
 
 class CatalogContextRequest(StrictModel):
@@ -208,6 +211,75 @@ class OdooPlanningCreateRequest(StrictModel):
         if self.controlled_input.catalog_context is not None:
             raise ValueError("Supply Odoo catalog context on the outer creation request only.")
         return self
+
+
+class OdooHistoryTermsRequest(StrictModel):
+    company_id: Text
+    as_of: UtcTime
+    approval_reference: Text
+    requirement: RequirementRequest
+    requirement_source: SourceRequest
+    policy: PolicyRequest
+    policy_source: SourceRequest
+    suppliers: list[CommercialSupplierRequest] = Field(min_length=3, max_length=3)
+
+    @field_validator("as_of", mode="before")
+    @classmethod
+    def utc_text(cls, value):
+        return _explicit_utc_text(value)
+
+    def to_facts(self):
+        from application.planning_input import OdooHistoryPlanningFacts
+        from supplier_evaluation.contracts import ODOO_HISTORY
+
+        r, p = self.requirement, self.policy
+        suppliers = tuple(
+            SupplierFacts(
+                s.offer_id,
+                SupplierTerms(
+                    s.supplier_id,
+                    r.product_id,
+                    r.quantity_unit,
+                    r.currency,
+                    Decimal(s.unit_price),
+                    s.capacity,
+                    s.available,
+                    MinimumOrder(s.minimum_order_quantity),
+                    QuantityRange(s.price_quantities.minimum, s.price_quantities.maximum),
+                    QuantityRange(s.delivery_quantities.minimum, s.delivery_quantities.maximum),
+                    s.promised_date,
+                ),
+                s.source.attribution("commercial_terms"),
+                (),
+                "backend-owned-odoo-history",
+                QuantityValidity(1, 1000, "controlled-proxy-v1"),
+            )
+            for s in self.suppliers
+        )
+        return OdooHistoryPlanningFacts(
+            self.company_id,
+            self.as_of,
+            ProcurementRequirement(
+                r.product_id, r.approved_quantity, r.quantity_unit, r.currency, r.required_date
+            ),
+            self.approval_reference,
+            self.requirement_source.attribution("requirement"),
+            PlanningPolicy(
+                p.max_suppliers,
+                None if p.concentration_limit is None else Decimal(p.concentration_limit),
+                tuple(Decimal(e) for e in p.epsilons),
+            ),
+            self.policy_source.attribution("policy"),
+            suppliers,
+            ODOO_HISTORY,
+        )
+
+
+class OdooHistoryCreateRequest(StrictModel):
+    profile_id: Literal["local-v1"]
+    profile_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    terms: OdooHistoryTermsRequest
+    catalog_context: CatalogContextRequest | None = None
 
 
 class ChangeRequest(StrictModel):

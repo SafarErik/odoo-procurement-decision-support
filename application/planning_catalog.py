@@ -4,7 +4,8 @@ import json
 from dataclasses import dataclass
 
 from application.decision_cases import RepositoryError
-from supplier_evaluation.contracts import SYNTHETIC
+from application.planning_history import HISTORY_INPUT_KIND
+from supplier_evaluation.contracts import ODOO_HISTORY, SYNTHETIC
 
 PRACTICE_EXAMPLES = ("compare-plans", "supplier-outage", "infeasible-demand")
 
@@ -32,10 +33,15 @@ def retrieve_catalog(uow, case):
             return {"workspace": "unclassified", "example_id": None}
         try:
             facts = json.loads(base.snapshot)["facts"]
-            if facts["source_type"] != SYNTHETIC:
+            if (facts["source_type"], facts.get("input_kind", "controlled_synthetic")) not in {
+                (SYNTHETIC, "controlled_synthetic"),
+                (SYNTHETIC, "odoo_quotations_synthetic_history"),
+                (ODOO_HISTORY, HISTORY_INPUT_KIND),
+            }:
                 raise ValueError("Unsupported stored ML evidence source.")
             context.validate(
-                from_odoo=facts.get("input_kind") == "odoo_quotations_synthetic_history"
+                from_odoo=facts.get("input_kind")
+                in {"odoo_quotations_synthetic_history", HISTORY_INPUT_KIND}
             )
             return {"workspace": context.workspace, "example_id": context.example_id}
         except (ValueError, TypeError, KeyError, AttributeError) as error:

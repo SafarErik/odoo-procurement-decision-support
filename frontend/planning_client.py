@@ -75,6 +75,23 @@ async def submit_planning_request(
             ),
             413: "The prepared request exceeds the API size limit.",
         }
+        if url.endswith("/from-odoo-history") and response.status_code in (409, 422, 503):
+            code = response.json().get("detail", {}).get("code")
+            history_errors = {
+                "history_profile_changed": (
+                    "The configured history profile changed. Reload its preview before saving."
+                ),
+                "odoo_history_unavailable": (
+                    "Odoo history is missing, unavailable or does not match the configured source. "
+                    "No case was saved."
+                ),
+                "odoo_history_model_incompatible": (
+                    "The saved model is unavailable or incompatible with this Odoo history. "
+                    "No case was saved."
+                ),
+            }
+            if code in history_errors:
+                return None, history_errors[code], False
         if response.status_code in errors:
             if url.endswith("/final-decision") and response.status_code in (409, 422):
                 return (
@@ -131,6 +148,15 @@ async def submit_planning_request(
             != f"odoo:purchase.order.group:{payload['purchase_group_id']}"
         ):
             raise ValueError("Unexpected Odoo comparison")
+        if url.endswith("/from-odoo-history"):
+            facts = data["snapshot"]["facts"]
+            capture = json.loads(facts["history"])
+            if (
+                facts["input_kind"] != "odoo_quotations_odoo_history"
+                or capture["evidence"]["profile"]["id"] != payload["profile_id"]
+                or capture["evidence"]["profile_revision"] != payload["profile_revision"]
+            ):
+                raise ValueError("Unexpected Odoo history profile.")
         return display, "", False
     except (
         httpx.HTTPError,
@@ -298,6 +324,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     kinds = {
         "controlled_synthetic": "Controlled synthetic inputs and ML history",
         "odoo_quotations_synthetic_history": "Captured Odoo quotations; synthetic ML history",
+        "odoo_quotations_odoo_history": "Odoo quotations and receipts; controlled synthetic origin",
     }
     currency = _required_string(requirement, "currency")
     parent = payload["parent_id"]
@@ -595,7 +622,12 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     assessments = []
     for assessment in snapshot["assessments"]:
         feature = assessment["snapshot"]
-        if feature["source_type"] != "t14_synthetic":
+        expected_source = (
+            "odoo_projection"
+            if facts.get("input_kind") == "odoo_quotations_odoo_history"
+            else "t14_synthetic"
+        )
+        if feature["source_type"] != expected_source or facts["source_type"] != expected_source:
             raise ValueError("Unsupported ML source")
         predicted = assessment["predicted_class"]
         score = _decimal(assessment["score"])
@@ -617,7 +649,12 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "score_display": f"{score * 100:.1f} / 100",
                 "history_summary": (
                     f"{feature['values'][0]:g}% on time across "
-                    f"{feature['values'][1]:g} completed receipts"
+                    f"{feature['values'][1]:g} "
+                    + (
+                        "completed purchase lines"
+                        if expected_source == "odoo_projection"
+                        else "completed receipts"
+                    )
                 ),
                 "history_window": (
                     f"{feature['history_start'][:10]} to {feature['history_end'][:10]}"

@@ -16,6 +16,7 @@ from application.planning_cases import (
     fingerprint,
     validate_snapshot,
 )
+from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_serialization import (
     json_value,
     read_assessments,
@@ -33,11 +34,14 @@ from supplier_evaluation.contracts import (
     FEATURES,
     LABEL_VERSION,
     MAPPING_VERSION,
+    ODOO_HISTORY,
+    ODOO_MAPPING_VERSION,
     SYNTHETIC,
     text_identity,
     utc,
 )
 from supplier_evaluation.planning_bridge import risk_inputs
+from supplier_evaluation.qualified_odoo import PACKAGE_VERSION
 
 DECISION_VERSION = "t17-final-decision-v1"
 CONTENT_VERSION = "t17-approved-planning-v1"
@@ -110,15 +114,17 @@ def _saved_evidence(case: PlanningCase) -> dict:
         assessments = read_assessments(value["assessments"])
         result = read_result(value["result"])
         metadata = value["model_manifest"]["metadata"]
+        history = value["facts"].get("input_kind") == HISTORY_INPUT_KIND
+        source_type = ODOO_HISTORY if history else SYNTHETIC
         for name, expected in (
-            ("artifact_version", ARTIFACT_VERSION),
+            ("artifact_version", PACKAGE_VERSION if history else ARTIFACT_VERSION),
             ("feature_version", FEATURE_VERSION),
             ("feature_names", list(FEATURES)),
             ("label_version", LABEL_VERSION),
             ("class_names", list(CLASSES)),
-            ("mapping_version", MAPPING_VERSION),
+            ("mapping_version", ODOO_MAPPING_VERSION if history else MAPPING_VERSION),
             ("dataset_version", DATASET_VERSION),
-            ("source_type", SYNTHETIC),
+            ("source_type", source_type),
             (
                 "domain",
                 [
@@ -173,9 +179,13 @@ def _saved_evidence(case: PlanningCase) -> dict:
         if (
             case.parent_id is not None
             or value["comparison"] is not None
-            or facts["source_type"] != SYNTHETIC
+            or facts["source_type"] != source_type
             or facts.get("input_kind", "controlled_synthetic")
-            not in {"controlled_synthetic", "odoo_quotations_synthetic_history"}
+            not in (
+                {HISTORY_INPUT_KIND}
+                if history
+                else {"controlled_synthetic", "odoo_quotations_synthetic_history"}
+            )
             or value["risk_context"]["controlled_fixture"] is not True
             or value["request"] != json_value(request)
             or value["assessments"] != json_value(assessments)
@@ -195,7 +205,7 @@ def _saved_evidence(case: PlanningCase) -> dict:
         if (
             coefficients != request.risk_coefficients
             or json_value(context) != value["risk_context"]
-            or any(a.snapshot.source_type != SYNTHETIC for a in assessments)
+            or any(a.snapshot.source_type != source_type for a in assessments)
         ):
             raise ValueError("Stored risk evidence does not match its planning context.")
         plans = (

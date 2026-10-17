@@ -26,8 +26,9 @@ def audit_view() -> rx.Component:
             max_width="75ch",
         ),
         rx.callout(
-            "Quotations and explicit terms retain their own source references. Supplier history "
-            "and ML evidence remain synthetic, including for Odoo suppliers. Practice shares "
+            "Quotations and explicit terms retain their own source references. History references "
+            "identify separately generated inputs or Odoo receipts of controlled synthetic origin. "
+            "The model retains synthetic training provenance. Practice shares "
             "application storage; neither classification nor actor text establishes authority.",
             color_scheme="amber",
         ),
@@ -206,7 +207,7 @@ def audit_view() -> rx.Component:
                     rx.text("Supplier ID: ", row["supplier"]),
                     rx.text("Recorded class: ", row["class"], " · Exact score: ", row["score"]),
                     rx.text("Model: ", row["model"]),
-                    rx.text("Synthetic history reference: ", row["source"]),
+                    rx.text("Saved history reference: ", row["source"]),
                     rx.text(row["path"], white_space="pre-line"),
                     rx.text(
                         "Node/leaf IDs, support, features, thresholds and version metadata "

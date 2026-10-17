@@ -288,6 +288,150 @@ restore normal temporary-directory settings. Use a working installed Node.js
 on its process PATH; CI remains on Node.js 22.22. Production export verifies
 compilation only; [the T16 handoff](T16_HANDOFF.md) records actual browser scope.
 
+## Controlled Odoo history path
+
+This opt-in path uses only the completed `procurement_v2_history_test_v1` fixture:
+company 1, product 54, unit 1, quotation group 2 and suppliers 51/52/53. No further
+fixture entry or credential renewal is needed while the existing readers work.
+See [the qualification and acceptance handoff](ODOO_HISTORY_INTEGRATION_HANDOFF.md).
+
+Prerequisites: the existing Odoo service and test copy, the Python 3.11 environment,
+a working Node runtime, and the already configured **separate helper PostgreSQL**
+database at the current Alembic head. Use the existing
+[persistence procedure](PERSISTENCE_DEVELOPMENT.md); never point helper migrations
+or reset tests at Odoo. This increment adds no new SQL migration. The 2026-10-16
+integration acceptance did not migrate, reset or populate the owner helper. The
+2026-10-17 follow-up below applied already accepted migrations and retained new
+technical verification cases.
+
+The prepared ignored `.env.v2-history-runtime` contains the dedicated clone readers,
+fixed database, qualified model directory and library company scope. Original
+`.env` is preserved; the owner supplies renewed test-copy keys in
+`.env.v2-history-test`. The runtime file adds only the history
+configuration; the original database's RFQ access, helper database URL and shared
+service token still come from existing `.env`/process configuration. Test-copy
+quotations use `ODOO_HISTORY_QUOTATION_API_KEY`, while the projection uses
+`ODOO_HISTORY_API_KEY`; neither falls back to the original database's key. Never use an
+administrator key. The original candidate artifact remains unchanged under
+`.artifacts/t15-odoo-demo/model`; the separately qualified package is under
+`.artifacts/v2-odoo-history-integration/qualified-model`.
+
+From the repository root in the activated environment, start the API:
+
+```powershell
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --env-file .env.v2-history-runtime
+```
+
+In another activated terminal, using the same existing service token, start Reflex:
+
+```powershell
+$env:BACKEND_BASE_URL = "http://127.0.0.1:8000"
+Push-Location frontend
+../.venv/t13-check/Scripts/reflex.exe run --backend-host 127.0.0.1
+Pop-Location
+```
+
+Open `http://localhost:3000/planning`, then **Odoo -> Use history from Odoo**.
+Expect 100.00%, 66.67%, 33.33%, three eligible completed purchase lines each and
+model status `ready`. Review demand/terms and choose **Review Odoo terms ->
+Calculate and save comparison**. Creation rereads quotations and history after
+idempotency locking; preview does not freeze those sources for later creation.
+Inspect Suppliers/Audit, run a scenario, return to the original base for deliberate
+approval and open its PDF. The history is Odoo-acquired, with controlled synthetic
+record origin; model training remains synthetic. Classes/allocations are the actual
+saved tree/MILP output, not assigned by the UI. Existing separately synthetic
+creation still requires its own original model configuration.
+
+### Repeatable functional verification and restart
+
+The existing helper may be older than the code. On 2026-10-17 it was still at
+`20261005_01`. A helper-only archive backup and row fingerprints were taken before
+applying the existing additive approval/PDF/catalog migrations to `20261012_01`;
+all 36 prior planning cases and the earlier V1 records remained unchanged. This
+does not authorize running resetting integration tests against that database.
+Inspect/apply already accepted revisions only through the
+[existing migration procedure](PERSISTENCE_DEVELOPMENT.md#apply-or-inspect-migrations).
+No new migration is introduced by this increment.
+
+With the normal API running, the existing demo command can now acquire the fixed
+Odoo-history preview instead of loading separately synthetic request history:
+
+```powershell
+$env:T12_TRUSTED_CALLER_TOKEN = & python -c "from backend.app.config import settings; print(settings.t12_trusted_caller_token.get_secret_value())"
+python -m tools.t17_demo run --odoo-history --directory .artifacts/odoo-history-owner-run --actor "Controlled owner verification" --reason "Verify the saved lower-exposure alternative." --no-award-reason "No purchase authorized in this separate technical verification."
+```
+
+This creates **two new technical base cases, six scenario children** (five types
+plus infeasible demand), an alternative-plan technical approval, a separate
+No-award and the saved PDF. It never modifies an existing owner's case or an Odoo
+record. The actor is supplied test audit text, not authenticated buyer acceptance.
+The report is written before every POST; uncertain calls are not automatically
+retried. Preserve the printed `t17-run-<uuid>.json` path and its adjacent PDF.
+
+After closing/restarting API and the existing helper container, verify the same
+report without creating another run:
+
+```powershell
+python -m tools.t17_demo reopen --report .artifacts/odoo-history-owner-run/t17-run-<uuid>.json
+```
+
+Expect unchanged snapshots/decisions, exact idempotent replays, identical PDF bytes
+and No-award PDF denial. Reopen also works with upstream/model configuration
+unavailable. Use the isolated browser harness for fault injection; leave the owner
+Odoo service running. Repeated `run` creates additional technical cases, while
+`reopen` reuses saved identities. Closing an app or tunnel does not delete cases.
+
+**HTTP 401 from Odoo:** renew only the rejected restricted-user keys in the test
+copy, following the existing manual setup. A rejected key is an acquisition
+failure, not a reason to grant Inventory rights, use an administrator key or train
+a model. Store the test-copy quotation key as `ODOO_API_KEY` and the projection key
+as `ODOO_T7S_API_KEY` in `.env.v2-history-test`. Normal runtime reads their values
+as `ODOO_HISTORY_QUOTATION_API_KEY` and `ODOO_HISTORY_API_KEY` respectively from
+`.env.v2-history-runtime`. Update both runtime fields after renewal and restart
+the API; keep the original `.env` key unchanged. Keep all files
+ignored and never display their values. The first 2026-10-17 run independently
+observed 401 for both readers. After owner renewal, uid 7 and uid 8 were verified
+non-admin, quotation read-only ACLs remained intact, and live acquisition passed.
+
+The persistent technical result is available at
+`http://localhost:3000/planning?case_id=725988fb-79fe-483d-b556-d9cecc8911e8&view=plans`;
+the separate No-award is `ebb0ef54-b48a-4dab-a09f-59d583c740b0`. These are retained
+technical verification records, not a real purchase authorization. API 8000,
+Reflex 8001/frontend 3000 and the existing containers/tunnels are running after
+the verified handoff. After reboot, use the existing startup/recovery instructions.
+The API log, frontend log and owned root PIDs are recorded under
+`.artifacts/odoo-history-functional-43457854b415/`. Stop only those owned API/Reflex
+process trees after use; keep the helper container/volume and saved cases intact.
+
+New interfaces (existing trusted-caller authentication applies):
+
+- `GET /api/v2/procurement/planning-cases/odoo-history/local-v1` captures live bounded
+  history and returns KPIs, feature times/references, profile revision and readiness.
+- `POST /api/v2/procurement/planning-cases/from-odoo-history` accepts only
+  `profile_id`, `profile_revision`, explicit `terms`/quotation expectations and
+  optional `catalog_context`. It rejects caller receipt vectors/model paths.
+
+Wrong source/context, missing/changed records or incompatible models reject new
+creation. Reload a changed profile; preserve the exact pending request/key after
+an uncertain network outcome. Reopening, exact replay, scenarios, approval and PDF
+use saved evidence. Stop API/Reflex with Ctrl+C after use; leave owner Odoo/data,
+existing helper records and qualified artifacts intact. Do not copy `.env*` files
+or credentials into reports.
+
+Optional bounded real-stack regression (owned disposable helper DB/processes only):
+
+```powershell
+$env:PODMAN_COMPOSE_PROVIDER = (Resolve-Path .venv/t13-check/Scripts/podman-compose.exe).Path
+$env:RUN_ODOO_HISTORY_E2E = "true"
+python -m pytest tests/e2e/test_odoo_history_browser.py -v
+Remove-Item Env:RUN_ODOO_HISTORY_E2E
+```
+
+Put a working installed Node executable and the environment's `Scripts` on the
+process PATH if required. The harness removes only its disposable helper project;
+it never stops the owner Odoo service. Local verification used bundled Node
+24.19.0 because the normal shim failed; CI's Node 22.22 baseline is unchanged.
+
 ## Controlled planning workspace: create and test
 
 For the complete current acquisition -> scenarios -> human decision -> PDF flow,

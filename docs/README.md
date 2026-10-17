@@ -10,6 +10,9 @@ explicitly supersedes them. They are not a second live dashboard.
 
 - [Local development and SSH](LOCAL_DEVELOPMENT_AND_SSH.md): choose the task,
   activate Python, start only its services, interpret checks and clean up.
+- [Controlled Odoo history integration](ODOO_HISTORY_INTEGRATION_HANDOFF.md): fixed
+  profile, frozen saved-tree compatibility evaluation, nested evidence versioning,
+  live browser/replay evidence and operational-validity limits.
 - [Persistence development](PERSISTENCE_DEVELOPMENT.md): isolated database,
   Windows forwarding workaround, destructive test boundary and Alembic.
 - [Saved-case library #32](UX32_LIBRARY_RUNBOOK.md): company configuration, additive
@@ -58,6 +61,17 @@ explicitly supersedes them. They are not a second live dashboard.
   verification evidence; preserved historical limitations.
 
 ## Active V2: understand the product flow
+
+[Bounded Odoo history feasibility assessment](ODOO_HISTORY_FEASIBILITY_ASSESSMENT.md)
+records the 2026-10-14 canonical/published-state reconciliation, live fixture
+mismatch and history-key 401, reusable T7S/T8/T14 components, source/model validity
+gates, manual test-data prerequisites and a conditional small increment. It is an
+assessment, not an implemented Odoo-history/model connection.
+
+[Controlled V2 history fixture plan](V2_ODOO_HISTORY_FIXTURE_PLAN.md) defines the
+owner-approved-next-phase proposal: a neutralized test copy, nine exact synthetic
+history orders, pilot and bounded read-only checks, expected KPIs, restoration
+and effort. Access is resolved; no test database or fixture has been created.
 
 [Buyer workspace redesign proposal](UX_UI_INCREMENT_PLAN.md) captures the next
 substantial UX/UI discovery after T18. Curated Practice without resets and a bounded

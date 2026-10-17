@@ -1,15 +1,26 @@
 """Composition root for backend dependencies."""
 
+import asyncio
+import json
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
 from application.decision_case_orchestration import ComparisonCaseReader
 from application.historical_performance import HistoricalPerformancePort
+from application.odoo_planning_input import bind_controlled_odoo_input
+from application.planning_cases import PlanningCaseError
+from application.planning_history import capture_features
+from application.planning_serialization import json_value
 from application.rfqs import RfqReader
 from backend.app.config import settings
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.historical_performance_reader import OdooHistoricalPerformanceReader
+from odoo_adapter.planning_history_reader import OdooPlanningHistoryReader, local_profile
 from odoo_adapter.rfq_reader import OdooRfqReader
 from persistence.postgres import SqlAlchemyUnitOfWork, create_session_factory
+from supplier_evaluation.contracts import digest
+from supplier_evaluation.qualified_odoo import load_qualified_model
 
 
 def get_rfq_reader() -> RfqReader:
@@ -150,3 +161,139 @@ def resolve_odoo_planning_input(group_id, facts):
         raise RepositoryError(
             "odoo_unavailable", "The selected Odoo input is unavailable."
         ) from error
+
+
+def capture_local_history(revision):
+    if revision != digest(local_profile()):
+        raise PlanningCaseError("history_profile_changed", "Reload the changed history profile.")
+    if (
+        not settings.odoo_history_database
+        or not settings.odoo_history_api_key.get_secret_value()
+        or not settings.odoo_history_quotation_api_key.get_secret_value()
+    ):
+        raise PlanningCaseError(
+            "odoo_history_unavailable", "The dedicated history reader is not configured."
+        )
+    reader = OdooPlanningHistoryReader(
+        base_url=settings.odoo_base_url,
+        database=settings.odoo_history_database,
+        api_key=settings.odoo_history_quotation_api_key.get_secret_value(),
+        history_key=settings.odoo_history_api_key.get_secret_value(),
+    )
+    try:
+        return asyncio.run(reader.capture(revision))
+    except Exception as error:
+        raise PlanningCaseError(
+            "odoo_history_unavailable", "The bounded Odoo history could not be verified."
+        ) from error
+
+
+def resolve_odoo_history_input(revision, facts):
+    case, code, observed, capture = capture_local_history(revision)
+    features = capture_features(capture)
+    facts = replace(
+        facts,
+        history=capture,
+        suppliers=tuple(
+            replace(
+                s,
+                history_reference=next(
+                    f.source_reference
+                    for f in features
+                    if f.context.supplier_id == s.terms.supplier_id
+                ),
+            )
+            for s in facts.suppliers
+        ),
+    )
+    return bind_controlled_odoo_input(case, facts, code, observed)
+
+
+def infer_odoo_history_features(features):
+    try:
+        path = settings.odoo_history_model_directory
+        if path is None:
+            raise ValueError("No qualified model configured.")
+        model, manifest = load_qualified_model(path)
+        return tuple(
+            model.infer(snapshot, quantities) for snapshot, quantities in features
+        ), manifest
+    except Exception as error:
+        raise PlanningCaseError(
+            "odoo_history_model_incompatible",
+            "Qualified Odoo-history model unavailable or incompatible.",
+        ) from error
+
+
+def preview_local_history():
+    profile = local_profile()
+    revision = digest(profile)
+    case, code, observed, capture = capture_local_history(revision)
+    parsed = json.loads(capture)
+    features = capture_features(capture)
+    readiness = "ready"
+    try:
+        if settings.odoo_history_model_directory is None:
+            raise ValueError("Unconfigured model.")
+        model, _ = load_qualified_model(settings.odoo_history_model_directory)
+        if model.metadata["compatibility"]["database"] != profile["database"]:
+            raise ValueError("Model database mismatch.")
+    except Exception:
+        readiness = "model_unavailable"
+    now = datetime.now(UTC)
+    deadline = (now + timedelta(days=7)).date().isoformat()
+    source = {
+        "source_type": "controlled_business_terms",
+        "source_reference": "local-odoo-history-business-terms-v1",
+        "observed_at": now.isoformat(),
+    }
+    suppliers = []
+    for offer, capacity, moq in zip(
+        sorted(case.offers, key=lambda o: o.supplier_id),
+        (120, 100, 160),
+        (50, 100, 150),
+        strict=True,
+    ):
+        line = offer.lines[0]
+        suppliers.append(
+            {
+                "supplier_id": offer.supplier_id,
+                "offer_id": offer.offer_id,
+                "unit_price": str(line.unit_price),
+                "capacity": capacity,
+                "available": True,
+                "minimum_order_quantity": moq,
+                "price_quantities": {"minimum": 1, "maximum": 1000},
+                "delivery_quantities": {"minimum": 1, "maximum": 1000},
+                "promised_date": deadline,
+                "source": source,
+            }
+        )
+    terms = {
+        "company_id": case.offers[0].company_id,
+        "as_of": now.isoformat(),
+        "approval_reference": "local-odoo-history-demand-200-v1",
+        "requirement": {
+            "product_id": case.offers[0].lines[0].product_id,
+            "approved_quantity": 200,
+            "quantity_unit": case.offers[0].lines[0].uom_id,
+            "currency": code,
+            "required_date": deadline,
+        },
+        "requirement_source": source,
+        "policy_source": source,
+        "policy": {"max_suppliers": 2, "concentration_limit": "0.8", "epsilons": ["0.2"]},
+        "suppliers": suppliers,
+    }
+    return {
+        "profile_id": profile["id"],
+        "profile_revision": revision,
+        "database": profile["database"],
+        "origin": profile["origin"],
+        "model_readiness": readiness,
+        "captured_at": parsed["evidence"]["cutoff"],
+        "capture_hash": parsed["capture_hash"],
+        "history": json_value(parsed["performance"]),
+        "features": json_value(features),
+        "terms": terms,
+    }

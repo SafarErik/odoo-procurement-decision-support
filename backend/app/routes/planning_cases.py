@@ -19,16 +19,21 @@ from application.planning_decisions import (
     retrieve_planning_case,
 )
 from application.planning_documents import approved_document
+from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_library import library_query, list_planning_cases
 from backend.app.config import settings
 from backend.app.dependencies import (
     get_planning_unit_of_work,
+    infer_odoo_history_features,
     infer_planning_features,
     planning_solver_factory,
+    preview_local_history,
     render_approved_document,
+    resolve_odoo_history_input,
     resolve_odoo_planning_input,
 )
 from backend.app.planning_case_schemas import (
+    OdooHistoryCreateRequest,
     OdooPlanningCreateRequest,
     PlanningCaseResponse,
     PlanningCreateRequest,
@@ -84,6 +89,9 @@ def _error(error):
         "idempotency_key_conflict": 409,
         "planning_case_already_finalized": 409,
         "approved_content_hash_mismatch": 409,
+        "odoo_history_unavailable": 503,
+        "history_profile_changed": 409,
+        "odoo_history_model_incompatible": 503,
     }.get(code, 422)
     raise HTTPException(
         status, detail={"code": code, "message": "The planning request could not be accepted."}
@@ -214,6 +222,44 @@ def post_scenario(
         )
         response.status_code = 200 if replay else 201
         return _response(case, replay)
+    except (PlanningCaseError, RepositoryError, ValueError) as error:
+        _error(error)
+
+
+@router.get("/odoo-history/local-v1")
+def get_odoo_history_preview():
+    try:
+        return preview_local_history()
+    except (PlanningCaseError, RepositoryError, ValueError) as error:
+        _error(error)
+
+
+@router.post("/from-odoo-history", response_model=PlanningCaseResponse, status_code=201)
+def post_odoo_history_case(
+    request: OdooHistoryCreateRequest, response: Response, idempotency_key: Annotated[str, Header()]
+):
+    try:
+        facts = normalize_planning_facts(request.terms.to_facts())
+        intent = {
+            "profile_id": request.profile_id,
+            "profile_revision": request.profile_revision,
+            "purchase_group_id": 2,
+            "facts": facts,
+        }
+        case, replay = create_planning_case(
+            get_planning_unit_of_work(),
+            idempotency_key,
+            base_intent=intent,
+            base_kind=HISTORY_INPUT_KIND,
+            load_base=lambda: resolve_odoo_history_input(request.profile_revision, facts),
+            catalog_context=None
+            if request.catalog_context is None
+            else request.catalog_context.context(),
+            infer=infer_odoo_history_features,
+            solver_factory=planning_solver_factory,
+        )
+        response.status_code = 200 if replay else 201
+        return _creation_response(case, replay)
     except (PlanningCaseError, RepositoryError, ValueError) as error:
         _error(error)
 

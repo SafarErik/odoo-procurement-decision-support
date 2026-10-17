@@ -16,6 +16,27 @@ Odoo 19, FastAPI, PostgreSQL, Reflex and local Podman + Compose.
 
 ## Start here
 
+**2026-10-17 functional operation:** the existing helper database is now at the
+accepted approval/PDF/catalog schema, with all 36 prior planning cases preserved
+and reopened after database/API restart without source/model access. The existing
+demo command now supports `--odoo-history` for the complete functional matrix.
+After owner key renewal, both restricted test-copy readers pass. All five stress
+types, infeasible demand, alternative approval, No-award and immutable PDF/replay
+pass on the persistent setup and expanded live browser stack. Eight new technical
+cases are retained; the normal UI runs at localhost:3000. Test-copy quotation
+credentials have their own setting, independent of the original database.
+See [current functional evidence](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md#functional-operation-follow-up--2026-10-17)
+and [run/reopen instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#repeatable-functional-verification-and-restart).
+
+**2026-10-16 controlled Odoo history integration:** the existing Odoo creation form
+now offers **Use history from Odoo** for the fixed test-copy case. Quotations and
+completed receipts are acquired through restricted readers, evaluated by a separately
+qualified saved tree and passed to the unchanged MILP. Stored scenarios, approval,
+library reopening and PDF use saved evidence. Records retain controlled synthetic
+origin; the tree retains synthetic training provenance. See the
+[implementation and validity evidence](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md) and
+[startup instructions](docs/LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-history-path).
+
 **2026-10-14 recovery correction:** comparison saving, selection and final approval
 now have distinct labels/states. Exact recovery saves/reopens a comparison without
 approval, and a new comparison clears stale decision feedback. Reflex is pinned to
@@ -53,11 +74,11 @@ acceptance remain open. See the dated [owner assessment](docs/UX41_ASSESSMENT.md
 | How do I compare and select an exact saved allocation? | [Comparison runbook #36](docs/UX36_COMPARISON_RUNBOOK.md), [handoff](docs/UX36_COMPARISON_HANDOFF.md) — aligned supplier rows, explicit selection and exact review summary |
 | How do I compare a disruption with its original result? | [Scenario runbook #37](docs/UX37_SCENARIO_RUNBOOK.md), [handoff](docs/UX37_SCENARIO_HANDOFF.md) — five bounded types, retained original values, infeasibility and exact retry |
 
-## Current capability — updated 2026-10-12
+## Current capability — updated 2026-10-16
 
 | Capability | Current implementation and remaining work |
 | --- | --- |
-| Odoo facts and supplier history | V2 independently reads selected quotations/currency, verifies expectations and assembles attributed business terms. The controlled demonstration uses synthetic ML history; matching Odoo receipt history/model promotion remains open. |
+| Odoo facts and supplier history | The opt-in fixed-profile path reads quotations and guarded receipt history from the dedicated test copy, checks raw context/backorders and produces attributed features. A separate qualified package passes the frozen controlled-domain evaluation, including n=3. Existing synthetic paths remain supported. [Handoff and limitations](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md); [fixture evidence](docs/V2_ODOO_HISTORY_FIXTURE_PLAN.md#completed-fixture-receipts-verified--2026-10-16). |
 | Decision Tree evaluation | T14 offline training, saved artifact reload, inference and tree-path explanation exist. Evidence/model are controlled synthetic; observed input is rejected. |
 | MILP allocation and alternatives | T13 computes one-product integer allocations with hard constraints, minimum cost and epsilon cost/exposure alternatives. |
 | Planning API, scenarios, storage | T15 supports the original synthetic case and live Odoo quotations with separate synthetic ML evidence. Five stress scenarios create immutable children; GET/exact replay use stored data only. |
@@ -281,10 +302,11 @@ claimed. Browser milestone procedures are in the runbook.
    lightweight RFQ/Saved cases overview in the retained palette. Structure is
    owner-confirmed; detailed contracts remain local drafts, not a published increment.
 4. Carry remaining owner/assistive and 3–5 unfamiliar-buyer gates into #41 before
-   final buyer/T19 acceptance. General Odoo quotation selection, supporting history
-   and observed-model promotion have separate data/API prerequisites; the current
-   [controlled compatibility boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) remains
-   Odoo quotations plus separately synthetic ML history. Further Hungarian Drive
+   final buyer/T19 acceptance. General Odoo quotation selection and genuine
+   operational model validation remain separate. The fixed controlled-history
+   integration is documented in its [current handoff](docs/ODOO_HISTORY_INTEGRATION_HANDOFF.md);
+   the [earlier boundary](docs/T15_ODOO_COMPATIBILITY_PLAN.md) describes the retained
+   quotation-plus-separately-synthetic path. Further Hungarian Drive
    updates require their own explicit request.
 
 ## Documentation responsibilities

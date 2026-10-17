@@ -8,6 +8,7 @@ from application.decision_input_assembly import (
     ProvenanceManifest,
     SourceAttribution,
 )
+from application.planning_history import capture_features
 from decision_core.planning.models import (
     PlanningPolicy,
     PlanningRequest,
@@ -15,6 +16,7 @@ from decision_core.planning.models import (
     SupplierTerms,
 )
 from supplier_evaluation.contracts import (
+    ODOO_HISTORY,
     SYNTHETIC,
     Context,
     LineEvidence,
@@ -58,10 +60,22 @@ class PlanningFacts:
     source_type: str = SYNTHETIC
 
 
+@dataclass(frozen=True, slots=True)
+class OdooHistoryPlanningFacts(PlanningFacts):
+    history: str = ""
+
+
 def assemble_planning_input(facts: PlanningFacts):
     """Derive T14 features from bounded receipts, retaining separate T6 attribution."""
-    if not isinstance(facts, PlanningFacts) or facts.source_type != SYNTHETIC:
+    if not isinstance(facts, PlanningFacts) or facts.source_type not in {SYNTHETIC, ODOO_HISTORY}:
         raise ValueError("This increment accepts explicitly synthetic evidence only.")
+    captured = {}
+    if facts.source_type == ODOO_HISTORY:
+        if not isinstance(facts, OdooHistoryPlanningFacts):
+            raise ValueError("Typed backend-acquired history required.")
+        captured = {f.context.supplier_id: f for f in capture_features(facts.history)}
+        if set(captured) != {s.terms.supplier_id for s in facts.suppliers}:
+            raise ValueError("Complete acquired supplier history required.")
     text_identity(facts.company_id)
     text_identity(facts.approval_reference)
     utc(facts.as_of)
@@ -88,9 +102,16 @@ def assemble_planning_input(facts: PlanningFacts):
         if any(line.line_id in lines for line in item.receipts):
             raise ValueError("Receipt identities must be unique across suppliers.")
         lines.update(line.line_id for line in item.receipts)
+        feature = captured.get(item.terms.supplier_id)
+        if feature is not None and (
+            feature.context != context or item.receipts or feature.cutoff > facts.as_of
+        ):
+            raise ValueError("Captured history context/cutoff mismatch.")
         features.append(
             (
-                prepare_history(
+                feature
+                if feature is not None
+                else prepare_history(
                     context, facts.as_of, item.receipts, facts.source_type, item.history_reference
                 ),
                 item.score_quantities,
