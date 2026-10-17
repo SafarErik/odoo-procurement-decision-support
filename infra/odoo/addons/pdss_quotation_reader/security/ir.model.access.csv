@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_pdss_purchase_order,pdss purchase.order read,purchase.model_purchase_order,group_pdss_quotation_reader,1,0,0,0
+access_pdss_purchase_order_line,pdss purchase.order.line read,purchase.model_purchase_order_line,group_pdss_quotation_reader,1,0,0,0
+access_pdss_product_product,pdss product.product read,product.model_product_product,group_pdss_quotation_reader,1,0,0,0
+access_pdss_product_template,pdss product.template read,product.model_product_template,group_pdss_quotation_reader,1,0,0,0
+access_pdss_product_supplierinfo,pdss product.supplierinfo read,product.model_product_supplierinfo,group_pdss_quotation_reader,1,0,0,0
+access_pdss_res_partner,pdss res.partner read,base.model_res_partner,group_pdss_quotation_reader,1,0,0,0
+access_pdss_res_currency,pdss res.currency read,base.model_res_currency,group_pdss_quotation_reader,1,0,0,0
+access_pdss_uom_uom,pdss uom.uom read,uom.model_uom_uom,group_pdss_quotation_reader,1,0,0,0
