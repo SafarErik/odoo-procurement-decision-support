@@ -78,8 +78,9 @@ async def submit_planning_request(
         if url.endswith("/from-odoo-history") and response.status_code in (409, 422, 503):
             code = response.json().get("detail", {}).get("code")
             history_errors = {
-                "history_profile_changed": (
-                    "The configured history profile changed. Reload its preview before saving."
+                "odoo_history_insufficient": (
+                    "At least one quoted supplier has fewer than three settled purchase lines "
+                    "in Odoo. No case was saved."
                 ),
                 "odoo_history_unavailable": (
                     "Odoo history is missing, unavailable or does not match the configured source. "
@@ -147,10 +148,11 @@ async def submit_planning_request(
             capture = json.loads(facts["history"])
             if (
                 facts["input_kind"] != "odoo_quotations_odoo_history"
-                or capture["evidence"]["profile"]["id"] != payload["profile_id"]
-                or capture["evidence"]["profile_revision"] != payload["profile_revision"]
+                or facts["comparison_case_id"]
+                != f"odoo:purchase.order.group:{payload['purchase_group_id']}"
+                or capture["evidence"]["version"] != "odoo-purchase-history-capture-v2"
             ):
-                raise ValueError("Unexpected Odoo history profile.")
+                raise ValueError("Unexpected Odoo history capture.")
         return display, "", False
     except (
         httpx.HTTPError,
@@ -293,6 +295,26 @@ def _buyer_explanations(entries: list[dict]) -> str:
     )
 
 
+_HISTORY_STEPS = {
+    "on_time_rate": ("On-time delivery rate", "{:.1%}"),
+    "mean_lateness_days": ("Average lateness", "{:.1f} days"),
+    "lateness_spread_days": ("Lateness spread", "{:.1f} days"),
+    "fill_rate": ("Fill rate", "{:.1%}"),
+    "partial_share": ("Share of partial deliveries", "{:.1%}"),
+    "order_count": ("Settled purchase lines", "{:.0f}"),
+    "days_since_last_receipt": ("Days since last receipt", "{:.0f}"),
+}
+
+
+def _history_step(step) -> str:
+    """Readable condition for an Odoo-history tree split (stored values only)."""
+    name, fmt = _HISTORY_STEPS.get(step["feature"], (step["feature"], "{}"))
+    relation = "is at most" if step["operator"] == "<=" else "is above"
+    return (
+        f"{name} ({fmt.format(step['value_float32'])}) {relation} {fmt.format(step['threshold'])}."
+    )
+
+
 def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     if _required_string(payload, "case_id") != expected_id:
         raise ValueError("Response identity mismatch")
@@ -318,7 +340,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     kinds = {
         "controlled_synthetic": "Controlled synthetic inputs and ML history",
         "odoo_quotations_synthetic_history": "Captured Odoo quotations; synthetic ML history",
-        "odoo_quotations_odoo_history": "Odoo quotations and receipts; controlled synthetic origin",
+        "odoo_quotations_odoo_history": "Odoo quotations and Odoo purchase history",
     }
     currency = _required_string(requirement, "currency")
     parent = payload["parent_id"]
@@ -605,11 +627,8 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     assessments = []
     for assessment in snapshot["assessments"]:
         feature = assessment["snapshot"]
-        expected_source = (
-            "odoo_projection"
-            if facts.get("input_kind") == "odoo_quotations_odoo_history"
-            else "t14_synthetic"
-        )
+        history = facts.get("input_kind") == "odoo_quotations_odoo_history"
+        expected_source = "odoo_purchase_history" if history else "t14_synthetic"
         if feature["source_type"] != expected_source or facts["source_type"] != expected_source:
             raise ValueError("Unsupported ML source")
         predicted = assessment["predicted_class"]
@@ -621,9 +640,16 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "supplier": _required_string(feature["context"], "supplier_id"),
                 "score": str(_decimal(assessment["score"])),
                 "name": _supplier_label(feature["context"]["supplier_id"]),
-                "class_label": "Schedule watch" if predicted else "Schedule regular",
+                "class_label": (
+                    ("Problematic" if predicted else "Regular")
+                    if history
+                    else ("Schedule watch" if predicted else "Schedule regular")
+                ),
                 "class_meaning": (
-                    "Training label: at least two of five future synthetic receipts are late."
+                    "Training label: in the next 60 days the average delay exceeds 3 days "
+                    "or the fill rate is below 85%."
+                    if history
+                    else "Training label: at least two of five future synthetic receipts are late."
                     if predicted
                     else "Training label: fewer than two of five future synthetic receipts "
                     "are late."
@@ -631,13 +657,13 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
                 "score_display": f"{score * 100:.1f} / 100",
                 "history_summary": (
-                    f"{feature['values'][0]:g}% on time across "
-                    f"{feature['values'][1]:g} "
-                    + (
-                        "completed purchase lines"
-                        if expected_source == "odoo_projection"
-                        else "completed receipts"
-                    )
+                    f"{feature['values'][0] * 100:.0f}% on time, average lateness "
+                    f"{feature['values'][1]:.1f} days, fill rate "
+                    f"{feature['values'][3] * 100:.0f}% across {feature['values'][5]:g} "
+                    "settled Odoo purchase lines"
+                    if history
+                    else f"{feature['values'][0]:g}% on time across "
+                    f"{feature['values'][1]:g} completed receipts"
                 ),
                 "history_window": (
                     f"{feature['history_start'][:10]} to {feature['history_end'][:10]}"
@@ -666,8 +692,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                         f"are {'at most' if step['operator'] == '<=' else 'above'} "
                         f"{step['threshold']:.2f}."
                         if step["feature"] == "historical_completed_count"
-                        else f"{step['feature']}: {step['value_float32']} "
-                        f"{step['operator']} {step['threshold']}."
+                        else _history_step(step)
                     )
                     for index, step in enumerate(assessment["path"])
                 )

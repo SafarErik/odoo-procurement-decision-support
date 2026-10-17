@@ -3,7 +3,7 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.routing import APIRoute
 
 from application.errors import RepositoryError
@@ -28,7 +28,7 @@ from backend.app.dependencies import (
     infer_odoo_history_features,
     infer_planning_features,
     planning_solver_factory,
-    preview_local_history,
+    preview_odoo_history,
     render_approved_document,
     resolve_odoo_history_input,
     resolve_odoo_planning_input,
@@ -90,7 +90,7 @@ def _error(error):
         "planning_case_already_finalized": 409,
         "approved_content_hash_mismatch": 409,
         "odoo_history_unavailable": 503,
-        "history_profile_changed": 409,
+        "odoo_history_insufficient": 422,
         "odoo_history_model_incompatible": 503,
     }.get(code, 422)
     raise HTTPException(
@@ -220,10 +220,10 @@ def post_scenario(
         _error(error)
 
 
-@router.get("/odoo-history/local-v1")
-def get_odoo_history_preview():
+@router.get("/odoo-history/preview")
+def get_odoo_history_preview(purchase_group_id: Annotated[int, Query(gt=0)]):
     try:
-        return preview_local_history()
+        return preview_odoo_history(purchase_group_id)
     except (PlanningCaseError, RepositoryError, ValueError) as error:
         _error(error)
 
@@ -234,18 +234,13 @@ def post_odoo_history_case(
 ):
     try:
         facts = normalize_planning_facts(request.terms.to_facts())
-        intent = {
-            "profile_id": request.profile_id,
-            "profile_revision": request.profile_revision,
-            "purchase_group_id": 2,
-            "facts": facts,
-        }
+        intent = {"purchase_group_id": request.purchase_group_id, "facts": facts}
         case, replay = create_planning_case(
             get_planning_unit_of_work(),
             idempotency_key,
             base_intent=intent,
             base_kind=HISTORY_INPUT_KIND,
-            load_base=lambda: resolve_odoo_history_input(request.profile_revision, facts),
+            load_base=lambda: resolve_odoo_history_input(request.purchase_group_id, facts),
             infer=infer_odoo_history_features,
             solver_factory=planning_solver_factory,
         )

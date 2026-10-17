@@ -510,13 +510,28 @@ def plans_view() -> rx.Component:
     )
 
 
+HISTORY_KIND = "Odoo quotations and Odoo purchase history"
+
+
+def _history_case():
+    return PlanningState.details["input_kind"] == HISTORY_KIND
+
+
 def suppliers_view() -> rx.Component:
     return rx.box(
         rx.heading("Why these supplier assessments?", as_="h2", size="4"),
         rx.text(
-            "Classes describe synthetic training outcomes, not observed supplier performance. "
-            "The saved tree uses prior on-time delivery and receipt counts; its branches explain "
-            "the classification, not why a delivery was late. Allocation constraints are separate.",
+            rx.cond(
+                _history_case(),
+                "The saved tree was trained on Odoo purchase history: on-time rate, lateness, "
+                "fill rate, partial deliveries, order count and recency of each supplier. Its "
+                "branches explain the classification, not why a delivery was late. Allocation "
+                "constraints are separate.",
+                "Classes describe synthetic training outcomes, not observed supplier performance. "
+                "The saved tree uses prior on-time delivery and receipt counts; its branches "
+                "explain the classification, not why a delivery was late. Allocation "
+                "constraints are separate.",
+            ),
             size="2",
             color=MUTED,
             max_width="75ch",
@@ -529,9 +544,15 @@ def suppliers_view() -> rx.Component:
             margin_bottom="0.75rem",
         ),
         rx.callout(
-            "Synthetic history. These percentages describe generated receipts, "
-            "including for Odoo suppliers. They are not performance measured "
-            "from your Odoo database. Exposure is uncalibrated, not a failure probability.",
+            rx.cond(
+                _history_case(),
+                "Read from Odoo. In this test database the purchase history is generated test "
+                "data, so these rates do not describe real suppliers. Exposure is the share of "
+                "problematic training cases in the tree leaf; it is not a failure probability.",
+                "Synthetic history. These percentages describe generated receipts, "
+                "including for Odoo suppliers. They are not performance measured "
+                "from your Odoo database. Exposure is uncalibrated, not a failure probability.",
+            ),
             color_scheme="amber",
         ),
         rx.foreach(PlanningState.assessments, _recorded_assessment),
@@ -593,10 +614,17 @@ def suppliers_view() -> rx.Component:
         rx.el.details(
             rx.el.summary("What was the model trained on?", font_weight="650", cursor="pointer"),
             rx.text(
-                "Offline generated receipt histories with two features: on-time "
-                "delivery rate and completed-receipt count. The label is Schedule "
-                "watch when at least two of five completed receipts in the next 30 "
-                "days are late; otherwise Schedule regular.",
+                rx.cond(
+                    _history_case(),
+                    "Purchase lines and receipts read from Odoo, one row per supplier, "
+                    "product and half-month cutoff, with seven features known at the cutoff. "
+                    "The label is Problematic when, in the next 60 days, the average delay "
+                    "exceeds 3 days or the fill rate is below 85%. See docs/MODEL_ML.md.",
+                    "Offline generated receipt histories with two features: on-time "
+                    "delivery rate and completed-receipt count. The label is Schedule "
+                    "watch when at least two of five completed receipts in the next 30 "
+                    "days are late; otherwise Schedule regular.",
+                ),
                 size="2",
                 margin_y="0.75rem",
                 max_width="75ch",

@@ -1,4 +1,4 @@
-"""HTTP-only preview of the server-owned Odoo history profile."""
+"""HTTP-only preview of Odoo purchase history for one quotation group."""
 
 import re
 
@@ -19,13 +19,12 @@ async def fetch_odoo_history(url, token, *, transport=None):
             raise ValueError("Oversized history preview.")
         data = response.json()
         if (
-            data["profile_id"] != "local-v1"
-            or re.fullmatch(r"[0-9a-f]{64}", data["profile_revision"]) is None
-            or data["origin"] != "controlled_synthetic"
-            or len(data["history"]) != 3
+            type(data["purchase_group_id"]) is not int
+            or re.fullmatch(r"[0-9a-f]{64}", data["capture_hash"]) is None
+            or not 1 <= len(data["history"]) <= 10
             or data["model_readiness"] not in {"ready", "model_unavailable"}
         ):
-            raise ValueError("Invalid configured history profile.")
+            raise ValueError("Invalid Odoo history preview.")
         return data, ""
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         return (

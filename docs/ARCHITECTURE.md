@@ -10,14 +10,14 @@ service never writes to it and never touches its database directly.
 ```text
 Odoo 19 (read-only JSON-2)            buyer-supplied terms (with source)
   quotations, suppliers, prices          demand Q, capacity, MOQ, dates, policy
-  receipt history (bounded addon)               |
+  purchase history (bounded addon export)       |
             \                                   /
              v                                 v
         input assembly + field-level provenance   (application/)
                          |
                          v
-        supplier evaluation: saved Decision Tree  (supplier_evaluation/)
-          class, exposure score in [0,1], tree path
+        supplier evaluation: Decision Tree trained offline on Odoo purchase
+          history; class, exposure score in [0,1], tree path  (supplier_evaluation/)
                          |
                          v
         MILP planning: minimum cost + epsilon alternatives (decision_core/planning,
@@ -43,16 +43,17 @@ The Reflex web UI drives every step through the HTTP API only.
 | --- | --- | --- |
 | `decision_core/planning/` | ERP-neutral planning model: immutable request/plan types, bound rules, plan verification, explanations, the `plan_procurement` use of a solver port | standard library only |
 | `optimization_adapter/` | PuLP + CBC implementation of the solver port (integer encoding, exact rational scaling, tie-break) | `decision_core`, PuLP |
-| `supplier_evaluation/` | Offline dataset building, Decision Tree training/evaluation, trusted artifact loading, inference with tree path, ML → MILP risk bridge | scikit-learn, `decision_core` |
+| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)); the older synthetic demo tree | scikit-learn, `decision_core` |
 | `application/` | Use cases: assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, prepare approved document content | ports only (no Odoo/DB/HTTP) |
-| `odoo_adapter/` | JSON-2 readers for RFQs, comparison groups and bounded receipt history | `application` contracts, httpx |
+| `odoo_adapter/` | JSON-2 readers for RFQs, comparison groups, the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
 | `document_adapter/` | ReportLab rendering of the approved PDF | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
 | `frontend/` | Reflex UI; talks to the backend over HTTP; holds the service token server-side | backend API only |
-| `infra/odoo/addons/t7s_inventory_history_projection/` | Minimal Odoo addon exposing one bounded, company-scoped, read-only receipt-history method | Odoo |
+| `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
+| `infra/odoo/addons/pdss_quotation_reader/` | Read-only group for the quotation integration user (no write rights, no Purchase role) | Odoo |
 | `migrations/` | Alembic schema for the planning database | `persistence.schema` |
-| `tools/` | Developer entry point (`tools.dev`), reproducible demos and the evaluation harness | everything |
+| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code), demos and the evaluation harness | everything |
 
 Boundaries enforced by `tests/test_architecture.py`: the planning core imports no
 application/adapter code and carries no provenance; the application layer imports
@@ -76,6 +77,9 @@ no Odoo, SQL or HTTP code; adapters point inward.
   scenarios cannot be approved. The PDF is rendered from the approved snapshot only.
 - **Offline training.** Models are trained by a CLI and loaded from a trusted local
   directory; HTTP callers can never select or upload a model.
+- **Read-only runtime, scripted test data.** The backend only reads Odoo. Generated
+  history is written by a separate seeding tool into the dedicated test database
+  `pdss_history_gen` only, and is tagged as generated.
 
 ## 4. HTTP API
 
@@ -85,7 +89,7 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 | --- | --- |
 | `POST /` | Create a base case from explicit (demo) input |
 | `POST /from-odoo` | Create a base case from an Odoo quotation group plus explicit terms |
-| `GET /odoo-history/local-v1`, `POST /from-odoo-history` | Fixed Odoo test-copy path using Odoo receipt history |
+| `GET /odoo-history/preview?purchase_group_id=N`, `POST /from-odoo-history` | Case from an Odoo quotation group with live purchase history and the Odoo-history model |
 | `POST /{id}/scenarios` | Re-run the same MILP on explicitly changed inputs (child case) |
 | `GET /`, `GET /{id}/scenarios` | Saved-case library, filters `origin`, `status`, `q`, cursor paging |
 | `GET /{id}` | Stored case, its decision and data origin |

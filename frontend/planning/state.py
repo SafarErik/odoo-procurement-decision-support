@@ -792,11 +792,7 @@ class PlanningState(rx.State):
         for supplier in facts["suppliers"]:
             supplier["source"] = source.copy()
         if self.odoo_history_mode:
-            return {
-                "profile_id": payload["profile_id"],
-                "profile_revision": payload["profile_revision"],
-                "terms": facts,
-            }
+            return {"purchase_group_id": payload["purchase_group_id"], "terms": facts}
         return payload
 
     @rx.event
@@ -813,8 +809,15 @@ class PlanningState(rx.State):
         self.odoo_history_rows = []
         yield
         try:
+            group = settings.odoo_history_purchase_group_id
+            if group is None:
+                self.error_message = (
+                    "Set ODOO_HISTORY_PURCHASE_GROUP_ID to the Odoo quotation group to analyse."
+                )
+                return
             data, error = await fetch_odoo_history(
-                settings.planning_cases_url + "/odoo-history/local-v1",
+                settings.planning_cases_url
+                + f"/odoo-history/preview?purchase_group_id={int(group)}",
                 settings.api_service_token.get_secret_value(),
             )
             if data is None:
@@ -825,9 +828,7 @@ class PlanningState(rx.State):
             self.odoo_history_readiness = data["model_readiness"]
             self._odoo_payload = {
                 "controlled_input": facts,
-                "purchase_group_id": 2,
-                "profile_id": data["profile_id"],
-                "profile_revision": data["profile_revision"],
+                "purchase_group_id": data["purchase_group_id"],
             }
             self.odoo_offers = [
                 {
@@ -840,15 +841,16 @@ class PlanningState(rx.State):
                     if s["minimum_order_quantity"] is not None
                     else "",
                     "promised_date": s["promised_date"],
-                    "ranges": "Price and delivery applicability: 1–1,000 units (controlled proxy).",
+                    "ranges": "Price and delivery applicability: 1–1,000 units (default terms).",
                 }
                 for s in facts["suppliers"]
             ]
             self.odoo_history_rows = [
                 {
                     "supplier": _supplier_label(r["supplier_id"]),
-                    "adherence": str(r["value"]) + "%",
-                    "sample": str(r["sample_size"]),
+                    "summary": f"{r['on_time_rate'] * 100:.0f}% on time · average lateness "
+                    f"{r['mean_lateness_days']:.1f} days · fill rate {r['fill_rate'] * 100:.0f}%"
+                    f" · {r['order_count']:g} settled lines",
                 }
                 for r in data["history"]
             ]
@@ -859,7 +861,7 @@ class PlanningState(rx.State):
             )
             self.odoo_policy = (
                 "Maximum 2 suppliers; 80% share limit; alternative cost allowance 20%. "
-                "Explicit terms; Odoo history is reread when saving."
+                "Default terms; Odoo quotations and history are reread when saving."
             )
             self.odoo_ready = True
             self.creation_dirty = True
@@ -922,7 +924,7 @@ class PlanningState(rx.State):
                 else facts["as_of"],
                 "origin": "Odoo" if odoo else "Demo data",
                 "policy": self.odoo_policy if odoo else self.demo_policy,
-                "history_source": "Odoo receipts (controlled synthetic origin)"
+                "history_source": "Odoo purchase history (generated test data)"
                 if history
                 else "Separately synthetic history",
             }

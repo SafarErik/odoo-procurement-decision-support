@@ -95,7 +95,7 @@ def _odoo_creation_controls() -> rx.Component:
         rx.text(
             "Use the prepared Odoo quotation comparison. FastAPI reads Odoo again before saving. "
             "You supply demand and supplier limits. Choose separately synthetic history or "
-            "the controlled synthetic receipts stored in the configured Odoo test copy.",
+            "the purchase history read from Odoo for the configured quotation group.",
             color=MUTED,
             size="2",
             max_width="75ch",
@@ -120,8 +120,8 @@ def _odoo_creation_controls() -> rx.Component:
             PlanningState.odoo_history_mode,
             rx.box(
                 rx.text(
-                    "Receipts are read from Odoo; these test records retain controlled "
-                    "synthetic origin. No training occurs here.",
+                    "Purchase history is read from Odoo. In this test database it is "
+                    "generated test data. No training occurs here.",
                     size="2",
                 ),
                 rx.foreach(
@@ -129,9 +129,7 @@ def _odoo_creation_controls() -> rx.Component:
                     lambda row: rx.text(
                         row["supplier"],
                         ": ",
-                        row["adherence"],
-                        " · eligible lines ",
-                        row["sample"],
+                        row["summary"],
                         size="2",
                     ),
                 ),

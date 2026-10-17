@@ -202,7 +202,7 @@ class OdooHistoryTermsRequest(StrictModel):
     requirement_source: SourceRequest
     policy: PolicyRequest
     policy_source: SourceRequest
-    suppliers: list[CommercialSupplierRequest] = Field(min_length=3, max_length=3)
+    suppliers: list[CommercialSupplierRequest] = Field(min_length=1, max_length=10)
 
     @field_validator("as_of", mode="before")
     @classmethod
@@ -211,7 +211,7 @@ class OdooHistoryTermsRequest(StrictModel):
 
     def to_facts(self):
         from application.planning_input import OdooHistoryPlanningFacts
-        from supplier_evaluation.contracts import ODOO_HISTORY
+        from supplier_evaluation.contracts import HISTORY_SOURCE
 
         r, p = self.requirement, self.policy
         suppliers = tuple(
@@ -252,13 +252,12 @@ class OdooHistoryTermsRequest(StrictModel):
             ),
             self.policy_source.attribution("policy"),
             suppliers,
-            ODOO_HISTORY,
+            HISTORY_SOURCE,
         )
 
 
 class OdooHistoryCreateRequest(StrictModel):
-    profile_id: Literal["local-v1"]
-    profile_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    purchase_group_id: int = Field(gt=0, strict=True)
     terms: OdooHistoryTermsRequest
 
 

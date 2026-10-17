@@ -12,7 +12,7 @@ from decision_core.planning.models import (
     SupplierTerms,
 )
 from supplier_evaluation.contracts import (
-    ODOO_HISTORY,
+    HISTORY_SOURCE,
     SYNTHETIC,
     Context,
     LineEvidence,
@@ -63,10 +63,10 @@ class OdooHistoryPlanningFacts(PlanningFacts):
 
 def assemble_planning_input(facts: PlanningFacts):
     """Derive T14 features from bounded receipts, retaining separate T6 attribution."""
-    if not isinstance(facts, PlanningFacts) or facts.source_type not in {SYNTHETIC, ODOO_HISTORY}:
+    if not isinstance(facts, PlanningFacts) or facts.source_type not in {SYNTHETIC, HISTORY_SOURCE}:
         raise ValueError("This increment accepts explicitly synthetic evidence only.")
     captured = {}
-    if facts.source_type == ODOO_HISTORY:
+    if facts.source_type == HISTORY_SOURCE:
         if not isinstance(facts, OdooHistoryPlanningFacts):
             raise ValueError("Typed backend-acquired history required.")
         captured = {f.context.supplier_id: f for f in capture_features(facts.history)}

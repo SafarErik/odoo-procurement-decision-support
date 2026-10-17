@@ -39,10 +39,10 @@ check. Run it before every handoff.
 python -m tools.t15_demo prepare
 ```
 
-Generates the demo dataset, trains and saves the Decision Tree under
+Generates the demo dataset, trains and saves the synthetic demo Decision Tree under
 `.artifacts/t15-demo/model` and writes the demo request used by the UI. Set
 `SUPPLIER_MODEL_DIRECTORY` in `.env` to the absolute path of that `model` folder.
-(P1 replaces this with training on Odoo history.)
+This model serves only the demo paths; Odoo-history cases use the model of §5.3.
 
 ## 4. Planning database, API and UI
 
@@ -66,11 +66,57 @@ python -m tools.dev odoo-up    # Odoo on http://127.0.0.1:8069 with its own data
 python -m tools.dev odoo-down
 ```
 
-Odoo setup, integration users and fixtures are manual and documented in
-[history/T0_HANDOFF.md](history/T0_HANDOFF.md), [history/T6_FIXTURE_SETUP.md](history/T6_FIXTURE_SETUP.md),
-[history/T7S_MANUAL_SETUP.md](history/T7S_MANUAL_SETUP.md) and
-[history/T7_FIXTURE_SETUP.md](history/T7_FIXTURE_SETUP.md). The backend uses
-restricted, read-only API keys only.
+`odoo-up` needs `POSTGRES_PASSWORD` and `ODOO_MASTER_PASSWORD` in `.env`.
+
+### 5.1 Dedicated test database (manual, administrator)
+
+1. `http://localhost:8069/web/database/manager` > **Create Database**: master password
+   from `.env`, name `pdss_history_gen`, language English, country Hungary, no demo data.
+2. **Apps**: activate **Inventory** and **Purchase**. **Purchase > Configuration >
+   Settings**: enable **Purchase Agreements** (alternative RFQ groups).
+3. **Settings > Activate the developer mode**; **Settings > Technical > System
+   Parameters > New**: key `pdss.seed_target`, value `pdss_history_gen`.
+4. **Apps > Update Apps List**, then activate `T7-S Inventory-History Projection`
+   (19.0.2.0.0, history export) and `PDSS Quotation Reader`.
+5. Quotation user (internal, no Purchase/Inventory role, only company 1): add it to the
+   `PDSS Quotation Reader` group; API key from its **Preferences > Account Security** →
+   `ODOO_API_KEY`.
+6. History user (portal, only company 1): **Contacts > New > Action > Grant portal
+   access**, add it to `T7-S Inventory-History Projection Reader`; temporarily enable
+   **Settings > Permissions > Customers can generate API Keys**, create the key at
+   `/my/security?debug=1`, disable the setting again → `ODOO_T7S_API_KEY`.
+7. `ODOO_DATABASE=pdss_history_gen`.
+
+Rollback: delete the database in the database manager. Earlier setups (T6/T7 fixtures)
+are in [history/](history/).
+
+### 5.2 Seed generated purchase history (dedicated test database only)
+
+Create a short-lived administrator API key and set `ODOO_SEED_DATABASE=pdss_history_gen`
+and `ODOO_SEED_ADMIN_API_KEY` in `.env`. The tool refuses any other database name and
+any database without `pdss.seed_target`; the backend never reads these settings.
+
+```powershell
+python -m tools.seed_odoo_history plan     # summary only, no writes
+python -m tools.seed_odoo_history apply    # ~2,550 orders, ~40 min; resumable
+```
+
+It creates 3 products, 40 suppliers (`[GEN]` names), 18 months of confirmed orders
+with back-dated, partly late and partial receipts (origin `PDSS-GEN-P1:*`) and one
+open quotation group (four tax-free RFQs, origin `PDSS-GEN-P1:RFQ:*`). The manifest
+is written to `.artifacts/seed/manifest.json` (`purchase_group_id` is needed below).
+
+### 5.3 Train the Odoo-history model
+
+```powershell
+python -m tools.train_history_model all   # read-only extraction, training, report
+```
+
+Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/model`
+and `ODOO_HISTORY_PURCHASE_GROUP_ID` to the seeded group. The UI's **Use history from
+Odoo** then previews and saves cases from live Odoo history. Full HTTP flow:
+`python -m tools.t17_demo run --odoo-history <group> --actor … --reason … --no-award-reason …`.
+Opt-in live check: `RUN_ODOO_HISTORY_LIVE=true pytest tests/integration/test_live_purchase_history.py -m integration`.
 
 ## 6. Database integration tests
 

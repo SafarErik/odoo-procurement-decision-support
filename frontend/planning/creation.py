@@ -142,7 +142,6 @@ def creation_review(kind: str):
                 margin_top="0.75rem",
             ),
             rx.text(
-                "Supplier history and Decision Tree evidence remain synthetic. "
                 "The API checks applicability, policy and feasibility when calculating. "
                 "Review does not save, solve or approve a plan.",
                 size="2",
