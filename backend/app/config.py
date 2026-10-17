@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     odoo_t7s_api_key: SecretStr = SecretStr("")
     decision_database_url: SecretStr = SecretStr("")
     api_service_token: SecretStr = SecretStr("")
-    supplier_model_directory: Path | None = None
     # Model trained offline from Odoo purchase history (tools.train_history_model).
     supplier_history_model_directory: Path | None = None
     planning_library_company_id: str = ""
@@ -27,7 +26,7 @@ class Settings(BaseSettings):
     run_t7s_live_contracts: bool = False
     run_t7_live_contracts: bool = False
 
-    @field_validator("supplier_model_directory", "supplier_history_model_directory", mode="before")
+    @field_validator("supplier_history_model_directory", mode="before")
     @classmethod
     def optional_model_directory(cls, value):
         return None if value == "" else value

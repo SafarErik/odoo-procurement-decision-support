@@ -31,9 +31,14 @@ Odoo 19 (read-only JSON-2)            buyer-supplied terms (with source)
    explicit input changes,         or No-award, recorded once
    stored as child cases)                     |
                                               v
-                                   approved PDF from the stored snapshot
+                                   approved PDF (HU or EN) from the stored
+                                   snapshot: summary, one purchase order
+                                   proposal per supplier, audit appendix
                                               (document_adapter/)
 ```
+
+The buyer starts by choosing one of the company's open Odoo quotation groups
+(`GET /api/v2/procurement/quotation-groups`).
 
 The Reflex web UI drives every step through the HTTP API only.
 
@@ -43,17 +48,17 @@ The Reflex web UI drives every step through the HTTP API only.
 | --- | --- | --- |
 | `decision_core/planning/` | ERP-neutral planning model: immutable request/plan types, bound rules, plan verification, explanations, the `plan_procurement` use of a solver port | standard library only |
 | `optimization_adapter/` | PuLP + CBC implementation of the solver port (integer encoding, exact rational scaling, tie-break) | `decision_core`, PuLP |
-| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)); the older synthetic demo tree | scikit-learn, `decision_core` |
-| `application/` | Use cases: assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, prepare approved document content | ports only (no Odoo/DB/HTTP) |
-| `odoo_adapter/` | JSON-2 readers for RFQs, comparison groups, the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
+| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)); the pre-P2 synthetic tree stays as offline library code only, to rebuild stored demo cases in tests | scikit-learn, `decision_core` |
+| `application/` | Use cases: list open quotation groups, assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, per-supplier overview and HU/EN explanation texts, approved document storage per language | ports only (no Odoo/DB/HTTP) |
+| `odoo_adapter/` | JSON-2 readers for RFQs, open quotation-group summaries, one comparison group (with display names), the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
-| `document_adapter/` | ReportLab rendering of the approved PDF | approved content only |
+| `document_adapter/` | ReportLab rendering of the approved PDF v2 (HU/EN, summary, proposal page per supplier, readable audit appendix) | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
 | `frontend/` | Reflex UI; talks to the backend over HTTP; holds the service token server-side | backend API only |
 | `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
 | `infra/odoo/addons/pdss_quotation_reader/` | Read-only group for the quotation integration user (no write rights, no Purchase role) | Odoo |
 | `migrations/` | Alembic schema for the planning database | `persistence.schema` |
-| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code), demos and the evaluation harness | everything |
+| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code) and the HTTP acceptance demo (`t17_demo`) | everything |
 
 Boundaries enforced by `tests/test_architecture.py`: the planning core imports no
 application/adapter code and carries no provenance; the application layer imports
@@ -87,27 +92,32 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 
 | Method and path | Purpose |
 | --- | --- |
-| `POST /` | Create a base case from explicit (demo) input |
-| `POST /from-odoo` | Create a base case from an Odoo quotation group plus explicit terms |
-| `GET /odoo-history/preview?purchase_group_id=N`, `POST /from-odoo-history` | Case from an Odoo quotation group with live purchase history and the Odoo-history model |
-| `POST /{id}/scenarios` | Re-run the same MILP on explicitly changed inputs (child case) |
+| `GET /odoo-history/preview?purchase_group_id=N`, `POST /from-odoo-history` | The only way to create a base case: an Odoo quotation group, its product's purchase history and the Odoo-history model, plus explicit buyer terms |
+| `POST /{id}/scenarios` | Re-run the same MILP on explicitly changed inputs (child case); capacity, demand and price may go up or down |
 | `GET /`, `GET /{id}/scenarios` | Saved-case library, filters `origin`, `status`, `q`, cursor paging |
 | `GET /{id}` | Stored case, its decision and data origin |
+| `GET /{id}/suppliers?language=hu` (or `en`) | Per-supplier overview from the stored snapshot: history KPIs, assessment, readable tree path, terms, planned quantities |
 | `POST /{id}/final-decision` | Approve a plan or record No-award (once) |
-| `GET /{id}/approved-pdf/{hash}` | Approved PDF bytes |
+| `GET /{id}/approved-pdf/{hash}?language=hu` (or `en`) | Approved PDF bytes (Hungarian default), one stored artifact per language |
 
-`GET /api/v1/procurement/rfqs` lists open Odoo RFQs; `GET /api/v1/health` is a
-liveness probe.
+`GET /api/v2/procurement/quotation-groups?limit=1..20` lists the newest open Odoo
+quotation groups of the configured company (`PLANNING_LIBRARY_COMPANY_ID`) with
+product, quantity, currency, suppliers and whether the group can become a case
+(`selectable`, `issue`); it is bounded (at most 200 scanned orders, 20 groups) and
+read-only. `GET /api/v1/procurement/rfqs` lists open Odoo RFQs; `GET /api/v1/health`
+is a liveness probe. The synthetic demo routes `POST /` and `POST /from-odoo` were
+removed in P2; cases they created stay readable, approvable and printable.
 
 ## 5. Persistence
 
-One PostgreSQL database owned by this service (`migrations/versions/20261018_01`):
+One PostgreSQL database owned by this service (`migrations/versions/20261018_01`,
+`20261019_01` for per-language PDFs):
 
 | Table | Content |
 | --- | --- |
 | `planning_cases` | Snapshot JSONB (facts, request, assessments, model manifest, solver evidence, result, scenario delta, provenance), parent link, idempotency key and fingerprint |
 | `planning_final_decisions` | One immutable decision per original base case |
-| `planning_documents` | Approved PDF bytes, content hash and renderer version |
+| `planning_documents` | Approved PDF bytes per `(case_id, language)` with content hash, reference and renderer version; English artifacts stored before P2 keep their v1 reference and bytes |
 
 The data origin shown in the UI (`demo` or `odoo`) is derived from the stored
 snapshot, not stored separately.

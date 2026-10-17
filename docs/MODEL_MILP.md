@@ -62,9 +62,30 @@ Per plan: cost premium over `C*` and exposure. No LLM is involved.
 ## 6. Stress scenarios
 
 A scenario copies the stored base request, applies explicit changes and runs the
-same model: supplier outage, capacity reduction, demand increase, price increase,
-or a combination. The base case and any approved decision stay unchanged.
-(P2 extends changes to both directions.)
+same model with the base case's saved supplier scores (no new Odoo read, no
+re-scoring). The base case and any approved decision stay unchanged.
+
+| Kind | Change (each relative to the stored base) |
+| --- | --- |
+| `supplier_outage` | an available supplier becomes unavailable |
+| `capacity_change` | a supplier's capacity becomes any other integer `≥ 0` |
+| `demand_change` | the approved demand `Q` becomes any other integer `≥ 1` |
+| `price_change` | a supplier's unit price becomes any other positive decimal |
+| `combined` | at least two of the above in one scenario |
+
+**Changed in P2 (2026-10-17).** Until P1 the changes were one-directional
+(`capacity_reduction`, `demand_increase`, `price_increase`): only stricter
+conditions could be tested. The official task asks for stress tests with capacity,
+demand and price *change*, and a buyer also needs the opposite questions (a
+supplier offers more capacity, a lower price arrives, demand is cut). The model,
+bounds and solver are unchanged; only the input validation now accepts both
+directions and rejects a "change" equal to the stored value. Stored scenarios keep
+their original kind; the library shows `capacity_reduction`, `demand_increase` and
+`price_increase` as `capacity_change`, `demand_change` and `price_change`.
+
+Reading results: a lower demand or a higher capacity can make an infeasible base
+feasible; a higher demand can make a feasible base infeasible (recorded, never
+invented); totals across different demands are not like-for-like savings.
 
 ## 7. Known limitations (state in chapter 5)
 

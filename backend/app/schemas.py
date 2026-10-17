@@ -44,3 +44,47 @@ class RfqListResponse(BaseModel):
     items: list[RfqSummaryResponse]
     count: int
     retrieved_at: datetime
+
+
+class QuotationLineResponse(BaseModel):
+    product_id: str
+    product_name: str
+    uom_id: str
+    uom_name: str
+    quantity: DecimalString
+    unit_price: DecimalString
+
+
+class QuotationResponse(BaseModel):
+    offer_id: str
+    reference: str
+    supplier_id: str
+    supplier_name: str
+    state: str
+    order_date: datetime
+    lines: list[QuotationLineResponse]
+
+
+class QuotationGroupResponse(BaseModel):
+    """One Odoo quotation group the buyer may analyse (`selectable`) or not (`issue`)."""
+
+    purchase_group_id: int
+    name: str
+    product_id: str | None
+    product_name: str | None
+    quantity: DecimalString | None
+    uom_name: str | None
+    currency: str | None
+    supplier_count: int
+    latest_order_date: datetime
+    selectable: bool
+    issue: str | None
+    quotations: list[QuotationResponse]
+
+
+class QuotationGroupListResponse(BaseModel):
+    company_id: str
+    items: list[QuotationGroupResponse]
+    count: int
+    truncated: bool
+    retrieved_at: datetime

@@ -428,13 +428,14 @@ def forbidden(*args, **kwargs):
     raise AssertionError("Stored operation re-read Odoo, scored or solved")
 
 
-@pytest.fixture
-def configured(history, monkeypatch):
+def install_fake_odoo(history, monkeypatch):
+    """Fake read-only Odoo (group 501, its history) plus the trained history model."""
     payloads, calls = _payloads(), []
     for order, quote_line, partner, n in zip(
         payloads["orders"], payloads["lines"], payloads["partners"], QUOTED, strict=True
     ):
         order["partner_id"] = [300 + n, f"Supplier {n}"]
+        order["date_order"] = "2026-10-15 08:00:00"
         partner.update(id=300 + n, commercial_partner_id=[300 + n, f"Supplier {n}"])
         quote_line["product_qty"] = 200.0
 
@@ -475,11 +476,17 @@ def configured(history, monkeypatch):
             transport=transport,
         ),
     )
-    uow = MemoryPlanningUnitOfWork()
-    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     monkeypatch.setattr(settings, "odoo_database", DATABASE)
     monkeypatch.setattr(settings, "supplier_history_model_directory", history["dir"])
     monkeypatch.setattr(settings, "api_service_token", SecretStr("history-test-token"))
+    return calls
+
+
+@pytest.fixture
+def configured(history, monkeypatch):
+    calls = install_fake_odoo(history, monkeypatch)
+    uow = MemoryPlanningUnitOfWork()
+    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     return calls, uow
 
 
@@ -553,7 +560,148 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(configured, monkeypa
         )
         assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF-")
         assert client.get(BASE + f"/{base['case_id']}", headers=headers()).status_code == 200
+        monkeypatch.setattr(settings, "planning_library_company_id", facts["company_id"])
+        monkeypatch.setattr(
+            uow,
+            "list_saved",
+            lambda query: [(uow.rows[base["case_id"]], uow.decisions.get(base["case_id"]))],
+            raising=False,
+        )
+        library = client.get(BASE, headers=headers())
+        assert library.status_code == 200, library.text
+        assert [i["origin"] for i in library.json()["items"]] == ["odoo"]
         assert len(calls) == before and len(uow.rows) == 2
+
+
+def create_history_case(client):
+    preview = client.get(BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers())
+    assert preview.status_code == 200, preview.text
+    payload = {"purchase_group_id": 501, "terms": preview.json()["terms"]}
+    response = client.post(BASE + "/from-odoo-history", json=payload, headers=headers())
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def test_supplier_overview_reads_only_the_stored_case(configured, monkeypatch):
+    calls, _ = configured
+    with TestClient(app) as client:
+        base = create_history_case(client)
+        before = len(calls)
+        for name in ("resolve_odoo_history_input", "infer_odoo_history_features"):
+            monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
+        monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
+        url = BASE + f"/{base['case_id']}/suppliers"
+        hu = client.get(url, headers=headers())
+        en = client.get(url + "?language=en", headers=headers())
+        assert hu.status_code == en.status_code == 200, hu.text
+        hu, en = hu.json(), en.json()
+        assert hu["language"] == "hu" and hu["case_id"] == base["case_id"]
+        labels = dict(base["snapshot"]["facts"]["labels"])
+        assert hu["product_name"] == labels[hu["product_id"]] == "T6 Comparison Product"
+        assert all(r["supplier_name"].startswith("Supplier ") for r in hu["suppliers"])
+        assert all(r["offer_reference"].startswith("T6-RFQ-") for r in hu["suppliers"])
+        request = base["snapshot"]["request"]
+        assert hu["product_id"] == request["requirement"]["product_id"]
+        assert [r["supplier_id"] for r in hu["suppliers"]] == [
+            s["supplier_id"] for s in request["suppliers"]
+        ]
+        minimum = base["snapshot"]["result"]["minimum_cost_plan"]["allocations"]
+        assert {
+            r["supplier_id"]: r["allocation"]["minimum_cost_quantity"] for r in hu["suppliers"]
+        } == {a["supplier_id"]: a["quantity"] for a in minimum}
+        for row_hu, row_en, stored in zip(
+            hu["suppliers"], en["suppliers"], base["snapshot"]["assessments"], strict=True
+        ):
+            assert row_hu["product_id"] == request["requirement"]["product_id"]
+            assert [m["feature"] for m in row_hu["history"]["metrics"]] == list(HISTORY_FEATURES)
+            assert [m["value"] for m in row_hu["history"]["metrics"]] == stored["snapshot"][
+                "values"
+            ]
+            assert row_hu["assessment"]["score"] == stored["score"]
+            assert len(row_hu["assessment"]["path"]) == len(stored["path"])
+            assert row_hu["assessment"]["class_label"] in {"rendben", "problémás"}
+            assert row_en["assessment"]["class_label"] in {"regular", "problematic"}
+            assert "Hasonló múltbeli esetek" in row_hu["assessment"]["summary"]
+            assert "Similar past cases" in row_en["assessment"]["summary"]
+            for step in row_hu["assessment"]["path"]:
+                assert step["text"].endswith(".") and (
+                    "legfeljebb" in step["text"] or "felett" in step["text"]
+                )
+        assert client.get(url + "?language=de", headers=headers()).status_code == 422
+        missing = client.get(BASE + f"/{uuid4()}/suppliers", headers=headers())
+        assert missing.status_code == 404
+        assert len(calls) == before
+
+
+def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    with TestClient(app) as client:
+        base = create_history_case(client)
+        approved = client.post(
+            BASE + f"/{base['case_id']}/final-decision",
+            headers=headers(),
+            json={
+                "snapshot_hash": base["snapshot_hash"],
+                "outcome": "approve",
+                "plan_index": 0,
+                "actor_reference": "Sáfár Erik",
+                "demonstration_acknowledged": True,
+            },
+        )
+        content_hash = approved.json()["final_decision"]["approved_content_hash"]
+        url = BASE + f"/{base['case_id']}/approved-pdf/{content_hash}"
+        pages = {}
+        for language in ("hu", "en"):
+            pdf = client.get(url, params={"language": language}, headers=headers())
+            pages[language] = [
+                " ".join(p.extract_text().split()) for p in PdfReader(BytesIO(pdf.content)).pages
+            ]
+    minimum = base["snapshot"]["result"]["minimum_cost_plan"]["allocations"]
+    allocated = [a for a in minimum if a["quantity"] > 0]
+    labels = dict(base["snapshot"]["facts"]["labels"])
+    proposals = [p for p in pages["hu"] if "Megrendelési javaslat" in p]
+    assert len(proposals) == len(allocated)
+    for page, allocation in zip(proposals, allocated, strict=True):
+        assert labels[allocation["supplier_id"]] in page and "T6 Comparison Product" in page
+        assert "T6-RFQ-" in page and "USD" in page
+    assert "generált (szimulált) Odoo beszerzési" in pages["hu"][0]
+    assert "generated (simulated) Odoo purchase history" in pages["en"][0]
+    appendix = " ".join(pages["hu"][len(allocated) + 1 :])
+    assert DATABASE in appendix and "odoo:purchase.order.group:501" in appendix
+    assert "Határidőre teljesített szállítások aránya" in appendix
+
+
+@pytest.mark.parametrize(
+    "mutation", ["extra", "bool_quantity", "float_price", "changed_price", "conflict"]
+)
+def test_invalid_terms_and_key_conflict_save_nothing_new(configured, monkeypatch, mutation):
+    _, uow = configured
+    with TestClient(app) as client:
+        preview = client.get(
+            BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()
+        ).json()
+        payload = {"purchase_group_id": 501, "terms": preview["terms"]}
+        key, expected, saved = str(uuid4()), 422, 0
+        if mutation == "extra":
+            payload["terms"]["model_directory"] = "untrusted"
+        if mutation == "bool_quantity":
+            payload["terms"]["requirement"]["approved_quantity"] = True
+        if mutation == "float_price":
+            payload["terms"]["suppliers"][0]["unit_price"] = 10.0
+        if mutation == "changed_price":  # caller expectation differs from the Odoo quotation
+            payload["terms"]["suppliers"][0]["unit_price"] = "1"
+        if mutation == "conflict":
+            first = client.post(BASE + "/from-odoo-history", json=payload, headers=headers(key))
+            assert first.status_code == 201, first.text
+            payload["terms"]["requirement"]["approved_quantity"] += 1
+            expected, saved = 409, 1
+        monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
+        response = client.post(BASE + "/from-odoo-history", json=payload, headers=headers(key))
+    assert response.status_code == expected, response.text
+    assert len(uow.rows) == saved
 
 
 def test_insufficient_supplier_history_saves_nothing(configured, history, monkeypatch):

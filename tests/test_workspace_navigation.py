@@ -22,19 +22,19 @@ def state_at(path="/planning"):
 def test_stay_preserves_draft_discard_clears_and_navigates(dirty):
     _, state = state_at()
     setattr(state, dirty, True)
-    state.demo_ready = True
-    state._demo_payload = {"quantity": 10}
+    state.odoo_ready = True
+    state._odoo_payload = {"quantity": 10}
     state.stress_quantity = "25"
     assert state.open_library() is None
     assert state.navigation_open
     state.stay_navigation()
     assert not state.navigation_open and getattr(state, dirty)
-    assert state._demo_payload == {"quantity": 10} and state.stress_quantity == "25"
+    assert state._odoo_payload == {"quantity": 10} and state.stress_quantity == "25"
     state.open_library()
     event = state.discard_navigation()
     assert event.args[0][1]._js_expr == '"/cases"'
     assert not state.creation_dirty and not state.scenario_dirty
-    assert not state.demo_ready and not state._demo_payload and not state.stress_quantity
+    assert not state.odoo_ready and not state._odoo_payload and not state.stress_quantity
 
 
 def test_dirty_view_stays_controlled_and_is_bookmarkable_after_discard():

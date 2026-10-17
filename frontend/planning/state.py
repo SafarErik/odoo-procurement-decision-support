@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 import reflex as rx
 
 from frontend.config import settings
-from frontend.odoo_history_client import fetch_odoo_history
+from frontend.odoo_history_client import fetch_odoo_history, fetch_quotation_groups
 from frontend.planning_client import (
     FINAL_DECISION_CONFLICT,
     _supplier_label,
@@ -38,7 +38,7 @@ class PlanningState(rx.State):
     original_plan: dict[str, str] = {}
     original_allocations: list[dict[str, str]] = []
     original_error: str = ""
-    scenario_kind: str = "capacity_reduction"
+    scenario_kind: str = "capacity_change"
     view: str = "plans"
     input_mode: str = "stored"
     stress_supplier: str = ""
@@ -49,11 +49,6 @@ class PlanningState(rx.State):
     error_target: str = ""
     is_loading: bool = False
     has_case: bool = False
-    demo_ready: bool = False
-    demo_details: str = ""
-    demo_policy: str = ""
-    demo_quantity: str = "10"
-    demo_offers: list[dict[str, str]] = []
     odoo_ready: bool = False
     odoo_details: str = ""
     odoo_policy: str = ""
@@ -63,6 +58,8 @@ class PlanningState(rx.State):
     odoo_history_mode: bool = False
     odoo_history_readiness: str = ""
     odoo_history_rows: list[dict[str, str]] = []
+    quotation_groups: list[dict[str, str]] = []
+    selected_group: str = ""
     has_pending: bool = False
     request_key: str = ""
     recovery_json: str = ""
@@ -76,7 +73,8 @@ class PlanningState(rx.State):
     pdf_error: str = ""
     pdf_reference: str = ""
     pdf_filename: str = ""
-    _demo_payload: dict = {}
+    # Document language; P3 binds it to the UI language toggle (Hungarian default).
+    document_language: str = "hu"
     _odoo_payload: dict = {}
     # shortcut: recovery is session-local; copy JSON before leaving until durable recovery exists.
     _pending: dict = {}
@@ -136,10 +134,6 @@ class PlanningState(rx.State):
                 return rx.redirect(f"/planning?case_id={self.details['case_id']}&view={value}")
         elif action == "input":
             self.input_mode = value
-        elif action == "demo":
-            self._prepare_demo()
-        elif action == "odoo":
-            self._prepare_odoo()
         elif action == "odoo-history":
             return PlanningState.load_odoo_history
 
@@ -157,10 +151,10 @@ class PlanningState(rx.State):
         self._clear_review()
         self.creation_errors = {}
         self.creation_dirty = self.scenario_dirty = False
-        self.demo_ready = self.odoo_ready = False
+        self.odoo_ready = False
         self.odoo_history_mode = False
         self.odoo_history_rows = []
-        self._demo_payload = self._odoo_payload = {}
+        self._odoo_payload = {}
         self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
         self.error_message = self.error_target = ""
 
@@ -350,7 +344,7 @@ class PlanningState(rx.State):
 
     @rx.event
     def change_input_mode(self, value: str):
-        if value in {"stored", "odoo", "create"} and value != self.input_mode:
+        if value in {"stored", "odoo"} and value != self.input_mode:
             return self._guard_navigation("input", value, "input-" + self.input_mode)
 
     @rx.event
@@ -542,6 +536,7 @@ class PlanningState(rx.State):
                 self.details["case_id"],
                 self.details["final_content_hash"],
                 settings.api_service_token.get_secret_value(),
+                language=self.document_language,
             )
             if document is not None:
                 self.pdf_reference = document.reference
@@ -551,6 +546,12 @@ class PlanningState(rx.State):
                 ).decode("ascii")
         finally:
             self.is_loading = False
+
+    @rx.event
+    def set_document_language(self, value: str):
+        if value in ("hu", "en") and not self.is_loading and not self.has_pending:
+            self.document_language = value
+            self.pdf_data_url = self.pdf_error = self.pdf_reference = self.pdf_filename = ""
 
     @rx.var
     def selected_terms(self) -> dict[str, str]:
@@ -577,162 +578,25 @@ class PlanningState(rx.State):
                 else "Choose the supplier to remove."
             )
         rows = []
-        if self.scenario_kind in {"demand_increase", "combined"} and self.stress_quantity:
+        if self.scenario_kind in {"demand_change", "combined"} and self.stress_quantity:
             rows.append(
                 f"Demand: {self.details.get('base_quantity', '—')} → {self.stress_quantity} units"
             )
-        if self.scenario_kind in {"capacity_reduction", "combined"} and self.stress_capacity:
+        if self.scenario_kind in {"capacity_change", "combined"} and self.stress_capacity:
             rows.append(
                 f"{terms['name']} capacity: {terms['capacity']} → {self.stress_capacity} units"
             )
-        if self.scenario_kind in {"price_increase", "combined"} and self.stress_price:
+        if self.scenario_kind in {"price_change", "combined"} and self.stress_price:
             rows.append(
                 f"{terms['name']} price: {terms['price']} → {self.stress_price} "
                 f"{self.details.get('currency', '')}/unit"
             )
         return "\n".join(rows) or "Enter the new value above to review your assumptions."
 
-    @rx.event
-    def prepare_demo(self):
-        return self._guard_navigation("demo", "", "load-demo")
-
-    def _prepare_demo(self):
-        if self.is_loading or self.has_pending:
-            return
-        self.error_message = ""
-        self.notice = ""
-        self._clear_review()
-        self.creation_errors = {}
-        self.error_target = ""
-        self.demo_ready = False
-        self._demo_payload = {}
-        try:
-            path = settings.controlled_demo_file
-            if path.stat().st_size > 256 * 1024:
-                raise ValueError("Oversized demo")
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if data["source_type"] != "t14_synthetic":
-                raise ValueError("Unsupported fixture")
-            r = data["requirement"]
-            offers = [
-                {
-                    "supplier": s["supplier_id"],
-                    "name": _supplier_label(s["supplier_id"]),
-                    "price": f"{s['unit_price']} {r['currency']}",
-                    "capacity": str(s["capacity"]),
-                }
-                for s in data["suppliers"]
-            ]
-            self.demo_details = (
-                f"{r['product_id']} · {r['quantity_unit']} · required {r['required_date']} "
-                f"· simulation cutoff {data['as_of'][:10]}"
-            )
-            policy = data["policy"]
-            concentration = policy["concentration_limit"]
-            share = (
-                "No supplier share limit"
-                if concentration is None
-                else (f"At most {Decimal(concentration) * 100:g}% from one supplier")
-            )
-            premiums = ", ".join(f"{Decimal(e) * 100:g}%" for e in policy["epsilons"])
-            self.demo_policy = (
-                f"Maximum suppliers: {policy['max_suppliers']}. "
-                f"{share}. Alternative cost allowances: {premiums}. "
-                "Dates and history stay fixed to the prepared simulation."
-            )
-            self.demo_quantity = str(r["approved_quantity"])
-            self.demo_offers = offers
-            self._demo_payload = data
-            self.demo_ready = True
-            self.creation_dirty = True
-        except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
-            self.error_message = (
-                "The controlled demo is missing or invalid. Run the offline T15 prepare "
-                "command before using this form."
-            )
-
-    @rx.event
-    def prepare_odoo(self):
-        return self._guard_navigation("odoo", "", "load-odoo")
-
-    def _prepare_odoo(self):
-        if self.is_loading or self.has_pending:
-            return
-        self.error_message = ""
-        self.notice = ""
-        self._clear_review()
-        self.creation_errors = {}
-        self.error_target = ""
-        self.odoo_ready = False
-        self.odoo_history_mode = False
-        self.odoo_history_rows = []
-        self._odoo_payload = {}
-        try:
-            path = settings.controlled_odoo_file
-            if path.stat().st_size > 256 * 1024:
-                raise ValueError("Oversized comparison")
-            data = json.loads(path.read_text(encoding="utf-8"))
-            facts = data["controlled_input"]
-            group = data["purchase_group_id"]
-            if type(group) is not int or group <= 0 or facts["source_type"] != "t14_synthetic":
-                raise ValueError("Unsupported comparison")
-            suppliers = facts["suppliers"]
-            if len(suppliers) != 3 or len({s["supplier_id"] for s in suppliers}) != 3:
-                raise ValueError("Expected the prepared three-supplier comparison")
-            r = facts["requirement"]
-            self.odoo_offers = [
-                {
-                    "supplier": s["supplier_id"],
-                    "name": _supplier_label(s["supplier_id"]),
-                    "offer": s["offer_id"],
-                    "price": f"{s['unit_price']} {r['currency']}",
-                    "capacity": str(s["capacity"]),
-                    "moq": ""
-                    if s["minimum_order_quantity"] is None
-                    else str(s["minimum_order_quantity"]),
-                    "promised_date": s["promised_date"],
-                    "ranges": (
-                        f"Price applies to {s['price_quantities']['minimum']}–"
-                        f"{s['price_quantities']['maximum']} units; delivery applies to "
-                        f"{s['delivery_quantities']['minimum']}–"
-                        f"{s['delivery_quantities']['maximum']} units."
-                    ),
-                }
-                for s in suppliers
-            ]
-            self.odoo_details = (
-                f"Comparison group {group} · {facts['company_id']} · {r['product_id']} "
-                f"· {r['quantity_unit']} · {r['currency']} · captured {facts['as_of'][:10]}"
-            )
-            self.odoo_quantity = str(r["approved_quantity"])
-            self.odoo_required_date = r["required_date"]
-            policy = facts["policy"]
-            share = policy["concentration_limit"]
-            self.odoo_policy = (
-                f"Maximum suppliers: {policy['max_suppliers']}. "
-                + (
-                    "No share limit. "
-                    if share is None
-                    else f"At most {Decimal(share) * 100:g}% from one supplier. "
-                )
-                + "Alternative cost allowances: "
-                + ", ".join(f"{Decimal(e) * 100:g}%" for e in policy["epsilons"])
-                + ". Prepared suppliers remain available; policy, applicability ranges "
-                "and synthetic history stay fixed."
-            )
-            self._odoo_payload = data
-            self.odoo_ready = True
-            self.creation_dirty = True
-        except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
-            self.error_message = (
-                "The prepared Odoo comparison is missing or invalid. Run the offline "
-                "Odoo prepare command and configure its matching saved model on FastAPI."
-            )
-
     def _odoo_request(self, form_data):
         self.creation_errors = {}
         if not self.odoo_ready:
-            self.error_message = "Load the prepared comparison before reviewing terms."
+            self.error_message = "Load an Odoo quotation group before reviewing terms."
             return None
         payload = deepcopy(self._odoo_payload)
         facts = payload["controlled_input"]
@@ -791,9 +655,34 @@ class PlanningState(rx.State):
         facts["requirement_source"] = source.copy()
         for supplier in facts["suppliers"]:
             supplier["source"] = source.copy()
-        if self.odoo_history_mode:
-            return {"purchase_group_id": payload["purchase_group_id"], "terms": facts}
-        return payload
+        return {"purchase_group_id": payload["purchase_group_id"], "terms": facts}
+
+    @rx.event
+    async def load_quotation_groups(self):
+        if self.is_loading or self.has_pending:
+            return
+        self.is_loading = True
+        yield
+        try:
+            rows, error = await fetch_quotation_groups(
+                settings.quotation_groups_url, settings.api_service_token.get_secret_value()
+            )
+            self.error_message = error
+            self.quotation_groups = rows or []
+            usable = [r["value"] for r in self.quotation_groups if r["selectable"]]
+            if self.selected_group not in usable:
+                self.selected_group = usable[0] if usable else ""
+        finally:
+            self.is_loading = False
+
+    @rx.event
+    def select_quotation_group(self, value: str):
+        if (
+            not self.is_loading
+            and not self.has_pending
+            and any(r["value"] == value and r["selectable"] for r in self.quotation_groups)
+        ):
+            self.selected_group = value
 
     @rx.event
     def prepare_odoo_history(self):
@@ -809,11 +698,9 @@ class PlanningState(rx.State):
         self.odoo_history_rows = []
         yield
         try:
-            group = settings.odoo_history_purchase_group_id
-            if group is None:
-                self.error_message = (
-                    "Set ODOO_HISTORY_PURCHASE_GROUP_ID to the Odoo quotation group to analyse."
-                )
+            group = self.selected_group
+            if not group.isdecimal() or int(group) <= 0:
+                self.error_message = "Load and choose an open Odoo quotation group first."
                 return
             data, error = await fetch_odoo_history(
                 settings.planning_cases_url
@@ -887,8 +774,7 @@ class PlanningState(rx.State):
         if payload is None:
             return
         self._prepare_request(
-            settings.planning_cases_url
-            + ("/from-odoo-history" if self.odoo_history_mode else "/from-odoo"),
+            settings.planning_cases_url + "/from-odoo-history",
             payload,
         )
         yield
@@ -897,21 +783,16 @@ class PlanningState(rx.State):
         finally:
             self.is_loading = False
 
-    def _set_review(self, payload, *, odoo: bool):
+    def _set_review(self, payload):
         try:
-            history = odoo and self.odoo_history_mode
-            facts = (
-                payload["terms"] if history else (payload["controlled_input"] if odoo else payload)
-            )
+            facts = payload["terms"]
             if any(type(s["available"]) is not bool for s in facts["suppliers"]):
                 raise ValueError("Invalid prepared availability")
             r = facts["requirement"]
             self._review_payload = deepcopy(payload)
-            self._review_url = settings.planning_cases_url + (
-                "/from-odoo-history" if history else ("/from-odoo" if odoo else "")
-            )
+            self._review_url = settings.planning_cases_url + "/from-odoo-history"
             self.creation_review = {
-                "kind": "odoo" if odoo else "demo",
+                "kind": "odoo",
                 "product": r["product_id"],
                 "company": facts["company_id"],
                 "quantity": str(r["approved_quantity"]),
@@ -919,14 +800,10 @@ class PlanningState(rx.State):
                 "currency": r["currency"],
                 "required_date": r["required_date"],
                 "cutoff": facts["as_of"],
-                "captured": self._odoo_payload["controlled_input"]["as_of"]
-                if odoo
-                else facts["as_of"],
-                "origin": "Odoo" if odoo else "Demo data",
-                "policy": self.odoo_policy if odoo else self.demo_policy,
-                "history_source": "Odoo purchase history (generated test data)"
-                if history
-                else "Separately synthetic history",
+                "captured": self._odoo_payload["controlled_input"]["as_of"],
+                "origin": "Odoo",
+                "policy": self.odoo_policy,
+                "history_source": "Odoo purchase history (generated test data)",
             }
             self.review_suppliers = [
                 {
@@ -960,16 +837,6 @@ class PlanningState(rx.State):
             return None
 
     @rx.event
-    def review_demo(self, form_data: dict[str, Any]):
-        if self.is_loading or self.has_pending:
-            return
-        self._clear_review()
-        payload = self._demo_request(form_data)
-        if payload is None:
-            return rx.set_focus("demo-quantity")
-        return self._set_review(payload, odoo=False)
-
-    @rx.event
     def review_odoo(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:
             return
@@ -981,15 +848,14 @@ class PlanningState(rx.State):
                 identity = json.dumps(next(iter(self.creation_errors)))
                 return rx.call_script(f"document.getElementById({identity})?.focus()")
             return
-        return self._set_review(payload, odoo=True)
+        return self._set_review(payload)
 
     @rx.event
     def edit_creation_terms(self):
         if self.is_loading or self.has_pending:
             return
-        kind = self.creation_review.get("kind")
         self._clear_review()
-        return rx.set_focus("odoo-quantity" if kind == "odoo" else "demo-quantity")
+        return rx.set_focus("odoo-quantity")
 
     @rx.event
     async def save_reviewed_creation(self):
@@ -1205,41 +1071,6 @@ class PlanningState(rx.State):
         elif self.has_pending:
             yield rx.set_focus("request-recovery-heading")
 
-    def _demo_request(self, form_data):
-        self.creation_errors = {}
-        try:
-            quantity = _bounded_form_integer(form_data.get("quantity"), minimum=1)
-            if not self.demo_ready:
-                raise ValueError("Prepare the demo")
-        except (ValueError, TypeError):
-            self.creation_errors["demo-quantity"] = "Enter a whole-number demand from 1 to 1,000."
-            self.error_message = "Prepare the demo and review the highlighted demand."
-            return None
-        payload = deepcopy(self._demo_payload)
-        payload["requirement"]["approved_quantity"] = quantity
-        payload["approval_reference"] = f"controlled-demand-{quantity}-t16-v1"
-        payload["requirement_source"] = {
-            "source_type": "controlled_business_terms",
-            "source_reference": "t16-ui-demand-v1",
-            "observed_at": payload["as_of"],
-        }
-        return payload
-
-    @rx.event
-    async def create_demo(self, form_data: dict[str, Any]):
-        if self.is_loading or self.has_pending:
-            return
-        self.error_target = ""
-        payload = self._demo_request(form_data)
-        if payload is None:
-            return
-        self._prepare_request(settings.planning_cases_url, payload)
-        yield
-        try:
-            await self._send_pending()
-        finally:
-            self.is_loading = False
-
     @rx.event
     def change_scenario_kind(self, value: str):
         if (
@@ -1248,9 +1079,9 @@ class PlanningState(rx.State):
             and value
             in {
                 "supplier_outage",
-                "capacity_reduction",
-                "demand_increase",
-                "price_increase",
+                "capacity_change",
+                "demand_change",
+                "price_change",
                 "combined",
             }
         ):
@@ -1271,9 +1102,9 @@ class PlanningState(rx.State):
             kind = form_data.get("kind")
             if kind not in {
                 "supplier_outage",
-                "capacity_reduction",
-                "demand_increase",
-                "price_increase",
+                "capacity_change",
+                "demand_change",
+                "price_change",
                 "combined",
             }:
                 raise ValueError("Choose one of the supported scenario types.")
@@ -1287,19 +1118,19 @@ class PlanningState(rx.State):
                 "suppliers": [],
             }
             changes = 0
-            if kind in {"demand_increase", "combined"}:
+            if kind in {"demand_change", "combined"}:
                 value = form_data.get("quantity", "")
-                if kind == "demand_increase" or value != "":
+                if kind == "demand_change" or value != "":
                     demand = _bounded_form_integer(value, minimum=1)
-                    if demand <= int(self.details["base_quantity"]):
+                    if demand == int(self.details["base_quantity"]):
                         raise ValueError(
-                            f"New demand must exceed the original {self.details['base_quantity']} "
-                            "units (maximum 1,000)."
+                            f"New demand must differ from the original "
+                            f"{self.details['base_quantity']} units (1 to 1,000)."
                         )
                     payload["approved_quantity"] = demand
                     changes += 1
             supplier_change = {}
-            if kind in {"supplier_outage", "capacity_reduction", "price_increase", "combined"}:
+            if kind in {"supplier_outage", "capacity_change", "price_change", "combined"}:
                 selected = form_data.get("supplier", "")
                 terms = next(
                     (s for s in self.scenario_suppliers if s["supplier"] == selected), None
@@ -1309,37 +1140,38 @@ class PlanningState(rx.State):
                 supplier_change["supplier_id"] = selected
                 if kind == "supplier_outage":
                     supplier_change["available"] = False
-                if kind in {"capacity_reduction", "combined"}:
+                if kind in {"capacity_change", "combined"}:
                     value = form_data.get("capacity", "")
-                    if kind == "capacity_reduction" or value != "":
+                    if kind == "capacity_change" or value != "":
                         capacity = _bounded_form_integer(value, minimum=0)
-                        if capacity >= int(terms["capacity"]):
+                        if capacity == int(terms["capacity"]):
                             raise ValueError(
-                                f"{terms['name']}: capacity must be below its original "
+                                f"{terms['name']}: capacity must differ from its original "
                                 f"{terms['capacity']} units. Enter 0 to remove its capacity."
                             )
                         supplier_change["capacity"] = capacity
                         changes += 1
-                if kind in {"price_increase", "combined"}:
+                if kind in {"price_change", "combined"}:
                     value = form_data.get("price", "")
-                    if kind == "price_increase" or value != "":
+                    if kind == "price_change" or value != "":
                         if (
                             not isinstance(value, str)
                             or len(value) > 64
                             or re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value) is None
-                            or Decimal(value) <= Decimal(terms["price"])
+                            or Decimal(value) <= 0
+                            or Decimal(value) == Decimal(terms["price"])
                         ):
                             raise ValueError(
-                                f"{terms['name']}: enter a decimal price above the original "
-                                f"{terms['price']} {self.details['currency']} per unit "
-                                "(for example 12.50)."
+                                f"{terms['name']}: enter a positive decimal price different from "
+                                f"the original {terms['price']} {self.details['currency']} per "
+                                "unit (for example 12.50)."
                             )
                         supplier_change["unit_price"] = value
                         changes += 1
             if kind == "combined" and changes < 2:
                 raise ValueError(
-                    "Combined changes need at least two changes: higher demand, lower "
-                    "capacity, or higher price. Leave unused fields blank."
+                    "Combined changes need at least two changes: demand, capacity "
+                    "or price. Leave unused fields blank."
                 )
             if len(supplier_change) > 1:
                 payload["suppliers"] = [supplier_change]

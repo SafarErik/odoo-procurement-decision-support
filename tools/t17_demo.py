@@ -1,4 +1,4 @@
-"""Repeatable controlled hybrid acceptance; HTTP only, no Odoo writes or training."""
+"""Repeatable Odoo-history acceptance flow; HTTP only, no Odoo writes or training."""
 
 import argparse
 import hashlib
@@ -11,37 +11,50 @@ from uuid import uuid4
 
 import httpx
 
-from tools.t15_demo import BASE, local_url, write_json
+BASE = "/api/v2/procurement/planning-cases"
+
+
+def write_json(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def local_url(value):
+    url = httpx.URL(value)
+    if (
+        url.scheme != "http"
+        or url.host not in {"127.0.0.1", "localhost", "::1"}
+        or url.userinfo
+        or url.path != "/"
+        or url.query
+        or url.fragment
+    ):
+        raise argparse.ArgumentTypeError("Use an HTTP loopback origin, e.g. http://127.0.0.1:8000.")
+    return str(url)
 
 
 def scenario_requests(payload):
-    facts = payload["terms"] if "terms" in payload else payload["controlled_input"]
+    """Changes relative to the read quotation; the last one must be infeasible."""
+    facts = payload["terms"]
     supplier = facts["suppliers"][-1]["supplier_id"]
     source = facts["requirement_source"]
+    terms = facts["suppliers"][-1]
+    price, capacity = Decimal(terms["unit_price"]), terms["capacity"]
+    demand = facts["requirement"]["approved_quantity"]
     changes = (
         ("supplier_outage", {"available": False}, None),
-        ("capacity_reduction", {"capacity": 100}, None),
-        ("demand_increase", {}, 250),
-        ("price_increase", {"unit_price": "13"}, None),
-        ("combined", {"capacity": 150, "unit_price": "10"}, 220),
-        ("demand_increase", {}, 500),
+        ("capacity_change", {"capacity": capacity * 5 // 6}, None),
+        ("capacity_change", {"capacity": capacity * 2}, None),
+        ("demand_change", {}, demand + demand // 4),
+        ("demand_change", {}, max(1, demand * 3 // 4)),
+        ("price_change", {"unit_price": str((price * Decimal("1.3")).quantize(price))}, None),
+        ("price_change", {"unit_price": str((price * Decimal("0.8")).quantize(price))}, None),
+        (
+            "combined",
+            {"capacity": capacity * 5 // 6, "unit_price": str(price + 1)},
+            demand + 20,
+        ),
+        ("demand_change", {}, demand * 5),
     )
-    if "terms" in payload:  # live Odoo history: changes relative to the read quotation
-        terms = facts["suppliers"][-1]
-        price, capacity = Decimal(terms["unit_price"]), terms["capacity"]
-        demand = facts["requirement"]["approved_quantity"]
-        changes = (
-            ("supplier_outage", {"available": False}, None),
-            ("capacity_reduction", {"capacity": capacity * 5 // 6}, None),
-            ("demand_increase", {}, demand + demand // 4),
-            ("price_increase", {"unit_price": str((price * Decimal("1.3")).quantize(price))}, None),
-            (
-                "combined",
-                {"capacity": capacity * 5 // 6, "unit_price": str(price + 1)},
-                demand + 20,
-            ),
-            ("demand_increase", {}, demand * 5),
-        )
     return [
         {
             "kind": kind,
@@ -79,20 +92,17 @@ def download_pdf(client, case, path):
     return {"sha256": digest, "bytes": len(response.content), "content_hash": content_hash}
 
 
-def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=None):
+def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history):
     if not actor.strip() or not reason.strip() or not no_award_reason.strip():
         raise ValueError("Explicit demonstration actor and both outcome reasons are required.")
-    if odoo_history:
-        preview = checked(
-            client.get(f"{BASE}/odoo-history/preview", params={"purchase_group_id": odoo_history}),
-            200,
-        )
-        if preview["model_readiness"] != "ready":
-            raise ValueError("The Odoo-history supplier model is not ready.")
-        payload = {"purchase_group_id": odoo_history, "terms": preview["terms"]}
-    else:
-        payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
-    create_path = f"{BASE}/from-odoo-history" if odoo_history else f"{BASE}/from-odoo"
+    preview = checked(
+        client.get(f"{BASE}/odoo-history/preview", params={"purchase_group_id": odoo_history}),
+        200,
+    )
+    if preview["model_readiness"] != "ready":
+        raise ValueError("The Odoo-history supplier model is not ready.")
+    payload = {"purchase_group_id": odoo_history, "terms": preview["terms"]}
+    create_path = f"{BASE}/from-odoo-history"
     directory.mkdir(parents=True, exist_ok=True)
     report_path = directory / f"t17-run-{uuid4()}.json"
     report = {"request": payload, "operations": [], "scenarios": []}
@@ -117,12 +127,12 @@ def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=
             raise ValueError("Scenario must target the original base.")
         report["scenarios"].append(child)
     if report["scenarios"][-1]["snapshot"]["result"]["status"] != "infeasible":
-        raise ValueError("Controlled demand-500 case must be infeasible.")
-    if not base["snapshot"]["result"]["alternatives"]:
-        raise ValueError("A valid saved alternative is required for this demonstration.")
+        raise ValueError("The five-fold demand case must be infeasible.")
+    # Approve the lower-exposure alternative when the scores produced one.
+    approved_index = 1 if base["snapshot"]["result"]["alternatives"] else 0
     no_award = post(create_path, payload)
     for name, case, outcome, index in (
-        ("approved", base, "approve", 1),
+        ("approved", base, "approve", approved_index),
         ("no_award", no_award, "no_award", None),
     ):
         report[name] = post(
@@ -186,7 +196,7 @@ def verify_stored(report_path, client):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("run", "reopen"))
-    parser.add_argument("--directory", type=Path, default=Path(".artifacts/t15-odoo-demo"))
+    parser.add_argument("--directory", type=Path, default=Path(".artifacts/t17-demo"))
     parser.add_argument("--report", type=Path)
     parser.add_argument("--actor")
     parser.add_argument("--reason")
@@ -195,12 +205,14 @@ def main():
         "--odoo-history",
         type=int,
         metavar="PURCHASE_GROUP_ID",
-        help="Use live Odoo purchase history for this quotation group; never trains a model.",
+        help="Odoo quotation group (see GET /api/v2/procurement/quotation-groups); never trains.",
     )
     parser.add_argument("--base-url", type=local_url, default="http://127.0.0.1:8000")
     args = parser.parse_args()
     if args.command == "run" and (not args.actor or not args.reason or not args.no_award_reason):
         parser.error("run requires --actor, --reason and --no-award-reason for the demonstration.")
+    if args.command == "run" and not args.odoo_history:
+        parser.error("run requires --odoo-history PURCHASE_GROUP_ID.")
     if args.command == "reopen" and not args.report:
         parser.error("reopen requires the saved --report path.")
     token = os.getenv("API_SERVICE_TOKEN", "")

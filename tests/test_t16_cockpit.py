@@ -53,16 +53,16 @@ def test_unified_composer_outage_saves_against_original_base(configured):
     assert uow.rows[base["case_id"]].snapshot == original
 
 
-def test_reduction_error_names_actual_original_bound_without_post(configured):
+def test_unchanged_capacity_error_names_actual_original_without_post(configured):
     state, _, _, calls, _ = configured
     asyncio.run(
         event(
             state,
             PlanningState.run_scenario,
             {
-                "kind": "capacity_reduction",
+                "kind": "capacity_change",
                 "supplier": "synthetic-S226",
-                "capacity": "200",
+                "capacity": "6",
             },
         )
     )

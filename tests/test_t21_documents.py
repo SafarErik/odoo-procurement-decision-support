@@ -1,4 +1,4 @@
-"""PDF boundary, exact saved content, failure recovery and pagination contracts."""
+"""PDF v2 boundary: HU/EN artifacts from exact approved content, recovery and pagination."""
 
 import asyncio
 import json
@@ -13,6 +13,7 @@ from pydantic import SecretStr
 from pypdf import PdfReader
 
 from application.errors import RepositoryError
+from application.planning_documents import PlanningDocument
 from backend.app.main import app
 from document_adapter.approved_pdf import render_approved_pdf
 from frontend.config import settings as frontend_settings
@@ -51,8 +52,14 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     response = client.get(url, headers=headers())
     assert response.status_code == 200, response.text
     assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-language"] == "hu"
     assert response.headers["content-disposition"].startswith("inline;")
+    assert "megrendelesi-javaslat" in response.headers["content-disposition"]
     assert response.headers["x-approved-content-hash"] == decision["approved_content_hash"]
+    assert response.headers["x-pdf-reference"] == (
+        f"t17-approved-pdf-v2:{base['case_id']}:hu:{decision['approved_content_hash']}"
+    )
+    reader = PdfReader(BytesIO(response.content))
     text = extracted(response.content)
     compact = "".join(text.split())
     content = decision["approved_content"]
@@ -66,30 +73,69 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
         base["snapshot_hash"],
         decision["approved_content_hash"],
         content["content_version"],
-        plan["total_cost"],
-        audit["recorded_at"],
-        audit["planning_reference_time"],
-        audit["actor_reference"],
-        snapshot["request"]["requirement"]["required_date"],
+        audit["actor_reference"].strip(),
         snapshot["model_manifest"]["artifact_sha256"],
     ):
         assert "".join(str(value).split()) in compact
-    for supplier in snapshot["request"]["suppliers"]:
-        for name in ("supplier_id", "unit_price", "capacity", "promised_date"):
-            assert str(supplier[name]) in text
-        assert json.dumps(supplier["minimum_order"], sort_keys=True) in text
-    assert f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}" in text
-    assert "synthetic ML evidence" in text and "Approved original base" in text
-    assert "not authenticated buyer identity" in text and "not a supplier-failure" in text
-    document = uow.documents.rows[base["case_id"]]
+    total = plan["total_cost"]
+    assert f"{int(total) if '.' not in total else total},00EUR".replace(".", ",") in compact
+    required = snapshot["request"]["requirement"]["required_date"].replace("-", ".") + "."
+    assert required in compact
+    allocated = [a for a in plan["allocations"] if a["quantity"] > 0]
+    pages = [page.extract_text() for page in reader.pages]
+    proposals = [p for p in pages if "Megrendelési javaslat" in p]
+    assert len(proposals) == len(allocated)
+    for page, allocation in zip(proposals, allocated, strict=True):
+        assert allocation["supplier_id"] in page and str(allocation["quantity"]) in page
+    assert pages[0].count("Jóváhagyott beszerzési terv") >= 1 and "Összefoglaló" in pages[0]
+    assert "Audit melléklet" in pages[len(allocated) + 1]
+    assert "Mezőszintű adatforrások" in text and "Döntési útvonal" in text
+    assert '{"' not in text and "numerator" not in text  # no raw JSON
+    assert "szintetikus bemutató modellből" in pages[0]
+    document = uow.documents.rows[(base["case_id"], "hu")]
     assert document.content_hash == decision["approved_content_hash"]
     assert document.pdf_hash == response.headers["x-pdf-sha256"]
+    english = client.get(url, params={"language": "en"}, headers=headers())
+    assert english.status_code == 200 and english.headers["content-language"] == "en"
+    english_text = extracted(english.content)
+    assert english_text.count("Purchase order proposal") == len(allocated)
+    assert "Audit appendix" in english_text and "Approved procurement plan" in english_text
+    assert english.content != response.content and len(uow.documents.rows) == 2
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)
     download = client.get(url + "?download=true", headers=headers())
     assert download.status_code == 200 and download.content == response.content
     assert download.headers["content-disposition"].startswith("attachment;")
     assert download.headers["x-pdf-reference"] == response.headers["x-pdf-reference"]
-    assert (uow.rows, uow.decisions.rows) == original and len(uow.documents.rows) == 1
+    assert (uow.rows, uow.decisions.rows) == original and len(uow.documents.rows) == 2
+    assert client.get(url + "?language=de", headers=headers()).status_code == 422
+
+
+def test_pre_p2_english_artifact_is_served_unchanged(configured, monkeypatch):
+    client, uow, base, *_ = configured
+    decision, url = approve(client, base)
+    content_hash = decision["approved_content_hash"]
+    legacy = PlanningDocument(
+        base["case_id"],
+        "t17-approved-planning-v1",
+        content_hash,
+        f"t17-approved-pdf-v1:{base['case_id']}:{content_hash}",
+        "reportlab/ProcurementDejaVu/layout-v1",
+        b"%PDF-1.4\nlegacy english bytes\n%%EOF",
+        "en",
+    )
+    uow.documents.rows[(base["case_id"], "en")] = legacy
+    monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)
+    response = client.get(url, params={"language": "en"}, headers=headers())
+    assert response.status_code == 200 and response.content == legacy.pdf
+    assert response.headers["x-pdf-reference"] == legacy.reference
+    from backend.app.dependencies import render_approved_document
+
+    monkeypatch.setattr(
+        "backend.app.routes.planning_cases.render_approved_document", render_approved_document
+    )
+    hungarian = client.get(url, headers=headers())
+    assert hungarian.status_code == 200 and hungarian.headers["content-language"] == "hu"
+    assert uow.documents.rows[(base["case_id"], "en")] is legacy
 
 
 def test_pdf_denial_and_identity_authentication_leave_no_artifact(configured):
@@ -126,7 +172,7 @@ def test_render_failure_and_commit_failure_preserve_approval_and_retry_same_cont
     original = (uow.rows.copy(), uow.decisions.rows.copy())
     renderer = []
 
-    def failing(content):
+    def failing(content, language):
         renderer.append(deepcopy(content))
         raise RuntimeError("private-token-database-url")
 
@@ -142,9 +188,9 @@ def test_render_failure_and_commit_failure_preserve_approval_and_retry_same_cont
         == decision
     )
 
-    def successful(content):
+    def successful(content, language):
         renderer.append(deepcopy(content))
-        return render_approved_pdf(content)
+        return render_approved_pdf(content, language)
 
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", successful)
     commit = uow.commit
@@ -159,8 +205,8 @@ def test_render_failure_and_commit_failure_preserve_approval_and_retry_same_cont
     assert renderer[0] == renderer[1] == renderer[2] == decision["approved_content"]
     assert (uow.rows, uow.decisions.rows) == original
     assert client.get(url[:-64] + "0" * 64, headers=headers()).status_code == 409
-    document = uow.documents.rows[base["case_id"]]
-    uow.documents.rows[document.case_id] = replace(document, content_hash="0" * 64)
+    document = uow.documents.rows[(base["case_id"], "hu")]
+    uow.documents.rows[(document.case_id, "hu")] = replace(document, content_hash="0" * 64)
     assert client.get(url, headers=headers()).status_code == 503
 
 
@@ -182,7 +228,7 @@ def test_long_unicode_names_rationale_provenance_paginate_without_losing_text(co
     assert "Longexplanation&<escapedmarkup>" in compact
     assert "ÁrvíztűrőtükörfúrógépΩЖ" in compact
     for page in reader.pages:
-        assert "Controlled demonstration" in page.extract_text()
+        assert "Jóváhagyott beszerzési terv" in page.extract_text()
 
 
 @pytest.mark.parametrize("failure", ["unsupported_glyph", "invalid_bytes"])
@@ -190,12 +236,12 @@ def test_renderer_limits_fail_without_changing_approval(configured, monkeypatch,
     client, uow, base, *_ = configured
     decision, url = approve(client, base)
 
-    def render(content):
+    def render(content, language):
         if failure == "invalid_bytes":
             return b"not a PDF", "invalid-renderer"
         content = deepcopy(content)
         content["human_decision"]["actor_reference"] = "\U0001f9d1"
-        return render_approved_pdf(content)
+        return render_approved_pdf(content, language)
 
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", render)
     assert client.get(url, headers=headers()).status_code == 503
@@ -245,7 +291,8 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(configured, 
 
 
 @pytest.mark.parametrize(
-    "corruption", ["hash", "reference", "mime", "version", "bytes", "oversize", "redirect"]
+    "corruption",
+    ["hash", "reference", "mime", "version", "language", "bytes", "oversize", "redirect"],
 )
 def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption):
     client, _, base, *_ = configured
@@ -254,12 +301,13 @@ def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption)
     response_headers = dict(good.headers)
     data = good.content
     status = 200
-    if corruption in {"hash", "reference", "mime", "version"}:
+    if corruption in {"hash", "reference", "mime", "version", "language"}:
         name = {
             "hash": "x-pdf-sha256",
             "reference": "x-pdf-reference",
             "mime": "content-type",
             "version": "x-content-version",
+            "language": "content-language",
         }[corruption]
         response_headers[name] = "unsupported"
     elif corruption == "bytes":

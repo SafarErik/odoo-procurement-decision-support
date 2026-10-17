@@ -1,4 +1,8 @@
-"""Approved-content PDF retrieval and atomic artifact storage, without acquisition."""
+"""Approved-content PDF retrieval and atomic artifact storage, without acquisition.
+
+One immutable artifact per (case, language). English artifacts stored before P2 keep
+their v1 reference and bytes; Hungarian and new English artifacts use layout v2.
+"""
 
 import hashlib
 import re
@@ -9,7 +13,9 @@ from application.errors import RepositoryError
 from application.planning_cases import PlanningCaseError, canonical_uuid
 from application.planning_decisions import CONTENT_VERSION, validate_final_decision
 
-DOCUMENT_VERSION = "t17-approved-pdf-v1"
+DOCUMENT_VERSION = "t17-approved-pdf-v2"
+LEGACY_DOCUMENT_VERSION = "t17-approved-pdf-v1"  # English only, no language in reference
+DOCUMENT_LANGUAGES = ("hu", "en")
 MAX_PDF_BYTES = 2 * 1024 * 1024
 
 
@@ -21,6 +27,7 @@ class PlanningDocument:
     reference: str
     renderer_version: str
     pdf: bytes
+    language: str = "en"
 
     @property
     def pdf_hash(self):
@@ -28,17 +35,20 @@ class PlanningDocument:
 
     @property
     def filename(self):
-        return f"approved-plan-{self.case_id}-{self.content_hash[:12]}.pdf"
+        name = "megrendelesi-javaslat" if self.language == "hu" else "purchase-order-proposal"
+        return f"{name}-{self.case_id}-{self.content_hash[:12]}-{self.language}.pdf"
 
 
 class PlanningDocumentRepository(Protocol):
     def lock(self, case_id: str) -> None: ...
-    def get(self, case_id: str) -> PlanningDocument | None: ...
+    def get(self, case_id: str, language: str) -> PlanningDocument | None: ...
     def add(self, document: PlanningDocument) -> None: ...
 
 
-def approved_document(uow, case_id, content_hash, render):
+def approved_document(uow, case_id, content_hash, render, language="hu"):
     canonical_uuid(case_id)
+    if language not in DOCUMENT_LANGUAGES:
+        raise PlanningCaseError("invalid_document_language", "Use hu or en.")
     if not isinstance(content_hash, str) or re.fullmatch(r"[0-9a-f]{64}", content_hash) is None:
         raise PlanningCaseError("invalid_document_identity", "Use the saved approved content hash.")
     with uow:
@@ -57,21 +67,32 @@ def approved_document(uow, case_id, content_hash, render):
             raise PlanningCaseError("approved_pdf_ineligible", "No-award has no approved PDF.")
         if value["approved_content_hash"] != content_hash:
             raise PlanningCaseError("approved_content_hash_mismatch", "Reload the saved approval.")
-        reference = f"{DOCUMENT_VERSION}:{case_id}:{content_hash}"
-        document = uow.documents.get(case_id)
+        reference = f"{DOCUMENT_VERSION}:{case_id}:{language}:{content_hash}"
+        document = uow.documents.get(case_id, language)
         stored = document is not None
         if document is None:
             try:
-                pdf, renderer_version = render(content)
+                pdf, renderer_version = render(content, language)
             except Exception as error:
                 raise RepositoryError(
                     "approved_pdf_unavailable", "The approved PDF could not be rendered."
                 ) from error
             document = PlanningDocument(
-                case_id, content["content_version"], content_hash, reference, renderer_version, pdf
+                case_id,
+                content["content_version"],
+                content_hash,
+                reference,
+                renderer_version,
+                pdf,
+                language,
             )
+        elif language == "en" and document.reference == (
+            f"{LEGACY_DOCUMENT_VERSION}:{case_id}:{content_hash}"
+        ):
+            reference = document.reference  # immutable pre-P2 English artifact
         if (
             document.case_id != case_id
+            or document.language != language
             or document.content_version != CONTENT_VERSION
             or document.content_hash != content_hash
             or document.reference != reference

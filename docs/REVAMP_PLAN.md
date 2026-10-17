@@ -1,6 +1,6 @@
 # Revamp plan — completeness audit and delivery plan
 
-Date: 2026-10-17. Status: P0 merged; P1 implemented (see docs/handoffs/P1_ODOO_HISTORY_ML.md); P2–P5 open.
+Date: 2026-10-17. Status: P0 and P1 merged; P2 implemented (see docs/handoffs/P2_BACKEND_CAPABILITIES.md); P3–P5 open.
 Baseline read: official task sheet (423.589/25/140), Drive 00/01/02/03/06/07/08,
 README, AGENTS.md, source tree at `main` `0c9f228`.
 
@@ -127,6 +127,8 @@ behavior → evidence → limitation → thesis chapter).
 
 - One-command reproducible demo (seed → case → plans → scenarios → approve → PDF).
 - Full-flow e2e test on the new UI; regenerate ML and MILP evaluation reports.
+- Rebuild the MILP/API latency evaluation (T18, removed in P2 with the synthetic demo
+  path) on the Odoo-history path; seed quotation groups with 5 and 10 suppliers.
 - Fill `TRACEABILITY.md`; list measured limitations for chapter 9.
 
 ### P5 — Deferred decisions (week 7, buffer)

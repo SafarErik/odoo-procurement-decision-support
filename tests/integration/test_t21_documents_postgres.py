@@ -30,9 +30,9 @@ def test_contending_pdf_downloads_store_one_artifact_without_changing_approval(
     decision, url = approve(client, base)
     calls = []
 
-    def render(content):
+    def render(content, language):
         calls.append(content)
-        return render_approved_pdf(content)
+        return render_approved_pdf(content, language)
 
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", render)
     with engine.connect() as holder, ThreadPoolExecutor(max_workers=2) as pool:
@@ -64,7 +64,7 @@ def test_contending_pdf_downloads_store_one_artifact_without_changing_approval(
     assert len(calls) == 1 and calls[0] == decision["approved_content"]
     assert responses[0].content == responses[1].content
     assert (
-        "Approved procurement plan"
+        "Jóváhagyott beszerzési terv"
         in PdfReader(BytesIO(responses[0].content)).pages[0].extract_text()
     )
     with engine.connect() as connection:
@@ -104,7 +104,7 @@ def test_pdf_insert_requires_exact_approved_content(configured):
             text(
                 "INSERT INTO planning_documents "
                 "SELECT case_id, content_version, repeat('0',64), reference || '-bad', "
-                "renderer_version, pdf_hash, pdf FROM planning_documents"
+                "renderer_version, pdf_hash, pdf, 'en' FROM planning_documents"
             )
         )
 
@@ -132,3 +132,28 @@ def test_render_failure_and_post_flush_rollback_leave_approval_intact(configured
     )
     monkeypatch.setattr(SqlAlchemyPlanningUnitOfWork, "commit", commit)
     assert client.get(url, headers=headers()).status_code == 200
+
+
+def test_one_immutable_artifact_per_language(configured):
+    engine, _, client, base, _ = configured
+    _, url = approve(client, base)
+    hungarian = client.get(url, headers=headers())
+    english = client.get(url, params={"language": "en"}, headers=headers())
+    assert hungarian.status_code == english.status_code == 200
+    assert hungarian.content != english.content
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text("SELECT language, reference FROM planning_documents ORDER BY language")
+        ).all()
+    assert [r.language for r in rows] == ["en", "hu"]
+    assert all(f":{r.language}:" in r.reference for r in rows)
+    with pytest.raises(DBAPIError), engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO planning_documents SELECT case_id, content_version, content_hash, "
+                "reference || '-copy', renderer_version, pdf_hash, pdf, language "
+                "FROM planning_documents WHERE language = 'hu'"
+            )
+        )
+    with pytest.raises(DBAPIError), engine.begin() as connection:
+        connection.execute(text("UPDATE planning_documents SET language = 'de'"))

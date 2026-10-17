@@ -63,6 +63,18 @@ def saved_decision(*, focus_target: bool = False) -> rx.Component:
                     aria_label="Saved approved terms",
                 ),
                 rx.flex(
+                    rx.el.label(
+                        "PDF language ",
+                        rx.el.select(
+                            rx.el.option("Magyar", value="hu"),
+                            rx.el.option("English", value="en"),
+                            value=PlanningState.document_language,
+                            on_change=PlanningState.set_document_language,
+                            disabled=PlanningState.is_loading | PlanningState.has_pending,
+                            padding="0.5rem",
+                            border_radius="6px",
+                        ),
+                    ),
                     rx.button(
                         rx.cond(
                             PlanningState.pdf_error != "", "Retry approved PDF", "View approved PDF"
@@ -72,6 +84,7 @@ def saved_decision(*, focus_target: bool = False) -> rx.Component:
                     ),
                     wrap="wrap",
                     gap="0.75rem",
+                    align="center",
                 ),
                 rx.cond(
                     PlanningState.pdf_error != "",

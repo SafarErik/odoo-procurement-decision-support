@@ -22,10 +22,13 @@ class SqlAlchemyPlanningDocumentRepository:
                 "repository_failure", "PDF storage could not be locked."
             ) from error
 
-    def get(self, case_id):
+    def get(self, case_id, language):
         try:
             row = self._session.execute(
-                select(PlanningDocumentRecord).where(PlanningDocumentRecord.case_id == case_id)
+                select(PlanningDocumentRecord).where(
+                    PlanningDocumentRecord.case_id == case_id,
+                    PlanningDocumentRecord.language == language,
+                )
             ).scalar_one_or_none()
             if row is None:
                 return None
@@ -36,6 +39,7 @@ class SqlAlchemyPlanningDocumentRepository:
                 row.reference,
                 row.renderer_version,
                 row.pdf,
+                row.language,
             )
             if document.pdf_hash != row.pdf_hash:
                 raise RepositoryError("approved_pdf_unavailable", "PDF integrity failed.")
@@ -47,6 +51,7 @@ class SqlAlchemyPlanningDocumentRepository:
         self._session.add(
             PlanningDocumentRecord(
                 case_id=document.case_id,
+                language=document.language,
                 content_version=document.content_version,
                 content_hash=document.content_hash,
                 reference=document.reference,

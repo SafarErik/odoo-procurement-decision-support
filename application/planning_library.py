@@ -9,6 +9,8 @@ from decimal import Decimal
 
 from application.errors import RepositoryError
 from application.planning_cases import (
+    LEGACY_SCENARIO_KINDS,
+    SCENARIO_KINDS,
     PlanningCaseError,
     canonical_uuid,
     case_origin,
@@ -16,7 +18,7 @@ from application.planning_cases import (
     validate_snapshot,
 )
 from application.planning_decisions import validate_final_decision
-from supplier_evaluation.contracts import SYNTHETIC
+from supplier_evaluation.contracts import HISTORY_SOURCE, SYNTHETIC
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,7 +85,7 @@ def case_summary(case, decision, company):
             raise ValueError("Case company mismatch.")
         # Historical synthetic snapshots omit input_kind; source_type is the saved authority.
         source = facts.get("input_kind", "controlled_synthetic")
-        if facts["source_type"] not in {SYNTHETIC, "odoo_projection"}:
+        if facts["source_type"] not in {SYNTHETIC, "odoo_projection", HISTORY_SOURCE}:
             raise ValueError("Unsupported saved ML evidence source.")
         if source not in {
             "controlled_synthetic",
@@ -106,13 +108,7 @@ def case_summary(case, decision, company):
         if scenario is not None:
             if set(scenario) != {"kind", "source", "suppliers", "approved_quantity"}:
                 raise ValueError("Invalid scenario shape.")
-            if scenario["kind"] not in {
-                "supplier_outage",
-                "capacity_reduction",
-                "demand_increase",
-                "price_increase",
-                "combined",
-            }:
+            if scenario["kind"] not in SCENARIO_KINDS | LEGACY_SCENARIO_KINDS.keys():
                 raise ValueError("Unknown scenario kind.")
             quantity = scenario["approved_quantity"]
             if quantity is not None and (
@@ -162,7 +158,9 @@ def case_summary(case, decision, company):
             "decision_status": outcome,
             "source_kind": source,
             "origin": case_origin(facts),
-            "scenario_kind": None if scenario is None else scenario["kind"],
+            "scenario_kind": None
+            if scenario is None
+            else LEGACY_SCENARIO_KINDS.get(scenario["kind"], scenario["kind"]),
             "changed_assumptions": changes,
         }
     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError) as error:
