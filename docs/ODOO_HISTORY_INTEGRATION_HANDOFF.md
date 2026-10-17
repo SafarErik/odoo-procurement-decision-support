@@ -1,5 +1,67 @@
 # Live Odoo history integration
 
+## Offline reproducibility check — 2026-10-17
+
+Problem: Git excludes `.artifacts`; a checkout alone cannot restore the qualified
+model or detailed local evidence. Decision: preserve a narrow offline demonstration
+kit and check it in isolation, without retraining, changing live configuration or
+copying private backups. This supports NFR-V2-02/03/04/08 and AC-V2-03/04/08/10/12/13
+evidence; it does not replace full-stack or human acceptance.
+
+Actual scope: committed source `080ff320c083ad90395fab7d8b9abf98343a2ea6` extracted
+separately; a second empty CPython 3.11.16 environment on the same Windows x64 host;
+51 dependency/build-tool wheels installed with `--isolated --no-index --require-hashes`;
+source installed without build isolation or dependency resolution. The verifier
+asserts imports come from that source, blocks fitting and Python network access,
+and uses only copied controlled evidence. No Odoo/helper reads or writes occur.
+
+Results:
+
+- Exact frozen compatibility report hash `576adafa322b8a007a143ebc390cf78ec1d77e3f70072d2ab6e7b53e75a7f744`;
+  reconstructing the qualification wrapper gives all three original package files
+  byte for byte, with unchanged fitted bytes and qualified model identity.
+- Raw captured receipts recalculate through T8 to 100.00/66.67/33.33%, support 3
+  each; B03 has two events and one eligible line. Inference gives classes 0/1/1,
+  scores 0.0000/0.9661/1.0000 and saved tree explanations.
+- Eight technical snapshot hashes validate. Separate CBC calculations from each
+  recorded request reproduce every saved minimum/alternative plan, including
+  infeasibility. They do not overwrite or replace stored decisions. The existing
+  saved PDF matches SHA-256 `2f09067f37b09a41740d2a925b9f627956620d2a0442191b9f0f12b237b98d30`.
+- Missing/corrupt artifacts, insufficient support and unqualified origin reject;
+  corrupt fitted bytes are rejected before deserialization. `pip check` passes;
+  focused receipt/MILP/architecture tests: **69 passed in 8.78 seconds**.
+- A 73-file allowlisted ZIP passes extraction/member checksum verification.
+  Seven current long configured credentials were checked for exact-value matches
+  in the payload and decompressed source; zero matches. This is a bounded scan,
+  not a universal secret-detection guarantee. No `.env` files, Odoo/helper backups,
+  installed environments or service logs are included.
+
+Kit: `.artifacts/thesis-repro-20261017-c217b8ae/thesis-offline-demo-windows-py311.zip`,
+114,149,566 bytes, SHA-256
+`9b06bb647b34ea7713b44a7dd443a5d42d9856e9f73c61a2c2c8b136598769e9`.
+It includes its README, pinned/hashes dependency lock, original wheels, committed
+source archive, trusted model/capture/evaluation, technical matrix/PDF and final
+check results. Detailed working diagnostics remain separately in that run directory.
+See [repeat instructions](LOCAL_DEVELOPMENT_AND_SSH.md#offline-model-and-evidence-reproduction).
+The archive and this external hash require an owner-controlled backup; Git alone
+does not preserve ignored files. A checksum inside an untrusted package is not
+authenticity; joblib requires trusted origin before execution.
+
+Limits: no fresh OS/second machine/Linux, training rebuild, full fresh-stack suite,
+Reflex/Node/browser deployment, live Odoo restoration/acquisition, HTTP/database
+replay or fresh PDF rendering was checked. Python must be supplied separately;
+the archived wheels are Windows x64/Python 3.11 specific. The broader application
+dependencies have ranges in `pyproject.toml`; this kit pins the resolved versions
+for this demonstration without changing application requirements. Use the source
+checkout: a wheel-only installation does not include the profile/config and demo
+tools. Historical cutoffs stay recorded, future live 365-day windows may expire,
+and the model remains synthetic-trained with controlled-domain validity only.
+Application code, runtime configuration, services, original artifact bytes and
+pre-existing worktree changes are preserved. No Git publication or Drive edits.
+Thesis relevance: chapters 5/7 can distinguish repeatable compatibility/inference
+and optimization results from live acquisition and operational predictive validity;
+chapters 6/8 record packaging and portability limits.
+
 ## Frozen compatibility protocol — 2026-10-16
 
 User authorized the existing local Odoo case, saved-tree evaluation first, no
