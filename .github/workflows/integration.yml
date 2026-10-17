@@ -92,13 +92,13 @@ jobs:
             'POSTGRES_DB=postgres' \
             "ODOO_MASTER_PASSWORD=$odoo_master_password" \
             'ODOO_HTTP_PORT=8069' \
-            'T11_POSTGRES_DB=decision_cases_test' \
-            'T11_POSTGRES_USER=t11_test' \
-            "T11_POSTGRES_PASSWORD=$postgres_password" \
-            'T11_POSTGRES_PORT=55432' \
+            'TEST_POSTGRES_DB=planning_test' \
+            'TEST_POSTGRES_USER=planning_test' \
+            "TEST_POSTGRES_PASSWORD=$postgres_password" \
+            'TEST_POSTGRES_PORT=55432' \
             > "$env_file"
           echo "ODOO_ENV_FILE=$env_file" >> "$GITHUB_ENV"
-          echo "T11_TEST_DATABASE_URL=postgresql+psycopg://t11_test:$postgres_password@127.0.0.1:55432/decision_cases_test" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql+psycopg://planning_test:$postgres_password@127.0.0.1:55432/planning_test" >> "$GITHUB_ENV"
 
       - name: Start Odoo and PostgreSQL
         shell: bash
@@ -157,7 +157,8 @@ jobs:
       - name: Start FastAPI
         shell: bash
         run: |
-          uvicorn backend.app.main:app \
+          # Synthetic per-run token: the planning routes must answer 401, not "unconfigured".
+          API_SERVICE_TOKEN="$(openssl rand -hex 24)" uvicorn backend.app.main:app \
             > "$RUNNER_TEMP/uvicorn.log" 2>&1 &
           echo "UVICORN_PID=$!" >> "$GITHUB_ENV"
 

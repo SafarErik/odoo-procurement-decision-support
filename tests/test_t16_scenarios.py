@@ -29,8 +29,8 @@ def configured(stored_cases, monkeypatch):
     for name in ("infer_planning_features", "resolve_odoo_planning_input"):
         monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
     monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
-    monkeypatch.setattr(backend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport, calls = httpx.ASGITransport(app=app), []
 
     async def post(url, body, key, token):

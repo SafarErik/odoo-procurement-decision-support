@@ -22,7 +22,7 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
     stack, page = smoke_stack, smoke_page
     response = stack.client.post(
         BASE,
-        json=stack.payload | {"catalog_context": {"workspace": "practice"}},
+        json=stack.payload,
         headers={"Idempotency-Key": str(uuid4())},
     )
     assert response.status_code == 201, response.text
@@ -33,7 +33,7 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
     stack.start_api(stored_only=True)
 
     def children():
-        reply = stack.client.get(f"{BASE}/{identity}/scenarios", params={"workspace": "practice"})
+        reply = stack.client.get(f"{BASE}/{identity}/scenarios", params={"origin": "all"})
         assert reply.status_code == 200, reply.text
         return reply.json()["items"]
 
@@ -94,7 +94,7 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
         assert current != identity and len(children()) == before + 1
         saved = stack.client.get(f"{BASE}/{current}").json()
         cases.append(saved)
-        assert saved["parent_id"] == identity and saved["workspace"] == "practice"
+        assert saved["parent_id"] == identity and saved["origin"] == "demo"
         assert saved["snapshot"]["facts"] == base["snapshot"]["facts"]
         assert saved["snapshot"]["assessments"] == base["snapshot"]["assessments"]
         assert saved["snapshot"]["scenario"]["kind"] == kind

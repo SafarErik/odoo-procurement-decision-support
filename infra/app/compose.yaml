@@ -1,0 +1,25 @@
+# Persistent planning database for local use (cases, decisions, approved PDFs).
+# Kept separate from Odoo's database and from the disposable test database.
+name: procurement-planning-app
+
+services:
+  planning-db:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_DB: ${APP_POSTGRES_DB:-planning}
+      POSTGRES_USER: ${APP_POSTGRES_USER:-planning}
+      POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${APP_POSTGRES_PORT:-55440}:5432"
+    volumes:
+      - planning-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  planning-data:

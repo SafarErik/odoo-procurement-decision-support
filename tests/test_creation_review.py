@@ -50,7 +50,6 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     PlanningState.review_odoo.fn(state, form)
     assert not requests and not upstream and not uow.rows and not state.has_pending
     reviewed = deepcopy(state._review_payload)
-    assert reviewed["catalog_context"] == {"workspace": "controlled"}
     assert reviewed["controlled_input"]["suppliers"][0]["minimum_order_quantity"] is None
     assert state.review_suppliers[0]["moq"] == "None (no MOQ)"
     assert state.creation_review["captured"] == original["controlled_input"]["as_of"]
@@ -69,7 +68,7 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     consume(state, PlanningState.recover_request)
     assert requests[0] == requests[1] and len(uow.rows) == 1 and upstream == upstream_before
     assert state.has_case and not state.has_pending and not state._review_payload
-    assert state.details["workspace"] == "controlled"
+    assert state.details["origin"] == "odoo"
     assert state.notice == "Comparison saved. Approval is a separate choice."
     assert state.comparison_state == "Saved comparison — awaiting a decision"
     assert not state.final_choice and not state.details["final_outcome"]

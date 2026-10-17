@@ -9,11 +9,10 @@ from pypdf import PdfReader
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from document_adapter.approved_pdf import render_approved_pdf
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
 from tests.integration.test_t17_decisions_postgres import configured as _configured
-from tests.integration.test_t17_decisions_postgres import postgres_runtime as _postgres_runtime
 from tests.integration.test_t17_decisions_postgres import stored_cases as _stored_cases
 from tests.test_t15_planning_api import forbidden
 from tests.test_t17_decisions import BASE, headers
@@ -21,7 +20,6 @@ from tests.test_t21_documents import approve
 
 pytestmark = pytest.mark.integration
 configured = _configured
-postgres_runtime = _postgres_runtime
 stored_cases = _stored_cases
 
 

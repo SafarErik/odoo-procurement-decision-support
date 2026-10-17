@@ -7,14 +7,14 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_cases import (
     PlanningCaseError,
     canonical_uuid,
+    case_origin,
     fingerprint,
     validate_snapshot,
 )
-from application.planning_catalog import CatalogContext
 from application.planning_decisions import validate_final_decision
 from supplier_evaluation.contracts import SYNTHETIC
 
@@ -22,7 +22,7 @@ from supplier_evaluation.contracts import SYNTHETIC
 @dataclass(frozen=True, slots=True)
 class LibraryQuery:
     company: str
-    workspace: str = "controlled"
+    origin: str = "all"
     status: str = "all"
     q: str = ""
     limit: int = 20
@@ -32,17 +32,15 @@ class LibraryQuery:
     @property
     def context(self):
         return fingerprint(
-            [self.company, self.workspace, self.status, self.q, self.limit, self.parent_id]
+            [self.company, self.origin, self.status, self.q, self.limit, self.parent_id]
         )
 
 
-def library_query(
-    company, workspace="controlled", status="all", q="", limit=20, cursor=None, parent_id=None
-):
+def library_query(company, origin="all", status="all", q="", limit=20, cursor=None, parent_id=None):
     if not isinstance(company, str) or not company.strip():
         raise RepositoryError("library_unconfigured", "Configure the library company first.")
     if (
-        workspace not in {"controlled", "practice", "unclassified"}
+        origin not in {"all", "demo", "odoo"}
         or status not in {"all", "draft", "approved", "no_award"}
         or not isinstance(q, str)
         or len(q.strip()) > 80
@@ -52,7 +50,7 @@ def library_query(
         raise ValueError("Invalid library filters.")
     if parent_id is not None:
         canonical_uuid(parent_id)
-    query = LibraryQuery(company.strip(), workspace, status, q.strip(), limit, parent_id)
+    query = LibraryQuery(company.strip(), origin, status, q.strip(), limit, parent_id)
     if cursor is None:
         return query
     try:
@@ -66,7 +64,7 @@ def library_query(
             raise ValueError("Cursor time must be UTC.")
         return LibraryQuery(
             company.strip(),
-            workspace,
+            origin,
             status,
             q.strip(),
             limit,
@@ -77,16 +75,12 @@ def library_query(
         raise ValueError("Invalid library cursor.") from error
 
 
-def case_summary(case, workspace, example_id, decision, company):
+def case_summary(case, decision, company):
     try:
         snapshot = validate_snapshot(case)
         facts, requirement = snapshot["facts"], snapshot["request"]["requirement"]
         if facts["company_id"] != company:
             raise ValueError("Case company mismatch.")
-        if workspace not in {"controlled", "practice", "unclassified"}:
-            raise ValueError("Unknown catalog classification.")
-        if example_id is not None and (not isinstance(example_id, str) or not example_id):
-            raise ValueError("Invalid example identity.")
         # Historical synthetic snapshots omit input_kind; source_type is the saved authority.
         source = facts.get("input_kind", "controlled_synthetic")
         if facts["source_type"] not in {SYNTHETIC, "odoo_projection"}:
@@ -97,13 +91,6 @@ def case_summary(case, workspace, example_id, decision, company):
             "odoo_quotations_odoo_history",
         }:
             raise ValueError("Unknown source kind.")
-        if workspace != "unclassified":
-            CatalogContext(workspace, example_id).validate(
-                from_odoo=source
-                in {"odoo_quotations_synthetic_history", "odoo_quotations_odoo_history"}
-            )
-        elif example_id is not None:
-            raise ValueError("Unclassified cases cannot have a curated example.")
         for field in ("product_id", "quantity_unit", "currency"):
             if not isinstance(requirement[field], str) or not requirement[field].strip():
                 raise ValueError("Missing saved context.")
@@ -174,8 +161,7 @@ def case_summary(case, workspace, example_id, decision, company):
             "planning_status": snapshot["result"]["status"],
             "decision_status": outcome,
             "source_kind": source,
-            "workspace": workspace,
-            "example_id": example_id,
+            "origin": case_origin(facts),
             "scenario_kind": None if scenario is None else scenario["kind"],
             "changed_assumptions": changes,
         }

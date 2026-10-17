@@ -24,7 +24,6 @@ def _navigation(active: str, *, drawer: bool = False):
             for destination, label in (
                 ("cases", "Cases"),
                 ("rfqs", "Open RFQs"),
-                ("practice", "Practice"),
             )
         ],
         aria_label="Workspace navigation",
@@ -133,7 +132,7 @@ def workspace_shell(content: rx.Component, *, active: str) -> rx.Component:
                         rx.drawer.content(
                             rx.drawer.title("Workspace navigation", margin_bottom="1rem"),
                             rx.drawer.description(
-                                "Choose Cases, Open RFQs or Practice.", margin_bottom="1rem"
+                                "Choose Cases or Open RFQs.", margin_bottom="1rem"
                             ),
                             _navigation(active, drawer=True),
                             rx.drawer.close(

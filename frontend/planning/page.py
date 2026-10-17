@@ -5,7 +5,6 @@ import reflex as rx
 from frontend.planning.audit import audit_view
 from frontend.planning.decision import decision_view, selection_review
 from frontend.planning.inputs import _planning_controls
-from frontend.planning.practice import practice_guidance
 from frontend.planning.results import plans_view, suppliers_view
 from frontend.planning.scenarios import _scenario_comparison, _scenario_form
 from frontend.planning.state import PlanningState
@@ -176,8 +175,8 @@ def _workspace() -> rx.Component:
             gap="1rem",
         ),
         rx.text(
-            "Workspace: ",
-            PlanningState.details["workspace_label"],
+            "Data origin: ",
+            PlanningState.details["origin_label"],
             font_weight="650",
             margin_top="0.75rem",
         ),
@@ -220,15 +219,6 @@ def _workspace() -> rx.Component:
             margin_y="0.75rem",
         ),
         rx.text(PlanningState.details["input_kind"], size="2", color=MUTED, margin_bottom="1rem"),
-        rx.cond(
-            PlanningState.details["workspace"] == "practice",
-            rx.text(
-                "Practice persists in application storage. No isolation or reset is provided.",
-                size="2",
-                color=MUTED,
-                margin_bottom="1rem",
-            ),
-        ),
         rx.tabs.root(
             rx.tabs.list(
                 *[
@@ -261,7 +251,6 @@ def _workspace() -> rx.Component:
         ),
         selection_review(),
         decision_view(),
-        practice_guidance(),
         background=SURFACE,
         border=f"1px solid {HAIRLINE}",
         border_radius="10px",
@@ -351,8 +340,7 @@ def planning_page() -> rx.Component:
                 margin_top="1.5rem",
             ),
             rx.cond(
-                ~PlanningState.has_case
-                | (PlanningState.details.get("workspace", "") == "practice"),
+                ~PlanningState.has_case | (PlanningState.details.get("origin", "") == "demo"),
                 _test_guide(),
             ),
             rx.el.details(

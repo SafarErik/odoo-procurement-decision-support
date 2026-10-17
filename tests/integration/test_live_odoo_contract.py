@@ -8,25 +8,12 @@ from typing import Any
 import httpx
 import pytest
 
-from application.decision_input_assembly import (
-    AssembledDecisionInput,
-    CanonicalDecisionInput,
-    ProvenanceManifest,
-    SourceAttribution,
-    SupplementalOfferTerms,
-    SupplementalValue,
-    assemble_decision_input,
-    attach_historical_performance,
-)
-from application.decisions import evaluate_procurement_decision
 from application.historical_performance import (
     HistoricalPerformanceQuery,
     HistoricalWarningCode,
-    SourcedSupplierHistoricalPerformance,
     calculate_delivery_schedule_adherence,
 )
 from backend.app.config import settings
-from decision_core import PurchaseRequirement, StrategicProfile, SupplierOffer
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.historical_performance_reader import OdooHistoricalPerformanceReader
 from odoo_adapter.rfq_reader import OdooRfqReader
@@ -154,12 +141,14 @@ def _t6_group_id() -> int:
 
 def _require_t7_live_contracts() -> None:
     if not settings.run_t7_live_contracts:
-        pytest.skip("Set RUN_T7_LIVE_CONTRACTS=true only after completing docs/T7_FIXTURE_SETUP.md")
+        pytest.skip(
+            "Set RUN_T7_LIVE_CONTRACTS=true only after completing docs/history/T7_FIXTURE_SETUP.md"
+        )
 
 
 def _require_t7s_live_contracts() -> None:
     if not settings.run_t7s_live_contracts:
-        pytest.skip("Set RUN_T7S_LIVE_CONTRACTS=true only after docs/T7S_MANUAL_SETUP.md")
+        pytest.skip("Set RUN_T7S_LIVE_CONTRACTS=true only after docs/history/T7S_MANUAL_SETUP.md")
 
 
 def _t7s_window_payload(*, company_id: int, line_ids: list[int], limit: int = 40) -> dict[str, Any]:
@@ -681,102 +670,6 @@ def test_live_odoo_t6_reads_controlled_group_with_read_only_identity() -> None:
     }
 
 
-def test_live_odoo_t6_full_hybrid_chain_is_deterministic() -> None:
-    """Odoo facts plus attributed terms evaluate through the unchanged use case."""
-
-    credentials = _live_credentials()
-    if credentials is None:
-        pytest.skip("Live Odoo credentials are not configured")
-    base_url, database, api_key = credentials
-    reader = OdooComparisonCaseReader(
-        base_url=base_url,
-        database=database,
-        api_key=api_key,
-        timeout_seconds=settings.odoo_request_timeout_seconds,
-    )
-    facts = asyncio.run(reader.read_comparison_case(_t6_group_id()))
-    origin_by_offer_id = {
-        f"odoo:purchase.order:{order['id']}": order["origin"] for order in _t6_fixture_records()
-    }
-    values = {
-        "T6-COMP-001-A": (Decimal("50"), Decimal("10")),
-        "T6-COMP-001-B": (Decimal("100"), Decimal("5")),
-        "T6-COMP-001-C": (Decimal("150"), Decimal("8")),
-    }
-    terms = tuple(
-        SupplementalOfferTerms(
-            offer_id=offer.offer_id,
-            hard_minimum_order_quantity=SupplementalValue(
-                values[origin_by_offer_id[offer.offer_id]][0],
-                SourceAttribution(
-                    "minimum_order_quantity",
-                    "controlled_fixture_statement",
-                    f"{origin_by_offer_id[offer.offer_id]}:hard-moq",
-                    offer.observed_at,
-                ),
-            ),
-            supplier_promised_lead_time_days=SupplementalValue(
-                values[origin_by_offer_id[offer.offer_id]][1],
-                SourceAttribution(
-                    "lead_time_days",
-                    "controlled_fixture_statement",
-                    f"{origin_by_offer_id[offer.offer_id]}:promised-lead-time",
-                    offer.observed_at,
-                ),
-            ),
-        )
-        for offer in facts.offers
-    )
-    assembled = assemble_decision_input(
-        facts,
-        terms,
-        StrategicProfile.cost_focused(),
-        SourceAttribution(
-            "strategic_profile",
-            "application_configuration",
-            "profile:cost-focused:v1",
-            facts.observed_at,
-        ),
-    )
-
-    result = evaluate_procurement_decision(
-        assembled.canonical.requirement,
-        assembled.canonical.offers,
-        assembled.canonical.profile,
-    )
-    assert [origin_by_offer_id[item.offer.offer_id] for item in result.ranked_offers] == [
-        "T6-COMP-001-A",
-        "T6-COMP-001-B",
-    ]
-    assert [origin_by_offer_id[item.offer.offer_id] for item in result.excluded_offers] == [
-        "T6-COMP-001-C"
-    ]
-    assert result.excluded_offers[0].explanation
-    expected_provenance_paths = {
-        "requirement.requirement_id",
-        "requirement.requested_quantity",
-        "profile.name",
-        "profile.unit_price_weight",
-        "profile.lead_time_weight",
-    }
-    for offer in facts.offers:
-        expected_provenance_paths.update(
-            {
-                f"offers[{offer.offer_id}].offer_id",
-                f"offers[{offer.offer_id}].supplier_id",
-                f"offers[{offer.offer_id}].unit_price",
-                f"offers[{offer.offer_id}].lead_time_days",
-                f"offers[{offer.offer_id}].minimum_order_quantity",
-            }
-        )
-    provenance_paths = {entry.canonical_path for entry in assembled.provenance.entries}
-    assert provenance_paths == expected_provenance_paths
-    assert sum(
-        entry.canonical_path == "requirement.requested_quantity"
-        for entry in assembled.provenance.entries
-    ) == len(facts.offers)
-
-
 def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> None:
     """Prove the dedicated caller can use only the guarded projection method."""
 
@@ -996,46 +889,3 @@ def test_live_odoo_t8_historical_performance_vertical_slice() -> None:
     assert [warning.code for warning in performance.warnings] == [
         HistoricalWarningCode.SUPPLIER_RETURN_OBSERVED
     ]
-
-    sourced = SourcedSupplierHistoricalPerformance(
-        performance=performance,
-        source_type=snapshot.source_type,
-        source_reference=snapshot.source_reference,
-    )
-    offers = (
-        SupplierOffer("T8-LIVE-A", supplier_id, Decimal("10"), Decimal("10"), Decimal("50")),
-        SupplierOffer("T8-LIVE-B", supplier_id, Decimal("12"), Decimal("5"), Decimal("100")),
-        SupplierOffer("T8-LIVE-C", supplier_id, Decimal("9"), Decimal("8"), Decimal("150")),
-    )
-    baseline = AssembledDecisionInput(
-        canonical=CanonicalDecisionInput(
-            requirement=PurchaseRequirement("T8-LIVE", Decimal("100")),
-            offers=offers,
-            profile=StrategicProfile.cost_focused(),
-        ),
-        provenance=ProvenanceManifest(entries=()),
-    )
-    assembled = attach_historical_performance(baseline, (sourced,))
-    assert assembled.canonical.historical_performance == (performance,)
-    assert {entry.field_name for entry in assembled.provenance.entries} == {
-        "delivery_schedule_adherence",
-        "historical_sample_size",
-        "observation_window_start",
-        "observation_window_end",
-    }
-    assert all(
-        "procurement.inventory.history.projection.read_bounded_history" in entry.source_reference
-        for entry in assembled.provenance.entries
-    )
-
-    baseline_result = evaluate_procurement_decision(
-        baseline.canonical.requirement,
-        baseline.canonical.offers,
-        baseline.canonical.profile,
-    )
-    assembled_result = evaluate_procurement_decision(
-        assembled.canonical.requirement,
-        assembled.canonical.offers,
-        assembled.canonical.profile,
-    )
-    assert assembled_result == baseline_result

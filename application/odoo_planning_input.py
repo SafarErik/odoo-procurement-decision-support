@@ -3,14 +3,10 @@
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime
 
-from application.decision_input_assembly import (
-    FieldProvenance,
-    OdooComparisonCaseFacts,
-    ProvenanceManifest,
-    SourceAttribution,
-)
+from application.odoo_quotations import OdooComparisonCaseFacts
 from application.planning_history import capture_features
 from application.planning_input import OdooHistoryPlanningFacts, PlanningFacts, validate_source
+from application.provenance import FieldProvenance, ProvenanceManifest, SourceAttribution
 from decision_core.planning.models import (
     MinimumOrder,
     PlanningPolicy,

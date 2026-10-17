@@ -72,7 +72,7 @@ jobs:
             -f infra/odoo/compose.yaml \
             config --quiet
           printf '%s\n' \
-            'T11_POSTGRES_PASSWORD=synthetic-quality-only' \
+            'TEST_POSTGRES_PASSWORD=synthetic-quality-only' \
             > "$RUNNER_TEMP/t11-quality.env"
           docker compose \
             --env-file "$RUNNER_TEMP/t11-quality.env" \

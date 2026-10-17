@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from application.decision_input_assembly import (
+from application.odoo_quotations import (
     OdooComparisonCaseFacts,
     OdooComparisonOfferFacts,
     OdooOrderLineFacts,

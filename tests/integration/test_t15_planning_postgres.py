@@ -9,16 +9,14 @@ from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from backend.app.config import settings
 from backend.app.main import app
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.integration.test_decision_case_postgres import postgres_runtime as _postgres_runtime
 from tests.t15_helpers import controlled_assets
 
 pytestmark = pytest.mark.integration
 BASE = "/api/v2/procurement/planning-cases"
-postgres_runtime = _postgres_runtime
 
 
 @pytest.fixture(scope="module")
@@ -33,13 +31,10 @@ def configured(postgres_runtime, assets, monkeypatch):
     directory, payload = assets
     with engine.begin() as connection:
         connection.execute(
-            text(
-                "TRUNCATE planning_case_catalog, planning_documents, "
-                "planning_final_decisions, planning_cases"
-            )
+            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
         )
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", directory)
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("t15-pg-test-secret"))
+    monkeypatch.setattr(settings, "supplier_model_directory", directory)
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("t15-pg-test-secret"))
     monkeypatch.setattr(
         "backend.app.routes.planning_cases.get_planning_unit_of_work",
         lambda: SqlAlchemyPlanningUnitOfWork(factory),
@@ -89,7 +84,7 @@ def test_http_database_roundtrip_scenarios_and_stored_replay(configured, monkeyp
                 ).scalar_one()
                 == "102"
             )
-        monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+        monkeypatch.setattr(settings, "supplier_model_directory", None)
         monkeypatch.setattr("backend.app.routes.planning_cases.infer_planning_features", forbidden)
         monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
         monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
@@ -195,7 +190,7 @@ def test_hybrid_quotation_case_roundtrip_and_upstream_free_replay(
     case = asyncio.run(reader.read_comparison_case(501))
     code, observed = asyncio.run(reader.read_currency_code(case.offers[0].currency_id))
     payload, scenario = prepare_odoo_assets(tmp_path, case, code, observed)
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", tmp_path / "model")
+    monkeypatch.setattr(settings, "supplier_model_directory", tmp_path / "model")
     monkeypatch.setattr("backend.app.dependencies.get_comparison_case_reader", lambda: reader)
     key = str(uuid4())
     with TestClient(app) as client:

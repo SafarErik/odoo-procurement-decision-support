@@ -9,16 +9,7 @@ from frontend.theme import ACCENT, HAIRLINE, MUTED, SURFACE
 
 def saved_decision(*, focus_target: bool = False) -> rx.Component:
     return rx.vstack(
-        rx.text("Workspace: ", PlanningState.details["workspace_label"], font_weight="650"),
-        rx.cond(
-            PlanningState.details["workspace"] == "practice",
-            rx.text(
-                "Practice document access. The backend's immutable PDF bytes retain their "
-                "saved source/provenance; this label does not watermark or rewrite the PDF.",
-                size="2",
-                color=MUTED,
-            ),
-        ),
+        rx.text("Data origin: ", PlanningState.details["origin_label"], font_weight="650"),
         rx.heading(
             PlanningState.details["final_outcome"],
             as_="h2",
@@ -258,7 +249,7 @@ def _decision_confirmation() -> rx.Component:
                 flex_shrink="0",
             ),
             rx.box(
-                rx.text("Workspace: ", PlanningState.details["workspace_label"], font_weight="650"),
+                rx.text("Data origin: ", PlanningState.details["origin_label"], font_weight="650"),
                 rx.text(PlanningState.details["product"], font_weight="650", margin_top="0.75rem"),
                 rx.text(
                     PlanningState.details["quantity"],
@@ -297,7 +288,7 @@ def _decision_confirmation() -> rx.Component:
                 rx.text(
                     "Actor attribution is audit text, not authenticated buyer identity. "
                     "This is a controlled demonstration with synthetic ML evidence; exposure "
-                    "is not a failure probability. Practice shares application storage.",
+                    "is not a failure probability.",
                     size="2",
                     color=MUTED,
                     margin_top="0.75rem",
@@ -347,8 +338,8 @@ def _decision_confirmation() -> rx.Component:
 def decision_view() -> rx.Component:
     return rx.box(
         rx.text(
-            "Decision context: ",
-            PlanningState.details["workspace_label"],
+            "Data origin: ",
+            PlanningState.details["origin_label"],
             font_weight="650",
             margin_bottom="0.75rem",
         ),

@@ -10,16 +10,14 @@ from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from backend.app.config import settings
 from backend.app.main import app
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.integration.test_decision_case_postgres import postgres_runtime as _postgres_runtime
 from tests.test_t17_decisions import BASE, TOKEN, headers, intent
 from tests.test_t17_decisions import stored_cases as _stored_cases
 
 pytestmark = pytest.mark.integration
-postgres_runtime = _postgres_runtime
 stored_cases = _stored_cases
 
 
@@ -29,17 +27,14 @@ def configured(postgres_runtime, stored_cases, monkeypatch):
     memory, base, child, _ = stored_cases
     with engine.begin() as connection:
         connection.execute(
-            text(
-                "TRUNCATE planning_case_catalog, planning_documents, "
-                "planning_final_decisions, planning_cases"
-            )
+            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
         )
     with SqlAlchemyPlanningUnitOfWork(factory) as uow:
         for row in memory.rows.values():
             uow.cases.add(row)
         uow.commit()
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
+    monkeypatch.setattr(settings, "supplier_model_directory", None)
     monkeypatch.setattr(
         "backend.app.routes.planning_cases.get_planning_unit_of_work",
         lambda: SqlAlchemyPlanningUnitOfWork(factory),

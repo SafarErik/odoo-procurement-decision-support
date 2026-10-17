@@ -23,7 +23,7 @@ stored_cases = _stored_cases
 def test_explicit_selection_and_lost_success_response_recovery(configured, monkeypatch):
     _, uow, base, *_ = configured
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport = httpx.ASGITransport(app=app)
     lost = []
 

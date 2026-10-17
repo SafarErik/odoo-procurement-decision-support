@@ -28,8 +28,8 @@ def audit_view() -> rx.Component:
         rx.callout(
             "Quotations and explicit terms retain their own source references. History references "
             "identify separately generated inputs or Odoo receipts of controlled synthetic origin. "
-            "The model retains synthetic training provenance. Practice shares "
-            "application storage; neither classification nor actor text establishes authority.",
+            "The model retains synthetic training provenance. Actor text does not establish "
+            "authority.",
             color_scheme="amber",
         ),
         rx.el.details(

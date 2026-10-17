@@ -11,9 +11,7 @@ from fractions import Fraction
 from typing import Protocol, Self
 from uuid import UUID, uuid4
 
-from application.decision_cases import RepositoryError
-from application.decision_input_assembly import SourceAttribution
-from application.planning_catalog import CatalogContext
+from application.errors import RepositoryError
 from application.planning_history import (
     HISTORY_INPUT_KIND,
     capture_features,
@@ -27,6 +25,7 @@ from application.planning_serialization import (
     snapshot_json,
 )
 from application.procurement_planning import PlanningCommand, create_procurement_plans
+from application.provenance import SourceAttribution
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import exact_decimal
 from supplier_evaluation.contracts import ODOO_HISTORY, utc
@@ -55,14 +54,21 @@ class PlanningCase:
         return hashlib.sha256(self.snapshot.encode()).hexdigest()
 
 
+DEMO_INPUT_KIND = "controlled_synthetic"
+
+
+def case_origin(facts: dict) -> str:
+    """Saved data origin: generated demo input or a quotation group read from Odoo."""
+    # Snapshots created from generated demo input predate the input_kind field.
+    return "demo" if facts.get("input_kind", DEMO_INPUT_KIND) == DEMO_INPUT_KIND else "odoo"
+
+
 class PlanningRepository(Protocol):
     def lock(self, key: str) -> None: ...
     def by_key(self, key: str) -> PlanningCase | None: ...
     def get(self, case_id: str) -> PlanningCase | None: ...
     def add(self, case: PlanningCase) -> None: ...
     def list_saved(self, query) -> list[tuple]: ...
-    def add_catalog(self, case_id: str, context: CatalogContext) -> None: ...
-    def catalog_for(self, case_id: str) -> CatalogContext | None: ...
 
 
 class PlanningUnitOfWork(Protocol):
@@ -349,7 +355,6 @@ def create_planning_case(
     solver_factory: Callable,
     base_intent: dict | None = None,
     load_base: Callable | None = None,
-    catalog_context: CatalogContext | None = None,
     base_kind: str = "odoo_quotations_synthetic_history",
 ) -> tuple[PlanningCase, bool]:
     """One locked transaction contains computation and immutable key/case insertion."""
@@ -357,10 +362,6 @@ def create_planning_case(
     loaded_base = base_intent is not None and load_base is not None
     if base_kind not in {"odoo_quotations_synthetic_history", HISTORY_INPUT_KIND}:
         raise ValueError("Unsupported creation path.")
-    if catalog_context is not None:
-        if parent_id is not None or not isinstance(catalog_context, CatalogContext):
-            raise ValueError("Only base creation accepts catalog context.")
-        catalog_context.validate(from_odoo=loaded_base)
     if (
         sum((facts is not None, parent_id is not None, loaded_base)) != 1
         or (base_intent is None) != (load_base is None)
@@ -381,8 +382,6 @@ def create_planning_case(
     else:
         normalized = normalize_planning_facts(facts)
         intent = {"operation": "base", "facts": normalized}
-    if catalog_context is not None:
-        intent["catalog_context"] = catalog_context
     request_hash = fingerprint(intent)
     with uow:
         uow.cases.lock(key)
@@ -468,8 +467,6 @@ def create_planning_case(
             )
             validate_snapshot(case)
             uow.cases.add(case)
-            if catalog_context is not None:
-                uow.cases.add_catalog(case.case_id, catalog_context)
             uow.commit()
             return case, False
         except (ValueError, TypeError, OverflowError) as error:

@@ -58,29 +58,19 @@ def test_pending_all_route_and_view_entries_preserve_original_context():
     async def run():
         root, state = state_at()
         state.has_pending = True
-        state._pending_route = "/practice"
+        state._pending_route = "/cases"
         state._pending = {"key": "exact", "payload": {"quantity": 10}, "url": "http://test"}
         state.recovery_json = "exact recovery"
         state.input_mode = "create"
         state.view = "whatif"
         pending = deepcopy(state._pending)
-        for path in ("/", "/cases", "/planning?case_id=bad&view=audit", "/practice"):
+        for path in ("/", "/planning?case_id=bad&view=audit"):
             root.router = RouterData.from_router_data({"asPath": path})
-            handler = (
-                state.rfq_on_load
-                if path == "/"
-                else (
-                    state.library_on_load
-                    if path == "/cases"
-                    else (state.practice_on_load if path == "/practice" else state.load_bookmark)
-                )
-            )
+            handler = state.rfq_on_load if path == "/" else state.load_bookmark
             events = [event async for event in handler()]
-            if path != "/practice":
-                assert events[0].args[0][1]._js_expr == '"/practice"'
+            assert events[0].args[0][1]._js_expr == '"/cases"'
             state.change_view("audit")
             state.change_input_mode("odoo")
-            state.choose_practice_task("compare-plans")
             state.navigate_global("rfqs")
             state.navigation_open = True
             assert state.discard_navigation() is None

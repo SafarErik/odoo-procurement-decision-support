@@ -1,20 +1,22 @@
-"""T15 uses the existing PostgreSQL session/transaction and advisory-lock patterns."""
+"""PostgreSQL planning-case repositories and their per-use-case transaction."""
 
 import json
 from datetime import UTC
 
 from sqlalchemy import func, select, text, tuple_
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from application.decision_cases import RepositoryError
-from application.planning_cases import SNAPSHOT_VERSION, PlanningCase, validate_snapshot
-from application.planning_catalog import CatalogContext
+from application.errors import RepositoryError
+from application.planning_cases import (
+    DEMO_INPUT_KIND,
+    SNAPSHOT_VERSION,
+    PlanningCase,
+    validate_snapshot,
+)
 from application.planning_serialization import snapshot_json
 from persistence.planning_decisions import SqlAlchemyPlanningDecisionRepository, read_decision_row
 from persistence.planning_documents import SqlAlchemyPlanningDocumentRepository
-from persistence.postgres import SqlAlchemyUnitOfWork
 from persistence.schema import (
-    PlanningCaseCatalogRecord,
     PlanningCaseRecord,
     PlanningFinalDecisionRecord,
 )
@@ -53,39 +55,15 @@ class SqlAlchemyPlanningRepository:
     def get(self, case_id: str) -> PlanningCase | None:
         return self._read(select(PlanningCaseRecord).where(PlanningCaseRecord.case_id == case_id))
 
-    def catalog_for(self, case_id):
-        try:
-            row = self._session.get(PlanningCaseCatalogRecord, case_id)
-            return None if row is None else CatalogContext(row.workspace, row.example_id)
-        except SQLAlchemyError as error:
-            raise RepositoryError(
-                "repository_failure", "Case classification is unavailable."
-            ) from error
-
-    def add_catalog(self, case_id, context):
-        self._session.add(
-            PlanningCaseCatalogRecord(
-                case_id=case_id, workspace=context.workspace, example_id=context.example_id
-            )
-        )
-        try:
-            self._session.flush()
-        except SQLAlchemyError as error:
-            raise RepositoryError(
-                "repository_failure", "Case classification could not be saved."
-            ) from error
-
     def list_saved(self, query):
         try:
             rows = self._session.execute(library_statement(query)).all()
             return [
                 (
                     read_case_row(case),
-                    workspace or "unclassified",
-                    example,
                     None if query.parent_id is not None else read_decision_row(decision),
                 )
-                for case, workspace, example, decision in rows
+                for case, decision in rows
             ]
         except SQLAlchemyError as error:
             raise RepositoryError(
@@ -132,15 +110,10 @@ def read_case_row(row):
 
 
 def library_statement(query):
-    case, catalog, decision = (
-        PlanningCaseRecord,
-        PlanningCaseCatalogRecord,
-        PlanningFinalDecisionRecord,
-    )
+    case, decision = PlanningCaseRecord, PlanningFinalDecisionRecord
     original_id = func.coalesce(case.parent_id, case.case_id)
     statement = (
-        select(case, catalog.workspace, catalog.example_id, decision)
-        .outerjoin(catalog, catalog.case_id == original_id)
+        select(case, decision)
         .outerjoin(decision, decision.case_id == original_id)
         .where(case.snapshot["facts"]["company_id"].astext == query.company)
         .where(
@@ -148,12 +121,14 @@ def library_statement(query):
             if query.parent_id is None
             else case.parent_id == query.parent_id
         )
-        .where(
-            catalog.case_id.is_(None)
-            if query.workspace == "unclassified"
-            else catalog.workspace == query.workspace
-        )
     )
+    if query.origin != "all":
+        input_kind = func.coalesce(case.snapshot["facts"]["input_kind"].astext, DEMO_INPUT_KIND)
+        statement = statement.where(
+            input_kind == DEMO_INPUT_KIND
+            if query.origin == "demo"
+            else input_kind != DEMO_INPUT_KIND
+        )
     if query.status == "draft":
         statement = statement.where(decision.case_id.is_(None))
     elif query.status != "all":
@@ -173,10 +148,43 @@ def library_statement(query):
     return statement.order_by(case.created_at.desc(), case.case_id.desc()).limit(query.limit + 1)
 
 
-class SqlAlchemyPlanningUnitOfWork(SqlAlchemyUnitOfWork):
+class SqlAlchemyPlanningUnitOfWork:
+    """One SQLAlchemy session and transaction per application use-case call."""
+
+    def __init__(self, session_factory):
+        self._session_factory = session_factory
+        self._session = None
+        self._committed = False
+
     def __enter__(self):
-        super().__enter__()
+        self._session = self._session_factory()
         self.cases = SqlAlchemyPlanningRepository(self._session)
         self.decisions = SqlAlchemyPlanningDecisionRepository(self._session)
         self.documents = SqlAlchemyPlanningDocumentRepository(self._session)
+        self._committed = False
         return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        if self._session is None:
+            return
+        if not self._committed:
+            self._session.rollback()
+        self._session.close()
+        self._session = None
+
+    def commit(self):
+        if self._session is None:
+            raise RepositoryError("invalid_repository_operation", "No transaction is active.")
+        try:
+            self._session.commit()
+            self._committed = True
+        except IntegrityError as error:
+            self._session.rollback()
+            raise RepositoryError(
+                "repository_constraint_violation", "A database constraint was violated."
+            ) from error
+        except SQLAlchemyError as error:
+            self._session.rollback()
+            raise RepositoryError(
+                "repository_failure", "The database transaction could not be committed."
+            ) from error

@@ -29,7 +29,7 @@ def prepared_state(assets, monkeypatch):
         "controlled_odoo_file",
         property(lambda _: directory / "create-request.json"),
     )
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     state = PlanningState(_reflex_internal_init=True)
     PlanningState.prepare_odoo.fn(state)
     assert state.odoo_ready

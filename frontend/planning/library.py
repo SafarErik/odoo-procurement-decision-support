@@ -42,11 +42,7 @@ def _row(row):
                 ),
                 rx.text(row["source"], size="2", color=MUTED),
                 rx.text(
-                    rx.cond(
-                        row["workspace"] == "unclassified",
-                        "Earlier case · Unclassified",
-                        row["workspace"],
-                    ),
+                    rx.cond(row["origin"] == "demo", "Demo data", "Odoo"),
                     size="2",
                     font_weight="600",
                 ),
@@ -169,28 +165,20 @@ def library_page():
                     gap="1rem",
                     align="start",
                 ),
-                rx.text(
-                    "Earlier cases have no workspace classification. Source labels "
-                    "describe captured "
-                    "evidence; synthetic ML does not make a case Practice.",
-                    color=MUTED,
-                    max_width="72ch",
-                    margin_top="1rem",
-                ),
                 rx.form(
                     rx.flex(
                         rx.box(
-                            rx.el.label("Workspace", html_for="library-workspace"),
+                            rx.el.label("Data origin", html_for="library-origin"),
                             rx.el.select(
-                                rx.el.option("Controlled work", value="controlled"),
-                                rx.el.option("Practice", value="practice"),
-                                rx.el.option("Earlier cases", value="unclassified"),
-                                id="library-workspace",
+                                rx.el.option("All cases", value="all"),
+                                rx.el.option("Odoo", value="odoo"),
+                                rx.el.option("Demo data", value="demo"),
+                                id="library-origin",
                                 disabled=~PlanningState.library_loaded
                                 | PlanningState.library_loading,
-                                name="workspace",
-                                default_value=PlanningState.library_workspace,
-                                key=PlanningState.library_workspace,
+                                name="origin",
+                                default_value=PlanningState.library_origin,
+                                key=PlanningState.library_origin,
                                 padding="0.65rem",
                                 width="100%",
                             ),
@@ -265,11 +253,10 @@ def library_page():
                                     rx.text(
                                         rx.cond(
                                             (PlanningState.library_search != "")
-                                            | (PlanningState.library_status != "all"),
+                                            | (PlanningState.library_status != "all")
+                                            | (PlanningState.library_origin != "all"),
                                             "No matches. Change the filters and Refresh.",
-                                            "Try Earlier cases for work saved before "
-                                            "classification "
-                                            "was available.",
+                                            "Create a comparison from an open RFQ to see it here.",
                                         ),
                                         color=MUTED,
                                     ),

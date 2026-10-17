@@ -1,4 +1,4 @@
-"""Alembic environment for explicit T11 PostgreSQL migrations."""
+"""Alembic environment for the planning PostgreSQL schema."""
 
 from __future__ import annotations
 
