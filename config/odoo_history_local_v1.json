@@ -1,0 +1,26 @@
+{
+  "id": "local-v1",
+  "database": "procurement_v2_history_test_v1",
+  "origin": "controlled_synthetic",
+  "company_id": 1,
+  "product_id": 54,
+  "unit_id": 1,
+  "currency_id": 1,
+  "purchase_group_id": 2,
+  "quotations": [
+    {"order":16,"line":28,"supplier":51},
+    {"order":17,"line":29,"supplier":52},
+    {"order":18,"line":30,"supplier":53}
+  ],
+  "records": [
+    {"code":"A01","supplier":51,"order":23,"line":35,"price":"10","deadline":"2026-10-17 21:00:46","events":[[77,53,"100",null]]},
+    {"code":"A02","supplier":51,"order":32,"line":44,"price":"10","deadline":"2026-10-17 21:00:00","events":[[78,54,"100",null]]},
+    {"code":"A03","supplier":51,"order":33,"line":45,"price":"10","deadline":"2026-10-17 21:00:00","events":[[79,55,"100",null]]},
+    {"code":"B01","supplier":52,"order":34,"line":46,"price":"12","deadline":"2026-10-17 21:00:00","events":[[80,56,"100",null]]},
+    {"code":"B02","supplier":52,"order":35,"line":47,"price":"12","deadline":"2026-10-17 21:00:00","events":[[81,57,"100",null]]},
+    {"code":"B03","supplier":52,"order":36,"line":48,"price":"12","deadline":"2026-10-14 22:00:00","events":[[82,58,"40",null],[86,62,"60",58]]},
+    {"code":"C01","supplier":53,"order":37,"line":49,"price":"9","deadline":"2026-10-17 21:00:00","events":[[83,59,"100",null]]},
+    {"code":"C02","supplier":53,"order":38,"line":50,"price":"9","deadline":"2026-10-14 22:00:00","events":[[84,60,"100",null]]},
+    {"code":"C03","supplier":53,"order":39,"line":51,"price":"9","deadline":"2026-10-14 22:00:00","events":[[85,61,"100",null]]}
+  ]
+}

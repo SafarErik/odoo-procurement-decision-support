@@ -89,13 +89,18 @@ def case_summary(case, workspace, example_id, decision, company):
             raise ValueError("Invalid example identity.")
         # Historical synthetic snapshots omit input_kind; source_type is the saved authority.
         source = facts.get("input_kind", "controlled_synthetic")
-        if facts["source_type"] != SYNTHETIC:
+        if facts["source_type"] not in {SYNTHETIC, "odoo_projection"}:
             raise ValueError("Unsupported saved ML evidence source.")
-        if source not in {"controlled_synthetic", "odoo_quotations_synthetic_history"}:
+        if source not in {
+            "controlled_synthetic",
+            "odoo_quotations_synthetic_history",
+            "odoo_quotations_odoo_history",
+        }:
             raise ValueError("Unknown source kind.")
         if workspace != "unclassified":
             CatalogContext(workspace, example_id).validate(
-                from_odoo=source == "odoo_quotations_synthetic_history"
+                from_odoo=source
+                in {"odoo_quotations_synthetic_history", "odoo_quotations_odoo_history"}
             )
         elif example_id is not None:
             raise ValueError("Unclassified cases cannot have a curated example.")

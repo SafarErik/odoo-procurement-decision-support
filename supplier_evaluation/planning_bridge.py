@@ -6,7 +6,7 @@ from datetime import datetime
 from application.procurement_planning import ExternalRiskContext
 from decision_core.planning.models import PlanningRequest, QuantityRange, RiskCoefficient
 from decision_core.planning.rules import validate_risk
-from supplier_evaluation.contracts import MAPPING_VERSION, Assessment, digest, text_identity, utc
+from supplier_evaluation.contracts import Assessment, digest, text_identity, utc
 
 
 def risk_inputs(
@@ -31,6 +31,8 @@ def risk_inputs(
         raise ValueError("Complete exact supplier assessment join required.")
     if len({(a.model_id, a.training_id) for a in assessments}) != 1:
         raise ValueError("Mixed model/training versions are incompatible.")
+    if len({a.mapping_version for a in assessments}) != 1:
+        raise ValueError("Mixed assessment mappings are incompatible.")
     requirement = request.requirement
     for a in assessments:
         # Recheck contract at the consumption boundary, even for constructed assessments.
@@ -53,7 +55,7 @@ def risk_inputs(
     )
     validate_risk(replace(request, risk_coefficients=coefficients))
     context = ExternalRiskContext(
-        f"docs/T14_ML_DESIGN.md#{MAPPING_VERSION}",
+        f"docs/T14_ML_DESIGN.md#{assessments[0].mapping_version}",
         "t14-assessments:" + digest([a.reference for a in ordered]),
         "t14-quantity-independent-controlled-proxy:"
         + digest(

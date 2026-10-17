@@ -17,6 +17,8 @@ FEATURES = ("delivery_schedule_adherence", "historical_completed_count")
 CLASSES = ("schedule_regular", "schedule_watch")
 SEED = 17
 SYNTHETIC = "t14_synthetic"
+ODOO_HISTORY = "odoo_projection"
+ODOO_MAPPING_VERSION = "t14-leaf-exposure-odoo-controlled-v1"
 
 
 def canonical(value: object) -> str:
@@ -184,8 +186,8 @@ class Assessment:
         if self.valid_until != self.snapshot.cutoff + timedelta(days=30):
             raise ValueError("Invalid assessment time validity.")
         if (
-            self.snapshot.source_type != SYNTHETIC
-            or self.mapping_version != MAPPING_VERSION
+            (self.snapshot.source_type, self.mapping_version)
+            not in {(SYNTHETIC, MAPPING_VERSION), (ODOO_HISTORY, ODOO_MAPPING_VERSION)}
             or self.dataset_version != DATASET_VERSION
             or self.label_version != LABEL_VERSION
         ):

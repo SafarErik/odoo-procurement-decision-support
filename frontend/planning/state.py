@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 import reflex as rx
 
 from frontend.config import settings
+from frontend.odoo_history_client import fetch_odoo_history
 from frontend.planning_client import (
     FINAL_DECISION_CONFLICT,
     _supplier_label,
@@ -59,6 +60,9 @@ class PlanningState(rx.State):
     odoo_quantity: str = "200"
     odoo_required_date: str = ""
     odoo_offers: list[dict[str, str]] = []
+    odoo_history_mode: bool = False
+    odoo_history_readiness: str = ""
+    odoo_history_rows: list[dict[str, str]] = []
     has_pending: bool = False
     request_key: str = ""
     recovery_json: str = ""
@@ -143,6 +147,8 @@ class PlanningState(rx.State):
             self._prepare_demo()
         elif action == "odoo":
             self._prepare_odoo()
+        elif action == "odoo-history":
+            return PlanningState.load_odoo_history
         elif action == "scenario":
             self._prepare_practice_scenario()
 
@@ -161,6 +167,8 @@ class PlanningState(rx.State):
         self.creation_errors = {}
         self.creation_dirty = self.scenario_dirty = False
         self.demo_ready = self.odoo_ready = False
+        self.odoo_history_mode = False
+        self.odoo_history_rows = []
         self._demo_payload = self._odoo_payload = {}
         self.practice_task = ""
         self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
@@ -722,6 +730,8 @@ class PlanningState(rx.State):
         self.creation_errors = {}
         self.error_target = ""
         self.odoo_ready = False
+        self.odoo_history_mode = False
+        self.odoo_history_rows = []
         self._odoo_payload = {}
         try:
             path = settings.controlled_odoo_file
@@ -848,7 +858,91 @@ class PlanningState(rx.State):
         for supplier in facts["suppliers"]:
             supplier["source"] = source.copy()
         payload["catalog_context"] = {"workspace": "controlled"}
+        if self.odoo_history_mode:
+            return {
+                "profile_id": payload["profile_id"],
+                "profile_revision": payload["profile_revision"],
+                "terms": facts,
+                "catalog_context": payload["catalog_context"],
+            }
         return payload
+
+    @rx.event
+    def prepare_odoo_history(self):
+        return self._guard_navigation("odoo-history", "", "load-odoo-history")
+
+    @rx.event
+    async def load_odoo_history(self):
+        if self.is_loading or self.has_pending:
+            return
+        self._clear_review()
+        self.is_loading = True
+        self.odoo_ready = False
+        self.odoo_history_rows = []
+        yield
+        try:
+            data, error = await fetch_odoo_history(
+                settings.planning_cases_url + "/odoo-history/local-v1",
+                settings.t12_trusted_caller_token.get_secret_value(),
+            )
+            if data is None:
+                self.error_message = error
+                return
+            facts = data["terms"]
+            self.odoo_history_mode = True
+            self.odoo_history_readiness = data["model_readiness"]
+            self._odoo_payload = {
+                "controlled_input": facts,
+                "purchase_group_id": 2,
+                "profile_id": data["profile_id"],
+                "profile_revision": data["profile_revision"],
+            }
+            self.odoo_offers = [
+                {
+                    "supplier": s["supplier_id"],
+                    "name": _supplier_label(s["supplier_id"]),
+                    "offer": s["offer_id"],
+                    "price": s["unit_price"] + " " + facts["requirement"]["currency"],
+                    "capacity": str(s["capacity"]),
+                    "moq": str(s["minimum_order_quantity"])
+                    if s["minimum_order_quantity"] is not None
+                    else "",
+                    "promised_date": s["promised_date"],
+                    "ranges": "Price and delivery applicability: 1–1,000 units (controlled proxy).",
+                }
+                for s in facts["suppliers"]
+            ]
+            self.odoo_history_rows = [
+                {
+                    "supplier": _supplier_label(r["supplier_id"]),
+                    "adherence": str(r["value"]) + "%",
+                    "sample": str(r["sample_size"]),
+                }
+                for r in data["history"]
+            ]
+            self.odoo_quantity = str(facts["requirement"]["approved_quantity"])
+            self.odoo_required_date = facts["requirement"]["required_date"]
+            self.odoo_details = (
+                "Live Odoo capture: " + data["database"] + " · " + data["captured_at"]
+            )
+            self.odoo_policy = (
+                "Maximum 2 suppliers; 80% share limit; alternative cost allowance 20%. "
+                "Explicit terms; Odoo history is reread when saving."
+            )
+            self.odoo_ready = True
+            self.creation_dirty = True
+            self.error_message = (
+                ""
+                if data["model_readiness"] == "ready"
+                else "Odoo history is available, but its compatible saved model is unavailable. "
+                "Case creation is blocked."
+            )
+        except (KeyError, TypeError, ValueError):
+            self.error_message = (
+                "Odoo history preview is incomplete. Reload before creating a case."
+            )
+        finally:
+            self.is_loading = False
 
     @rx.event
     async def create_odoo(self, form_data: dict[str, Any]):
@@ -858,7 +952,11 @@ class PlanningState(rx.State):
         payload = self._odoo_request(form_data)
         if payload is None:
             return
-        self._prepare_request(settings.planning_cases_url + "/from-odoo", payload)
+        self._prepare_request(
+            settings.planning_cases_url
+            + ("/from-odoo-history" if self.odoo_history_mode else "/from-odoo"),
+            payload,
+        )
         yield
         try:
             await self._send_pending()
@@ -867,12 +965,17 @@ class PlanningState(rx.State):
 
     def _set_review(self, payload, *, odoo: bool):
         try:
-            facts = payload["controlled_input"] if odoo else payload
+            history = odoo and self.odoo_history_mode
+            facts = (
+                payload["terms"] if history else (payload["controlled_input"] if odoo else payload)
+            )
             if any(type(s["available"]) is not bool for s in facts["suppliers"]):
                 raise ValueError("Invalid prepared availability")
             r = facts["requirement"]
             self._review_payload = deepcopy(payload)
-            self._review_url = settings.planning_cases_url + ("/from-odoo" if odoo else "")
+            self._review_url = settings.planning_cases_url + (
+                "/from-odoo-history" if history else ("/from-odoo" if odoo else "")
+            )
             self.creation_review = {
                 "kind": "odoo" if odoo else "demo",
                 "product": r["product_id"],
@@ -887,6 +990,9 @@ class PlanningState(rx.State):
                 else facts["as_of"],
                 "workspace": "Controlled work" if odoo else "Practice",
                 "policy": self.odoo_policy if odoo else self.demo_policy,
+                "history_source": "Odoo receipts (controlled synthetic origin)"
+                if history
+                else "Separately synthetic history",
             }
             self.review_suppliers = [
                 {

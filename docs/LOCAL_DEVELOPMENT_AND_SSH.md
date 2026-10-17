@@ -288,6 +288,84 @@ restore normal temporary-directory settings. Use a working installed Node.js
 on its process PATH; CI remains on Node.js 22.22. Production export verifies
 compilation only; [the T16 handoff](T16_HANDOFF.md) records actual browser scope.
 
+## Controlled Odoo history path
+
+This opt-in path uses only the completed `procurement_v2_history_test_v1` fixture:
+company 1, product 54, unit 1, quotation group 2 and suppliers 51/52/53. No further
+fixture entry or credential renewal is needed while the existing readers work.
+See [the qualification and acceptance handoff](ODOO_HISTORY_INTEGRATION_HANDOFF.md).
+
+Prerequisites: the existing Odoo service and test copy, the Python 3.11 environment,
+a working Node runtime, and the already configured **separate helper PostgreSQL**
+database at the current Alembic head. Use the existing
+[persistence procedure](PERSISTENCE_DEVELOPMENT.md); never point helper migrations
+or reset tests at Odoo. This increment adds no SQL migration. The owner database
+was not migrated, reset or populated during implementation acceptance.
+
+The prepared ignored `.env.v2-history-runtime` contains the dedicated clone reader,
+fixed database, qualified model directory and library company scope. Original
+`.env` and `.env.v2-history-test` remain unchanged. It adds only the history
+configuration; ordinary restricted RFQ access, helper database URL and shared
+service token still come from existing `.env`/process configuration. Never use an
+administrator key. The original candidate artifact remains unchanged under
+`.artifacts/t15-odoo-demo/model`; the separately qualified package is under
+`.artifacts/v2-odoo-history-integration/qualified-model`.
+
+From the repository root in the activated environment, start the API:
+
+```powershell
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --env-file .env.v2-history-runtime
+```
+
+In another activated terminal, using the same existing service token, start Reflex:
+
+```powershell
+$env:BACKEND_BASE_URL = "http://127.0.0.1:8000"
+Push-Location frontend
+../.venv/t13-check/Scripts/reflex.exe run --backend-host 127.0.0.1
+Pop-Location
+```
+
+Open `http://localhost:3000/planning`, then **Odoo -> Use history from Odoo**.
+Expect 100.00%, 66.67%, 33.33%, three eligible completed purchase lines each and
+model status `ready`. Review demand/terms and choose **Review Odoo terms ->
+Calculate and save comparison**. Creation rereads quotations and history after
+idempotency locking; preview does not freeze those sources for later creation.
+Inspect Suppliers/Audit, run a scenario, return to the original base for deliberate
+approval and open its PDF. The history is Odoo-acquired, with controlled synthetic
+record origin; model training remains synthetic. Classes/allocations are the actual
+saved tree/MILP output, not assigned by the UI. Existing separately synthetic
+creation still requires its own original model configuration.
+
+New interfaces (existing trusted-caller authentication applies):
+
+- `GET /api/v2/procurement/planning-cases/odoo-history/local-v1` captures live bounded
+  history and returns KPIs, feature times/references, profile revision and readiness.
+- `POST /api/v2/procurement/planning-cases/from-odoo-history` accepts only
+  `profile_id`, `profile_revision`, explicit `terms`/quotation expectations and
+  optional `catalog_context`. It rejects caller receipt vectors/model paths.
+
+Wrong source/context, missing/changed records or incompatible models reject new
+creation. Reload a changed profile; preserve the exact pending request/key after
+an uncertain network outcome. Reopening, exact replay, scenarios, approval and PDF
+use saved evidence. Stop API/Reflex with Ctrl+C after use; leave owner Odoo/data,
+existing helper records and qualified artifacts intact. Do not copy `.env*` files
+or credentials into reports.
+
+Optional bounded real-stack regression (owned disposable helper DB/processes only):
+
+```powershell
+$env:PODMAN_COMPOSE_PROVIDER = (Resolve-Path .venv/t13-check/Scripts/podman-compose.exe).Path
+$env:RUN_ODOO_HISTORY_E2E = "true"
+python -m pytest tests/e2e/test_odoo_history_browser.py -v
+Remove-Item Env:RUN_ODOO_HISTORY_E2E
+```
+
+Put a working installed Node executable and the environment's `Scripts` on the
+process PATH if required. The harness removes only its disposable helper project;
+it never stops the owner Odoo service. Local verification used bundled Node
+24.19.0 because the normal shim failed; CI's Node 22.22 baseline is unchanged.
+
 ## Controlled planning workspace: create and test
 
 For the complete current acquisition -> scenarios -> human decision -> PDF flow,

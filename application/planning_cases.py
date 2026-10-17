@@ -14,6 +14,10 @@ from uuid import UUID, uuid4
 from application.decision_cases import RepositoryError
 from application.decision_input_assembly import SourceAttribution
 from application.planning_catalog import CatalogContext
+from application.planning_history import (
+    HISTORY_INPUT_KIND,
+    capture_features,
+)
 from application.planning_input import PlanningFacts, assemble_planning_input, validate_source
 from application.planning_serialization import (
     json_value,
@@ -25,7 +29,7 @@ from application.planning_serialization import (
 from application.procurement_planning import PlanningCommand, create_procurement_plans
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import exact_decimal
-from supplier_evaluation.contracts import utc
+from supplier_evaluation.contracts import ODOO_HISTORY, utc
 from supplier_evaluation.planning_bridge import risk_inputs
 
 SNAPSHOT_VERSION = "t15-controlled-planning-v1"
@@ -129,6 +133,11 @@ def validate_snapshot(case: PlanningCase) -> dict:
             raise ValueError("Unknown snapshot shape.")
         if value["snapshot_version"] != SNAPSHOT_VERSION:
             raise ValueError("Unsupported snapshot version.")
+        if (
+            value["facts"].get("input_kind") != HISTORY_INPUT_KIND
+            and value["facts"]["source_type"] != "t14_synthetic"
+        ):
+            raise ValueError("Legacy snapshots require their original synthetic source.")
         request = read_request(value["request"])
         assessments = read_assessments(value["assessments"])
         if {a.snapshot.context.supplier_id for a in assessments} != {
@@ -136,6 +145,30 @@ def validate_snapshot(case: PlanningCase) -> dict:
         }:
             raise ValueError("Incomplete stored assessments.")
         metadata = value["model_manifest"]["metadata"]
+        if value["facts"].get("input_kind") == HISTORY_INPUT_KIND:
+            from supplier_evaluation.qualified_odoo import qualification_metadata
+
+            manifest = value["model_manifest"]
+            facts = value["facts"]
+            captured = capture_features(facts["history"])
+            if (
+                facts["source_type"] != ODOO_HISTORY
+                or facts["input_kind"] != HISTORY_INPUT_KIND
+                or metadata
+                != qualification_metadata(
+                    manifest["candidate_manifest"], manifest["compatibility_report"]
+                )
+                or metadata["domain"] != list(captured[0].context.domain)
+                or manifest["artifact_sha256"] != manifest["candidate_manifest"]["artifact_sha256"]
+                or snapshot_json(sorted(captured, key=lambda f: f.context.supplier_id))
+                != snapshot_json(
+                    [
+                        a.snapshot
+                        for a in sorted(assessments, key=lambda a: a.snapshot.context.supplier_id)
+                    ]
+                )
+            ):
+                raise ValueError("Stored Odoo source/model compatibility mismatch.")
         if re.fullmatch(r"[0-9a-f]{64}", value["model_manifest"]["artifact_sha256"]) is None:
             raise ValueError("Missing stored artifact hash.")
         if any(
@@ -317,10 +350,13 @@ def create_planning_case(
     base_intent: dict | None = None,
     load_base: Callable | None = None,
     catalog_context: CatalogContext | None = None,
+    base_kind: str = "odoo_quotations_synthetic_history",
 ) -> tuple[PlanningCase, bool]:
     """One locked transaction contains computation and immutable key/case insertion."""
     canonical_uuid(key)
     loaded_base = base_intent is not None and load_base is not None
+    if base_kind not in {"odoo_quotations_synthetic_history", HISTORY_INPUT_KIND}:
+        raise ValueError("Unsupported creation path.")
     if catalog_context is not None:
         if parent_id is not None or not isinstance(catalog_context, CatalogContext):
             raise ValueError("Only base creation accepts catalog context.")
@@ -341,7 +377,7 @@ def create_planning_case(
             ),
         }
     elif loaded_base:
-        intent = {"operation": "odoo_quotations_synthetic_history", "input": base_intent}
+        intent = {"operation": base_kind, "input": base_intent}
     else:
         normalized = normalize_planning_facts(facts)
         intent = {"operation": "base", "facts": normalized}
@@ -380,7 +416,7 @@ def create_planning_case(
                     "provenance": json_value(provenance),
                 }
                 if loaded_base:
-                    snapshot["facts"]["input_kind"] = "odoo_quotations_synthetic_history"
+                    snapshot["facts"]["input_kind"] = base_kind
                     snapshot["facts"]["comparison_case_id"] = (
                         f"odoo:purchase.order.group:{base_intent['purchase_group_id']}"
                     )

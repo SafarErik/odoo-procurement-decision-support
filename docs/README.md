@@ -10,6 +10,9 @@ explicitly supersedes them. They are not a second live dashboard.
 
 - [Local development and SSH](LOCAL_DEVELOPMENT_AND_SSH.md): choose the task,
   activate Python, start only its services, interpret checks and clean up.
+- [Controlled Odoo history integration](ODOO_HISTORY_INTEGRATION_HANDOFF.md): fixed
+  profile, frozen saved-tree compatibility evaluation, nested evidence versioning,
+  live browser/replay evidence and operational-validity limits.
 - [Persistence development](PERSISTENCE_DEVELOPMENT.md): isolated database,
   Windows forwarding workaround, destructive test boundary and Alembic.
 - [Saved-case library #32](UX32_LIBRARY_RUNBOOK.md): company configuration, additive

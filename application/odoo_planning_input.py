@@ -9,7 +9,8 @@ from application.decision_input_assembly import (
     ProvenanceManifest,
     SourceAttribution,
 )
-from application.planning_input import PlanningFacts, validate_source
+from application.planning_history import capture_features
+from application.planning_input import OdooHistoryPlanningFacts, PlanningFacts, validate_source
 from decision_core.planning.models import (
     MinimumOrder,
     PlanningPolicy,
@@ -220,7 +221,7 @@ def assemble_odoo_planning_input(
 
 
 def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, currency_observed_at):
-    """Bind live quotations to genuinely synthetic history, without source renaming."""
+    """Bind live quotations while preserving each controlled history source."""
     as_of = datetime.now(UTC)
     require(facts.as_of <= as_of, "future_cutoff", "Live input cannot use a future cutoff.")
     currency_id = case.offers[0].currency_id if case.offers else ""
@@ -274,6 +275,11 @@ def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, curren
             "facts.as_of", "as_of", clock.source_type, clock.source_reference, clock.observed_at
         )
     )
+    history_times = (
+        {f.context.supplier_id: f.evidence_available_at for f in capture_features(facts.history)}
+        if isinstance(facts, OdooHistoryPlanningFacts)
+        else {}
+    )
     for supplier in facts.suppliers:
         entries.append(
             FieldProvenance(
@@ -281,7 +287,7 @@ def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, curren
                 "receipts",
                 facts.source_type,
                 supplier.history_reference,
-                facts.as_of,
+                history_times.get(supplier.terms.supplier_id, facts.as_of),
             )
         )
     return replace(facts, as_of=as_of, requirement=request.requirement), ProvenanceManifest(

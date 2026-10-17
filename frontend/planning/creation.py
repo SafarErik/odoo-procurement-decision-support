@@ -61,8 +61,13 @@ def creation_review(kind: str):
             rx.cond(
                 kind == "odoo",
                 rx.text(
-                    "This local preview does not refresh Odoo. FastAPI independently rereads "
-                    "the selected quotations and checks captured expectations when saving. "
+                    rx.cond(
+                        PlanningState.odoo_history_mode,
+                        "This preview captures Odoo history. Saving reads it again. ",
+                        "This local preview does not refresh Odoo. ",
+                    ),
+                    "FastAPI independently rereads quotations and any selected Odoo history "
+                    "and checks captured expectations when saving. "
                     "Prices/identities are quotation facts; demand, capacity, MOQ and dates "
                     "are your supplied terms.",
                     size="2",
@@ -130,6 +135,11 @@ def creation_review(kind: str):
                 size="2",
                 margin_y="1rem",
                 max_width="75ch",
+            ),
+            rx.text(
+                PlanningState.creation_review.get("history_source", "Separately synthetic history"),
+                size="2",
+                margin_top="0.75rem",
             ),
             rx.text(
                 "Supplier history and Decision Tree evidence remain synthetic. "

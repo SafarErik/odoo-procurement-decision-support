@@ -3622,3 +3622,34 @@ test history from the still-separate V2 synthetic pipeline. No app/schema/requir
 Drive/Git publication or agent Odoo write. Broad application tests were not run;
 all bounded live receipt/KPI/feature-contract assertions passed. Fixture stage is
 complete; a capture increment and compatible-model work require separate scope.
+
+### 2026-10-16 — Fixed-profile Odoo history connected to the existing V2 workflow
+
+Implemented the separately authorized controlled-history path: exact backend-owned
+profile, restricted quotation/projection acquisition, raw context/backorder checks
+before existing KPI/feature preparation, immutable attributed capture, live preview
+and locked `/from-odoo-history` creation. The frozen independent offline evaluation
+passes for the original saved tree, including n=3 (95% accuracy, macro-F1 0.94690).
+A separate qualified package preserves unchanged fitted bytes and synthetic
+training provenance; no business model was retrained. New input retains controlled
+synthetic record origin despite acquisition through Odoo. No fixture/Odoo writes.
+
+The existing UI, stored reconstruction/scenarios/library, technical approval and
+PDF now accept the versioned nested evidence; legacy snapshot container/SQL schema,
+synthetic paths, five CORE functions and ML-to-MILP separation remain unchanged.
+Full fast checks: 702 passed; final focused raw-validation/provenance checks:
+26 passed. Real restricted Odoo -> Reflex -> actual tree/CBC -> disposable helper
+PostgreSQL -> scenario -> approval/PDF passes. With only the owned API restarted
+without upstream/model configuration, exact POST replay, reopening, library and
+byte-identical PDF still pass. Temporary resources were removed; owner services
+remain running. Format/lint/compile/dependency/Compose/diff checks pass.
+
+The first fast run's architecture failure was fixed at the existing composition
+root without weakening its test; actual history acquisition timestamps also
+replace business-term timestamps in new history provenance. Preserve the initial
+failure and final scoped results. See [handoff and frozen protocol](ODOO_HISTORY_INTEGRATION_HANDOFF.md)
+and [startup instructions](LOCAL_DEVELOPMENT_AND_SSH.md#controlled-odoo-history-path).
+No SQL migration, owner application database change, Git publication or Drive edit.
+Remaining scope is owner review/publication, hosted CI and separately supported
+operational history/model validity; this technical flow does not establish novice
+acceptance, calibrated failure probabilities or real-world predictive superiority.
