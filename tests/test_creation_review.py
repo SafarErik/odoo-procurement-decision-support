@@ -77,6 +77,21 @@ def test_group_choice_is_limited_to_listed_selectable_groups(prepared_state):
     assert "choose an open Odoo quotation group" in state.error_message
 
 
+def test_switching_group_drops_the_loaded_preview(prepared_state):
+    state, form = prepared_state
+    PlanningState.review_odoo.fn(state, form)
+    assert state._review_payload and state.odoo_ready
+    PlanningState.select_quotation_group.fn(state, "501")  # same group: preview stays
+    assert state._review_payload and state.odoo_ready and state.odoo_offers
+    state.quotation_groups = [*state.quotation_groups, {"value": "502", "selectable": "yes"}]
+    PlanningState.select_quotation_group.fn(state, "502")
+    assert state.selected_group == "502"
+    assert not state.odoo_ready and not state.odoo_history_mode
+    assert not state._review_payload and not state.creation_review
+    assert not state._odoo_payload and not state.odoo_offers and not state.odoo_history_rows
+    assert state.odoo_history_readiness == ""
+
+
 def test_review_has_no_io_and_save_replays_identical_classified_intent(
     configured, prepared_state, monkeypatch
 ):

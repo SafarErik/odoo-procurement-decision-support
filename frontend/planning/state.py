@@ -671,7 +671,7 @@ class PlanningState(rx.State):
             self.quotation_groups = rows or []
             usable = [r["value"] for r in self.quotation_groups if r["selectable"]]
             if self.selected_group not in usable:
-                self.selected_group = usable[0] if usable else ""
+                self._switch_group(usable[0] if usable else "")
         finally:
             self.is_loading = False
 
@@ -682,7 +682,20 @@ class PlanningState(rx.State):
             and not self.has_pending
             and any(r["value"] == value and r["selectable"] for r in self.quotation_groups)
         ):
-            self.selected_group = value
+            self._switch_group(value)
+
+    def _switch_group(self, value: str):
+        """A preview belongs to one group: drop it (and its review) when the group changes."""
+        if value == self.selected_group:
+            return
+        self.selected_group = value
+        self._clear_review()
+        self.creation_errors = {}
+        self.odoo_ready = self.odoo_history_mode = False
+        self.odoo_history_readiness = ""
+        self.odoo_history_rows = []
+        self.odoo_offers = []
+        self._odoo_payload = {}
 
     @rx.event
     def prepare_odoo_history(self):

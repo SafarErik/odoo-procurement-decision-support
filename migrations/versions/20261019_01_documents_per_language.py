@@ -31,9 +31,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Hungarian artifacts cannot be represented by the single-language baseline.
+    # The single-language baseline only serves English v1 artifacts; Hungarian and v2
+    # English artifacts would fail its reference check, so they are removed.
     op.execute("ALTER TABLE planning_documents DISABLE TRIGGER planning_documents_immutable")
-    op.execute("DELETE FROM planning_documents WHERE language <> 'en'")
+    op.execute(
+        "DELETE FROM planning_documents "
+        "WHERE language <> 'en' OR reference NOT LIKE 't17-approved-pdf-v1:%'"
+    )
     op.execute("ALTER TABLE planning_documents ENABLE TRIGGER planning_documents_immutable")
     op.drop_constraint("ck_planning_documents_language", "planning_documents", type_="check")
     op.drop_constraint("pk_planning_documents", "planning_documents", type_="primary")

@@ -101,7 +101,8 @@ the stored-case overview covers the buyer flow; P3 can add it if the UI needs it
   primary key `(case_id, language)`; existing rows become `en` without UPDATE (the
   immutability trigger is untouched). A pre-P2 English artifact keeps its v1 reference
   and bytes and is served as is; Hungarian is rendered and stored on first request.
-  Downgrade deletes Hungarian rows only.
+  Downgrade keeps only English v1 artifacts (it deletes Hungarian rows and English v2
+  rows, which the baseline code could not serve).
 - UI: "PDF language" select (Magyar/English) next to "View approved PDF"; P3 binds it
   to the UI language toggle.
 
@@ -127,8 +128,20 @@ the stored-case overview covers the buyer flow; P3 can add it if the UI needs it
 - The new quotation-group route first bound the Odoo reader at import time, so a test
   read the live `pdss_history_gen` (read-only). It now resolves the reader per call;
   the fast suite also passes with Odoo and database settings blanked.
-- Readable tree paths showed e.g. "0,7 nap – legfeljebb 0,7 nap": decimals now grow until
-  the value and the threshold differ.
+- Readable tree paths showed e.g. "0,7 nap – legfeljebb 0,7 nap": decimals now grow (up
+  to 8) until the value and the threshold differ, otherwise the stored values are shown.
+
+### Review follow-up (2026-10-17)
+
+- Odoo-history assessments were labelled with the V1 class names ("figyelendő"/"watch"
+  instead of "problémás"/"problematic") in the overview and the PDF, because
+  `Assessment.class_name` only knows the V1 classes. Class and label now follow the
+  assessment's source type; the leaf sentence of pre-P2 synthetic assessments speaks of
+  generated training examples labelled `schedule_watch`.
+- Choosing another quotation group in the UI now drops the loaded preview, its review
+  and the history rows, so a save can no longer use the previous group's terms.
+- Migration downgrade also removes English v2 artifacts; the round-trip test proves a
+  v1 English artifact survives byte-identical while v2 rows are removed.
 
 ## Evidence (commands actually run, 2026-10-17, Windows, Python 3.11.15 uv venv)
 
@@ -141,7 +154,7 @@ the stored-case overview covers the buyer flow; P3 can add it if the UI needs it
 | `python -m tools.dev db-up` (dev planning DB) | migration `20261018_01 -> 20261019_01` applied |
 | Live API + Odoo: `GET /quotation-groups` | 200; group 1 `[GEN] Steel bracket M8`, 200 Units, HUF, 4 `[GEN]` suppliers, selectable; no token 401; `limit=0` 422; `POST /` and `/from-odoo` 405 |
 | `python -m tools.t17_demo run --odoo-history 1 …` | complete in 3.0 s: base, 9 scenarios (outage; capacity −/+; demand +25 % infeasible because of the 2-supplier limit; demand −25 %; price +30 %/−20 %; combined; 5× demand infeasible), approval of alternative 1, No-award, HU PDF; stored cases, exact retries and PDF identical; No-award PDF denied |
-| Live `GET /{id}/suppliers?language=hu|en`, PDF hu/en | 200; Odoo names, HU/EN paths; PDFs 10 pages each, v2 references; pages reviewed as images |
+| Live `GET /{id}/suppliers?language=hu\|en`, PDF hu/en | 200; Odoo names, HU/EN paths; PDFs 10 pages each, v2 references; pages reviewed as images |
 | Built-in browser at 397 px: Odoo tab → Load open quotation groups → Group 1 → Use history from Odoo → Review → Calculate and save → What-if price 1545.7→1400 HUF for Supplier 8 | case and scenario saved; cost −7,624 HUF, allocation moved to Supplier 8; no horizontal scroll |
 | Browser error state: unchanged price 1545.7 | alert "enter a positive decimal price different from the original…", no request |
 | Browser PDF: approved case, PDF language Magyar → English | viewer "Page 1 of 10"; download name `purchase-order-proposal-…-en.pdf` |
@@ -151,8 +164,9 @@ the stored-case overview covers the buyer flow; P3 can add it if the UI needs it
 - Hosted CI: not run (nothing pushed).
 - `pytest -m e2e`: **0 tests collected**; `tests/e2e/conftest.py` sets
   `collect_ignore_glob` because every browser flow starts from the removed demo. P3
-  rebuilds them on the Odoo-history flow (some e2e files still import deleted tools;
-  they are not imported while ignored).
+  rebuilds them on the Odoo-history flow. `test_creation_review_browser.py` and
+  `test_plan_comparison_browser.py` were deleted because they imported deleted modules
+  (CI `ruff check` failed on them).
 - MILP/API latency evaluation (T18): removed; to be rebuilt in P4.
 - Browser console shows two `_set_focus` "No element found for ref" errors after
   review/save; this focus code is unchanged since before P2.

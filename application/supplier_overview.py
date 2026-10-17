@@ -9,7 +9,7 @@ multi-product case can reuse the shape.
 from decimal import Decimal
 
 from application.planning_serialization import read_assessments, read_request, read_result
-from supplier_evaluation.contracts import Assessment
+from supplier_evaluation.contracts import HISTORY_SOURCE, SYNTHETIC, Assessment
 
 LANGUAGES = ("hu", "en")
 
@@ -36,6 +36,11 @@ CLASS_TEXT = {
     "problematic": ("problémás", "problematic"),
     "schedule_regular": ("rendben", "regular"),
     "schedule_watch": ("figyelendő", "watch"),
+}
+# Class names per assessment source; `Assessment.class_name` knows only the V1 names.
+SOURCE_CLASSES = {
+    SYNTHETIC: ("schedule_regular", "schedule_watch"),
+    HISTORY_SOURCE: ("regular", "problematic"),
 }
 
 
@@ -65,8 +70,12 @@ def feature_label(feature: str, language: str) -> str:
     return FEATURE_TEXT.get(feature, (feature, feature))[_language(language)]
 
 
+def class_name(assessment: Assessment) -> str:
+    return SOURCE_CLASSES[assessment.snapshot.source_type][assessment.predicted_class]
+
+
 def class_label(assessment: Assessment, language: str) -> str:
-    return CLASS_TEXT[assessment.class_name][_language(language)]
+    return CLASS_TEXT[class_name(assessment)][_language(language)]
 
 
 def path_steps(assessment: Assessment, language: str) -> list[dict]:
@@ -75,12 +84,18 @@ def path_steps(assessment: Assessment, language: str) -> list[dict]:
     for step in assessment.path:
         kind = FEATURE_TEXT.get(step.feature, ("", "", "int"))[2]
         name = feature_label(step.feature, language)
-        # Add decimals until rounding no longer hides the side of the threshold.
-        for digits in (1, 2, 3, 4):
+        # Add decimals until rounding no longer hides the side of the threshold; if even
+        # that fails, show the stored values themselves.
+        for digits in range(1, 9):
             value = format_number(step.value_float32, kind, language, digits)
             threshold = format_number(step.threshold, kind, language, digits)
             if value != threshold:
                 break
+        else:
+            value, threshold = (
+                repr(x).replace(".", ",") if language == "hu" else repr(x)
+                for x in (step.value_float32, step.threshold)
+            )
         below = step.operator == "<="
         text = (
             f"{name}: {value} – legfeljebb {threshold}."
@@ -108,6 +123,16 @@ def leaf_text(assessment: Assessment, language: str) -> str:
     regular, flagged = assessment.leaf_counts
     total = regular + flagged
     score = str(assessment.score).replace(".", ",") if language == "hu" else str(assessment.score)
+    if assessment.snapshot.source_type == SYNTHETIC:  # pre-P2 demo model, generated rows
+        if language == "hu":
+            return (
+                f"Hasonló generált tanítópéldák: {total} példából {flagged} kapott "
+                f"figyelendő (schedule_watch) címkét; kockázati pontszám: {score}."
+            )
+        return (
+            f"Similar generated training examples: {flagged} of {total} were labelled "
+            f"schedule_watch; risk score {score}."
+        )
     if language == "hu":
         return (
             f"Hasonló múltbeli esetek: {total} esetből {flagged} lett problémás "
@@ -178,7 +203,7 @@ def supplier_overview(snapshot: dict, language: str = "hu") -> dict:
                     ],
                 },
                 "assessment": {
-                    "class": assessment.class_name,
+                    "class": class_name(assessment),
                     "class_label": class_label(assessment, language),
                     "score": str(assessment.score),
                     "similar_cases": sum(assessment.leaf_counts),
