@@ -139,7 +139,7 @@ def test_live_history_to_saved_approval_pdf(smoke_stack, smoke_page):
     assert exact.json()["snapshot_hash"] == replay_base.json()["snapshot_hash"]
     again = stack.client.get(BASE + f"/{case_id}/approved-pdf/{content_hash}")
     assert again.status_code == 200 and again.content == pdf.content
-    library = stack.client.get(BASE, params={"workspace": "controlled"})
+    library = stack.client.get(BASE, params={"origin": "all"})
     assert library.status_code == 200 and any(
         row["case_id"] == case_id for row in library.json()["items"]
     )

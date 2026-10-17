@@ -96,7 +96,7 @@ def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_
     request["suppliers"][0]["supplier_id"] = "Árvíztűrő 供应商 " + "LongSupplier" * 14
     reply = stack.client.post(
         BASE,
-        json=request | {"catalog_context": {"workspace": "practice"}},
+        json=request,
         headers={"Idempotency-Key": str(uuid4())},
     )
     assert reply.status_code == 201
@@ -132,7 +132,7 @@ def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_
     assert replay.status_code == 200 and replay.json()["idempotent_replay"]
     child = replay.json()
     assert child["parent_id"] == identity
-    children = stack.client.get(f"{BASE}/{identity}/scenarios", params={"workspace": "practice"})
+    children = stack.client.get(f"{BASE}/{identity}/scenarios", params={"origin": "all"})
     assert [row["case_id"] for row in children.json()["items"]] == [child["case_id"]]
     assert stack.client.get(f"{BASE}/{identity}").json() == original
 

@@ -8,7 +8,7 @@ from decimal import Decimal
 from fractions import Fraction
 from typing import Protocol
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_cases import (
     PlanningCase,
     PlanningCaseError,

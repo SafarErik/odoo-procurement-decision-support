@@ -60,7 +60,7 @@ def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monk
             "render_approved_document",
         ):
             monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
-        monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+        monkeypatch.setattr(settings, "supplier_model_directory", None)
         verify_stored(path, client)
         assert (uow.rows, uow.decisions.rows, uow.documents.rows, calls) == before
         assert "controlled-test-token" not in path.read_text()

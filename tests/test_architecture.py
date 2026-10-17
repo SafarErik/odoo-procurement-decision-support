@@ -1,4 +1,4 @@
-"""Executable architecture-boundary checks for implemented and spike increments."""
+"""Executable architecture-boundary checks."""
 
 import ast
 from pathlib import Path
@@ -19,7 +19,7 @@ def _imports(path: Path) -> set[str]:
 
 def test_decision_core_remains_erp_and_provenance_independent() -> None:
     forbidden_roots = {"application", "backend", "odoo_adapter", "persistence", "tools"}
-    for path in (PROJECT_ROOT / "decision_core").glob("*.py"):
+    for path in (PROJECT_ROOT / "decision_core").rglob("*.py"):
         imported_roots = {name.split(".", 1)[0] for name in _imports(path)}
         assert imported_roots.isdisjoint(forbidden_roots), path
         assert "provenance" not in path.read_text(encoding="utf-8").lower(), path
@@ -29,19 +29,6 @@ def test_runtime_packages_do_not_import_development_fixture_tooling() -> None:
     for package in ("application", "backend", "decision_core", "odoo_adapter"):
         for path in (PROJECT_ROOT / package).rglob("*.py"):
             assert all(not name.startswith("tools") for name in _imports(path)), path
-
-
-def test_assembler_does_not_implement_scoring_or_constraints() -> None:
-    path = PROJECT_ROOT / "application" / "decision_input_assembly.py"
-    imports = _imports(path)
-
-    assert "decision_core.decision" not in imports
-    assert "decision_core.constraints" not in imports
-    assert "decision_core.normalization" not in imports
-    source = path.read_text(encoding="utf-8")
-    assert "evaluate_decision" not in source
-    assert "total_score" not in source
-    assert "normalized_value" not in source
 
 
 def test_odoo_infrastructure_does_not_call_decision_core() -> None:
@@ -119,21 +106,15 @@ def test_runtime_history_path_has_no_admin_secret_or_write_call() -> None:
     )
 
 
-def test_historical_scoring_core_contract_stays_erp_neutral_and_provenance_free() -> None:
-    for path in (PROJECT_ROOT / "decision_core").glob("*.py"):
+def test_planning_core_stays_erp_neutral_and_provenance_free() -> None:
+    for path in (PROJECT_ROOT / "decision_core").rglob("*.py"):
         source = path.read_text(encoding="utf-8")
         assert "provenance" not in source.lower(), path
         assert "source_reference" not in source, path
         assert "source_type" not in source, path
 
 
-def test_t10_runtime_does_not_import_t9_analysis_tooling() -> None:
-    for package in ("application", "backend", "decision_core", "odoo_adapter"):
-        for path in (PROJECT_ROOT / package).rglob("*.py"):
-            assert "tools.t9_scoring_evaluation" not in _imports(path), path
-
-
-def test_t11_application_depends_only_on_persistence_ports() -> None:
+def test_application_depends_only_on_persistence_ports() -> None:
     for path in (PROJECT_ROOT / "application").glob("*.py"):
         imports = _imports(path)
         assert all(not name.startswith("persistence") for name in imports), path
@@ -142,7 +123,7 @@ def test_t11_application_depends_only_on_persistence_ports() -> None:
         )
 
 
-def test_t11_postgres_adapter_points_inward_and_domain_objects_are_not_orm_models() -> None:
+def test_postgres_adapter_points_inward_and_domain_objects_are_not_orm_models() -> None:
     for path in (PROJECT_ROOT / "persistence").glob("*.py"):
         imports = _imports(path)
         assert all(not name.startswith(("backend", "frontend", "odoo_adapter")) for name in imports)
@@ -156,7 +137,7 @@ def test_t11_postgres_adapter_points_inward_and_domain_objects_are_not_orm_model
     assert "mapped_column" not in domain_sources
 
 
-def test_t12_orchestration_and_http_boundaries_are_narrow() -> None:
+def test_orchestration_and_http_boundaries_are_narrow() -> None:
     application_imports = set()
     for path in (PROJECT_ROOT / "application").glob("*.py"):
         application_imports.update(_imports(path))
@@ -164,15 +145,16 @@ def test_t12_orchestration_and_http_boundaries_are_narrow() -> None:
         not name.startswith(("odoo_adapter", "sqlalchemy", "psycopg", "alembic", "backend"))
         for name in application_imports
     )
-    route = PROJECT_ROOT / "backend" / "app" / "routes" / "decision_cases.py"
+    route = PROJECT_ROOT / "backend" / "app" / "routes" / "planning_cases.py"
     route_imports = _imports(route)
-    assert all(not name.startswith(("odoo_adapter", "decision_core")) for name in route_imports)
+    assert all(
+        not name.startswith(("odoo_adapter", "decision_core.planning.planner"))
+        for name in route_imports
+    )
     route_source = route.read_text(encoding="utf-8")
-    assert "evaluate_procurement_decision" not in route_source
     assert "read_comparison_case" not in route_source
     assert "read_inventory_history" not in route_source
     assert "require_trusted_caller" in route_source
-    assert "actor_reference" in route_source
     for path in (PROJECT_ROOT / "persistence").glob("*.py"):
         assert all(
             not name.startswith(("backend", "frontend", "odoo_adapter")) for name in _imports(path)

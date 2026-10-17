@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     odoo_api_key: SecretStr = SecretStr("")
     odoo_t7s_api_key: SecretStr = SecretStr("")
     decision_database_url: SecretStr = SecretStr("")
-    t12_trusted_caller_token: SecretStr = SecretStr("")
-    t15_trusted_model_directory: Path | None = None
+    api_service_token: SecretStr = SecretStr("")
+    supplier_model_directory: Path | None = None
     odoo_history_database: str = ""
     odoo_history_api_key: SecretStr = SecretStr("")
     odoo_history_quotation_api_key: SecretStr = SecretStr("")
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     run_t7s_live_contracts: bool = False
     run_t7_live_contracts: bool = False
 
-    @field_validator("t15_trusted_model_directory", "odoo_history_model_directory", mode="before")
+    @field_validator("supplier_model_directory", "odoo_history_model_directory", mode="before")
     @classmethod
     def optional_model_directory(cls, value):
         return None if value == "" else value

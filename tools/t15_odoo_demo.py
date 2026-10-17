@@ -94,9 +94,9 @@ def main():
         if args.command == "prepare":
             asyncio.run(prepare(args.directory, args.group_id))
         else:
-            token = os.getenv("T12_TRUSTED_CALLER_TOKEN", "")
+            token = os.getenv("API_SERVICE_TOKEN", "")
             if not token or not token.isascii():
-                parser.error("Export a local ASCII T12_TRUSTED_CALLER_TOKEN before run.")
+                parser.error("Export a local ASCII API_SERVICE_TOKEN before run.")
             with httpx.Client(
                 base_url=args.base_url,
                 headers={"Authorization": f"Bearer {token}"},

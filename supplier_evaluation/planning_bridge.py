@@ -55,7 +55,7 @@ def risk_inputs(
     )
     validate_risk(replace(request, risk_coefficients=coefficients))
     context = ExternalRiskContext(
-        f"docs/T14_ML_DESIGN.md#{assessments[0].mapping_version}",
+        f"docs/history/T14_ML_DESIGN.md#{assessments[0].mapping_version}",
         "t14-assessments:" + digest([a.reference for a in ordered]),
         "t14-quantity-independent-controlled-proxy:"
         + digest(

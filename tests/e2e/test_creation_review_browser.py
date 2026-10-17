@@ -59,7 +59,7 @@ def test_review_validate_edit_and_save_both_sources(smoke_stack, smoke_page):
         assert count() == 1
         synthetic_id = parse_qs(urlsplit(page.url).query)["case_id"][0]
         synthetic = stack.client.get(f"{BASE}/{synthetic_id}").json()
-        assert synthetic["workspace"] == "practice"
+        assert synthetic["origin"] == "demo"
         assert synthetic["snapshot"]["request"]["requirement"]["approved_quantity"] == 10
 
         # Prepare the existing matched Odoo fixture/model offline in owned storage.
@@ -84,7 +84,7 @@ def test_review_validate_edit_and_save_both_sources(smoke_stack, smoke_page):
             "dependencies.get_comparison_case_reader = lambda: quotation_reader(_payloads(), [])\n",
             encoding="utf-8",
         )
-        stack.env["T15_TRUSTED_MODEL_DIRECTORY"] = str(directory / "model")
+        stack.env["SUPPLIER_MODEL_DIRECTORY"] = str(directory / "model")
         stack.env["PYTHONPATH"] = str(stack.root) + os.pathsep + stack.env.get("PYTHONPATH", "")
         stack.api = stack.start(
             [
@@ -128,7 +128,7 @@ def test_review_validate_edit_and_save_both_sources(smoke_stack, smoke_page):
         assert count() == 2
         identity = parse_qs(urlsplit(page.url).query)["case_id"][0]
         saved = stack.client.get(f"{BASE}/{identity}").json()
-        assert saved["workspace"] == "controlled"
+        assert saved["origin"] == "odoo"
         facts = saved["snapshot"]["facts"]
         assert facts["input_kind"] == "odoo_quotations_synthetic_history"
         assert facts["source_type"] == "t14_synthetic"

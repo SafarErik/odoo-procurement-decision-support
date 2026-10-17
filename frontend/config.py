@@ -12,7 +12,7 @@ class FrontendSettings(BaseSettings):
     """Settings for HTTP communication with the backend API."""
 
     backend_base_url: str = "http://127.0.0.1:8000"
-    t12_trusted_caller_token: SecretStr = SecretStr("")
+    api_service_token: SecretStr = SecretStr("")
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",

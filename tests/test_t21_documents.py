@@ -12,7 +12,7 @@ import pytest
 from pydantic import SecretStr
 from pypdf import PdfReader
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from backend.app.main import app
 from document_adapter.approved_pdf import render_approved_pdf
 from frontend.config import settings as frontend_settings
@@ -210,7 +210,7 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(configured, 
     client, _, base, *_ = configured
     decision, _ = approve(client, base)
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport = httpx.ASGITransport(app=app)
     calls = []
 

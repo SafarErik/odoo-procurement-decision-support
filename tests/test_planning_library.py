@@ -13,7 +13,7 @@ import pytest
 import reflex as rx
 from reflex.istate.data import RouterData
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_library import case_summary, library_query, list_planning_cases
 from application.planning_serialization import snapshot_json
 from backend.app.config import settings
@@ -33,7 +33,7 @@ BASE = "/api/v2/procurement/planning-cases"
 @pytest.mark.parametrize(
     "params",
     [
-        {"workspace": "all"},
+        {"origin": "unclassified"},
         {"status": "approve"},
         {"q": "x" * 81},
         {"limit": 0},
@@ -50,15 +50,15 @@ def test_query_rejects_invalid_filters(params):
 
 
 def test_cursor_binds_every_filter_and_scope():
-    query = library_query("company", "unclassified", q="  product  ")
+    query = library_query("company", "demo", q="  product  ")
     assert query.q == "product" and query.limit == 20
     value = {"context": query.context, "time": datetime.now(UTC).isoformat(), "id": str(uuid4())}
     cursor = base64.urlsafe_b64encode(json.dumps(value).encode()).decode()
-    assert library_query("company", "unclassified", q="product", cursor=cursor).after
+    assert library_query("company", "demo", q="product", cursor=cursor).after
     for changes in (
         {"company": "other"},
         {"status": "approved"},
-        {"workspace": "practice"},
+        {"origin": "odoo"},
         {"q": "other"},
         {"limit": 10},
         {"parent_id": str(uuid4())},
@@ -68,7 +68,7 @@ def test_cursor_binds_every_filter_and_scope():
                 **(
                     {
                         "company": "company",
-                        "workspace": "unclassified",
+                        "origin": "demo",
                         "q": "product",
                         "cursor": cursor,
                     }
@@ -98,7 +98,7 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
     )
     for params in (
         {"company": "other"},
-        {"workspace": "all"},
+        {"origin": "unclassified"},
         {"status": "bad"},
         {"q": "x" * 81},
         {"limit": "-1"},
@@ -111,19 +111,19 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
     monkeypatch.setattr(
         uow,
         "list_saved",
-        lambda query: [(uow.rows[base["case_id"]], "unclassified", None, None)],
+        lambda query: [(uow.rows[base["case_id"]], None)],
         raising=False,
     )
-    page = client.get(BASE, params={"workspace": "unclassified"}, headers=headers())
+    page = client.get(BASE, params={"origin": "all"}, headers=headers())
     assert page.status_code == 200
     summary = page.json()["items"][0]
-    assert summary["workspace"] == "unclassified" and summary["decision_status"] == "draft"
+    assert summary["origin"] in {"demo", "odoo"} and summary["decision_status"] == "draft"
     assert "snapshot" not in summary and "assessments" not in summary
     original = uow.rows[base["case_id"]]
     monkeypatch.setattr(
         uow,
         "list_saved",
-        lambda query: [(replace(original, snapshot="{}"), "unclassified", None, None)],
+        lambda query: [(replace(original, snapshot="{}"), None)],
     )
     response = client.get(BASE, headers=headers())
     assert (
@@ -134,7 +134,7 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
 def test_summaries_preserve_source_lineage_and_decision(configured):
     client, uow, base, child, _ = configured
     company = base["snapshot"]["facts"]["company_id"]
-    row = case_summary(uow.rows[child["case_id"]], "unclassified", None, None, company)
+    row = case_summary(uow.rows[child["case_id"]], None, company)
     assert row["parent_id"] == base["case_id"] and row["scenario_kind"]
     assert row["changed_assumptions"] == {
         k: child["snapshot"]["scenario"][k] for k in ("approved_quantity", "suppliers")
@@ -143,8 +143,6 @@ def test_summaries_preserve_source_lineage_and_decision(configured):
     assert (
         case_summary(
             uow.rows[base["case_id"]],
-            "unclassified",
-            None,
             uow.decisions.get(base["case_id"]),
             company,
         )["decision_status"]
@@ -153,14 +151,12 @@ def test_summaries_preserve_source_lineage_and_decision(configured):
     with pytest.raises(ValueError):
         list_planning_cases(uow, library_query(company, parent_id=child["case_id"]))
     with pytest.raises(RepositoryError):
-        case_summary(uow.rows[base["case_id"]], "unclassified", None, None, "other")
+        case_summary(uow.rows[base["case_id"]], None, "other")
     invalid = deepcopy(child["snapshot"])
     invalid["scenario"]["suppliers"][0]["available"] = True
     with pytest.raises(RepositoryError):
         case_summary(
             replace(uow.rows[child["case_id"]], snapshot=snapshot_json(invalid)),
-            "unclassified",
-            None,
             None,
             company,
         )

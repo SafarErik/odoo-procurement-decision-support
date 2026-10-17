@@ -64,8 +64,8 @@ def test_one_complete_evaluation_validates_saved_flow_and_pdf(workload, monkeypa
     prepared = workload
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", prepared / "model")
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("t18-test-token"))
+    monkeypatch.setattr(settings, "supplier_model_directory", prepared / "model")
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("t18-test-token"))
     monkeypatch.setitem(evaluation.CONTRACT, "warmups", 0)
     monkeypatch.setitem(evaluation.CONTRACT, "measured_runs", 1)
 

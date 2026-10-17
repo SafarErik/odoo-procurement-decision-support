@@ -30,7 +30,7 @@ def prepared(configured, monkeypatch):
     state = PlanningState(_reflex_internal_init=True)
     state._show(_map_case(base, base["case_id"]))
     monkeypatch.setattr(settings, "backend_base_url", "http://test")
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
     posts = []
 
     async def send(url, payload, key, token):

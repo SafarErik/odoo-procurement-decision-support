@@ -20,7 +20,7 @@ def test_deliberate_decisions_cancel_reopen_child_and_recovery(smoke_stack, smok
     def create():
         reply = stack.client.post(
             BASE,
-            json=stack.payload | {"catalog_context": {"workspace": "practice"}},
+            json=stack.payload,
             headers={"Idempotency-Key": str(uuid4())},
         )
         assert reply.status_code == 201, reply.text
@@ -69,7 +69,6 @@ def test_deliberate_decisions_cancel_reopen_child_and_recovery(smoke_stack, smok
     expect(dialog).to_contain_text(f"{Decimal(alternative['total_cost']):,f} EUR")
     expect(dialog).to_contain_text(actor.strip())
     expect(dialog).to_contain_text(reason)
-    expect(dialog).to_contain_text("Practice shares application storage")
     expect(dialog).to_contain_text("No Odoo order is created")
     expect(dialog).to_contain_text(stack.payload["requirement"]["required_date"])
     for row in alternative["allocations"]:

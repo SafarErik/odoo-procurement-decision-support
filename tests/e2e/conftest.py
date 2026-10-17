@@ -51,11 +51,11 @@ class SmokeStack:
         self.password = secrets.token_urlsafe(32)
         self.token = secrets.token_urlsafe(32)
         self.env.update(
-            T11_POSTGRES_DB="decision_cases_test",
-            T11_POSTGRES_USER="browser_test",
-            T11_POSTGRES_PASSWORD=self.password,
-            T11_POSTGRES_PORT=str(free_port()),
-            T12_TRUSTED_CALLER_TOKEN=self.token,
+            TEST_POSTGRES_DB="planning_test",
+            TEST_POSTGRES_USER="browser_test",
+            TEST_POSTGRES_PASSWORD=self.password,
+            TEST_POSTGRES_PORT=str(free_port()),
+            API_SERVICE_TOKEN=self.token,
             ODOO_BASE_URL="",
             ODOO_DATABASE="",
             ODOO_API_KEY="",
@@ -158,7 +158,7 @@ class SmokeStack:
             return False
 
     def start_api(self, *, stored_only=False):
-        self.env["T15_TRUSTED_MODEL_DIRECTORY"] = (
+        self.env["SUPPLIER_MODEL_DIRECTORY"] = (
             "" if stored_only else str(self.root / ".artifacts/t15-demo/model")
         )
         self.api = self.start(
@@ -191,7 +191,7 @@ class SmokeStack:
         self.env["PLANNING_LIBRARY_COMPANY_ID"] = self.payload["company_id"]
         self.database_started = True  # Clean up even when Compose startup fails partway.
         self.compose("up", "-d")
-        self.database_port = int(self.env["T11_POSTGRES_PORT"])
+        self.database_port = int(self.env["TEST_POSTGRES_PORT"])
         if os.name == "nt":
             machine = json.loads(
                 subprocess.check_output(
@@ -213,14 +213,14 @@ class SmokeStack:
                     "ExitOnForwardFailure=yes",
                     "-N",
                     "-L",
-                    f"127.0.0.1:{self.database_port}:127.0.0.1:{self.env['T11_POSTGRES_PORT']}",
+                    f"127.0.0.1:{self.database_port}:127.0.0.1:{self.env['TEST_POSTGRES_PORT']}",
                     f"{ssh['RemoteUsername']}@127.0.0.1",
                 ],
                 "tunnel",
             )
         self.env["DECISION_DATABASE_URL"] = (
             f"postgresql+psycopg://browser_test:{self.password}@127.0.0.1:"
-            f"{self.database_port}/decision_cases_test"
+            f"{self.database_port}/planning_test"
         )
         engine = create_engine(
             self.env["DECISION_DATABASE_URL"], connect_args={"connect_timeout": 2}

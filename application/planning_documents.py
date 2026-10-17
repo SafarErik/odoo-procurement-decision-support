@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_cases import PlanningCaseError, canonical_uuid
 from application.planning_decisions import CONTENT_VERSION, validate_final_decision
 

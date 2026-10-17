@@ -6,13 +6,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.routing import APIRoute
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_cases import (
     PlanningCaseError,
+    case_origin,
     create_planning_case,
     normalize_planning_facts,
 )
-from application.planning_catalog import retrieve_catalog
 from application.planning_decisions import (
     FinalizePlanningCommand,
     finalize_planning_case,
@@ -21,6 +21,7 @@ from application.planning_decisions import (
 from application.planning_documents import approved_document
 from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_library import library_query, list_planning_cases
+from backend.app.api_common import require_trusted_caller
 from backend.app.config import settings
 from backend.app.dependencies import (
     get_planning_unit_of_work,
@@ -40,7 +41,6 @@ from backend.app.planning_case_schemas import (
     PlanningFinalDecisionRequest,
     ScenarioRequest,
 )
-from backend.app.routes.decision_cases import require_trusted_caller
 
 
 class BoundedPlanningRoute(APIRoute):
@@ -99,7 +99,7 @@ def _error(error):
 
 
 def _library(request, parent_id=None):
-    allowed = {"workspace", "status", "q", "limit", "cursor"}
+    allowed = {"origin", "status", "q", "limit", "cursor"}
     try:
         if any(
             key not in allowed or len(request.query_params.getlist(key)) != 1
@@ -146,7 +146,7 @@ def _response(case, replay=False, decision=None):
         snapshot=json.loads(case.snapshot),
         idempotent_replay=replay,
         final_decision=decision,
-        **retrieve_catalog(get_planning_unit_of_work(), case),
+        origin=case_origin(json.loads(case.snapshot)["facts"]),
     )
 
 
@@ -167,9 +167,6 @@ def post_planning_case(
             get_planning_unit_of_work(),
             idempotency_key,
             facts=request.to_facts(),
-            catalog_context=None
-            if request.catalog_context is None
-            else request.catalog_context.context(),
             infer=infer_planning_features,
             solver_factory=planning_solver_factory,
         )
@@ -192,9 +189,6 @@ def post_odoo_planning_case(
             idempotency_key,
             base_intent={"purchase_group_id": request.purchase_group_id, "facts": facts},
             load_base=lambda: resolve_odoo_planning_input(request.purchase_group_id, facts),
-            catalog_context=None
-            if request.catalog_context is None
-            else request.catalog_context.context(),
             infer=infer_planning_features,
             solver_factory=planning_solver_factory,
         )
@@ -252,9 +246,6 @@ def post_odoo_history_case(
             base_intent=intent,
             base_kind=HISTORY_INPUT_KIND,
             load_base=lambda: resolve_odoo_history_input(request.profile_revision, facts),
-            catalog_context=None
-            if request.catalog_context is None
-            else request.catalog_context.context(),
             infer=infer_odoo_history_features,
             solver_factory=planning_solver_factory,
         )

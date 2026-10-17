@@ -60,8 +60,8 @@ def configured(assets, monkeypatch):
         "backend.app.dependencies.get_comparison_case_reader",
         lambda: quotation_reader(payloads, calls),
     )
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", directory / "model")
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("controlled-test-token"))
+    monkeypatch.setattr(settings, "supplier_model_directory", directory / "model")
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("controlled-test-token"))
     return uow, copy_payload(payload), copy_payload(scenario), payloads, calls
 
 
@@ -115,7 +115,7 @@ def test_actual_hybrid_creation_provenance_outage_and_offline_replay(configured,
         assert child.status_code == 201, child.text
         assert child.json()["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] == "2200"
         monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
-        monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+        monkeypatch.setattr(settings, "supplier_model_directory", None)
         assert (
             client.get(f"{BASE}/{base['case_id']}", headers=headers()).json()["snapshot"]
             == snapshot
@@ -158,7 +158,7 @@ def test_hybrid_final_decision_and_creation_recovery_use_only_saved_evidence(
             "planning_solver_factory",
         ):
             monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
-        monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+        monkeypatch.setattr(settings, "supplier_model_directory", None)
         command = {
             "snapshot_hash": case["snapshot_hash"],
             "outcome": "approve",
@@ -226,7 +226,7 @@ def test_invalid_hybrid_input_never_solves_or_stores(configured, monkeypatch, pr
     elif problem == "observed_history":
         body["source_type"] = "odoo_projection"
     else:
-        from application.decision_cases import RepositoryError
+        from application.errors import RepositoryError
 
         def unavailable(*args):
             raise RepositoryError("raw", "private-token-database-url")

@@ -30,8 +30,8 @@ def stored_cases(tmp_path_factory):
     headers = {"Authorization": f"Bearer {TOKEN}"}
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-        patch.setattr(backend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-        patch.setattr(backend_settings, "t15_trusted_model_directory", directory)
+        patch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
+        patch.setattr(backend_settings, "supplier_model_directory", directory)
         with TestClient(app) as client:
             base = client.post(
                 "/api/v2/procurement/planning-cases",
@@ -61,7 +61,7 @@ def stored_cases(tmp_path_factory):
 def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, monkeypatch):
     uow, base, child, infeasible = stored_cases
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(backend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
     for name in (
         "infer_planning_features",
         "planning_solver_factory",
@@ -215,7 +215,7 @@ def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, m
         return next(outcomes)
 
     monkeypatch.setattr("frontend.planning.state.fetch_planning_case", fetch)
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     state = PlanningState(_reflex_internal_init=True)
 
     async def submit():
@@ -246,9 +246,9 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
     fixture = tmp_path / "create-request.json"
     fixture.write_text(json.dumps(payload), encoding="utf-8")
     monkeypatch.setattr(FrontendSettings, "controlled_demo_file", property(lambda _: fixture))
-    monkeypatch.setattr(backend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-    monkeypatch.setattr(frontend_settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-    monkeypatch.setattr(backend_settings, "t15_trusted_model_directory", directory)
+    monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
+    monkeypatch.setattr(backend_settings, "supplier_model_directory", directory)
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     calls = []
@@ -284,7 +284,6 @@ def test_creation_lost_response_exact_recovery_outage_and_stored_retrieval(tmp_p
     recovery = json.loads(state.recovery_json)
     expected = deepcopy(payload)
     expected["approval_reference"] = "controlled-demand-10-t16-v1"
-    expected["catalog_context"] = {"workspace": "practice", "example_id": None}
     expected["requirement_source"] = {
         "source_type": "controlled_business_terms",
         "source_reference": "t16-ui-demand-v1",

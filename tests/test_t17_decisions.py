@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from pypdf import PdfReader
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_serialization import snapshot_json
 from backend.app.config import settings
 from backend.app.main import app
@@ -45,8 +45,8 @@ def configured(stored_cases, monkeypatch):
     uow = MemoryPlanningUnitOfWork()
     uow.rows = original.rows.copy()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(TOKEN))
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
+    monkeypatch.setattr(settings, "supplier_model_directory", None)
     for name in (
         "infer_planning_features",
         "planning_solver_factory",

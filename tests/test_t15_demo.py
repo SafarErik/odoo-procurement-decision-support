@@ -18,8 +18,8 @@ def test_demo_prepares_matched_assets_and_exercises_http_without_training(tmp_pa
     assert json.loads((tmp_path / "create-request.json").read_text()) == payload
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", tmp_path / "model")
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("demo-test-token"))
+    monkeypatch.setattr(settings, "supplier_model_directory", tmp_path / "model")
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("demo-test-token"))
 
     def no_training(*args, **kwargs):
         raise AssertionError("The HTTP demonstration attempted training.")

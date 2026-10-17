@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_serialization import read_request
 from backend.app.config import settings
 from backend.app.main import app
@@ -32,8 +32,8 @@ def configured(assets, monkeypatch):
 
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr(routes, "get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", directory)
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("t15-test-secret"))
+    monkeypatch.setattr(settings, "supplier_model_directory", directory)
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("t15-test-secret"))
     return uow, copy_payload(payload)
 
 
@@ -72,7 +72,7 @@ def test_actual_create_paths_and_stored_get_replay_without_model_solver(configur
     monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
     monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
     monkeypatch.setattr("application.planning_cases.create_procurement_plans", forbidden)
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+    monkeypatch.setattr(settings, "supplier_model_directory", None)
     retrieved = client.get(f"{BASE}/{created['case_id']}", headers=headers())
     assert retrieved.status_code == 200 and retrieved.json()["snapshot"] == snapshot
     reordered = copy_payload(payload)
@@ -254,9 +254,7 @@ def test_unrepresentable_history_or_validity_window_is_invalid_input(
 def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, monkeypatch):
     from backend.app.config import Settings
 
-    assert (
-        Settings(_env_file=None, t15_trusted_model_directory="").t15_trusted_model_directory is None
-    )
+    assert Settings(_env_file=None, supplier_model_directory="").supplier_model_directory is None
     _, payload = configured
     assert client.post(BASE, json=payload).status_code == 401
     assert client.get(f"{BASE}/{uuid4()}", headers=headers()).status_code == 404
@@ -269,7 +267,7 @@ def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, 
         ).status_code
         == 413
     )
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", None)
+    monkeypatch.setattr(settings, "supplier_model_directory", None)
     response = client.post(BASE, json=payload, headers=headers())
     assert response.status_code == 503
     assert "joblib" not in response.text and "No trusted" not in response.text
@@ -279,7 +277,7 @@ def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, 
 
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", broken)
     assert "private-password" not in client.post(BASE, json=payload, headers=headers()).text
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr(""))
+    monkeypatch.setattr(settings, "api_service_token", SecretStr(""))
     assert client.get(f"{BASE}/{uuid4()}", headers=headers()).status_code == 503
 
 
@@ -357,9 +355,9 @@ def test_tampered_configured_artifact_is_unavailable_and_not_stored(
     import shutil
 
     uow, payload = configured
-    shutil.copytree(settings.t15_trusted_model_directory, tmp_path / "tampered")
+    shutil.copytree(settings.supplier_model_directory, tmp_path / "tampered")
     (tmp_path / "tampered/tree.joblib").write_bytes(b"not a trusted model")
-    monkeypatch.setattr(settings, "t15_trusted_model_directory", tmp_path / "tampered")
+    monkeypatch.setattr(settings, "supplier_model_directory", tmp_path / "tampered")
     monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
     assert client.post(BASE, json=payload, headers=headers()).status_code == 503
     assert not uow.rows

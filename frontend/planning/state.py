@@ -83,7 +83,7 @@ class PlanningState(rx.State):
     _pending_route: str = "/planning"
     library_rows: list[dict[str, str]] = []
     library_children: list[dict[str, str]] = []
-    library_workspace: str = "controlled"
+    library_origin: str = "all"
     library_status: str = "all"
     library_search: str = ""
     library_cursor: str = ""
@@ -95,8 +95,6 @@ class PlanningState(rx.State):
     children_loading: bool = False
     library_loaded: bool = False
     _library_params: dict = {}
-    practice_task: str = ""
-    practice_run_saved: bool = False
     creation_dirty: bool = False
     scenario_dirty: bool = False
     navigation_open: bool = False
@@ -138,19 +136,12 @@ class PlanningState(rx.State):
                 return rx.redirect(f"/planning?case_id={self.details['case_id']}&view={value}")
         elif action == "input":
             self.input_mode = value
-            if value == "create":
-                self.practice_task = ""
-                self.practice_run_saved = False
-        elif action == "practice":
-            return self._choose_practice_task(value)
         elif action == "demo":
             self._prepare_demo()
         elif action == "odoo":
             self._prepare_odoo()
         elif action == "odoo-history":
             return PlanningState.load_odoo_history
-        elif action == "scenario":
-            self._prepare_practice_scenario()
 
     def _clear_comparison_context(self):
         self.has_case = False
@@ -170,7 +161,6 @@ class PlanningState(rx.State):
         self.odoo_history_mode = False
         self.odoo_history_rows = []
         self._demo_payload = self._odoo_payload = {}
-        self.practice_task = ""
         self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
         self.error_message = self.error_target = ""
 
@@ -207,7 +197,7 @@ class PlanningState(rx.State):
 
     @rx.event
     def navigate_global(self, destination: str):
-        routes = {"cases": "/cases", "rfqs": "/", "practice": "/practice"}
+        routes = {"cases": "/cases", "rfqs": "/"}
         if destination in routes:
             return self._guard_navigation("route", routes[destination], "nav-" + destination)
 
@@ -219,61 +209,6 @@ class PlanningState(rx.State):
         from frontend.rfq_page import RfqState
 
         yield RfqState.refresh_rfqs
-
-    @rx.event
-    def open_practice(self):
-        return self.navigate_global("practice")
-
-    @rx.event
-    async def practice_on_load(self):
-        if self.has_pending or self.is_loading:
-            if self._pending_route != "/practice":
-                yield rx.redirect(self._pending_route)
-
-    @rx.event
-    def choose_practice_task(self, value: str):
-        if self.is_loading or self.has_pending:
-            return
-        if value not in {"compare-plans", "supplier-outage", "infeasible-demand"}:
-            self.error_message = "Choose a supported Practice exercise."
-            return
-        return self._guard_navigation("practice", value, "choose-" + value)
-
-    def _choose_practice_task(self, value: str):
-        self.practice_task = value
-        self.practice_run_saved = False
-        self.has_case = False
-        self.details = {}
-        self.notice = ""
-        self._prepare_demo()
-        return rx.set_focus("practice-draft-heading")
-
-    @rx.event
-    def prepare_practice_scenario(self):
-        return self._guard_navigation("scenario", "", "prepare-exercise")
-
-    def _prepare_practice_scenario(self):
-        if (
-            self.is_loading
-            or self.has_pending
-            or not self.has_case
-            or self.details.get("parent_id") != "Base case"
-        ):
-            return
-        task = self.details.get("example_id")
-        if task not in {"supplier-outage", "infeasible-demand"}:
-            return
-        self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
-        if task == "supplier-outage":
-            self.scenario_kind = "supplier_outage"
-            self.stress_supplier = self.scenario_suppliers[0]["supplier"]
-        elif task == "infeasible-demand":
-            self.scenario_kind = "demand_increase"
-            self.stress_quantity = "25"
-        else:
-            return
-        self.view = "whatif"
-        self.scenario_dirty = True
 
     @rx.event
     def open_library(self):
@@ -338,11 +273,11 @@ class PlanningState(rx.State):
         if self.library_loading or self.has_pending or self.is_loading:
             return
         if form_data is not None:
-            self.library_workspace = form_data.get("workspace", "controlled")
+            self.library_origin = form_data.get("origin", "all")
             self.library_status = form_data.get("status", "all")
             self.library_search = form_data.get("q", "").strip()
         self._library_params = {
-            "workspace": self.library_workspace,
+            "origin": self.library_origin,
             "status": self.library_status,
             "q": self.library_search,
         }
@@ -371,7 +306,7 @@ class PlanningState(rx.State):
                 params["cursor"] = cursor
             page, self.library_error = await fetch_library(
                 settings.planning_cases_url,
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
                 params,
             )
             self.library_loaded = True
@@ -395,12 +330,12 @@ class PlanningState(rx.State):
         self.children_error = self.children_cursor = ""
         yield
         try:
-            params = {"workspace": self._library_params.get("workspace", "controlled")}
+            params = {"origin": self._library_params.get("origin", "all")}
             if cursor:
                 params["cursor"] = cursor
             page, self.children_error = await fetch_library(
                 f"{settings.planning_cases_url}/{case_id}/scenarios",
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
                 params,
             )
             if page is not None:
@@ -485,8 +420,7 @@ class PlanningState(rx.State):
                     "currency",
                     "required_date",
                     "as_of",
-                    "workspace",
-                    "example_id",
+                    "origin",
                 )
             )
         )
@@ -497,7 +431,7 @@ class PlanningState(rx.State):
         result, error = await fetch_planning_case(
             settings.planning_cases_url,
             self.details["base_id"],
-            settings.t12_trusted_caller_token.get_secret_value(),
+            settings.api_service_token.get_secret_value(),
         )
         try:
             if result is None:
@@ -607,7 +541,7 @@ class PlanningState(rx.State):
                 settings.planning_cases_url,
                 self.details["case_id"],
                 self.details["final_content_hash"],
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
             )
             if document is not None:
                 self.pdf_reference = document.reference
@@ -857,13 +791,11 @@ class PlanningState(rx.State):
         facts["requirement_source"] = source.copy()
         for supplier in facts["suppliers"]:
             supplier["source"] = source.copy()
-        payload["catalog_context"] = {"workspace": "controlled"}
         if self.odoo_history_mode:
             return {
                 "profile_id": payload["profile_id"],
                 "profile_revision": payload["profile_revision"],
                 "terms": facts,
-                "catalog_context": payload["catalog_context"],
             }
         return payload
 
@@ -883,7 +815,7 @@ class PlanningState(rx.State):
         try:
             data, error = await fetch_odoo_history(
                 settings.planning_cases_url + "/odoo-history/local-v1",
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
             )
             if data is None:
                 self.error_message = error
@@ -988,7 +920,7 @@ class PlanningState(rx.State):
                 "captured": self._odoo_payload["controlled_input"]["as_of"]
                 if odoo
                 else facts["as_of"],
-                "workspace": "Controlled work" if odoo else "Practice",
+                "origin": "Odoo" if odoo else "Demo data",
                 "policy": self.odoo_policy if odoo else self.demo_policy,
                 "history_source": "Odoo receipts (controlled synthetic origin)"
                 if history
@@ -1080,8 +1012,6 @@ class PlanningState(rx.State):
                 yield event
 
     def _creation_saved_events(self):
-        if self.router.url.path == "/practice":
-            return [rx.set_focus("practice-saved-heading")]
         return [
             rx.redirect(f"/planning?case_id={self.details['case_id']}&view=plans"),
             rx.set_focus("saved-case-heading"),
@@ -1092,15 +1022,10 @@ class PlanningState(rx.State):
             self._pending["url"],
             self._pending["payload"],
             self._pending["key"],
-            settings.t12_trusted_caller_token.get_secret_value(),
+            settings.api_service_token.get_secret_value(),
         )
         self.decision_conflict = self.error_message == FINAL_DECISION_CONFLICT
         self.has_pending = uncertain or (recovering and result is None)
-        if (
-            result is not None
-            and self._pending["payload"].get("catalog_context", {}).get("workspace") == "practice"
-        ):
-            self.practice_run_saved = True
         if not self.has_pending:
             self._pending = {}
         if result is not None:
@@ -1289,10 +1214,6 @@ class PlanningState(rx.State):
             self.error_message = "Prepare the demo and review the highlighted demand."
             return None
         payload = deepcopy(self._demo_payload)
-        payload["catalog_context"] = {
-            "workspace": "practice",
-            "example_id": self.practice_task or None,
-        }
         payload["requirement"]["approved_quantity"] = quantity
         payload["approval_reference"] = f"controlled-demand-{quantity}-t16-v1"
         payload["requirement_source"] = {
@@ -1480,7 +1401,7 @@ class PlanningState(rx.State):
             saved, error = await fetch_planning_case(
                 settings.planning_cases_url,
                 self.details["case_id"],
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
             )
             if saved is not None and saved.details["final_outcome"]:
                 self.has_pending = False
@@ -1530,7 +1451,7 @@ class PlanningState(rx.State):
             result, self.error_message = await fetch_planning_case(
                 settings.planning_cases_url,
                 case_id.strip() if isinstance(case_id, str) else "",
-                settings.t12_trusted_caller_token.get_secret_value(),
+                settings.api_service_token.get_secret_value(),
             )
             if result is not None:
                 self._show(result)

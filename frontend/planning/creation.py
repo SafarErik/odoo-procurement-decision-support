@@ -47,8 +47,8 @@ def creation_review(kind: str):
             rx.text(
                 "Company: ",
                 PlanningState.creation_review["company"],
-                " · Purpose: ",
-                PlanningState.creation_review["workspace"],
+                " · Data origin: ",
+                PlanningState.creation_review["origin"],
                 size="2",
                 color=MUTED,
             ),

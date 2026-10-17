@@ -26,7 +26,6 @@ def test_exact_comparison_selection_reflow_and_zoom(smoke_stack, smoke_page, pla
         request = deepcopy(payload)
         request["suppliers"] = request["suppliers"][:count]
         request["policy"]["epsilons"] = epsilons
-        request["catalog_context"] = {"workspace": "practice"}
         if count == 10:
             request["suppliers"][0]["supplier_id"] = (
                 "Árvíztűrő 供应商 " + "Long supplier name " * 8

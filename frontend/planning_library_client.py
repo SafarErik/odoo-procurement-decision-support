@@ -39,8 +39,8 @@ async def fetch_library(url, token, params, *, transport=None):
             parent = item["parent_id"]
             if parent is not None and str(UUID(parent)) != parent:
                 raise ValueError("Invalid lineage.")
-            if item["workspace"] not in {"controlled", "practice", "unclassified"}:
-                raise ValueError("Invalid workspace.")
+            if item["origin"] not in {"demo", "odoo"}:
+                raise ValueError("Invalid origin.")
             status = {"draft": "Awaiting decision", "approved": "Approved", "no_award": "No-award"}[
                 item["decision_status"]
             ]
@@ -67,7 +67,7 @@ async def fetch_library(url, token, params, *, transport=None):
                     if parent is None
                     else "Scenario — decision belongs to original",
                     "outcome": outcome,
-                    "workspace": item["workspace"],
+                    "origin": item["origin"],
                     "source": {
                         "controlled_synthetic": "Synthetic inputs and ML history",
                         "odoo_quotations_odoo_history": (

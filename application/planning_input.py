@@ -3,12 +3,8 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
 
-from application.decision_input_assembly import (
-    FieldProvenance,
-    ProvenanceManifest,
-    SourceAttribution,
-)
 from application.planning_history import capture_features
+from application.provenance import FieldProvenance, ProvenanceManifest, SourceAttribution
 from decision_core.planning.models import (
     PlanningPolicy,
     PlanningRequest,

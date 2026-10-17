@@ -122,12 +122,6 @@ async def submit_planning_request(
         if str(UUID(case_id)) != case_id:
             raise ValueError("Invalid response identity")
         display = _map_case(data, case_id)
-        catalog = payload.get("catalog_context")
-        if catalog is not None and (
-            data.get("workspace") != catalog["workspace"]
-            or data.get("example_id") != catalog.get("example_id")
-        ):
-            raise ValueError("Saved classification disagrees with creation intent")
         if url.endswith("/final-decision"):
             intent = dict(payload)
             intent["actor_reference"] = intent["actor_reference"].strip()
@@ -369,21 +363,10 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         )
     policy = request["policy"]
     concentration = policy["concentration_limit"]
-    workspace = payload.get("workspace", "unclassified")
-    workspace_label = {
-        "practice": "Practice",
-        "controlled": "Controlled work",
-        "unclassified": "Earlier case · Unclassified",
-    }[workspace]
-    example_id = payload.get("example_id")
-    if example_id is not None and (
-        workspace != "practice" or not isinstance(example_id, str) or not 1 <= len(example_id) <= 80
-    ):
-        raise ValueError("Invalid saved example classification")
+    origin = payload["origin"]
     details = {
-        "workspace": workspace,
-        "workspace_label": workspace_label,
-        "example_id": example_id or "",
+        "origin": origin,
+        "origin_label": {"demo": "Demo data", "odoo": "Odoo"}[origin],
         "case_id": expected_id,
         "parent_id": parent or "Base case",
         "created_at": _parse_datetime(payload["created_at"]).isoformat(),

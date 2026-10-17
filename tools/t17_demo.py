@@ -76,7 +76,6 @@ def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history=
         ):
             raise ValueError("The controlled Odoo history profile is not ready.")
         payload = {k: preview[k] for k in ("profile_id", "profile_revision", "terms")}
-        payload["catalog_context"] = {"workspace": "controlled"}
     else:
         payload = json.loads((directory / "create-request.json").read_text(encoding="utf-8"))
     create_path = f"{BASE}/from-odoo-history" if odoo_history else f"{BASE}/from-odoo"
@@ -189,9 +188,9 @@ def main():
         parser.error("run requires --actor, --reason and --no-award-reason for the demonstration.")
     if args.command == "reopen" and not args.report:
         parser.error("reopen requires the saved --report path.")
-    token = os.getenv("T12_TRUSTED_CALLER_TOKEN", "")
+    token = os.getenv("API_SERVICE_TOKEN", "")
     if not token or not token.isascii():
-        parser.error("Export an ASCII T12_TRUSTED_CALLER_TOKEN; it is never saved in the report.")
+        parser.error("Export an ASCII API_SERVICE_TOKEN; it is never saved in the report.")
     try:
         with httpx.Client(
             base_url=args.base_url,

@@ -6,19 +6,17 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
-from application.decision_case_orchestration import ComparisonCaseReader
-from application.historical_performance import HistoricalPerformancePort
 from application.odoo_planning_input import bind_controlled_odoo_input
+from application.odoo_quotations import ComparisonCaseReader
 from application.planning_cases import PlanningCaseError
 from application.planning_history import capture_features
 from application.planning_serialization import json_value
 from application.rfqs import RfqReader
 from backend.app.config import settings
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
-from odoo_adapter.historical_performance_reader import OdooHistoricalPerformanceReader
 from odoo_adapter.planning_history_reader import OdooPlanningHistoryReader, local_profile
 from odoo_adapter.rfq_reader import OdooRfqReader
-from persistence.postgres import SqlAlchemyUnitOfWork, create_session_factory
+from persistence.session import create_session_factory
 from supplier_evaluation.contracts import digest
 from supplier_evaluation.qualified_odoo import load_qualified_model
 
@@ -43,15 +41,6 @@ def get_comparison_case_reader() -> ComparisonCaseReader:
     )
 
 
-def get_historical_performance_reader() -> HistoricalPerformancePort:
-    return OdooHistoricalPerformanceReader(
-        base_url=settings.odoo_base_url,
-        database=settings.odoo_database,
-        api_key=settings.odoo_t7s_api_key.get_secret_value(),
-        timeout_seconds=settings.odoo_request_timeout_seconds,
-    )
-
-
 @lru_cache(maxsize=1)
 def _session_factory():
     database_url = settings.decision_database_url.get_secret_value()
@@ -61,19 +50,8 @@ def _session_factory():
     return factory
 
 
-def get_decision_unit_of_work() -> SqlAlchemyUnitOfWork:
-    factory = _session_factory()
-    if factory is None:
-        from application.decision_cases import RepositoryError
-
-        raise RepositoryError(
-            "invalid_database_configuration", "Decision persistence is unavailable."
-        )
-    return SqlAlchemyUnitOfWork(factory)
-
-
 def get_planning_unit_of_work():
-    from application.decision_cases import RepositoryError
+    from application.errors import RepositoryError
     from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
 
     factory = _session_factory()
@@ -89,10 +67,10 @@ def infer_planning_features(features):
     import hashlib
     import json
 
-    from application.decision_cases import RepositoryError
+    from application.errors import RepositoryError
     from supplier_evaluation.artifacts import load_model
 
-    directory = settings.t15_trusted_model_directory
+    directory = settings.supplier_model_directory
     try:
         if directory is None:
             raise ValueError("No trusted model configured.")
@@ -115,7 +93,7 @@ def planning_solver_factory():
     """Concrete solver/runtime construction stays at composition, after replay lookup."""
     from dataclasses import asdict
 
-    from application.decision_cases import RepositoryError
+    from application.errors import RepositoryError
     from optimization_adapter.pulp_cbc import PulpCbcSolver
 
     try:
@@ -143,7 +121,7 @@ def resolve_odoo_planning_input(group_id, facts):
     """Read through adapters inside the locked new-case computation, never on replay."""
     import asyncio
 
-    from application.decision_cases import RepositoryError
+    from application.errors import RepositoryError
     from application.odoo_planning_input import bind_controlled_odoo_input
     from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
 

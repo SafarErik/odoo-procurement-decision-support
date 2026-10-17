@@ -60,7 +60,7 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
 
 
 @pytest.mark.parametrize(
-    "key", ["case_id", "company", "product", "unit", "currency", "quantity", "workspace"]
+    "key", ["case_id", "company", "product", "unit", "currency", "quantity", "origin"]
 )
 def test_unrelated_original_cannot_replace_retained_evidence(stored_cases, key):
     base, child = stored_cases[1:3]

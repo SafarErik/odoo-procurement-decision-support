@@ -201,7 +201,7 @@ def configured(qualified, monkeypatch):
     uow = MemoryPlanningUnitOfWork()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     monkeypatch.setattr(settings, "odoo_history_model_directory", qualified / "qualified")
-    monkeypatch.setattr(settings, "t12_trusted_caller_token", SecretStr("history-test-token"))
+    monkeypatch.setattr(settings, "api_service_token", SecretStr("history-test-token"))
     return profile, calls, uow, reader
 
 
@@ -217,7 +217,6 @@ def test_live_style_acquisition_saved_lifecycle_and_offline_replay(configured, m
         data = preview.json()
         assert [p["value"] for p in data["history"]] == ["100.00", "66.67", "33.33"]
         payload = {k: data[k] for k in ("profile_id", "profile_revision", "terms")}
-        payload["catalog_context"] = {"workspace": "controlled"}
         key = str(uuid4())
         response = client.post(BASE + "/from-odoo-history", json=payload, headers=headers(key))
         assert response.status_code == 201, response.text

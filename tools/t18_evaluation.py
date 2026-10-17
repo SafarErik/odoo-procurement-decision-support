@@ -78,7 +78,13 @@ def environment(directory, payload):
 
     def git(*args):
         return subprocess.run(
-            ["git", *args], cwd=root, check=True, capture_output=True, text=True, timeout=10
+            ["git", *args],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
         ).stdout.strip()
 
     return {
@@ -557,9 +563,9 @@ def main():
         if args.command == "prepare":
             prepare(args.directory, args.suppliers, args.epsilon_count)
             return
-        token = os.getenv("T12_TRUSTED_CALLER_TOKEN", "")
+        token = os.getenv("API_SERVICE_TOKEN", "")
         if not token or not token.isascii():
-            parser.error("Export an ASCII T12_TRUSTED_CALLER_TOKEN; it is never recorded.")
+            parser.error("Export an ASCII API_SERVICE_TOKEN; it is never recorded.")
         with httpx.Client(
             base_url=args.base_url,
             headers={"Authorization": f"Bearer {token}"},

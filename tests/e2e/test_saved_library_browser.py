@@ -93,13 +93,13 @@ def test_find_expand_reopen_and_library_workload(smoke_stack, smoke_page):
             connection.execute(text("ANALYZE planning_cases"))
         stack.stop(stack.api)
         stack.start_api(stored_only=True)
-        assert not stack.env["ODOO_BASE_URL"] and not stack.env["T15_TRUSTED_MODEL_DIRECTORY"]
-        params = {"workspace": "unclassified"}
+        assert not stack.env["ODOO_BASE_URL"] and not stack.env["SUPPLIER_MODEL_DIRECTORY"]
+        params = {"origin": "demo"}
         response = stack.client.get(BASE, params=params)
         if response.status_code != 200:
             from application.planning_library import list_planning_cases
             from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-            from persistence.postgres import create_session_factory
+            from persistence.session import create_session_factory
 
             _, factory = create_session_factory(stack.env["DECISION_DATABASE_URL"])
             list_planning_cases(
@@ -109,9 +109,7 @@ def test_find_expand_reopen_and_library_workload(smoke_stack, smoke_page):
         first = response.json()
         assert len(first["items"]) == 20 and first["next_cursor"]
         assert all(
-            row["company_id"] == company
-            and row["parent_id"] is None
-            and row["workspace"] == "unclassified"
+            row["company_id"] == company and row["parent_id"] is None and row["origin"] == "demo"
             for row in first["items"]
         )
         second = stack.client.get(BASE, params=params | {"cursor": first["next_cursor"]}).json()
@@ -149,12 +147,11 @@ def test_find_expand_reopen_and_library_workload(smoke_stack, smoke_page):
             assert stack.client.get(BASE, params=params | {"q": query}).json()["items"]
         for query in ("%", "_", "' OR 1=1 --"):
             assert not stack.client.get(BASE, params=params | {"q": query}).json()["items"]
-        assert not stack.client.get(BASE).json()["items"]
-        assert not stack.client.get(BASE, params={"workspace": "practice"}).json()["items"]
+        assert not stack.client.get(BASE, params={"origin": "odoo"}).json()["items"]
         for changes in (
             {"status": "approved"},
             {"q": "different"},
-            {"workspace": "practice"},
+            {"origin": "odoo"},
             {"limit": "10"},
         ):
             assert (
@@ -235,7 +232,7 @@ def test_find_expand_reopen_and_library_workload(smoke_stack, smoke_page):
         page.goto(stack.frontend_url + "/cases")
         expect(page.get_by_role("heading", name="Saved cases", exact=True)).to_be_visible()
         expect(page.get_by_role("heading", name="No saved cases in this view")).to_be_visible()
-        page.get_by_label("Workspace", exact=True).select_option("unclassified")
+        page.get_by_label("Data origin", exact=True).select_option("demo")
         page.get_by_label("Product or case ID", exact=True).fill(base["case_id"])
         page.get_by_role("button", name="Refresh", exact=True).click()
         expect(page.get_by_role("button", name="Open case", exact=True)).to_be_visible()

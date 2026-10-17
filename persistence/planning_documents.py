@@ -3,7 +3,7 @@
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_documents import PlanningDocument
 from persistence.schema import PlanningDocumentRecord
 

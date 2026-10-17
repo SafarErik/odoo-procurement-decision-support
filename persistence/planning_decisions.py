@@ -5,7 +5,7 @@ import json
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from application.decision_cases import RepositoryError
+from application.errors import RepositoryError
 from application.planning_decisions import PlanningFinalDecision
 from application.planning_serialization import snapshot_json
 from persistence.schema import PlanningFinalDecisionRecord
