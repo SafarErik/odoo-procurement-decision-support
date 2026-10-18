@@ -32,12 +32,16 @@ def local_url(value):
     return str(url)
 
 
-def scenario_requests(payload):
-    """Changes relative to the read quotation; the last one must be infeasible."""
+def scenario_requests(payload, supplier=None):
+    """Changes relative to the read quotation; the last one must be infeasible.
+
+    Supplier changes target ``supplier`` (default: the last quoted supplier)."""
     facts = payload["terms"]
-    supplier = facts["suppliers"][-1]["supplier_id"]
+    terms = next(
+        (s for s in facts["suppliers"] if s["supplier_id"] == supplier), facts["suppliers"][-1]
+    )
+    supplier = terms["supplier_id"]
     source = facts["requirement_source"]
-    terms = facts["suppliers"][-1]
     price, capacity = Decimal(terms["unit_price"]), terms["capacity"]
     demand = facts["requirement"]["approved_quantity"]
     changes = (
@@ -72,24 +76,40 @@ def checked(response, status):
     return response.json()
 
 
-def download_pdf(client, case, path):
+def download_pdf(client, case, path, language="hu"):
     decision = case["final_decision"]
     content_hash = decision["approved_content_hash"]
     url = f"{BASE}/{case['case_id']}/approved-pdf/{content_hash}"
-    response = client.get(url, params={"download": "true"})
+    response = client.get(url, params={"download": "true", "language": language})
     digest = hashlib.sha256(response.content).hexdigest()
     if (
         response.status_code != 200
         or response.headers.get("content-type") != "application/pdf"
         or response.headers.get("x-approved-content-hash") != content_hash
         or response.headers.get("x-pdf-sha256") != digest
+        or response.headers.get("content-language") != language
         or not response.content.startswith(b"%PDF-")
     ):
         raise ValueError("PDF retrieval/content identity failed.")
     if path.exists() and path.read_bytes() != response.content:
         raise ValueError("Retrieved PDF differs from the saved demonstration artifact.")
     path.write_bytes(response.content)
-    return {"sha256": digest, "bytes": len(response.content), "content_hash": content_hash}
+    return {
+        "sha256": digest,
+        "bytes": len(response.content),
+        "content_hash": content_hash,
+        "language": language,
+    }
+
+
+def download_pdfs(client, case, report_path):
+    """The approved plan as one stored PDF per language (Hungarian default, English)."""
+    return {
+        language: download_pdf(
+            client, case, report_path.with_name(f"{report_path.stem}-{language}.pdf"), language
+        )
+        for language in ("hu", "en")
+    }
 
 
 def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history):
@@ -121,7 +141,10 @@ def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history)
     started = perf_counter()
     base = post(create_path, payload)
     report["base"] = base
-    for delta in scenario_requests(payload):
+    # Stress the supplier that carries the largest share of the minimum-cost plan.
+    minimum = base["snapshot"]["result"]["minimum_cost_plan"]
+    target = minimum and max(minimum["allocations"], key=lambda a: a["quantity"])["supplier_id"]
+    for delta in scenario_requests(payload, target):
         child = post(f"{BASE}/{base['case_id']}/scenarios", delta)
         if child["parent_id"] != base["case_id"]:
             raise ValueError("Scenario must target the original base.")
@@ -146,7 +169,7 @@ def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history)
                 "demonstration_acknowledged": True,
             },
         )
-    report["pdf"] = download_pdf(client, report["approved"], report_path.with_suffix(".pdf"))
+    report["pdf"] = download_pdfs(client, report["approved"], report_path)
     report["seconds"] = perf_counter() - started
     write_json(report_path, report)
     verify_stored(report_path, client)
@@ -185,7 +208,7 @@ def verify_stored(report_path, client):
             for field in ("snapshot", "snapshot_hash", "final_decision")
         ):
             raise ValueError("Exact retry changed the saved case or decision.")
-    if download_pdf(client, report["approved"], report_path.with_suffix(".pdf")) != report["pdf"]:
+    if download_pdfs(client, report["approved"], report_path) != report["pdf"]:
         raise ValueError("Approved PDF identity changed.")
     denied = client.get(f"{BASE}/{report['no_award']['case_id']}/approved-pdf/" + "0" * 64)
     if denied.status_code != 422:

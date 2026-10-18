@@ -41,7 +41,7 @@ Running the UI, database and Odoo: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 | `backend/` | FastAPI app |
 | `frontend/` | Reflex web UI |
 | `infra/` | Compose files (Odoo, planning DB, test DB) and the Odoo history addon |
-| `tools/` | `tools.dev` entry point, Odoo test-data seeder, offline training, HTTP acceptance demo |
+| `tools/` | `tools.dev` entry point, Odoo test-data seeder, offline training, one-command demo, MILP/API evaluation |
 | `tests/` | Fast, integration and browser tests |
 
 ## Documentation
@@ -54,6 +54,7 @@ Running the UI, database and Odoo: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 | [RUNBOOK.md](docs/RUNBOOK.md) | Setup and running services |
 | [TESTING.md](docs/TESTING.md) | Test levels and coverage map |
 | [TRACEABILITY.md](docs/TRACEABILITY.md) | Official task → implementation → evidence → chapter |
+| [LIMITATIONS_AND_FUTURE_WORK.md](docs/LIMITATIONS_AND_FUTURE_WORK.md) | Measured limitations with evidence and further-development proposals |
 | [REVAMP_PLAN.md](docs/REVAMP_PLAN.md) | Current improvement plan |
 | [handoffs/](docs/handoffs/) | What each increment changed and how it was verified |
 | [history/](docs/history/) | Earlier designs, handoffs and evidence (T0–T18, UX32–UX41) |
@@ -65,13 +66,15 @@ The Hungarian thesis documents and accepted requirements live on Google Drive
 
 All five required capabilities work end to end in a controlled local setup:
 Decision Tree supplier evaluation, MILP allocation with alternatives, Reflex UI,
-stress scenarios, and human approval with PDF. The current revamp (see the plan)
-cleans the repository (P0, done), retrains the model from Odoo-sourced history
-(P1, done), extends scenarios/PDF/API (P2, done: open quotation-group selection,
-two-way stress changes, supplier overview, Hungarian/English purchase order proposal
-PDF), rebuilds the UI (P3, implemented: Cases and Open RFQs pages, case tabs
-Overview / Suppliers / Plans / Scenarios / Decision & PDF plus Audit, charts, Hungarian
-default with an English switch that also sets the PDF language) and closes validation
-(P4). The
-supplier model is trained from purchase history read from Odoo; in the test database
-that history is generated, so no real-world predictive accuracy is claimed.
+stress scenarios, and human approval with PDF. The revamp (see the plan) cleaned the
+repository (P0), retrained the model from Odoo-sourced history (P1), extended
+scenarios/PDF/API (P2: open quotation-group selection, two-way stress changes, supplier
+overview, Hungarian/English purchase order proposal PDF), rebuilt the UI (P3: Hungarian
+default with an English switch, case tabs, charts) and closed validation (P4, implemented):
+`python -m tools.dev demo` reproduces the whole flow on live Odoo and replays it without
+Odoo and model; the MILP/API evaluation (4/5/10 suppliers) matches an exhaustive reference
+optimum in every check; measured limitations and proposals are in
+[docs/LIMITATIONS_AND_FUTURE_WORK.md](docs/LIMITATIONS_AND_FUTURE_WORK.md) and evidence in
+[docs/evidence/](docs/evidence/). The supplier model is trained from purchase history read
+from Odoo; in the test database that history is generated, so no real-world predictive
+accuracy is claimed.

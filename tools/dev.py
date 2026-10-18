@@ -7,6 +7,7 @@
     python -m tools.dev ui        run the Reflex frontend (port 3000)
     python -m tools.dev odoo-up   start Odoo and its own database
     python -m tools.dev odoo-down stop Odoo
+    python -m tools.dev demo      start Odoo + planning DB, run the reproducible demonstration
 
 Settings come from the ignored .env file (see .env.example).
 """
@@ -91,6 +92,14 @@ def db_up() -> None:
     _run(sys.executable, "-m", "alembic", "upgrade", "head")
 
 
+def demo() -> None:
+    COMMANDS["odoo-up"]()
+    db_up()
+    from tools.demo import main
+
+    sys.exit(main([]))
+
+
 COMMANDS = {
     "check": check,
     "db-up": db_up,
@@ -109,6 +118,7 @@ COMMANDS = {
     "ui": lambda: _run(_venv_tool("reflex"), "run", cwd=ROOT / "frontend"),
     "odoo-up": lambda: _compose("infra/odoo/compose.yaml", "up", "-d", "db", "odoo"),
     "odoo-down": lambda: _compose("infra/odoo/compose.yaml", "stop"),
+    "demo": demo,
 }
 
 if __name__ == "__main__":

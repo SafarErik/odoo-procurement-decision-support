@@ -3,6 +3,8 @@
     python -m tools.seed_odoo_history plan    print the generated plan, write nothing
     python -m tools.seed_odoo_history apply   write it into ODOO_SEED_DATABASE
     python -m tools.seed_odoo_history apply N write only the first N orders (smoke run)
+    python -m tools.seed_odoo_history groups  add the P4 evaluation quotation groups
+                                              (5 and 10 suppliers of the RFQ product)
 
 Owner-approved (2026-10-17) scripted administrator writes for P1. The tool refuses
 to write unless the target is exactly ``pdss_history_gen``, ``ODOO_SEED_DATABASE``
@@ -509,6 +511,92 @@ def _write_order(writer, order: Order, product_ids, supplier_ids, uom, company) 
         raise ValueError("A short-closed order needs a receipt.")
 
 
+EVALUATION_SIZES = (5, 10)
+
+
+def evaluation_groups(plan: Plan) -> dict[int, tuple[str, ...]]:
+    """P4 quotation groups for the RFQ product: the original four plus the suppliers
+    with the most settled lines in the recent feature window, so every one is scorable."""
+    window = (plan.now - timedelta(days=134), plan.now - timedelta(days=14))
+    recent = {
+        s.code: sum(
+            o.supplier == s.code
+            and o.product == plan.rfq_product
+            and window[0] <= o.expected_at <= window[1]
+            for o in plan.orders
+        )
+        for s in plan.suppliers
+        if plan.rfq_product in s.products
+    }
+    others = sorted(
+        (c for c, n in recent.items() if c not in plan.rfq_suppliers and n >= 4),
+        key=lambda c: (-recent[c], c),
+    )
+    ranked = (*plan.rfq_suppliers, *others)
+    if len(ranked) < max(EVALUATION_SIZES):
+        raise ValueError("Too few scorable suppliers for the evaluation groups.")
+    return {size: ranked[:size] for size in EVALUATION_SIZES}
+
+
+def apply_evaluation_groups(plan: Plan, writer: OdooWriter, *, log=print) -> dict[int, int]:
+    """Write one open RFQ per supplier and one quotation group per size; reuse on rerun.
+
+    Needs the history from ``apply`` (products and suppliers are looked up by tag)."""
+    writer.verify_target()
+    code = f"{TAG}-{plan.rfq_product}"
+    product = writer.call(
+        "product.product", "search_read",
+        {"domain": [["default_code", "=", code]], "fields": ["id", "uom_id"]},
+    )  # fmt: skip
+    if not product:
+        raise ValueError("Run 'apply' first: the generated RFQ product is missing.")
+    company = writer.call(
+        "res.company", "search_read", {"domain": [], "fields": ["id"], "limit": 1}
+    )[0]["id"]
+    base = next(p for p in plan.products if p.code == plan.rfq_product).base_price
+    groups = {}
+    for size, codes in evaluation_groups(plan).items():
+        prefix = f"{TAG}:RFQ{size}:"
+        found = writer.call(
+            "purchase.order", "search_read",
+            {"domain": [["origin", "=like", f"{prefix}%"]], "fields": ["purchase_group_id"]},
+        )  # fmt: skip
+        if found:
+            groups[size] = found[0]["purchase_group_id"][0]
+            log(f"{size}-supplier group already present: {groups[size]}")
+            continue
+        partners = dict(
+            (r["ref"], r["id"])
+            for r in writer.call(
+                "res.partner", "search_read",
+                {"domain": [["ref", "in", [f"{TAG}-{c}" for c in codes]]], "fields": ["id", "ref"]},
+            )
+        )  # fmt: skip
+        rfq_ids = []
+        for code in codes:
+            supplier = next(s for s in plan.suppliers if s.code == code)
+            rfq_ids += writer.call(
+                "purchase.order",
+                "create",
+                {"vals_list": [{
+                    "partner_id": partners[f"{TAG}-{code}"], "company_id": company,
+                    "origin": f"{prefix}{code}", "partner_ref": TAG,
+                    "order_line": [[0, 0, {
+                        "product_id": product[0]["id"], "product_qty": 200,
+                        "product_uom_id": product[0]["uom_id"][0],
+                        "price_unit": round(base * supplier.price_factor, 2),
+                        "date_planned": _odoo(plan.now + timedelta(days=supplier.lead_days)),
+                        "tax_ids": [[6, 0, []]],
+                    }]],
+                }]},
+            )  # fmt: skip
+        groups[size] = writer.call(
+            "purchase.order.group", "create", {"vals_list": [{"order_ids": [[6, 0, rfq_ids]]}]}
+        )[0]
+        log(f"{size}-supplier group created: {groups[size]} ({', '.join(codes)})")
+    return groups
+
+
 def _settings() -> dict[str, str]:
     values = {}
     dotenv = ROOT / ".env"
@@ -522,14 +610,18 @@ def _settings() -> dict[str, str]:
 
 def main(argv: list[str]) -> int:
     limit = int(argv.pop()) if len(argv) == 2 and argv[1].isdigit() else None
-    if len(argv) != 1 or argv[0] not in ("plan", "apply"):
+    if len(argv) != 1 or argv[0] not in ("plan", "apply", "groups"):
         print(__doc__)
         return 2
     import json
 
     plan = build_plan(CLOCK)
     if argv[0] == "plan":
-        print(json.dumps(plan_summary(plan), indent=2))
+        print(
+            json.dumps(
+                plan_summary(plan) | {"evaluation_groups": evaluation_groups(plan)}, indent=2
+            )
+        )
         return 0
     settings = _settings()
     writer = OdooWriter(
@@ -537,6 +629,9 @@ def main(argv: list[str]) -> int:
         settings.get("ODOO_SEED_DATABASE", ""),
         settings.get("ODOO_SEED_ADMIN_API_KEY", ""),
     )
+    if argv[0] == "groups":
+        print(json.dumps(apply_evaluation_groups(plan, writer)))
+        return 0
     manifest = apply_plan(plan, writer, limit=limit)
     out = ROOT / ".artifacts" / "seed" / "manifest.json"
     out.parent.mkdir(parents=True, exist_ok=True)

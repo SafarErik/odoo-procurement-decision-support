@@ -1,6 +1,6 @@
 # Revamp plan — completeness audit and delivery plan
 
-Date: 2026-10-17. Status: P0–P2 merged; P3 implemented (see docs/handoffs/P3_FRONTEND_REVAMP.md); P4–P5 open.
+Date: 2026-10-17. Status: P0–P3 merged; P4 implemented (see docs/handoffs/P4_VALIDATION.md); P5 open.
 Baseline read: official task sheet (423.589/25/140), Drive 00/01/02/03/06/07/08,
 README, AGENTS.md, source tree at `main` `0c9f228`.
 
