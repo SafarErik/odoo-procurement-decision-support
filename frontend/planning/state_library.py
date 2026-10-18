@@ -26,6 +26,7 @@ class LibraryMixin(rx.State, mixin=True):
     children_loading: bool = False
     library_loaded: bool = False
     _library_params: dict = {}
+    _library_stale: bool = False
     _library_raw: list = []
     _children_raw: list = []
     # Saved scenarios of the open base case (Scenarios tab); same read-only GET as the library.
@@ -95,22 +96,29 @@ class LibraryMixin(rx.State, mixin=True):
 
     @rx.event
     async def refresh_library(self, form_data: dict[str, Any] | None = None):
-        if self.library_loading or self.has_pending or self.is_loading:
+        if self.has_pending or self.is_loading:
             return
         if form_data is not None:
             self.library_origin = form_data.get("origin", self.library_origin)
             self.library_status = form_data.get("status", self.library_status)
             self.library_search = str(form_data.get("q", "")).strip()
-        self._library_params = {
-            "origin": self.library_origin,
-            "status": self.library_status,
-            "q": self.library_search,
-        }
-        self.expanded_case = self.children_cursor = self.children_error = ""
-        self.library_children = []
-        self._children_raw = []
-        async for event in self._load_library_page(""):
-            yield event
+        if self.library_loading:
+            # Keep the latest filters; the running load re-reads with them when it ends.
+            self._library_stale = True
+            return
+        self._library_stale = True
+        while self._library_stale:
+            self._library_stale = False
+            self._library_params = {
+                "origin": self.library_origin,
+                "status": self.library_status,
+                "q": self.library_search,
+            }
+            self.expanded_case = self.children_cursor = self.children_error = ""
+            self.library_children = []
+            self._children_raw = []
+            async for event in self._load_library_page(""):
+                yield event
 
     @rx.event
     async def next_library_page(self):

@@ -267,3 +267,31 @@ def test_base_scenarios_page_for_a_case_no_longer_open_is_dropped(stored_cases, 
     patch_client(monkeypatch, "fetch_library", fetch)
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
     assert state.base_scenarios == [] and not state.base_scenarios_loading
+
+
+def test_a_search_submitted_during_a_library_reload_is_applied(monkeypatch):
+    # Returning to Cases re-runs on_load while the list from the earlier visit is still loaded.
+    state = PlanningState(_reflex_internal_init=True)
+    state.library_loaded = True
+    calls = []
+
+    async def fetch(url, token, params, *, lang="en", transport=None):
+        calls.append(dict(params))
+        if len(calls) == 1:  # the buyer presses Enter while the reload is on its way
+            await _drain(PlanningState.refresh_library, state, {"q": " nincs-ilyen-termek "})
+            assert len(calls) == 1 and state.library_loading
+        return {"items": [], "raw": [], "next_cursor": ""}, ""
+
+    patch_client(monkeypatch, "fetch_library", fetch)
+    asyncio.run(_drain(PlanningState.library_on_load, state))
+    assert [c["q"] for c in calls] == ["", "nincs-ilyen-termek"]
+    assert state.library_search == "nincs-ilyen-termek" and not state.library_loading
+
+
+def test_library_filters_stay_usable_while_a_loaded_list_reloads():
+    from frontend.planning.library import _filters
+
+    rendered = str(_filters())
+    start = rendered.index('id:"library-search"')
+    search = rendered[rendered.rindex("jsx(", 0, start) : start]
+    assert "library_loaded" in search and "library_loading" not in search

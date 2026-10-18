@@ -142,18 +142,16 @@ expert rule 0.658, majority 0.409 — unchanged.
 | --- | --- |
 | `python -m tools.dev check` | PASS — format, lint, compileall, **491 passed**, 51 deselected, `uv pip check` compatible |
 | `pytest -m "integration and not e2e"` (disposable PostgreSQL 16, live Odoo, API on :8000, `RUN_ODOO_HISTORY_LIVE=true`) | **46 passed**, 3 skipped (T6 and 2× T7S fixture contracts); includes the 2 live Odoo-history tests and the runtime-service checks |
-| `pytest -m e2e tests/e2e --browser chromium` | **1 passed, 1 failed** (251 s); rerun of the failing test alone: failed again (148 s). `test_rfq_to_approved_pdf_in_hungarian_then_english` passes. `test_cases_scenario_and_states_at_375_px` passes the 375 px case list, price scenario with error state and chart, then fails at the last library step: after returning to Cases via the drawer, search "nincs-ilyen-termek" + Enter leaves the list unfiltered (no "Nincs találat" heading within 45 s) |
+| `pytest -m e2e tests/e2e --browser chromium` (before the fix) | 1 passed, 1 failed: `test_cases_scenario_and_states_at_375_px` — search after returning to Cases left the list unfiltered; reproduced alone |
+| same, after applying the library-search fix | 375 px test **passed**; the Odoo-flow test errored in setup (Reflex backend port already in use), rerun alone **passed** — both tests pass |
+| `python -m tools.dev check` after the fix | PASS — **493 passed**, 51 deselected |
 
 ## Not verified / remaining
 
-- **e2e failure (not fixed in P4, no frontend code changed here).** Likely cause, not yet
-  proven: returning to `/cases` keeps `library_loaded` true, so the search input is enabled
-  while `library_on_load` reloads; a submit during that reload is dropped by the
-  `library_loading` guard in `refresh_library` (`frontend/planning/state_library.py`). The
-  same test passed in P3 (165 s); this run was slower (Odoo, an extra API and the evaluation
-  database on the same machine), which widens the window. Buyer impact: a search typed right
-  after navigation can be silently ignored. Proposed as a separate UI fix.
-
+- **e2e failure found by P4, fixed in this branch.** Returning to Cases disabled the search
+  form during the on_load reload, so an Enter submit was dropped. Fix (separate session,
+  [P3_LIBRARY_SEARCH_RELOAD_FIX.md](P3_LIBRARY_SEARCH_RELOAD_FIX.md)): filters stay usable
+  during a reload and a submit made mid-load is re-applied; one fast state test added.
 - Hosted CI: not run (nothing pushed).
 - Live T6/T7/T7S fixture contracts: skipped (fixtures not recreated in `pdss_history_gen`,
   as in P1–P3).
