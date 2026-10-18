@@ -8,7 +8,7 @@ drives a real browser against Reflex + FastAPI + PostgreSQL. Unknown markers fai
 | --- | --- |
 | `python -m tools.dev check` | Format, lint, compile, all fast tests, dependency consistency |
 | `pytest -m "integration and not e2e"` | Real PostgreSQL migrations, immutability triggers, idempotency races, live Odoo contracts (opt-in) |
-| `pytest -m e2e` | Browser flows; **not collected since P2** (they start from the removed synthetic demo); P3 rebuilds them on the Odoo-history flow |
+| `pytest -m e2e --browser chromium` | Browser flows on the Odoo-history path: real FastAPI, PostgreSQL (disposable Compose project) and Reflex; Odoo and the supplier model come from the P1 fixtures (`tests/e2e/odoo_fixture_api.py`), so no live Odoo is needed. Needs Podman and `pip install -e ".[e2e]"` plus `playwright install chromium` |
 
 CI: `.github/workflows/quality.yml` (required) runs the fast gate on Python 3.11;
 `integration.yml` (path-filtered, optional) runs the container/API tests with
@@ -29,11 +29,15 @@ Docker Compose on Ubuntu.
 | Human decision, No-award, conflicts, approved PDF v2 (HU/EN, per-language storage, pre-P2 English artifact) | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
 | Saved-case library | `test_planning_library.py` |
 | Frontend state and HTTP clients (no browser) | `test_t16_*`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
+| UI language and formatting: Hungarian default, HU/EN texts, locale money/date/number, relabel on switch without HTTP, supplier cards and KPI chart data | `test_p3_frontend.py` |
+| Browser: open RFQ → case → tabs → approval → Hungarian PDF → English switch; 375 px case list, scenario chart, empty and error states | `tests/e2e/test_odoo_flow_browser.py`, `tests/e2e/test_cases_scenarios_mobile_browser.py` |
 | Full HTTP acceptance flow on Odoo history | `test_t17_demo.py` |
 | Architecture boundaries | `test_architecture.py`, `test_t13_architecture.py`, `test_t14_architecture.py` |
 
 Test file names still carry historical increment numbers; they are renamed by
-capability when they are next changed.
+capability when they are next changed. Frontend state tests patch HTTP clients with
+`tests/frontend_patching.patch_client`, which targets the feature module that resolves
+each name (`state_base`, `state_case`, `state_decision`, `state_creation`, …).
 
 ## ML evaluation conventions kept
 

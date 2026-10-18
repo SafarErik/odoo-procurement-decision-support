@@ -112,6 +112,11 @@ def plan_lines(now):
 
 @pytest.fixture(scope="module")
 def history(tmp_path_factory):
+    return build_history(tmp_path_factory.mktemp("history-model"))
+
+
+def build_history(directory):
+    """Generated Odoo-shaped history and a tree trained on it, saved in ``directory``."""
     now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     lines = plan_lines(now)
     rows, coverage = build_rows(lines, extracted_at=now)
@@ -119,7 +124,6 @@ def history(tmp_path_factory):
     boundary = boundary.replace(day=1 if boundary.day < 16 else 16)
     split = split_rows(rows, boundary=boundary)
     model = train(split, database=DATABASE)
-    directory = tmp_path_factory.mktemp("history-model")
     save_model(model, directory)
     return {
         "now": now,
@@ -518,9 +522,7 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(configured, monkeypa
         assert base["snapshot"]["model_manifest"]["metadata"]["data_origin"] == "generated"
         mapped = _map_case(base, base["case_id"])
         assert len(mapped.assessments) == 3
-        assert all(
-            "settled Odoo purchase lines" in a["history_summary"] for a in mapped.assessments
-        )
+        assert all("settled lines" in a["history_summary"] for a in mapped.assessments)
         provenance = {p["canonical_path"]: p for p in base["snapshot"]["provenance"]["entries"]}
         for assessment in base["snapshot"]["assessments"]:
             supplier = assessment["snapshot"]["context"]["supplier_id"]
@@ -570,6 +572,11 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(configured, monkeypa
         library = client.get(BASE, headers=headers())
         assert library.status_code == 200, library.text
         assert [i["origin"] for i in library.json()["items"]] == ["odoo"]
+        # P3 list fields: stored Odoo product name, minimum cost and the model's data origin.
+        item = library.json()["items"][0]
+        assert item["product_label"] == "T6 Comparison Product"
+        assert item["minimum_cost"] == base["snapshot"]["result"]["minimum_cost_plan"]["total_cost"]
+        assert item["data_origin"] == "generated"
         assert len(calls) == before and len(uow.rows) == 2
 
 

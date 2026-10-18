@@ -54,7 +54,7 @@ The Reflex web UI drives every step through the HTTP API only.
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
 | `document_adapter/` | ReportLab rendering of the approved PDF v2 (HU/EN, summary, proposal page per supplier, readable audit appendix) | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
-| `frontend/` | Reflex UI; talks to the backend over HTTP; holds the service token server-side | backend API only |
+| `frontend/` | Reflex UI (Cases, Open RFQs, case tabs, Audit); HTTP clients map API payloads to localized display rows (`i18n.py`, HU default, EN switch); one `PlanningState` composed from feature mixins (`planning/state_*.py`); holds the service token server-side | backend API only |
 | `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
 | `infra/odoo/addons/pdss_quotation_reader/` | Read-only group for the quotation integration user (no write rights, no Purchase role) | Odoo |
 | `migrations/` | Alembic schema for the planning database | `persistence.schema` |

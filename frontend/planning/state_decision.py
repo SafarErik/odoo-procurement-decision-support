@@ -105,7 +105,7 @@ class DecisionMixin(rx.State, mixin=True):
                 "outcome": "no_award" if choice == "No-award" else "approve",
                 "plan_index": index,
                 "actor_reference": actor,
-                "rationale": reason or None,
+                "rationale": reason.strip() or None,
                 "demonstration_acknowledged": True,
             }
         except (ValueError, KeyError) as error:

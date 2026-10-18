@@ -2,12 +2,15 @@
 
 import asyncio
 from copy import deepcopy
+from decimal import Decimal
 from fractions import Fraction
 
 import pytest
 
+from frontend.i18n import number
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case, fetch_planning_case
+from tests.frontend_patching import patch_client
 from tests.test_t16_scenarios import configured as configured
 from tests.test_t16_stored_planning import stored_cases as stored_cases
 
@@ -27,14 +30,15 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
     reads = []
     reject_original = [True]
 
-    async def read(url, identity, token):
+    async def read(url, identity, token, lang="en"):
         reads.append(identity)
         if identity == base["case_id"] and reject_original[0]:
             return None, "Stored original unavailable."
-        return await fetch_planning_case(url, identity, token, transport=transport)
+        return await fetch_planning_case(url, identity, token, lang=lang, transport=transport)
 
-    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", read)
+    patch_client(monkeypatch, "fetch_planning_case", read)
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     before = {key: row.snapshot for key, row in uow.rows.items()}
     consume(state, PlanningState.load_case, {"case_id": child["case_id"]})
     assert reads == [child["case_id"], base["case_id"]] and not posts
@@ -46,10 +50,10 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
     reject_original[0] = False
     consume(state, PlanningState.retry_original)
     assert reads[-1] == base["case_id"] and not posts
-    assert state.original_plan["cost"] == "102 EUR" and not state.original_error
+    assert state.original_plan["cost"] == "€102.00" and not state.original_error
     assert state.scenario_metrics[2] == {
         "metric": "Minimum total cost",
-        "base": "102 EUR",
+        "base": "€102.00",
         "scenario": "Unavailable",
         "change": "Unavailable",
     }
@@ -65,6 +69,7 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
 def test_unrelated_original_cannot_replace_retained_evidence(stored_cases, key):
     base, child = stored_cases[1:3]
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     original = _map_case(base, base["case_id"])
     state._show(original)
     state._show(_map_case(child, child["case_id"]))
@@ -79,6 +84,7 @@ def test_unrelated_original_cannot_replace_retained_evidence(stored_cases, key):
 def test_saved_comparison_has_exact_differences_and_cache_survives_child(stored_cases):
     base, child = stored_cases[1:3]
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     state._show(_map_case(base, base["case_id"]))
     before = deepcopy(state.original_allocations)
     state._show(_map_case(child, child["case_id"]))
@@ -86,9 +92,14 @@ def test_saved_comparison_has_exact_differences_and_cache_survives_child(stored_
     left = base["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"]
     right = child["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"]
     delta = Fraction(**right) - Fraction(**left)
-    assert state.scenario_metrics[3]["change"] == f"{delta.numerator}/{delta.denominator}"
-    assert state.original_plan["cost"] == "102 EUR"
-    assert state.scenario_metrics[2]["change"] == "+4 EUR"
+    # Buyer view: points on the 0–100 scale; the exact fraction stays in Audit.
+    points = Decimal(delta.numerator * 100) / Decimal(delta.denominator)
+    assert state.scenario_metrics[3]["change"] == ("+" if points > 0 else "") + number(
+        points, "en", 1
+    )
+    assert state.original_plan["exposure_exact"] == f"{left['numerator']}/{left['denominator']}"
+    assert state.original_plan["cost"] == "€102.00"
+    assert state.scenario_metrics[2]["change"] == "+€4.00"
     assert state.scenario_metrics[2]["scenario"] == state.plans[0]["cost"]
     state.has_case = False
     assert state.scenario_metrics == [] and state.scenario_allocation_rows == []
@@ -100,10 +111,10 @@ def test_definitive_scenario_failure_keeps_original_without_success_navigation(
     state, _, _, _, _ = configured
     before = deepcopy(state.original_plan)
 
-    async def reject(*args):
+    async def reject(*args, **kwargs):
         return None, "Rejected scenario.", False
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", reject)
+    patch_client(monkeypatch, "submit_planning_request", reject)
     events = consume(state, PlanningState.run_scenario, {"kind": "demand_change", "quantity": "12"})
     assert events == [None] and state.original_plan == before
     assert state.details["parent_id"] == "Base case" and not state.has_pending

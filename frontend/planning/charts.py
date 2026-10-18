@@ -7,9 +7,19 @@ from frontend.theme import GRID, MUTED, SERIES_1, SERIES_2
 from frontend.ui import t
 
 _TICK = {"fill": MUTED, "fontSize": 12}
+# Group thousands like the rest of the page (the shell carries the UI language).
+_GROUPED = (
+    "(v) => Number(v).toLocaleString("
+    "document.querySelector('.workspace')?.lang === 'en' ? 'en-US' : 'hu-HU')"
+)
 _TOOLTIP = {
     "content_style": {"borderRadius": "8px", "border": "1px solid #d1ded6", "fontSize": "13px"},
 }
+
+
+def _point_labels():
+    """Direct labels: a plan's name next to its point (identity is never colour alone)."""
+    return rx.recharts.label_list(data_key="name", position="top", fill=MUTED, font_size=12)
 
 
 def cost_exposure_chart() -> rx.Component:
@@ -23,6 +33,8 @@ def cost_exposure_chart() -> rx.Component:
                 name=t("chart_cost"),
                 domain=["auto", "auto"],
                 tick=_TICK,
+                tick_formatter=_GROUPED,
+                unit=" " + PlanningState.details["currency"],
                 stroke=GRID,
             ),
             rx.recharts.y_axis(
@@ -37,20 +49,24 @@ def cost_exposure_chart() -> rx.Component:
             rx.recharts.graphing_tooltip(**_TOOLTIP),
             rx.recharts.legend(icon_type="circle", vertical_align="bottom"),
             rx.recharts.scatter(
+                _point_labels(),
                 data=PlanningState.chart_minimum,
                 name=t("plan_minimum"),
                 fill=SERIES_1,
                 shape="circle",
+                is_animation_active=False,
             ),
             rx.recharts.scatter(
+                _point_labels(),
                 data=PlanningState.chart_alternatives,
                 name=t("chart_alternatives"),
                 fill=SERIES_2,
                 shape="diamond",
+                is_animation_active=False,
             ),
             width="100%",
             height=260,
-            margin={"top": 10, "right": 16, "bottom": 0, "left": 0},
+            margin={"top": 24, "right": 24, "bottom": 0, "left": 8},
         ),
         role="img",
         aria_label=t("chart_tradeoff_aria"),

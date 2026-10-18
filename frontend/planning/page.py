@@ -45,6 +45,8 @@ def _header() -> rx.Component:
                 href="#",
                 color=MUTED,
                 size="2",
+                white_space="nowrap",
+                flex_shrink="0",
             ),
             rx.text("/", size="2", color=MUTED),
             rx.text(PlanningState.details["product_label"], size="2", color=MUTED, truncate=True),

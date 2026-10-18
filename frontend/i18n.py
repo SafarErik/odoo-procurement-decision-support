@@ -25,7 +25,12 @@ _MONTHS = {
 }
 _SYMBOLS = {"HUF": "Ft", "EUR": "€", "USD": "$", "GBP": "£"}
 # Odoo unit names the buyer reads every day; anything else is shown as Odoo names it.
-_UNITS = {"Units": ("db", "pcs"), "Unit": ("db", "pcs"), "kg": ("kg", "kg")}
+_UNITS = {
+    "Units": ("db", "pcs"),
+    "Unit": ("db", "pcs"),
+    "piece": ("db", "pcs"),
+    "kg": ("kg", "kg"),
+}
 
 
 def language(value) -> str:
@@ -57,7 +62,9 @@ def money(value, currency: str, lang: str, *, signed: bool = False) -> str:
     """Amount with at least two decimals and never fewer than the stored digits."""
     lang = language(lang)
     amount = Decimal(str(value))
-    text = f"{amount:.2f}" if amount == amount.quantize(Decimal("0.01")) else f"{amount:f}"
+    # Pad to two decimals but never round stored digits (no quantize: it fails on long values).
+    exponent = amount.normalize().as_tuple().exponent
+    text = f"{amount:.2f}" if isinstance(exponent, int) and exponent >= -2 else f"{amount:f}"
     grouped = _group(text, lang)
     sign = ""
     if signed and amount > 0:
@@ -65,8 +72,11 @@ def money(value, currency: str, lang: str, *, signed: bool = False) -> str:
     if grouped.startswith("-"):
         sign, grouped = "−", grouped[1:]
     symbol = _SYMBOLS.get(currency, currency)
-    if lang == "en" and symbol in ("€", "$", "£"):
-        return f"{sign}{symbol}{grouped}"
+    if lang == "en":
+        # English: €/$/£ before the amount, otherwise the ISO code after it (1,545.70 HUF).
+        if symbol in ("€", "$", "£"):
+            return f"{sign}{symbol}{grouped}"
+        return f"{sign}{grouped} {currency}"
     return f"{sign}{grouped} {symbol}"
 
 
@@ -179,8 +189,10 @@ TEXT: dict[str, tuple[str, str]] = {
         "{points} points.",
     ),
     "no_alternative_failed": (
-        "Az alternatívakeresés nem fejeződött be; csak a legkisebb költségű terv látható.",
-        "The alternative search did not finish; only the minimum-cost plan is shown.",
+        "Az alternatívakeresés nem fejeződött be; csak a legkisebb költségű terv látható. "
+        "Ebből nem következik, hogy nincs alternatíva.",
+        "The alternative search did not finish; only the minimum-cost plan is shown. "
+        "This does not establish that no alternative exists.",
     ),
     "no_alternative_found": (
         "A megengedett többletköltségen belül nincs eltérő alternatíva.",
@@ -519,11 +531,12 @@ TEXT: dict[str, tuple[str, str]] = {
         "Choose the supplier to change.",
     ),
     "err_scenario_demand_same": (
-        "Az új igény térjen el az eredeti {quantity} {unit}-tól.",
+        "Az új igény nem lehet azonos az eredetivel ({quantity} {unit}).",
         "The new demand must differ from the original {quantity} {unit}.",
     ),
     "err_scenario_capacity_same": (
-        "{name}: a kapacitás térjen el az eredeti {capacity} {unit}-tól. A 0 megszünteti.",
+        "{name}: az új kapacitás nem lehet azonos az eredetivel ({capacity} {unit}). "
+        "A 0 megszünteti.",
         "{name}: capacity must differ from its original {capacity} {unit}. Zero removes it.",
     ),
     "err_scenario_price": (

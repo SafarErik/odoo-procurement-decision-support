@@ -15,6 +15,7 @@ from frontend.app import PlanningState, planning_page
 from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
 from frontend.planning_client import fetch_planning_case, submit_planning_request
+from tests.frontend_patching import patch_client
 from tests.legacy_cases import create_legacy_case
 from tests.legacy_cases import prepare_assets as controlled_assets
 from tests.t15_helpers import MemoryPlanningUnitOfWork
@@ -83,7 +84,7 @@ def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, 
     mapped = asyncio.run(read())
     assert all(error == "" for _, error in mapped)
     reference, scenario, no_plan = [display for display, _ in mapped]
-    assert [p["cost"] for p in reference.plans] == ["102 EUR", "109 EUR"]
+    assert [p["cost"] for p in reference.plans] == ["€102.00", "€109.00"]
     assert reference.details["snapshot_hash"] == base["snapshot_hash"]
     assert scenario.details["parent_id"] == base["case_id"]
     assert "Cost delta: 4 EUR" in scenario.details["comparison"]
@@ -101,9 +102,9 @@ def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, 
         (404, "not found"),
         (401, "rejected"),
         (403, "rejected"),
-        (503, "unavailable"),
-        (500, "unavailable"),
-        (302, "unavailable"),
+        (503, "cannot be loaded"),
+        (500, "cannot be loaded"),
+        (302, "cannot be loaded"),
     ],
 )
 def test_http_failures_are_safe_and_not_retried(status, expected):
@@ -170,7 +171,7 @@ def test_malformed_snapshots_fail_closed(stored_cases, fault):
             transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
         )
     )
-    assert display is None and "snapshot" in error
+    assert display is None and "incomplete or unsupported" in error
 
 
 def test_hybrid_provenance_and_exact_money_are_presented_without_relabelling(stored_cases):
@@ -186,7 +187,7 @@ def test_hybrid_provenance_and_exact_money_are_presented_without_relabelling(sto
             transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
         )
     )
-    assert not error and display.plans[0]["cost"] == "102.001 EUR"
+    assert not error and display.plans[0]["cost"] == "€102.001"
     assert display.details["input_kind"] == "Captured Odoo quotations; synthetic ML history"
     assert display.provenance[0]["type"] == "odoo_json2"
 
@@ -208,13 +209,14 @@ def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, m
     )
     outcomes = iter([(display, ""), (None, "Planning data is unavailable."), (display, "")])
 
-    async def fetch(url, case_id, token):
+    async def fetch(url, case_id, token, lang="en"):
         assert token == TOKEN and case_id == payload["case_id"]
         return next(outcomes)
 
-    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", fetch)
+    patch_client(monkeypatch, "fetch_planning_case", fetch)
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
 
     async def submit():
         updates = PlanningState.load_case.fn(

@@ -50,7 +50,10 @@ class BaseMixin(rx.State, mixin=True):
         return self.lang if self.lang in LANGUAGES else DEFAULT_LANGUAGE
 
     @rx.event
-    def set_language(self, value: str):
+    def set_language(self, value: str | list[str]):
+        # The segmented control reports str | list[str]; only a single known language counts.
+        if isinstance(value, list):
+            value = value[0] if len(value) == 1 else ""
         if value not in LANGUAGES or value == self.lang:
             return
         self.lang = value

@@ -220,7 +220,7 @@ def _product_label(identity: str, lang: str, names: dict) -> str:
 def _unit_label(identity: str, lang: str, names: dict) -> str:
     if names.get(identity):
         return unit(names[identity], lang)
-    return unit("Units", lang) if identity.startswith("odoo:uom.uom:") else identity
+    return unit("Units" if identity.startswith("odoo:uom.uom:") else identity, lang)
 
 
 def _explanation(entry: dict, lang: str) -> str | None:
@@ -292,7 +292,11 @@ def _history_step(step, lang: str = "en") -> str:
         value, threshold = str(step["value_float32"]), str(step["threshold"])
     else:
         value = _metric(kind, step["value_float32"], lang)
-        threshold = _metric(kind, step["threshold"], lang)
+        threshold = (
+            number(step["threshold"], lang, 2)
+            if kind == "int" and step["threshold"] % 1
+            else _metric(kind, step["threshold"], lang)
+        )
         if value == threshold:  # rounding hid the difference; show the stored values
             value, threshold = f"{step['value_float32']:.4f}", f"{step['threshold']:.4f}"
     if lang == "hu":
@@ -519,6 +523,10 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
                     )
                 )
         details["assumptions"] = "; ".join(assumptions)
+        if facts.get("input_kind") == "odoo_quotations_synthetic_history":
+            details["input_kind"] = (
+                "Saved Odoo quotations with what-if changes; synthetic ML history"
+            )
     plans, allocations = [], []
     minimum = result["minimum_cost_plan"]
     recorded = ([] if minimum is None else [minimum]) + result["alternatives"]

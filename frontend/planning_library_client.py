@@ -15,7 +15,7 @@ _DECISIONS = {
     "approved": "decision_approved",
     "no_award": "decision_no_award",
 }
-_OUTCOMES = ("optimal", "infeasible", "no_proven_optimum", "solver_error")
+_OUTCOMES = ("optimal", "infeasible", "no_proven_optimum", "solver_error", "invalid_input")
 
 
 def _product(label: str, lang: str) -> str:

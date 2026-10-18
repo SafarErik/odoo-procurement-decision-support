@@ -21,6 +21,7 @@ from backend.app.main import app
 from frontend.planning.library import library_page
 from frontend.planning.state import PlanningState
 from frontend.planning_library_client import fetch_library
+from tests.frontend_patching import patch_client
 from tests.test_t17_decisions import configured as _configured
 from tests.test_t17_decisions import headers, intent
 from tests.test_t17_decisions import stored_cases as _stored_cases
@@ -189,16 +190,17 @@ def test_bookmark_clear_invalid_previous_and_pending_guard(configured, monkeypat
     _, _, base, *_ = configured
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
 
-    async def fetch(url, case_id, token):
+    async def fetch(url, case_id, token, lang="en"):
         return await fetch_planning_case(
             url, case_id, headers()["Authorization"][7:], transport=httpx.ASGITransport(app=app)
         )
 
-    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", fetch)
+    patch_client(monkeypatch, "fetch_planning_case", fetch)
 
     async def flow():
         root = rx.State(_reflex_internal_init=True)
         state = root.get_substate(PlanningState.get_full_name().split("."))
+        state.lang = "en"  # the assertions below read English texts
         root.router = RouterData.from_router_data(
             {"asPath": "/planning?case_id=" + base["case_id"] + "&view=audit"}
         )
@@ -210,7 +212,8 @@ def test_bookmark_clear_invalid_previous_and_pending_guard(configured, monkeypat
         )
         async for _ in state.load_bookmark():
             pass
-        assert not state.has_case and not state.details
+        # An unknown tab falls back to Overview; the case stays open.
+        assert state.has_case and state.view == "overview"
         state.has_pending = True
         state._pending = {"key": "same", "payload": {"quantity": 10}}
         before = deepcopy(state._pending)

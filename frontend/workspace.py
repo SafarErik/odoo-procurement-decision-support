@@ -25,7 +25,12 @@ _CSS = """
 .nav-item:hover { background:#24504f; }
 .nav-item[aria-current=page] { background:#eff5f1; color:#153f40; font-weight:650; }
 .nav-item:disabled { opacity:.6; cursor:not-allowed; }
-.lang-switch button { min-height:2.25rem; }
+/* Headings and messages take focus programmatically (tabindex=-1); keyboard users never
+   tab to them, so the focus ring would only add noise after each navigation. */
+.workspace [tabindex="-1"]:focus { outline:none; }
+.workspace .lang-switch button { min-height:0; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);
+    white-space:nowrap; }
 .case-row { cursor:pointer; }
 .case-row:hover { background:#f6f9f7; }
 .case-row[data-selected=true] { background:#f1eff8; }
@@ -134,17 +139,19 @@ def _brand():
 
 def _mobile_bar(active: str):
     return rx.flex(
-        _brand(),
+        rx.box(_brand(), min_width="0", flex="1"),
         rx.flex(
             language_switch(),
             rx.drawer.root(
                 rx.drawer.trigger(
-                    rx.button(
-                        rx.icon("menu", size=18),
-                        t("menu"),
+                    rx.icon_button(
+                        rx.icon("menu", size=20),
                         id="workspace-menu",
+                        aria_label=t("menu"),
+                        title=t("menu"),
                         background=ACCENT,
                         color="white",
+                        size="3",
                     ),
                     as_child=True,
                 ),
@@ -182,8 +189,9 @@ def _mobile_bar(active: str):
                 open=PlanningState.drawer_open,
                 on_open_change=PlanningState.change_drawer,
             ),
-            gap="0.75rem",
+            gap="0.5rem",
             align="center",
+            flex_shrink="0",
         ),
         justify="between",
         align="center",

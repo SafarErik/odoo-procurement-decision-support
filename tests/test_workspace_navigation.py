@@ -14,6 +14,7 @@ from frontend.planning.state import PlanningState
 def state_at(path="/planning"):
     root = rx.State(_reflex_internal_init=True)
     state = root.get_substate(PlanningState.get_full_name().split("."))
+    state.lang = "en"  # the assertions below read English texts
     root.router = RouterData.from_router_data({"asPath": path})
     return root, state
 
@@ -61,21 +62,19 @@ def test_pending_all_route_and_view_entries_preserve_original_context():
         state._pending_route = "/cases"
         state._pending = {"key": "exact", "payload": {"quantity": 10}, "url": "http://test"}
         state.recovery_json = "exact recovery"
-        state.input_mode = "create"
-        state.view = "whatif"
+        state.view = "scenarios"
         pending = deepcopy(state._pending)
-        for path in ("/", "/planning?case_id=bad&view=audit"):
+        for path in ("/rfqs", "/planning?case_id=bad&view=audit"):
             root.router = RouterData.from_router_data({"asPath": path})
-            handler = state.rfq_on_load if path == "/" else state.load_bookmark
+            handler = state.rfqs_on_load if path == "/rfqs" else state.load_bookmark
             events = [event async for event in handler()]
             assert events[0].args[0][1]._js_expr == '"/cases"'
             state.change_view("audit")
-            state.change_input_mode("odoo")
             state.navigate_global("rfqs")
             state.navigation_open = True
             assert state.discard_navigation() is None
             assert state._pending == pending and state.recovery_json == "exact recovery"
-            assert state.view == "whatif" and state.input_mode == "create"
+            assert state.view == "scenarios"
 
     asyncio.run(run())
 
@@ -111,11 +110,9 @@ def test_new_comparison_clears_previous_decision_feedback_but_pending_blocks_it(
     assert state._pending == pending and state.notice == "Final decision saved."
     state.has_pending = False
     state._pending = {}
-    state.new_comparison()
-    assert not state.has_case and not state.details and not state.notice
-    assert not state.error_message and not state.error_target and not state.decision_conflict
-    assert not state.final_choice and not state.decision_review
-    assert state.comparison_state == "Unsaved draft"
+    # A new comparison starts on Open RFQs; the next opened case resets its own feedback.
+    event = state.new_comparison()
+    assert event.args[0][1]._js_expr == '"/rfqs"'
 
 
 def test_direct_new_comparison_bookmark_clears_stale_approval_feedback():
@@ -127,6 +124,7 @@ def test_direct_new_comparison_bookmark_clears_stale_approval_feedback():
     async def load():
         return [event async for event in state.load_bookmark()]
 
-    assert asyncio.run(load()) == []
+    events = asyncio.run(load())
+    assert len(events) == 1 and events[0].args[0][1]._js_expr == '"/cases"'
     assert not state.has_case and not state.notice and not state.details
-    assert state.comparison_state == "Unsaved draft"
+    assert state.comparison_state == ""

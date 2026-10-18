@@ -151,6 +151,8 @@ class CreationMixin(rx.State, mixin=True):
 
     @rx.event
     def prepare_odoo_history(self, group: str = ""):
+        if group and group == self.selected_group and self.odoo_ready:
+            return focus("creation-terms-heading")  # terms already loaded below; keep the draft
         if group:
             self.select_quotation_group(group)
             if self.selected_group != group:
