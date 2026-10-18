@@ -1,372 +1,407 @@
-"""Scenario composer and immutable base-versus-scenario comparison."""
+"""Scenarios tab: base-versus-scenario comparison and the change composer."""
 
 import reflex as rx
 
+from frontend.planning.charts import scenario_chart
 from frontend.planning.state import PlanningState
-from frontend.theme import HAIRLINE, MUTED, SURFACE
+from frontend.planning.state_base import focus
+from frontend.theme import ACCENT, HAIRLINE, MUTED
+from frontend.ui import BUSY, card, heading, muted, t
+
+CHILD = PlanningState.details["parent_id"] != "Base case"
+_INPUT = {
+    "width": "100%",
+    "padding": "0.65rem",
+    "border": f"1px solid {HAIRLINE}",
+    "border_radius": "8px",
+    "background": "white",
+    "min_height": "2.75rem",
+}
+
+
+def _number_field(field: str, label: str, hint, *, mode="numeric", pattern="[0-9]{1,4}"):
+    combined = PlanningState.scenario_kind == "combined"
+    return rx.box(
+        rx.el.label(t(label), html_for="stress-" + field, display="block", font_weight="550"),
+        rx.el.input(
+            id="stress-" + field,
+            name=field,
+            type="text",
+            input_mode=mode,
+            pattern=pattern if mode == "numeric" else None,
+            max_length=4 if mode == "numeric" else 64,
+            value=getattr(PlanningState, "stress_" + field),
+            on_change=lambda value: PlanningState.update_stress(field, value),
+            required=~combined,
+            disabled=BUSY,
+            **_INPUT,
+        ),
+        rx.text(hint, size="2", color=MUTED, margin_top="0.35rem"),
+        flex="1",
+        min_width="12rem",
+    )
 
 
 def _scenario_form() -> rx.Component:
-    busy = PlanningState.is_loading | PlanningState.has_pending
-    combined = PlanningState.scenario_kind == "combined"
-    return rx.box(
-        rx.heading("Test changed assumptions. Save a new scenario.", as_="h2", size="4"),
-        rx.text(
-            "Each run starts from the original saved base, even when viewing a "
-            "scenario. The same MILP runs with saved supplier scores. Odoo stays unchanged.",
-            size="2",
-            color=MUTED,
-            max_width="75ch",
-            margin_y="0.75rem",
-        ),
+    kind = PlanningState.scenario_kind
+    combined = kind == "combined"
+    return card(
+        heading("scenario_new", size="4"),
+        muted("scenario_new_body", margin_y="0.35rem", max_width="70ch"),
         rx.el.form(
-            rx.el.label("Scenario type", html_for="stress-kind", display="block"),
-            rx.el.select(
-                *[
-                    rx.el.option(label, value=value)
-                    for label, value in (
-                        ("Supplier outage", "supplier_outage"),
-                        ("Capacity change", "capacity_change"),
-                        ("Demand change", "demand_change"),
-                        ("Price change", "price_change"),
-                        ("Combined changes", "combined"),
-                    )
-                ],
-                id="stress-kind",
-                name="kind",
-                value=PlanningState.scenario_kind,
-                on_change=PlanningState.change_scenario_kind,
-                disabled=busy,
-                padding="0.65rem",
-                width="100%",
-                border=f"1px solid {HAIRLINE}",
-                border_radius="6px",
-                background=SURFACE,
-            ),
-            rx.cond(
-                PlanningState.scenario_kind != "demand_change",
+            rx.grid(
                 rx.box(
                     rx.el.label(
-                        "Supplier to change (original terms)",
-                        html_for="stress-supplier",
+                        t("scenario_type"),
+                        html_for="stress-kind",
                         display="block",
+                        font_weight="550",
                     ),
                     rx.el.select(
-                        rx.el.option("Choose a supplier", value="", disabled=True),
-                        rx.foreach(
-                            PlanningState.scenario_suppliers,
-                            lambda row: rx.el.option(row["name"], value=row["supplier"]),
-                        ),
-                        id="stress-supplier",
-                        name="supplier",
-                        value=PlanningState.stress_supplier,
-                        on_change=PlanningState.select_stress_supplier,
-                        required=True,
-                        disabled=busy,
-                        padding="0.65rem",
-                        width="100%",
-                        border=f"1px solid {HAIRLINE}",
-                        border_radius="6px",
-                        background=SURFACE,
+                        *[
+                            rx.el.option(t("kind_" + value), value=value)
+                            for value in (
+                                "supplier_outage",
+                                "capacity_change",
+                                "demand_change",
+                                "price_change",
+                                "combined",
+                            )
+                        ],
+                        id="stress-kind",
+                        name="kind",
+                        value=kind,
+                        on_change=PlanningState.change_scenario_kind,
+                        disabled=BUSY,
+                        **_INPUT,
                     ),
-                    rx.cond(
-                        PlanningState.stress_supplier != "",
-                        rx.text(
-                            "Original capacity: ",
-                            PlanningState.selected_terms["capacity"],
-                            " units. Original price: ",
-                            PlanningState.selected_terms["price"],
-                            " ",
-                            PlanningState.details["currency"],
-                            "/unit.",
-                            size="2",
-                            color=MUTED,
-                            margin_top="0.5rem",
-                        ),
-                    ),
-                    margin_top="1rem",
                 ),
+                rx.cond(
+                    kind != "demand_change",
+                    rx.box(
+                        rx.el.label(
+                            t("scenario_supplier"),
+                            html_for="stress-supplier",
+                            display="block",
+                            font_weight="550",
+                        ),
+                        rx.el.select(
+                            rx.el.option(t("choose_supplier"), value="", disabled=True),
+                            rx.foreach(
+                                PlanningState.scenario_suppliers,
+                                lambda row: rx.el.option(row["name"], value=row["supplier"]),
+                            ),
+                            id="stress-supplier",
+                            name="supplier",
+                            value=PlanningState.stress_supplier,
+                            on_change=PlanningState.select_stress_supplier,
+                            required=True,
+                            disabled=BUSY,
+                            **_INPUT,
+                        ),
+                        rx.cond(
+                            PlanningState.stress_supplier != "",
+                            rx.text(
+                                t("original_terms"),
+                                ": ",
+                                PlanningState.selected_terms["capacity"],
+                                " ",
+                                PlanningState.details["unit_label"],
+                                " · ",
+                                PlanningState.selected_terms["price_display"],
+                                size="2",
+                                color=MUTED,
+                                margin_top="0.35rem",
+                            ),
+                        ),
+                    ),
+                ),
+                columns=rx.breakpoints(initial="1", md="2"),
+                gap="1rem",
+                margin_top="0.75rem",
             ),
             rx.flex(
                 rx.cond(
-                    (PlanningState.scenario_kind == "demand_change") | combined,
-                    rx.box(
-                        rx.el.label(
-                            "New demand quantity", html_for="stress-quantity", display="block"
-                        ),
-                        rx.el.input(
-                            id="stress-quantity",
-                            name="quantity",
-                            type="text",
-                            input_mode="numeric",
-                            pattern="[0-9]{1,4}",
-                            max_length=4,
-                            value=PlanningState.stress_quantity,
-                            on_change=lambda value: PlanningState.update_stress("quantity", value),
-                            required=~combined,
-                            disabled=busy,
-                            width="100%",
-                            padding="0.65rem",
-                            border=f"1px solid {HAIRLINE}",
-                            border_radius="6px",
-                        ),
+                    (kind == "demand_change") | combined,
+                    _number_field(
+                        "quantity",
+                        "new_demand",
                         rx.text(
-                            "Higher or lower than the original demand: ",
-                            PlanningState.details["base_quantity"],
-                            " units.",
-                            size="2",
-                            color=MUTED,
-                            margin_top="0.4rem",
+                            t("original_demand"),
+                            ": ",
+                            PlanningState.details["base_quantity_display"],
                         ),
-                        flex="1",
-                        min_width="12rem",
                     ),
                 ),
                 rx.cond(
-                    (PlanningState.scenario_kind == "capacity_change") | combined,
-                    rx.box(
-                        rx.el.label(
-                            "New capacity limit", html_for="stress-capacity", display="block"
-                        ),
-                        rx.el.input(
-                            id="stress-capacity",
-                            name="capacity",
-                            type="text",
-                            input_mode="numeric",
-                            pattern="[0-9]{1,4}",
-                            max_length=4,
-                            value=PlanningState.stress_capacity,
-                            on_change=lambda value: PlanningState.update_stress("capacity", value),
-                            required=~combined,
-                            disabled=busy,
-                            width="100%",
-                            padding="0.65rem",
-                            border=f"1px solid {HAIRLINE}",
-                            border_radius="6px",
-                        ),
-                        rx.text(
-                            "Higher or lower than the original capacity. Zero removes capacity; "
-                            "MOQ still applies.",
-                            size="2",
-                            color=MUTED,
-                            margin_top="0.4rem",
-                        ),
-                        flex="1",
-                        min_width="12rem",
-                    ),
+                    (kind == "capacity_change") | combined,
+                    _number_field("capacity", "new_capacity", t("capacity_hint")),
                 ),
                 rx.cond(
-                    (PlanningState.scenario_kind == "price_change") | combined,
-                    rx.box(
-                        rx.el.label("New price per unit", html_for="stress-price", display="block"),
-                        rx.el.input(
-                            id="stress-price",
-                            name="price",
-                            type="text",
-                            input_mode="decimal",
-                            max_length=64,
-                            placeholder="e.g. 12.50",
-                            value=PlanningState.stress_price,
-                            on_change=lambda value: PlanningState.update_stress("price", value),
-                            required=~combined,
-                            disabled=busy,
-                            width="100%",
-                            padding="0.65rem",
-                            border=f"1px solid {HAIRLINE}",
-                            border_radius="6px",
-                        ),
-                        rx.text(
-                            "Higher or lower than the original price. This is a simulated quote, "
-                            "not a fresh Odoo price.",
-                            size="2",
-                            color=MUTED,
-                            margin_top="0.4rem",
-                        ),
-                        flex="1",
-                        min_width="12rem",
-                    ),
+                    (kind == "price_change") | combined,
+                    _number_field("price", "new_price", t("price_hint"), mode="decimal"),
                 ),
                 gap="1rem",
                 flex_wrap="wrap",
                 margin_y="1rem",
             ),
-            rx.cond(
-                combined,
-                rx.text(
-                    "Enter at least two changes; capacity and price apply to one "
-                    "supplier. Leave unused fields blank.",
-                    size="2",
-                    color=MUTED,
-                    margin_bottom="1rem",
-                ),
-            ),
+            rx.cond(combined, muted("combined_hint", margin_bottom="1rem")),
             rx.box(
-                rx.text("Draft assumptions", font_weight="650", size="2"),
+                rx.text(t("draft_title"), font_weight="650", size="2"),
                 rx.text(
                     PlanningState.scenario_draft,
                     size="2",
                     white_space="pre-line",
-                    margin_top="0.5rem",
+                    margin_top="0.35rem",
                 ),
-                rx.text(
-                    "The MILP run will establish feasibility. The base case will stay unchanged.",
-                    size="1",
-                    color=MUTED,
-                    margin_top="0.5rem",
-                ),
-                rx.text(
-                    "Original base: ",
-                    PlanningState.details["base_id"],
-                    size="1",
-                    color=MUTED,
-                ),
-                rx.text(
-                    "Changed-demand totals are not like-for-like savings. "
-                    "What-if prices are simulated assumptions, not fresh quotations.",
-                    size="2",
-                    margin_top="0.5rem",
-                    max_width="75ch",
-                ),
-                padding="1rem",
-                background="#EFF3F6",
-                border_radius="6px",
+                muted("draft_note", margin_top="0.5rem"),
+                padding="0.85rem 1rem",
+                background="#f6f9f7",
+                border_radius="8px",
                 margin_bottom="1rem",
             ),
             rx.cond(
-                PlanningState.error_message != "",
+                (PlanningState.error_message != "") & (PlanningState.error_target == "scenario"),
                 rx.callout(
                     PlanningState.error_message,
                     color_scheme="red",
                     role="alert",
                     id="scenario-error",
                     tab_index=-1,
-                    on_mount=rx.set_focus("scenario-error"),
+                    on_mount=focus("scenario-error"),
                     margin_bottom="1rem",
                 ),
             ),
-            rx.button("Create and save scenario", type="submit", disabled=busy, size="3"),
+            rx.button(
+                rx.cond(PlanningState.is_loading, rx.spinner(size="2"), rx.icon("play", size=16)),
+                t("run_scenario"),
+                type="submit",
+                disabled=BUSY,
+                size="3",
+                background=ACCENT,
+                color="white",
+            ),
             on_submit=PlanningState.run_scenario.throttle(500),
             reset_on_submit=False,
         ),
-        width="100%",
-        margin_bottom="1.5rem",
     )
 
 
-def _scenario_comparison() -> rx.Component:
-    child = PlanningState.details["parent_id"] != "Base case"
-    return rx.el.section(
-        rx.heading(
-            rx.cond(child, "Saved scenario comparison", "Original base before disruption"),
-            as_="h2",
-            size="5",
-            id="scenario-result-heading",
-            tab_index=-1,
-        ),
-        rx.text("Original base: ", PlanningState.details["base_id"], size="2", color=MUTED),
-        rx.cond(
-            child,
+def _comparison() -> rx.Component:
+    return card(
+        rx.flex(
             rx.box(
-                rx.text(
-                    "Saved scenario: ", PlanningState.details["case_id"], size="2", color=MUTED
+                rx.text(t("saved_scenario"), size="2", color=MUTED),
+                rx.heading(
+                    PlanningState.details["scenario_label"],
+                    as_="h2",
+                    size="5",
+                    id="scenario-result-heading",
+                    tab_index=-1,
                 ),
-                rx.text(
-                    "Saved assumptions: ",
-                    PlanningState.details["assumptions"],
-                    size="2",
-                    margin_y="0.75rem",
-                ),
-                rx.button(
-                    "Return to original base",
-                    on_click=PlanningState.open_saved_case(PlanningState.details["base_id"]),
-                    disabled=PlanningState.is_loading | PlanningState.has_pending,
-                    variant="outline",
-                    margin_bottom="1rem",
-                ),
+                rx.text(PlanningState.details["assumptions"], size="2", margin_top="0.25rem"),
             ),
+            rx.button(
+                rx.icon("arrow-left", size=16),
+                t("back_to_base"),
+                on_click=PlanningState.open_saved_case(
+                    PlanningState.details["base_id"], "overview"
+                ),
+                disabled=BUSY,
+                variant="outline",
+            ),
+            justify="between",
+            align="start",
+            gap="1rem",
+            wrap="wrap",
         ),
         rx.cond(
             PlanningState.original_error != "",
-            rx.box(
+            rx.flex(
                 rx.callout(PlanningState.original_error, role="alert", color_scheme="red"),
                 rx.button(
-                    "Retry original-base retrieval",
+                    t("retry"),
                     on_click=PlanningState.retry_original,
-                    disabled=PlanningState.is_loading | PlanningState.has_pending,
+                    disabled=BUSY,
                     variant="outline",
-                    margin_y="0.75rem",
                 ),
-            ),
-        ),
-        rx.box(
-            rx.table.root(
-                rx.table.header(
-                    rx.table.row(
-                        rx.table.column_header_cell("Result"),
-                        rx.table.column_header_cell("Original base"),
-                        rx.cond(child, rx.table.column_header_cell("Saved scenario")),
-                        rx.cond(child, rx.table.column_header_cell("Change")),
-                    ),
-                ),
-                rx.table.body(
-                    rx.foreach(
-                        PlanningState.scenario_metrics,
-                        lambda row: rx.table.row(
-                            rx.table.row_header_cell(row["metric"]),
-                            rx.table.cell(row["base"]),
-                            rx.cond(child, rx.table.cell(row["scenario"])),
-                            rx.cond(child, rx.table.cell(row["change"])),
-                        ),
-                    ),
-                    rx.foreach(
-                        PlanningState.scenario_allocation_rows,
-                        lambda row: rx.table.row(
-                            rx.table.row_header_cell(row["name"]),
-                            rx.table.cell(row["base"]),
-                            rx.cond(child, rx.table.cell(row["scenario"])),
-                            rx.cond(child, rx.table.cell(row["change"])),
-                        ),
-                    ),
-                ),
-                min_width=rx.cond(child, "38rem", "24rem"),
-                width="100%",
-            ),
-            role="region",
-            aria_label="Exact original-base and scenario comparison",
-            tab_index=0,
-            overflow_x="auto",
-            width="100%",
-            margin_y="1rem",
-        ),
-        rx.cond(
-            child & (PlanningState.details["quantity"] != PlanningState.details["base_quantity"]),
-            rx.text(
-                "Demand changed: these totals cover different quantities, "
-                "not a like-for-like saving.",
-                size="2",
-                margin_bottom="0.75rem",
-                max_width="75ch",
+                gap="0.75rem",
+                align="center",
+                margin_top="1rem",
+                wrap="wrap",
             ),
         ),
         rx.cond(
-            child & (PlanningState.plans.length() == 0),
+            PlanningState.details["comparison_display"] != "",
             rx.callout(
-                "No proven scenario minimum-cost plan is available. Its cost, exposure and "
-                "allocations are unavailable, not zero. The original saved result remains above. "
-                "Read the saved outcome and diagnostics in Audit.",
-                color_scheme="amber",
-                margin_bottom="0.75rem",
+                PlanningState.details["comparison_display"],
+                icon="info",
+                size="1",
+                margin_top="1rem",
             ),
         ),
-        rx.text(
-            "Costs and allocations compare minimum-cost plans. Exposure is an uncalibrated "
-            "synthetic proxy, not failure probability. What-if prices are simulated assumptions, "
-            "not fresh quotations. Scenarios remain analytical and cannot be approved.",
-            size="2",
-            color=MUTED,
-            max_width="75ch",
+        rx.grid(
+            rx.box(
+                rx.table.root(
+                    rx.table.header(
+                        rx.table.row(
+                            rx.table.column_header_cell(""),
+                            rx.table.column_header_cell(t("chart_base")),
+                            rx.table.column_header_cell(t("chart_scenario")),
+                            rx.table.column_header_cell(t("change")),
+                        )
+                    ),
+                    rx.table.body(
+                        rx.foreach(
+                            PlanningState.scenario_metrics,
+                            lambda row: rx.table.row(
+                                rx.table.row_header_cell(row["metric"]),
+                                rx.table.cell(row["base"]),
+                                rx.table.cell(row["scenario"]),
+                                rx.table.cell(row["change"], white_space="nowrap"),
+                            ),
+                        ),
+                        rx.foreach(
+                            PlanningState.scenario_allocation_rows,
+                            lambda row: rx.table.row(
+                                rx.table.row_header_cell(row["name"]),
+                                rx.table.cell(row["base"]),
+                                rx.table.cell(row["scenario"]),
+                                rx.table.cell(row["change"]),
+                            ),
+                        ),
+                    ),
+                    variant="ghost",
+                    size="1",
+                    min_width="30rem",
+                ),
+                overflow_x="auto",
+                role="region",
+                aria_label=t("scenario_table"),
+                tab_index=0,
+                min_width="0",
+            ),
+            rx.box(
+                rx.text(t("chart_scenario_title"), size="2", font_weight="650"),
+                scenario_chart(),
+                min_width="0",
+            ),
+            columns=rx.breakpoints(initial="1", lg="2"),
+            gap="1.5rem",
+            margin_top="1rem",
         ),
-        aria_label="Original base and saved scenario",
-        margin_bottom="1.5rem",
-        width="100%",
+        rx.cond(
+            PlanningState.plans.length() == 0,
+            rx.callout(t("scenario_no_plan_body"), color_scheme="amber", margin_top="1rem"),
+        ),
+        muted("scenario_footnote", margin_top="1rem", max_width="75ch"),
+    )
+
+
+def _saved_scenario(row) -> rx.Component:
+    return rx.flex(
+        rx.box(
+            rx.text(row["scenario"], font_weight="650", size="2"),
+            rx.text(
+                t("col_demand"),
+                ": ",
+                row["quantity"],
+                " · ",
+                row["outcome"],
+                size="2",
+                color=MUTED,
+            ),
+            min_width="0",
+        ),
+        rx.button(
+            t("open_scenario"),
+            on_click=PlanningState.open_saved_case(row["case_id"], "scenarios"),
+            disabled=BUSY,
+            size="2",
+            variant="outline",
+            flex_shrink="0",
+        ),
+        justify="between",
+        align="center",
+        gap="1rem",
+        padding="0.6rem 0",
+        border_top=f"1px solid {HAIRLINE}",
+    )
+
+
+def _saved_scenarios() -> rx.Component:
+    """The base case's saved scenarios: a read-only GET, loaded when this tab opens."""
+    # Nothing requested yet counts as loading, so the empty text never flashes before the GET.
+    loading = PlanningState.base_scenarios_loading | (PlanningState.base_scenarios_case == "")
+    return card(
+        heading("saved_scenarios", size="4", id="base-scenarios-heading"),
+        muted("base_scenarios_body", margin_top="0.25rem", margin_bottom="0.5rem"),
+        rx.grid(
+            rx.foreach(PlanningState.base_scenarios, _saved_scenario),
+            columns=rx.breakpoints(initial="1", lg="2"),
+            column_gap="2rem",
+        ),
+        rx.cond(
+            loading,
+            rx.flex(
+                rx.spinner(size="2"),
+                rx.text(t("loading_scenarios"), size="2", color=MUTED),
+                role="status",
+                align="center",
+                gap="0.5rem",
+                padding="0.6rem 0",
+            ),
+            rx.cond(
+                PlanningState.base_scenarios_error != "",
+                rx.flex(
+                    rx.callout(
+                        PlanningState.base_scenarios_error,
+                        role="alert",
+                        color_scheme="red",
+                        size="1",
+                    ),
+                    rx.button(
+                        t("retry"),
+                        on_click=PlanningState.load_base_scenarios(False),
+                        variant="outline",
+                        size="2",
+                    ),
+                    gap="0.75rem",
+                    align="center",
+                    wrap="wrap",
+                    margin_top="0.5rem",
+                ),
+                rx.cond(
+                    PlanningState.base_scenarios.length() == 0,
+                    muted("no_scenarios", padding="0.6rem 0"),
+                    rx.cond(
+                        PlanningState.base_scenarios_cursor != "",
+                        rx.button(
+                            t("more_scenarios"),
+                            on_click=PlanningState.load_base_scenarios(True),
+                            size="2",
+                            variant="ghost",
+                            margin_top="0.5rem",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        on_mount=PlanningState.load_base_scenarios(False),
+    )
+
+
+def scenarios_view() -> rx.Component:
+    return rx.flex(
+        rx.cond(
+            CHILD,
+            _comparison(),
+            rx.fragment(
+                rx.callout(t("scenarios_intro"), icon="info", size="1"),
+                _saved_scenarios(),
+            ),
+        ),
+        _scenario_form(),
+        direction="column",
+        gap="1rem",
     )

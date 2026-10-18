@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pytest
 
+from frontend.i18n import money
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case
 from tests.test_t16_stored_planning import stored_cases as stored_cases
@@ -14,13 +15,14 @@ def test_selection_mirrors_saved_values_and_never_preselects_or_creates_intent(s
     base = stored_cases[1]
     display = _map_case(base, base["case_id"])
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     state._show(display)
     assert state.final_choice == "" and state.selected_plan == {} and not state._pending
     PlanningState.choose_final_plan.fn(state, "Alternative 1")
     assert state.selected_plan == display.plans[1]
     selected = base["snapshot"]["result"]["alternatives"][0]
     assert state.selected_plan["index"] == "1"
-    assert state.selected_plan["cost"] == f"{Decimal(selected['total_cost']):,f} EUR"
+    assert state.selected_plan["cost"] == money(Decimal(selected["total_cost"]), "EUR", "en")
     assert state.selected_plan["premium_exact"] == (
         f"{selected['cost_premium']['numerator']}/{selected['cost_premium']['denominator']}"
     )
@@ -28,7 +30,11 @@ def test_selection_mirrors_saved_values_and_never_preselects_or_creates_intent(s
     assert {r["supplier"]: int(r["quantity"]) for r in mapped} == {
         a["supplier_id"]: a["quantity"] for a in selected["allocations"]
     }
-    assert all(row["promised"] in state.selected_plan["allocation_summary"] for row in mapped)
+    assert all(
+        row["name"] in state.selected_plan["allocation_summary"]
+        for row in mapped
+        if row["quantity"] != "0"
+    )
     assert not state._pending and not state.request_key and not state.details["final_outcome"]
     PlanningState.choose_final_plan.fn(state, "forged")
     assert state.final_choice == "Alternative 1"
@@ -64,11 +70,12 @@ def test_exact_absolute_premium_is_not_rounded_by_decimal_context(stored_cases):
     result["minimum_cost_plan"]["total_cost"] = "123456789012345678901234567890.000000000000000001"
     result["alternatives"][0]["total_cost"] = "123456789012345678901234567890.000000000000000002"
     display = _map_case(payload, payload["case_id"])
-    assert display.plans[1]["premium_absolute"] == "+0.000000000000000001 EUR"
+    assert display.plans[1]["premium_absolute"] == "+€0.000000000000000001"
 
 
 def test_child_selection_is_analytical_and_empty_results_clear_review(stored_cases):
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     child, infeasible = stored_cases[2:]
     state._show(_map_case(child, child["case_id"]))
     PlanningState.choose_final_plan.fn(state, "Minimum cost")
@@ -90,9 +97,10 @@ def test_incomplete_outcomes_show_only_retained_saved_plans(stored_cases, status
         result["alternatives"] = []
     display = _map_case(payload, payload["case_id"])
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     state._show(display)
     assert state.selected_plan == {} and not state._pending
     if retained:
         assert len(state.plans) == 2 and state.details["status"] == status.replace("_", " ")
     else:
-        assert state.plans == [] and state.details["chart_min_cost"] == ""
+        assert state.plans == [] and state.details["min_cost_display"] == ""

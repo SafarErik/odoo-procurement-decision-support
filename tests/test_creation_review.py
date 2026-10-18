@@ -11,9 +11,11 @@ from pydantic import SecretStr
 from backend.app.config import settings as backend_settings
 from backend.app.main import app
 from frontend.config import settings as frontend_settings
+from frontend.i18n import tr
 from frontend.odoo_history_client import fetch_odoo_history, fetch_quotation_groups
 from frontend.planning.state import PlanningState
 from frontend.planning_client import submit_planning_request
+from tests.frontend_patching import patch_client
 from tests.test_odoo_purchase_history import configured as configured
 from tests.test_odoo_purchase_history import history as history
 
@@ -42,8 +44,9 @@ def prepared_state(configured, monkeypatch):
         async def through_api(*args, function=function, **kwargs):
             return await function(*args, **kwargs, transport=asgi)
 
-        monkeypatch.setattr(f"frontend.planning.state.{name}", through_api)
+        patch_client(monkeypatch, name, through_api)
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     consume(state, PlanningState.load_quotation_groups)
     assert [g["value"] for g in state.quotation_groups] == ["501"], state.error_message
     assert (
@@ -74,7 +77,7 @@ def test_group_choice_is_limited_to_listed_selectable_groups(prepared_state):
     assert state.selected_group == "501"
     state.selected_group = ""
     consume(state, PlanningState.load_odoo_history)
-    assert "choose an open Odoo quotation group" in state.error_message
+    assert "Choose an open RFQ" in state.error_message
 
 
 def test_switching_group_drops_the_loaded_preview(prepared_state):
@@ -112,12 +115,12 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
             raise httpx.ReadTimeout("Lost after commit", request=request)
         return response
 
-    async def post(url, payload, key, token):
+    async def post(url, payload, key, token, lang="en"):
         return await submit_planning_request(
-            url, payload, key, token, transport=httpx.MockTransport(lose_first)
+            url, payload, key, token, lang=lang, transport=httpx.MockTransport(lose_first)
         )
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
+    patch_client(monkeypatch, "submit_planning_request", post)
     read_before = len(upstream)
     PlanningState.review_odoo.fn(state, form)
     assert not requests and len(upstream) == read_before and not uow.rows
@@ -125,13 +128,12 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     reviewed = deepcopy(state._review_payload)
     assert reviewed["purchase_group_id"] == 501
     assert reviewed["terms"]["suppliers"][0]["minimum_order_quantity"] is None
-    assert state.review_suppliers[0]["moq"] == "None (no MOQ)"
+    assert state.review_suppliers[0]["moq"] == "None"
     assert state.creation_review["captured"] == original["controlled_input"]["as_of"]
-    assert state.creation_review["history_source"].startswith("Odoo purchase history")
     assert state._odoo_payload == original
     consume(state, PlanningState.save_reviewed_creation)
     assert len(requests) == 1 and state.has_pending and len(uow.rows) == 1
-    assert state.comparison_state == "Save response unconfirmed — recover the same request"
+    assert state.comparison_state == tr("state_unconfirmed", "en")
     recovery = json.loads(state.recovery_json)
     assert recovery["payload"] == reviewed
     assert recovery["url"].endswith("/from-odoo-history")
@@ -144,8 +146,8 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     assert requests[0] == requests[1] and len(uow.rows) == 1 and upstream == upstream_before
     assert state.has_case and not state.has_pending and not state._review_payload
     assert state.details["origin"] == "odoo"
-    assert state.notice == "Comparison saved. Approval is a separate choice."
-    assert state.comparison_state == "Saved comparison — awaiting a decision"
+    assert state.notice == "Comparison saved. Approval is a separate step."
+    assert state.comparison_state == tr("state_awaiting", "en")
     assert not state.final_choice and not state.details["final_outcome"]
 
 
@@ -183,7 +185,7 @@ def test_reviewed_required_date_cannot_expire_into_a_new_save(prepared_state):
     PlanningState.review_odoo.fn(state, form)
     state.creation_review["required_date"] = "2020-01-01"
     consume(state, PlanningState.save_reviewed_creation)
-    assert "now past" in state.error_message and not state._pending and not state.request_key
+    assert "has passed" in state.error_message and not state._pending and not state.request_key
 
 
 def test_failed_new_save_does_not_treat_previous_case_as_success(prepared_state, monkeypatch):
@@ -192,10 +194,10 @@ def test_failed_new_save_does_not_treat_previous_case_as_success(prepared_state,
     state.details = {"case_id": "previous-case"}
     PlanningState.review_odoo.fn(state, form)
 
-    async def failed(*args):
+    async def failed(*args, **kwargs):
         return None, "Planning access was denied.", False
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", failed)
+    patch_client(monkeypatch, "submit_planning_request", failed)
     events = consume(state, PlanningState.save_reviewed_creation)
     assert events == [None] and state._review_payload and state.error_message
     assert state.details["case_id"] == "previous-case" and not state.has_pending
@@ -209,8 +211,9 @@ def test_unavailable_group_listing_is_actionable(monkeypatch):
             transport=httpx.MockTransport(lambda request: httpx.Response(503)),
         )
 
-    monkeypatch.setattr("frontend.planning.state.fetch_quotation_groups", unavailable)
+    patch_client(monkeypatch, "fetch_quotation_groups", unavailable)
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     consume(state, PlanningState.load_quotation_groups)
     assert state.quotation_groups == [] and state.selected_group == ""
     assert "unavailable" in state.error_message and not state.is_loading

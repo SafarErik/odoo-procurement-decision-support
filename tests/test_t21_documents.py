@@ -17,9 +17,11 @@ from application.planning_documents import PlanningDocument
 from backend.app.main import app
 from document_adapter.approved_pdf import render_approved_pdf
 from frontend.config import settings as frontend_settings
+from frontend.i18n import tr
 from frontend.planning.state import PlanningState
 from frontend.planning_client import fetch_planning_case
 from frontend.planning_pdf_client import fetch_planning_pdf
+from tests.frontend_patching import patch_client
 from tests.test_t15_planning_api import forbidden
 from tests.test_t17_decisions import BASE, TOKEN, headers, intent
 from tests.test_t17_decisions import configured as _configured
@@ -266,13 +268,14 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(configured, 
             return None, "PDF unavailable; approval remains saved"
         return await fetch_planning_pdf(*args, **kwargs, transport=transport)
 
-    monkeypatch.setattr("frontend.planning.state.fetch_planning_pdf", fetch)
+    patch_client(monkeypatch, "fetch_planning_pdf", fetch)
 
     async def run():
         display, _ = await fetch_planning_case(
             "http://test" + BASE, base["case_id"], TOKEN, transport=transport
         )
         state = PlanningState(_reflex_internal_init=True)
+        state.lang = "en"  # the assertions below read English texts
         state._show(display)
         before = state.details.copy()
         async for _ in state.request_pdf():
@@ -330,4 +333,5 @@ def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption)
             transport=httpx.MockTransport(respond),
         )
     )
-    assert result is None and "Approval remains saved" in error and TOKEN not in error
+    # Hungarian is the default document language, so the message is Hungarian too.
+    assert result is None and error == tr("err_pdf", "hu") and TOKEN not in error

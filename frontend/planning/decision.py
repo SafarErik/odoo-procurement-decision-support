@@ -1,313 +1,160 @@
-"""Explicit original-base human decision and saved audit presentation."""
+"""Decision & PDF tab: one explicit decision on the base case, then its approved PDF."""
 
 import reflex as rx
 
 from frontend.planning.pdf import ApprovedPDFViewer
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, MUTED, SURFACE
+from frontend.planning.state_base import focus
+from frontend.theme import ACCENT, HAIRLINE, INK, MUTED
+from frontend.ui import BUSY, card, muted, t
+
+NO_AWARD = PlanningState.final_choice == "No-award"
 
 
-def saved_decision(*, focus_target: bool = False) -> rx.Component:
-    return rx.vstack(
-        rx.text("Data origin: ", PlanningState.details["origin_label"], font_weight="650"),
+def _row(label: str, value):
+    return rx.flex(
+        rx.text(t(label), size="2", color=MUTED, min_width="9rem"),
+        rx.text(value, size="2", font_weight="600", white_space="pre-wrap"),
+        gap="1rem",
+        padding_y="0.35rem",
+        border_bottom=f"1px solid {HAIRLINE}",
+        wrap="wrap",
+    )
+
+
+def saved_decision() -> rx.Component:
+    approved = PlanningState.details["final_outcome"] == "Approved"
+    return rx.box(
         rx.heading(
-            PlanningState.details["final_outcome"],
+            PlanningState.details["final_outcome_label"],
             as_="h2",
-            size="4",
-            id="saved-decision-heading" if focus_target else "audit-decision-heading",
+            size="5",
+            id="saved-decision-heading",
             tab_index=-1,
-            **({"on_mount": rx.set_focus("saved-decision-heading")} if focus_target else {}),
         ),
-        rx.text("Selected plan: ", PlanningState.details["final_plan"]),
-        rx.text("Actor audit reference: ", PlanningState.details["final_actor"]),
-        rx.text("Reason: ", PlanningState.details["final_reason"], white_space="pre-wrap"),
-        rx.text("Recorded at (UTC): ", PlanningState.details["final_recorded_at"]),
-        rx.text(
-            "Controlled demonstration with synthetic ML evidence. The actor is caller-supplied "
-            "audit text, not authenticated buyer identity. Saved simulation dates remain separate "
-            "from the decision record time. No Odoo order was created.",
-            color=MUTED,
-            size="2",
+        rx.box(
+            _row("decision_plan", PlanningState.details["final_plan_title"]),
+            rx.cond(approved, _row("total_cost", PlanningState.selected_plan.get("cost", ""))),
+            _row("decision_actor", PlanningState.details["final_actor"]),
+            rx.cond(
+                PlanningState.details["final_reason"] != "",
+                _row("decision_reason", PlanningState.details["final_reason"]),
+            ),
+            _row("decision_recorded", PlanningState.details["final_recorded_display"]),
+            margin_y="1rem",
         ),
         rx.cond(
-            PlanningState.details["final_outcome"] == "Approved",
-            rx.vstack(
-                rx.el.section(
-                    rx.heading("Saved approved terms", as_="h3", size="3"),
-                    rx.text(
-                        PlanningState.details["product"],
-                        " · ",
-                        PlanningState.details["quantity"],
-                        " ",
-                        PlanningState.details["unit"],
-                        " · required ",
-                        PlanningState.details["required_date"],
-                    ),
-                    rx.text("Approved cost: ", PlanningState.selected_plan.get("cost", "")),
-                    rx.foreach(
-                        PlanningState.allocations,
-                        lambda row: rx.cond(
-                            row["plan"] == PlanningState.details["final_plan"],
-                            rx.text(
-                                row["name"],
-                                ": ",
-                                row["quantity"],
-                                " ",
-                                PlanningState.details["unit"],
-                                " · promised ",
-                                row["promised"],
-                                size="2",
-                            ),
+            approved,
+            rx.box(
+                rx.text(t("approved_allocation"), font_weight="650", size="2"),
+                rx.foreach(
+                    PlanningState.allocations,
+                    lambda row: rx.cond(
+                        (row["plan"] == PlanningState.details["final_plan"])
+                        & (row["quantity"] != "0"),
+                        rx.text(
+                            row["name"],
+                            ": ",
+                            row["quantity_display"],
+                            " · ",
+                            t("promised_short"),
+                            " ",
+                            row["promised"],
+                            size="2",
                         ),
                     ),
-                    aria_label="Saved approved terms",
                 ),
                 rx.flex(
-                    rx.el.label(
-                        "PDF language ",
-                        rx.el.select(
-                            rx.el.option("Magyar", value="hu"),
-                            rx.el.option("English", value="en"),
-                            value=PlanningState.document_language,
-                            on_change=PlanningState.set_document_language,
-                            disabled=PlanningState.is_loading | PlanningState.has_pending,
-                            padding="0.5rem",
-                            border_radius="6px",
-                        ),
-                    ),
                     rx.button(
                         rx.cond(
-                            PlanningState.pdf_error != "", "Retry approved PDF", "View approved PDF"
+                            PlanningState.is_loading,
+                            rx.spinner(size="2"),
+                            rx.icon("file-text", size=16),
                         ),
+                        rx.cond(PlanningState.pdf_error != "", t("retry_pdf"), t("view_pdf")),
                         on_click=PlanningState.request_pdf,
-                        disabled=PlanningState.is_loading | PlanningState.has_pending,
+                        disabled=BUSY,
+                        background=ACCENT,
+                        color="white",
                     ),
-                    wrap="wrap",
+                    rx.text(t("pdf_language_note"), size="2", color=MUTED),
                     gap="0.75rem",
                     align="center",
+                    wrap="wrap",
+                    margin_top="1.25rem",
                 ),
                 rx.cond(
                     PlanningState.pdf_error != "",
-                    rx.callout(PlanningState.pdf_error, color_scheme="amber", role="alert"),
-                ),
-                rx.el.details(
-                    rx.el.summary("Document identity for support", cursor="pointer"),
-                    rx.text("Original case: ", PlanningState.details["case_id"], size="2"),
-                    rx.text(
-                        "Approved content hash: ",
-                        PlanningState.details["final_content_hash"],
-                        size="2",
-                    ),
-                    rx.text(
-                        "Document access reads this approval only; it does not approve again.",
-                        size="2",
+                    rx.callout(
+                        PlanningState.pdf_error,
+                        color_scheme="amber",
+                        role="alert",
+                        margin_top="1rem",
                     ),
                 ),
                 rx.cond(
                     PlanningState.pdf_data_url != "",
-                    rx.vstack(
-                        rx.text(
-                            "The PDF is ready. Use Download approved PDF "
-                            "to save this exact document.",
-                            size="2",
-                            color=MUTED,
-                            role="status",
-                        ),
+                    rx.box(
                         ApprovedPDFViewer.create(
                             data=PlanningState.pdf_data_url,
                             filename=PlanningState.pdf_filename,
+                            lang=PlanningState.lang,
                         ),
-                        align="stretch",
-                        width="100%",
+                        margin_top="1rem",
                     ),
                 ),
-                align="stretch",
-                spacing="3",
-                width="100%",
+                margin_top="0.5rem",
             ),
-            rx.text("No-award has no approved procurement PDF.", size="2", color=MUTED),
+            muted("no_award_no_pdf"),
         ),
-        align="stretch",
-        spacing="3",
-        overflow_wrap="anywhere",
+        muted("no_odoo_order", margin_top="1rem"),
     )
 
 
-def selection_review() -> rx.Component:
-    return rx.el.section(
-        rx.heading(
-            rx.cond(
-                PlanningState.details["final_outcome"] == "Approved",
-                "Saved approved selection",
-                "Selection for review",
-            ),
-            as_="h2",
-            size="5",
-        ),
-        rx.box(
-            rx.cond(
-                PlanningState.selected_plan.get("label", "") != "",
-                rx.box(
-                    rx.text(
-                        PlanningState.selected_plan.get("label", ""),
-                        " · saved plan index ",
-                        PlanningState.selected_plan.get("index", ""),
-                        font_weight="650",
-                    ),
-                    rx.text(
-                        PlanningState.selected_plan.get("cost", ""), size="6", font_weight="650"
-                    ),
-                    rx.text(
-                        "Above minimum: ",
-                        PlanningState.selected_plan.get("premium_absolute", ""),
-                        " · exact relative premium ",
-                        PlanningState.selected_plan.get("premium_exact", ""),
-                        size="2",
-                    ),
-                    rx.text(
-                        PlanningState.selected_plan.get("allocation_summary", ""),
-                        size="2",
-                        margin_y="0.5rem",
-                    ),
-                    rx.text(
-                        "Synthetic exposure: ",
-                        PlanningState.selected_plan.get("exposure_exact", ""),
-                        ". Uncalibrated proxy, not a failure probability.",
-                        size="2",
-                    ),
-                ),
-                rx.text(
-                    rx.cond(
-                        PlanningState.details["final_outcome"] == "No-award",
-                        "Saved No-award: no allocation was approved.",
-                        rx.cond(
-                            PlanningState.final_choice == "No-award",
-                            "No-award: no allocation is selected. "
-                            "A reason is required before finalization.",
-                            "Select a saved plan explicitly. "
-                            "Nothing is selected or approved automatically.",
-                        ),
-                    ),
-                ),
-            ),
-            role="status",
-            aria_live="polite",
-            margin_y="0.75rem",
-        ),
-        rx.text(
-            PlanningState.details["product"],
-            " · ",
-            PlanningState.details["quantity"],
-            " ",
-            PlanningState.details["unit"],
-            " · ",
-            PlanningState.details["currency"],
-            " · required ",
-            PlanningState.details["required_date"],
-            size="2",
-        ),
-        rx.text("Selection source case ", PlanningState.details["case_id"], size="1", color=MUTED),
-        rx.text(PlanningState.details["input_kind"], size="2", color=MUTED),
-        rx.cond(
-            (PlanningState.details["parent_id"] == "Base case")
-            & (PlanningState.details["final_outcome"] == ""),
-            rx.button(
-                rx.cond(
-                    PlanningState.final_choice == "No-award",
-                    "Review No-award decision",
-                    "Review selected plan",
-                ),
-                on_click=rx.set_focus("final-decision-heading"),
-                disabled=PlanningState.is_loading
-                | PlanningState.has_pending
-                | (PlanningState.final_choice == ""),
-                background=ACCENT,
-                color="white",
-                margin_top="1rem",
-            ),
-            rx.text(
-                rx.cond(
-                    PlanningState.details["parent_id"] != "Base case",
-                    "Scenario selections are analytical. "
-                    "Return to the original base for a decision.",
-                    "The recorded decision is immutable; this summary does not change it.",
-                ),
-                size="2",
-                margin_top="0.75rem",
-            ),
-        ),
-        aria_label="Selected plan and next step",
-        id="selection-review",
-        background=rx.cond(PlanningState.selected_plan.get("label", "") != "", "#f1eff8", SURFACE),
-        border=f"1px solid {HAIRLINE}",
-        padding="1.25rem",
-        margin_y="1.25rem",
-        width="100%",
-    )
-
-
-def _decision_confirmation() -> rx.Component:
+def _confirmation() -> rx.Component:
     review = PlanningState.decision_review
     no_award = review.get("choice", "") == "No-award"
     return rx.alert_dialog.root(
         rx.alert_dialog.content(
             rx.alert_dialog.title(
-                rx.cond(no_award, "Confirm No-award", "Confirm approval"),
+                rx.cond(no_award, t("confirm_no_award"), t("confirm_approval")),
                 id="decision-confirm-title",
                 flex_shrink="0",
             ),
-            rx.alert_dialog.description(
-                "Confirming records this original-base decision once. It cannot be replaced. "
-                "Cancel returns to editing without saving. No Odoo order is created.",
-                flex_shrink="0",
-            ),
+            rx.alert_dialog.description(t("confirm_body"), flex_shrink="0"),
             rx.box(
-                rx.text("Data origin: ", PlanningState.details["origin_label"], font_weight="650"),
-                rx.text(PlanningState.details["product"], font_weight="650", margin_top="0.75rem"),
                 rx.text(
-                    PlanningState.details["quantity"],
-                    " ",
-                    PlanningState.details["unit"],
+                    PlanningState.details["product_label"], font_weight="650", margin_top="0.75rem"
+                ),
+                rx.text(
+                    PlanningState.details["quantity_display"],
                     " · ",
-                    PlanningState.details["currency"],
-                    " · required ",
-                    PlanningState.details["required_date"],
-                ),
-                rx.text("Original base: ", review.get("case_id", ""), size="1", color=MUTED),
-                rx.text("Captured cutoff: ", PlanningState.details["as_of"], size="2", color=MUTED),
-                rx.text(PlanningState.details["input_kind"], size="2", margin_y="0.75rem"),
-                rx.cond(
-                    no_award,
-                    rx.text("No allocation will be approved. No-award has no approved-plan PDF."),
-                    rx.box(
-                        rx.text(
-                            review.get("choice", ""),
-                            " · saved plan index ",
-                            review.get("index", ""),
-                            font_weight="650",
-                        ),
-                        rx.text(review.get("cost", ""), size="5", font_weight="650"),
-                        rx.text(
-                            review.get("allocation_summary", ""),
-                            white_space="pre-wrap",
-                            margin_y="0.75rem",
-                        ),
-                        rx.text("Synthetic exposure (exact): ", review.get("exposure_exact", "")),
-                        rx.text("Above minimum: ", review.get("premium_absolute", ""), size="2"),
-                    ),
-                ),
-                rx.text("Actor audit reference: ", review.get("actor", ""), margin_top="1rem"),
-                rx.text("Reason: ", review.get("reason", ""), white_space="pre-wrap"),
-                rx.text(
-                    "Actor attribution is audit text, not authenticated buyer identity. "
-                    "This is a controlled demonstration with synthetic ML evidence; exposure "
-                    "is not a failure probability.",
+                    t("required_short"),
+                    " ",
+                    PlanningState.details["required_display"],
                     size="2",
                     color=MUTED,
+                ),
+                rx.cond(
+                    no_award,
+                    rx.text(t("no_award_effect"), margin_top="0.75rem"),
+                    rx.box(
+                        rx.text(review.get("title", ""), font_weight="650"),
+                        rx.text(review.get("cost", ""), size="6", font_weight="650"),
+                        rx.text(review.get("allocation_summary", ""), size="2", margin_y="0.5rem"),
+                        rx.text(
+                            t("risk_exposure"), ": ", review.get("exposure_display", ""), size="2"
+                        ),
+                        margin_top="0.75rem",
+                    ),
+                ),
+                rx.box(
+                    _row("decision_actor", review.get("actor", "")),
+                    _row("decision_reason", review.get("reason", "")),
                     margin_top="0.75rem",
                 ),
                 role="region",
-                aria_label="Exact decision review",
+                aria_label=t("confirm_approval"),
                 tab_index=0,
                 margin_y="1rem",
                 overflow_wrap="anywhere",
@@ -317,25 +164,24 @@ def _decision_confirmation() -> rx.Component:
             ),
             rx.flex(
                 rx.alert_dialog.cancel(
-                    rx.button("Cancel", id="decision-confirm-cancel", variant="outline"),
+                    rx.button(t("cancel"), id="decision-confirm-cancel", variant="outline"),
                     as_child=True,
                 ),
                 rx.button(
-                    rx.cond(no_award, "Confirm No-award", "Approve plan"),
+                    rx.cond(no_award, t("confirm_no_award"), t("approve_plan")),
                     on_click=PlanningState.confirm_final_decision.throttle(500),
-                    disabled=PlanningState.is_loading | PlanningState.has_pending,
-                    background=rx.cond(no_award, "#173e3d", ACCENT),
+                    disabled=BUSY,
+                    background=rx.cond(no_award, INK, ACCENT),
                     color="white",
                 ),
                 gap="0.75rem",
                 flex_wrap="wrap",
+                justify="end",
                 flex_shrink="0",
             ),
-            on_open_auto_focus=rx.set_focus("decision-confirm-cancel"),
-            on_close_auto_focus=rx.call_script(
-                "document.getElementById('decision-review-button')?.focus()"
-            ),
-            max_width="min(44rem, calc(100vw - 2rem))",
+            on_open_auto_focus=focus("decision-confirm-cancel"),
+            on_close_auto_focus=focus("decision-review-button"),
+            max_width="min(40rem, calc(100vw - 2rem))",
             max_height="calc(100dvh - 2rem)",
             overflow="hidden",
             display="flex",
@@ -348,184 +194,182 @@ def _decision_confirmation() -> rx.Component:
     )
 
 
-def decision_view() -> rx.Component:
+def _decision_form() -> rx.Component:
     return rx.box(
-        rx.text(
-            "Data origin: ",
-            PlanningState.details["origin_label"],
-            font_weight="650",
-            margin_bottom="0.75rem",
+        rx.heading(
+            t("record_decision"), as_="h2", size="5", id="final-decision-heading", tab_index=-1
         ),
+        muted("record_decision_body", margin_y="0.35rem", max_width="70ch"),
+        rx.cond(
+            (PlanningState.details["status_code"] != "optimal")
+            & (PlanningState.plans.length() > 0),
+            rx.callout(t("incomplete_body"), color_scheme="amber", margin_bottom="0.75rem"),
+        ),
+        rx.form(
+            rx.flex(
+                rx.cond(
+                    NO_AWARD,
+                    rx.box(
+                        rx.el.input(type="hidden", name="choice", value="No-award"),
+                        rx.text(t("no_award_effect"), font_weight="650"),
+                        rx.button(
+                            t("choose_plan_instead"),
+                            type="button",
+                            variant="outline",
+                            on_click=PlanningState.choose_final_plan(""),
+                            disabled=BUSY,
+                            margin_top="0.5rem",
+                        ),
+                    ),
+                    rx.box(
+                        rx.el.label(
+                            t("plan_for_approval"),
+                            html_for="final-choice",
+                            display="block",
+                            font_weight="550",
+                        ),
+                        rx.el.select(
+                            rx.el.option(t("choose_plan"), value="", disabled=True),
+                            rx.foreach(
+                                PlanningState.plans,
+                                lambda p: rx.el.option(
+                                    p["title"] + " – " + p["cost"], value=p["label"]
+                                ),
+                            ),
+                            name="choice",
+                            id="final-choice",
+                            value=PlanningState.final_choice,
+                            on_change=PlanningState.choose_final_plan,
+                            required=True,
+                            disabled=BUSY,
+                            width="100%",
+                            padding="0.6rem",
+                            border=f"1px solid {HAIRLINE}",
+                            border_radius="8px",
+                            min_height="2.75rem",
+                            background="white",
+                        ),
+                        rx.button(
+                            t("record_no_award"),
+                            type="button",
+                            variant="ghost",
+                            on_click=PlanningState.choose_final_plan("No-award"),
+                            disabled=BUSY,
+                            margin_top="0.5rem",
+                        ),
+                    ),
+                ),
+                rx.box(
+                    rx.el.label(
+                        t("decision_actor"),
+                        html_for="final-actor",
+                        display="block",
+                        font_weight="550",
+                    ),
+                    rx.input(
+                        name="actor",
+                        id="final-actor",
+                        placeholder=t("actor_placeholder"),
+                        max_length=255,
+                        required=True,
+                        width="100%",
+                        size="3",
+                        disabled=BUSY,
+                    ),
+                ),
+                rx.box(
+                    rx.el.label(
+                        t("decision_reason"),
+                        html_for="final-reason",
+                        display="block",
+                        font_weight="550",
+                    ),
+                    rx.text_area(
+                        name="reason",
+                        id="final-reason",
+                        max_length=2000,
+                        width="100%",
+                        placeholder=t("reason_placeholder"),
+                        required=PlanningState.final_choice != "Minimum cost",
+                        disabled=BUSY,
+                    ),
+                ),
+                rx.el.label(
+                    rx.el.input(
+                        type="checkbox",
+                        name="demonstration",
+                        required=True,
+                        disabled=BUSY,
+                        margin_right="0.5rem",
+                        width="1.1rem",
+                        height="1.1rem",
+                    ),
+                    t("ack_label"),
+                    font_size="0.875rem",
+                    display="flex",
+                    align_items="start",
+                    gap="0.25rem",
+                ),
+                rx.button(
+                    rx.cond(NO_AWARD, t("review_no_award"), t("review_approval")),
+                    id="decision-review-button",
+                    type="submit",
+                    disabled=BUSY | (PlanningState.final_choice == ""),
+                    background=ACCENT,
+                    color="white",
+                    size="3",
+                    width="fit-content",
+                ),
+                rx.cond(
+                    (PlanningState.error_target == "decision")
+                    & (PlanningState.error_message != "")
+                    & ~PlanningState.has_pending,
+                    rx.callout(
+                        PlanningState.error_message,
+                        role="alert",
+                        color_scheme="red",
+                        id="decision-error",
+                        tab_index=-1,
+                        on_mount=focus("decision-error"),
+                    ),
+                ),
+                direction="column",
+                gap="1rem",
+                margin_top="1rem",
+            ),
+            on_submit=PlanningState.review_final_decision,
+            reset_on_submit=False,
+            width="100%",
+        ),
+        _confirmation(),
+    )
+
+
+def decision_view() -> rx.Component:
+    return card(
         rx.cond(
             PlanningState.details["parent_id"] != "Base case",
-            rx.callout(
-                "Stress scenarios remain analytical. Open the original base to record a human "
-                "decision. Confirmed changed terms need a new base case.",
-                color_scheme="gray",
+            rx.box(
+                rx.callout(t("scenario_no_decision"), icon="info"),
+                rx.button(
+                    t("back_to_base"),
+                    on_click=PlanningState.open_saved_case(
+                        PlanningState.details["base_id"], "decision"
+                    ),
+                    disabled=BUSY,
+                    variant="outline",
+                    margin_top="1rem",
+                ),
             ),
             rx.cond(
-                (PlanningState.details["final_outcome"] != "") | PlanningState.decision_conflict,
+                PlanningState.decision_conflict,
+                rx.text(t("decision_paused")),
                 rx.cond(
-                    PlanningState.decision_conflict,
-                    rx.text("Decision actions are paused. Reopen the recorded decision above."),
-                    saved_decision(focus_target=True),
-                ),
-                rx.vstack(
-                    rx.heading(
-                        "Record the final decision",
-                        as_="h2",
-                        size="4",
-                        id="final-decision-heading",
-                        tab_index=-1,
-                    ),
-                    rx.text(
-                        "This comparison is already saved. Selection does not approve it. "
-                        "Approval is a separate, optional choice. Explicitly choose a saved plan "
-                        "or No-award. This one-time decision "
-                        "cannot be replaced. Alternative approval and No-award require a reason.",
-                        size="2",
-                        color=MUTED,
-                    ),
-                    rx.cond(
-                        (PlanningState.details["status"] != "optimal")
-                        & (PlanningState.plans.length() > 0),
-                        rx.callout(
-                            "Comparison is incomplete. Retained proven plans remain eligible; "
-                            "the recorded solver outcome and this limitation accompany approval.",
-                            color_scheme="amber",
-                        ),
-                    ),
-                    rx.form(
-                        rx.vstack(
-                            rx.cond(
-                                PlanningState.final_choice == "No-award",
-                                rx.box(
-                                    rx.el.input(type="hidden", name="choice", value="No-award"),
-                                    rx.text(
-                                        "No-award: no allocation will be approved.",
-                                        font_weight="650",
-                                    ),
-                                    rx.button(
-                                        "Choose a plan instead",
-                                        type="button",
-                                        variant="outline",
-                                        on_click=PlanningState.choose_final_plan(""),
-                                        disabled=PlanningState.is_loading
-                                        | PlanningState.has_pending,
-                                    ),
-                                ),
-                                rx.box(
-                                    rx.el.label("Saved plan for approval", html_for="final-choice"),
-                                    rx.el.select(
-                                        rx.el.option("Choose explicitly…", value="", disabled=True),
-                                        rx.foreach(
-                                            PlanningState.plans,
-                                            lambda p: rx.el.option(p["label"], value=p["label"]),
-                                        ),
-                                        name="choice",
-                                        id="final-choice",
-                                        value=PlanningState.final_choice,
-                                        on_change=PlanningState.choose_final_plan,
-                                        required=True,
-                                        disabled=PlanningState.is_loading
-                                        | PlanningState.has_pending,
-                                        width="100%",
-                                        padding="0.6rem",
-                                        border=f"1px solid {HAIRLINE}",
-                                    ),
-                                    rx.button(
-                                        "Record No-award",
-                                        type="button",
-                                        variant="outline",
-                                        on_click=PlanningState.choose_final_plan("No-award"),
-                                        disabled=PlanningState.is_loading
-                                        | PlanningState.has_pending,
-                                        margin_top="0.75rem",
-                                    ),
-                                ),
-                            ),
-                            rx.el.label("Actor audit reference", html_for="final-actor"),
-                            rx.input(
-                                name="actor",
-                                id="final-actor",
-                                placeholder="Buyer reference",
-                                max_length=255,
-                                required=True,
-                                width="100%",
-                                disabled=PlanningState.is_loading | PlanningState.has_pending,
-                            ),
-                            rx.el.label("Reason", html_for="final-reason"),
-                            rx.text_area(
-                                name="reason",
-                                id="final-reason",
-                                max_length=2000,
-                                width="100%",
-                                placeholder="Explain an alternative selection or No-award",
-                                required=PlanningState.final_choice != "Minimum cost",
-                                disabled=PlanningState.is_loading | PlanningState.has_pending,
-                            ),
-                            rx.el.label(
-                                rx.el.input(
-                                    type="checkbox",
-                                    name="demonstration",
-                                    required=True,
-                                    disabled=PlanningState.is_loading | PlanningState.has_pending,
-                                    margin_right="0.5rem",
-                                ),
-                                "I acknowledge this controlled demonstration, saved simulation "
-                                "dates and synthetic ML evidence; current operational validity "
-                                "is not asserted.",
-                                font_size="0.875rem",
-                            ),
-                            rx.text(
-                                "Actor attribution is audit text, not authenticated buyer identity."
-                                " "
-                                "Approval enables viewing and downloading "
-                                "its saved procurement PDF. No Odoo order is created.",
-                                size="2",
-                                color=MUTED,
-                            ),
-                            rx.button(
-                                rx.cond(
-                                    PlanningState.final_choice == "No-award",
-                                    "Review No-award",
-                                    "Review approval",
-                                ),
-                                id="decision-review-button",
-                                type="submit",
-                                disabled=PlanningState.is_loading
-                                | PlanningState.has_pending
-                                | (PlanningState.final_choice == ""),
-                            ),
-                            rx.cond(
-                                (PlanningState.error_target == "decision")
-                                & (PlanningState.error_message != "")
-                                & ~PlanningState.has_pending,
-                                rx.callout(
-                                    PlanningState.error_message,
-                                    role="alert",
-                                    color_scheme="red",
-                                    id="decision-error",
-                                    tab_index=-1,
-                                    on_mount=rx.set_focus("decision-error"),
-                                ),
-                            ),
-                            align="stretch",
-                            spacing="3",
-                        ),
-                        on_submit=PlanningState.review_final_decision,
-                        reset_on_submit=False,
-                        width="100%",
-                    ),
-                    _decision_confirmation(),
-                    align="stretch",
-                    spacing="3",
+                    PlanningState.details["final_outcome"] != "",
+                    saved_decision(),
+                    _decision_form(),
                 ),
             ),
         ),
-        background=SURFACE,
-        padding="1.25rem",
-        border=f"1px solid {HAIRLINE}",
-        border_radius="10px",
-        width="100%",
+        max_width="52rem",
     )

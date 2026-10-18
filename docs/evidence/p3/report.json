@@ -1,0 +1,25 @@
+{
+  "console_errors": [],
+  "overflow": {
+    "01-cases-desktop-hu": 0,
+    "02-rfqs-desktop-hu": 0,
+    "03-overview-desktop-hu": 0,
+    "04-suppliers-desktop-hu": 0,
+    "05-plans-desktop-hu": 0,
+    "06-scenarios-desktop-hu": 0,
+    "07-decision-desktop-hu": 0,
+    "08-plans-desktop-en": 0,
+    "09-case-error-desktop-hu": 0,
+    "10-cases-empty-desktop-hu": 0,
+    "01-cases-mobile-hu": 0,
+    "02-rfqs-mobile-hu": 0,
+    "03-overview-mobile-hu": 0,
+    "04-suppliers-mobile-hu": 0,
+    "05-plans-mobile-hu": 0,
+    "06-scenarios-mobile-hu": 0,
+    "07-decision-mobile-hu": 0,
+    "08-plans-mobile-en": 0,
+    "09-case-error-mobile-hu": 0,
+    "10-cases-empty-mobile-hu": 0
+  }
+}

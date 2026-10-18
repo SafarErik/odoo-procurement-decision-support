@@ -69,6 +69,9 @@ stress scenarios, and human approval with PDF. The current revamp (see the plan)
 cleans the repository (P0, done), retrains the model from Odoo-sourced history
 (P1, done), extends scenarios/PDF/API (P2, done: open quotation-group selection,
 two-way stress changes, supplier overview, Hungarian/English purchase order proposal
-PDF), rebuilds the UI in Hungarian/English (P3) and closes validation (P4). The
+PDF), rebuilds the UI (P3, implemented: Cases and Open RFQs pages, case tabs
+Overview / Suppliers / Plans / Scenarios / Decision & PDF plus Audit, charts, Hungarian
+default with an English switch that also sets the PDF language) and closes validation
+(P4). The
 supplier model is trained from purchase history read from Odoo; in the test database
 that history is generated, so no real-world predictive accuracy is claimed.

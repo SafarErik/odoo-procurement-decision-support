@@ -13,7 +13,9 @@ from backend.app.config import settings as backend_settings
 from backend.app.main import app
 from frontend.app import PlanningState, planning_page
 from frontend.config import settings as frontend_settings
+from frontend.i18n import money
 from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
+from tests.frontend_patching import patch_client
 from tests.t15_helpers import MemoryPlanningUnitOfWork
 from tests.test_t15_planning_api import forbidden
 from tests.test_t16_stored_planning import TOKEN
@@ -33,12 +35,13 @@ def configured(stored_cases, monkeypatch):
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport, calls = httpx.ASGITransport(app=app), []
 
-    async def post(url, body, key, token):
+    async def post(url, body, key, token, lang="en"):
         calls.append((url, deepcopy(body), key))
-        return await submit_planning_request(url, body, key, token, transport=transport)
+        return await submit_planning_request(url, body, key, token, lang=lang, transport=transport)
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
+    patch_client(monkeypatch, "submit_planning_request", post)
     state = PlanningState(_reflex_internal_init=True)
+    state.lang = "en"  # the assertions below read English texts
     state._show(_map_case(base, base["case_id"]))
     return state, uow, base, calls, transport
 
@@ -83,11 +86,11 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
             s for s in child["request"]["suppliers"] if s["supplier_id"] == row["supplier"]
         )
         assert row["saved_capacity"] == str(saved["capacity"])
-        assert Decimal(row["saved_price"]) == Decimal(saved["unit_price"])
+        assert row["saved_price"] == money(Decimal(saved["unit_price"]), "EUR", "en")
     assert child["scenario"]["kind"] == form["kind"]
     assert child["scenario"]["source"]["source_reference"] == "t16-ui-what-if-v1"
-    assert state.details["base_cost"] == "102 EUR"
-    assert state.details["base_exposure"] == "98.6 / 100"
+    assert state.original_plan["cost"] == "€102.00"
+    assert state.original_plan["exposure_display"] == "98.6 / 100"
     assert sum(int(row["scenario"]) for row in state.comparison_rows) == int(
         state.details["quantity"]
     )
@@ -128,10 +131,12 @@ def test_infeasibility_is_saved_without_fabricated_comparison(configured):
         and state.details["scenario_status"] == "infeasible"
     )
     assert state.comparison_rows == [] and state.plans == []
-    assert state.details["base_cost"] == "Not comparable"
     assert state.details["base_status_label"] == "Plans ready"
     assert state.details["scenario_status_label"] == "No feasible plan"
-    assert state.details["scenario_cost"] == "No proven minimum-cost plan"
+    # No invented scenario cost: the comparison says so and the table shows "Unavailable".
+    assert "no proven minimum-cost plan" in state.details["comparison_display"]
+    cost = next(m for m in state.scenario_metrics if m["metric"] == "Minimum total cost")
+    assert cost["scenario"] == "Unavailable" and cost["base"] == "€102.00"
     assert state.details["parent_id"] == base["case_id"]
     assert state.details["case_id"] in uow.rows
 
@@ -176,12 +181,12 @@ def test_lost_response_recovers_exact_scenario_without_solving_again(configured,
             raise httpx.ReadTimeout("Lost after commit", request=request)
         return response
 
-    async def post(url, payload, key, token):
+    async def post(url, payload, key, token, lang="en"):
         return await submit_planning_request(
-            url, payload, key, token, transport=httpx.MockTransport(lose_first)
+            url, payload, key, token, lang=lang, transport=httpx.MockTransport(lose_first)
         )
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", post)
+    patch_client(monkeypatch, "submit_planning_request", post)
     form = {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"}
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.has_pending and len(uow.rows) == count + 1
@@ -222,4 +227,4 @@ def test_hybrid_price_change_is_labelled_as_what_if(stored_cases):
     payload["snapshot"]["scenario"]["suppliers"][0]["unit_price"] = "12.00"
     display = _map_case(payload, payload["case_id"])
     assert "Saved Odoo quotations with what-if changes" in display.details["input_kind"]
-    assert "price 12.00 EUR per unit" in display.details["assumptions"]
+    assert "unit price €12.00" in display.details["assumptions"]

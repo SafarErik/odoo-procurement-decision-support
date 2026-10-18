@@ -9,3 +9,7 @@ RAIL = "#153f40"
 CONNECTED = "#167466"
 HAIRLINE = "#d1ded6"
 ERROR = "#A43E47"
+# Chart series: validated pair (lightness, chroma, CVD and contrast checks pass on white).
+SERIES_1 = "#5b4fc4"
+SERIES_2 = "#1a9a7f"
+GRID = "#e3ebe6"

@@ -2,13 +2,15 @@
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation, localcontext
 from uuid import UUID
 
 import httpx
 
-from frontend.rfq_client import _parse_datetime, _required_string
+from frontend.i18n import day, moment, money, number, percent, tr, unit
+from frontend.parsing import parse_datetime as _parse_datetime
+from frontend.parsing import required_string as _required_string
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,12 +22,12 @@ class PlanningDisplay:
     provenance: list[dict[str, str]]
     scenario_suppliers: list[dict[str, str]]
     comparison_rows: list[dict[str, str]]
+    # The validated API payload, kept so a language switch re-labels without a new request.
+    raw: dict = field(default_factory=dict, compare=False)
 
 
-FINAL_DECISION_CONFLICT = (
-    "Decision conflict (HTTP 409). The case may already be finalized or the request key "
-    "belongs to another intent. Reopen the recorded decision; do not approve again."
-)
+# Stable marker the state compares against; the shown text is localized separately.
+FINAL_DECISION_CONFLICT = "decision_conflict"
 
 
 async def submit_planning_request(
@@ -34,6 +36,7 @@ async def submit_planning_request(
     key: str,
     token: str,
     *,
+    lang: str = "en",
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[PlanningDisplay | None, str, bool]:
     """One explicit POST. The caller retains exact intent for uncertain outcomes."""
@@ -41,13 +44,9 @@ async def submit_planning_request(
         if str(UUID(key)) != key:
             raise ValueError("Invalid key")
     except (ValueError, TypeError, AttributeError):
-        return None, "The request key is invalid. Prepare a new request.", False
+        return None, tr("err_key", lang), False
     if not token or not token.isascii() or any(c.isspace() for c in token):
-        return (
-            None,
-            "Planning access is not configured. Set the service token on the Reflex server.",
-            False,
-        )
+        return None, tr("err_token", lang), False
     try:
         async with httpx.AsyncClient(
             timeout=45, transport=transport, follow_redirects=False
@@ -61,67 +60,41 @@ async def submit_planning_request(
                 },
             )
         errors = {
-            401: "Planning access was rejected. Check the server-side service token.",
-            403: "Planning access was rejected. Check the server-side service token.",
-            404: "The base case was not found in this database. Load it again.",
-            409: (
-                "Save conflict (HTTP 409). This request key belongs to different inputs. "
-                "Do not reuse it for changed inputs. Copy the exact request for support."
-            ),
-            422: (
-                "Inputs rejected (HTTP 422). These inputs are outside the supported planning "
-                "or model contract. Check "
-                "quantity, terms and the matched saved model."
-            ),
-            413: "The prepared request exceeds the API size limit.",
+            401: "err_rejected",
+            403: "err_rejected",
+            404: "err_base_missing",
+            409: "err_key_conflict",
+            422: "err_rejected_inputs",
+            413: "err_too_large",
         }
         if url.endswith("/from-odoo-history") and response.status_code in (409, 422, 503):
             code = response.json().get("detail", {}).get("code")
             history_errors = {
-                "odoo_history_insufficient": (
-                    "At least one quoted supplier has fewer than three settled purchase lines "
-                    "in Odoo. No case was saved."
-                ),
-                "odoo_history_unavailable": (
-                    "Odoo history is missing, unavailable or does not match the configured source. "
-                    "No case was saved."
-                ),
-                "odoo_history_model_incompatible": (
-                    "The saved model is unavailable or incompatible with this Odoo history. "
-                    "No case was saved."
-                ),
+                "odoo_history_insufficient": "err_history_insufficient",
+                "odoo_history_unavailable": "err_history_unavailable",
+                "odoo_history_model_incompatible": "err_history_model",
             }
             if code in history_errors:
-                return None, history_errors[code], False
+                return None, tr(history_errors[code], lang), False
         if response.status_code in errors:
             if url.endswith("/final-decision") and response.status_code in (409, 422):
                 return (
                     None,
-                    (
-                        FINAL_DECISION_CONFLICT
-                        if response.status_code == 409
-                        else "Finalization was rejected (HTTP 422). Review the explicit plan, "
-                        "actor, reason, saved hash and demo acknowledgement."
-                    ),
+                    FINAL_DECISION_CONFLICT
+                    if response.status_code == 409
+                    else tr("err_decision_rejected", lang),
                     False,
                 )
             if response.status_code == 422 and url.endswith("/from-odoo-history"):
-                return (
-                    None,
-                    (
-                        "Odoo quotations or planning terms no longer match the reviewed inputs. "
-                        "Reload the quotation group and review the terms again."
-                    ),
-                    False,
-                )
-            return None, errors[response.status_code], False
+                return None, tr("err_odoo_changed", lang), False
+            return None, tr(errors[response.status_code], lang), False
         if response.status_code not in (200, 201):
             raise ValueError("Uncertain response")
         data = response.json()
         case_id = _required_string(data, "case_id")
         if str(UUID(case_id)) != case_id:
             raise ValueError("Invalid response identity")
-        display = _map_case(data, case_id)
+        display = _map_case(data, case_id, lang)
         if url.endswith("/final-decision"):
             intent = dict(payload)
             intent["actor_reference"] = intent["actor_reference"].strip()
@@ -156,15 +129,7 @@ async def submit_planning_request(
         InvalidOperation,
         OverflowError,
     ):
-        return (
-            None,
-            (
-                "The outcome is unconfirmed. The API may have saved the case or decision. "
-                "Retry the "
-                "same request to recover it; do not create a replacement."
-            ),
-            True,
-        )
+        return None, tr("err_uncertain", lang), True
 
 
 async def fetch_planning_case(
@@ -172,6 +137,7 @@ async def fetch_planning_case(
     case_id: str,
     token: str,
     *,
+    lang: str = "en",
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[PlanningDisplay | None, str]:
     """Issue one authenticated GET; never follow redirects or retry automatically."""
@@ -179,12 +145,9 @@ async def fetch_planning_case(
         if str(UUID(case_id)) != case_id:
             raise ValueError("Noncanonical identity")
     except (ValueError, TypeError, AttributeError):
-        return None, "Enter a canonical planning case UUID from a completed run."
+        return None, tr("err_case_id", lang)
     if not token or not token.isascii() or any(c.isspace() for c in token):
-        return (
-            None,
-            "Planning access is not configured. Set the service token on the Reflex server.",
-        )
+        return None, tr("err_token", lang)
     try:
         async with httpx.AsyncClient(
             timeout=7.0, transport=transport, follow_redirects=False
@@ -194,21 +157,16 @@ async def fetch_planning_case(
                 headers={"Authorization": f"Bearer {token}"},
             )
             if response.status_code == 404:
-                return None, "This planning case was not found. Check the UUID and database."
+                return None, tr("err_case_missing", lang)
             if response.status_code in (401, 403):
-                return None, "Planning access was rejected. Check the server-side service token."
+                return None, tr("err_rejected", lang)
             response.raise_for_status()
     except httpx.HTTPError:
-        return (
-            None,
-            "Planning data is unavailable. Retry Load stored case when access returns. "
-            "Opening only reads saved work. If it persists, give the case ID to the owner "
-            "to check the FastAPI service and planning database.",
-        )
+        return None, tr("err_case_unavailable", lang)
     try:
-        return _map_case(response.json(), case_id), ""
+        return _map_case(response.json(), case_id, lang), ""
     except (KeyError, TypeError, ValueError, AttributeError, InvalidOperation, OverflowError):
-        return None, "The backend returned an unsupported or incomplete planning snapshot."
+        return None, tr("err_case_invalid", lang)
 
 
 def _integer(value: object) -> str:
@@ -220,10 +178,10 @@ def _integer(value: object) -> str:
 def _decimal(value: object) -> Decimal:
     if not isinstance(value, str):
         raise ValueError("Expected an exact decimal string")
-    number = Decimal(value)
-    if not number.is_finite():
+    number_ = Decimal(value)
+    if not number_.is_finite():
         raise ValueError("Expected a finite decimal")
-    return number
+    return number_
 
 
 def _rational(value: dict) -> str:
@@ -240,95 +198,144 @@ def _ratio(value: dict) -> Decimal:
     return Decimal(value["numerator"]) / Decimal(value["denominator"])
 
 
-def _supplier_label(identity: str) -> str:
+def _supplier_label(identity: str, lang: str = "en", names: dict | None = None) -> str:
+    """Odoo display name when stored, otherwise a readable label for the identity."""
+    if names and names.get(identity):
+        return names[identity]
     if identity.startswith("odoo:res.partner:"):
-        return "Supplier " + identity.removeprefix("odoo:res.partner:")
-    return (
-        "Demo supplier " + identity.removeprefix("synthetic-")
-        if identity.startswith("synthetic-")
-        else identity
+        return tr("supplier_n", lang, n=identity.removeprefix("odoo:res.partner:"))
+    if identity.startswith("synthetic-"):
+        return tr("demo_supplier", lang, n=identity.removeprefix("synthetic-"))
+    return identity
+
+
+def _product_label(identity: str, lang: str, names: dict) -> str:
+    if names.get(identity):
+        return names[identity]
+    if identity.startswith("odoo:product.product:"):
+        return tr("product_n", lang, n=identity.removeprefix("odoo:product.product:"))
+    return identity
+
+
+def _unit_label(identity: str, lang: str, names: dict) -> str:
+    if names.get(identity):
+        return unit(names[identity], lang)
+    # Without a saved name the unit is not known to mean pieces; keep the identity visible.
+    return identity if identity.startswith("odoo:uom.uom:") else unit(identity, lang)
+
+
+def _explanation(entry: dict, lang: str) -> str | None:
+    key = "why_" + entry["code"]
+    return None if key not in _WHY else tr(key, lang)
+
+
+_WHY = {
+    "why_" + code
+    for code in (
+        "zero_in_optimal_plan",
+        "capacity_binding",
+        "concentration_binding",
+        "supplier_count_binding",
+        "unavailable",
+        "deadline_ineligible",
+        "no_valid_quantity",
+        "moq_binding",
+        "price_lower_binding",
+        "price_upper_binding",
+        "delivery_lower_binding",
+        "delivery_upper_binding",
+        "integer_concentration_ceiling",
+        "insufficient_effective_capacity",
+        "supplier_count_capacity_shortfall",
     )
-
-
-_BUYER_EXPLANATIONS = {
-    "zero_in_optimal_plan": (
-        "Not selected in this plan; this does not mean the supplier is excluded."
-    ),
-    "capacity_binding": "Uses all of this supplier's declared capacity.",
-    "concentration_binding": "Reaches the maximum quantity allowed for one supplier.",
-    "supplier_count_binding": "Uses the maximum allowed number of suppliers.",
-    "unavailable": "Excluded: declared unavailable for this saved case.",
-    "deadline_ineligible": "Excluded: the promised date is after the required date.",
-    "no_valid_quantity": "Excluded: no positive quantity satisfies the recorded limits.",
-    "moq_binding": "Reaches this supplier's minimum order quantity.",
-    "price_lower_binding": "Reaches the lower quantity limit for the saved price.",
-    "price_upper_binding": "Reaches the upper quantity limit for the saved price.",
-    "delivery_lower_binding": "Reaches the lower quantity limit for the delivery promise.",
-    "delivery_upper_binding": "Reaches the upper quantity limit for the delivery promise.",
-    "integer_concentration_ceiling": "Reaches the whole-unit limit for one supplier's share.",
-    "insufficient_effective_capacity": "The usable supplier quantities cannot cover demand.",
-    "supplier_count_capacity_shortfall": (
-        "Demand cannot be covered within the allowed number of suppliers."
-    ),
 }
 
 
-def _explanation(entry: dict) -> str:
-    return _BUYER_EXPLANATIONS.get(entry["code"], entry["detail"])
-
-
-def _buyer_explanations(entries: list[dict]) -> str:
+def _buyer_explanations(entries: list[dict], lang: str = "en", names: dict | None = None) -> str:
     return "\n".join(
         dict.fromkeys(
-            ((_supplier_label(e["supplier_id"]) + ": ") if e["supplier_id"] else "")
-            + _explanation(e)
+            ((_supplier_label(e["supplier_id"], lang, names) + ": ") if e["supplier_id"] else "")
+            + text
             for e in entries
-            if e["code"] in _BUYER_EXPLANATIONS
+            if (text := _explanation(e, lang)) is not None
         )
     )
 
 
 _HISTORY_STEPS = {
-    "on_time_rate": ("On-time delivery rate", "{:.1%}"),
-    "mean_lateness_days": ("Average lateness", "{:.1f} days"),
-    "lateness_spread_days": ("Lateness spread", "{:.1f} days"),
-    "fill_rate": ("Fill rate", "{:.1%}"),
-    "partial_share": ("Share of partial deliveries", "{:.1%}"),
-    "order_count": ("Settled purchase lines", "{:.0f}"),
-    "days_since_last_receipt": ("Days since last receipt", "{:.0f}"),
+    "on_time_rate": ("Határidőre teljesített szállítások aránya", "On-time delivery rate", "pct"),
+    "mean_lateness_days": ("Átlagos késés", "Average lateness", "days"),
+    "lateness_spread_days": ("Késés szórása", "Lateness spread", "days"),
+    "fill_rate": ("Mennyiségi teljesítési arány", "Fill rate", "pct"),
+    "partial_share": ("Részszállítások aránya", "Share of partial deliveries", "pct"),
+    "order_count": ("Lezárt beszerzési sorok", "Settled purchase lines", "int"),
+    "days_since_last_receipt": ("Napok az utolsó átvétel óta", "Days since last receipt", "int"),
+    "delivery_schedule_adherence": ("Határidőre teljesítés", "On-time delivery", "percent100"),
+    "historical_completed_count": ("Teljesített átvételek", "Completed receipts", "int"),
 }
 
 
-def _history_step(step) -> str:
-    """Readable condition for an Odoo-history tree split (stored values only)."""
-    name, fmt = _HISTORY_STEPS.get(step["feature"], (step["feature"], "{}"))
+def _metric(kind: str, value, lang: str) -> str:
+    if kind == "pct":
+        return percent(value, lang)
+    if kind == "percent100":
+        return percent(Decimal(str(value)) / 100, lang, 2)
+    if kind == "days":
+        return tr("days", lang, value=number(value, lang, 1))
+    return number(value, lang, 0)
+
+
+def _history_step(step, lang: str = "en") -> str:
+    """Readable condition for a tree split (stored values only)."""
+    hu, en, kind = _HISTORY_STEPS.get(step["feature"], (step["feature"], step["feature"], "num"))
+    name = hu if lang == "hu" else en
+    if kind == "num":
+        value, threshold = str(step["value_float32"]), str(step["threshold"])
+    else:
+        value = _metric(kind, step["value_float32"], lang)
+        threshold = (
+            number(step["threshold"], lang, 2)
+            if kind == "int" and step["threshold"] % 1
+            else _metric(kind, step["threshold"], lang)
+        )
+        if value == threshold:  # rounding hid the difference; show the stored values
+            value, threshold = f"{step['value_float32']:.4f}", f"{step['threshold']:.4f}"
+    if lang == "hu":
+        relation = "legfeljebb" if step["operator"] == "<=" else "több mint"
+        return f"{name}: {value} – {relation} {threshold}."
     relation = "is at most" if step["operator"] == "<=" else "is above"
-    return (
-        f"{name} ({fmt.format(step['value_float32'])}) {relation} {fmt.format(step['threshold'])}."
-    )
+    return f"{name} ({value}) {relation} {threshold}."
 
 
-def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
+def _data_origin(snapshot: dict) -> str:
+    """Same rule as the PDF: generated/observed Odoo history, or the synthetic demo model."""
+    if snapshot["facts"].get("input_kind") != "odoo_quotations_odoo_history":
+        return "synthetic"
+    origin = snapshot.get("model_manifest", {}).get("metadata", {}).get("data_origin")
+    return origin if origin in ("generated", "observed") else "generated"
+
+
+def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisplay:
     if _required_string(payload, "case_id") != expected_id:
         raise ValueError("Response identity mismatch")
     snapshot = payload["snapshot"]
     if snapshot["snapshot_version"] != "t15-controlled-planning-v1":
         raise ValueError("Unsupported snapshot version")
     facts, request, result = snapshot["facts"], snapshot["request"], snapshot["result"]
+    names = {key: value for key, value in facts.get("labels", ())}
     requirement = request["requirement"]
     quantity = requirement["approved_quantity"]
     _integer(quantity)
     if quantity <= 0:
         raise ValueError("Invalid recorded demand")
     status = _required_string(result, "status")
-    status_labels = {
-        "optimal": "Plans ready",
-        "infeasible": "No feasible plan",
-        "no_proven_optimum": "No proven optimum",
-        "solver_error": "Solver unavailable",
-        "invalid_input": "Input rejected",
-    }
-    if status not in status_labels:
+    if status not in (
+        "optimal",
+        "infeasible",
+        "no_proven_optimum",
+        "solver_error",
+        "invalid_input",
+    ):
         raise ValueError("Unknown planning status")
     kinds = {
         "controlled_synthetic": "Controlled synthetic inputs and ML history",
@@ -336,6 +343,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         "odoo_quotations_odoo_history": "Odoo quotations and Odoo purchase history",
     }
     currency = _required_string(requirement, "currency")
+    unit_name = _unit_label(_required_string(requirement, "quantity_unit"), lang, names)
     parent = payload["parent_id"]
     if parent is not None and str(UUID(parent)) != parent:
         raise ValueError("Invalid parent identity")
@@ -344,12 +352,23 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     _integer(base_quantity)
     if base_quantity <= 0:
         raise ValueError("Invalid base quantity")
+
+    def name(identity):
+        return _supplier_label(identity, lang, names)
+
+    def amount(value, signed=False):
+        return money(value, currency, lang, signed=signed)
+
+    def pieces(value):
+        return tr("pieces", lang, quantity=number(value, lang), unit=unit_name)
+
     scenario_suppliers = [
         {
             "supplier": _required_string(s["terms"], "supplier_id"),
-            "name": _supplier_label(s["terms"]["supplier_id"]),
+            "name": name(s["terms"]["supplier_id"]),
             "capacity": _integer(s["terms"]["capacity"]),
             "price": str(_decimal(s["terms"]["unit_price"])),
+            "price_display": amount(_decimal(s["terms"]["unit_price"])),
         }
         for s in facts["suppliers"]
     ]
@@ -362,99 +381,95 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     for row in scenario_suppliers:
         saved = saved_suppliers[row["supplier"]]
         row.update(
-            saved_price=f"{_decimal(saved['unit_price']):,f}",
+            saved_price=amount(_decimal(saved["unit_price"])),
             saved_capacity=_integer(saved["capacity"]),
-            saved_moq="None"
+            saved_moq=tr("none", lang)
             if saved["minimum_order"]["quantity"] is None
             else _integer(saved["minimum_order"]["quantity"]),
-            saved_date=_required_string(saved, "promised_date"),
-            saved_available="Available" if saved["available"] else "Unavailable",
+            saved_date=day(_required_string(saved, "promised_date"), lang),
+            saved_available=tr("available" if saved["available"] else "not_available", lang),
             saved_ranges=(
-                f"Price {_integer(saved['price_quantities']['minimum'])}–"
-                f"{_integer(saved['price_quantities']['maximum'])}; "
-                f"delivery {_integer(saved['delivery_quantities']['minimum'])}–"
+                f"{_integer(saved['price_quantities']['minimum'])}–"
+                f"{_integer(saved['price_quantities']['maximum'])} / "
+                f"{_integer(saved['delivery_quantities']['minimum'])}–"
                 f"{_integer(saved['delivery_quantities']['maximum'])}"
             ),
         )
     policy = request["policy"]
     concentration = policy["concentration_limit"]
     origin = payload["origin"]
+    data_origin = _data_origin(snapshot)
+    status_label = tr("status_" + status, lang)
     details = {
         "origin": origin,
-        "origin_label": {"demo": "Demo data", "odoo": "Odoo"}[origin],
+        "data_origin": data_origin,
+        "origin_badge": ""
+        if data_origin == "observed"
+        else tr("badge_generated" if data_origin == "generated" else "badge_synthetic", lang),
+        "origin_note": ""
+        if data_origin == "observed"
+        else tr("generated_note" if data_origin == "generated" else "synthetic_note", lang),
         "case_id": expected_id,
         "parent_id": parent or "Base case",
         "created_at": _parse_datetime(payload["created_at"]).isoformat(),
+        "created_display": moment(payload["created_at"], lang),
         "snapshot_hash": _required_string(payload, "snapshot_hash"),
         "status": status.replace("_", " "),
+        "status_code": status,
         "input_kind": kinds[facts.get("input_kind", "controlled_synthetic")],
         "company": _required_string(facts, "company_id"),
         "product": _required_string(requirement, "product_id"),
         "quantity": _integer(requirement["approved_quantity"]),
+        "quantity_display": pieces(quantity),
         "unit": _required_string(requirement, "quantity_unit"),
+        "unit_label": unit_name,
         "required_date": _required_string(requirement, "required_date"),
+        "required_display": day(requirement["required_date"], lang),
         "as_of": _parse_datetime(facts["as_of"]).isoformat(),
+        "as_of_display": moment(facts["as_of"], lang),
         "scenario": "Base case" if scenario is None else _required_string(scenario, "kind"),
         "base_id": parent or expected_id,
         "currency": currency,
-        "status_label": status_labels[status],
-        "scenario_label": "Base case"
-        if scenario is None
-        else _required_string(scenario, "kind").replace("_", " ").capitalize(),
+        "status_label": status_label,
+        "scenario_label": "" if scenario is None else tr("kind_" + scenario["kind"], lang),
         "comparison": "",
         "comparison_display": "",
         "base_quantity": str(base_quantity),
+        "base_quantity_display": pieces(base_quantity),
         "base_status": "",
         "base_status_label": "",
         "scenario_status": status.replace("_", " "),
-        "scenario_status_label": status_labels[status],
-        "base_cost": "Not comparable",
-        "scenario_cost": "No proven minimum-cost plan",
-        "base_exposure": "Not comparable",
-        "scenario_exposure": "Not comparable",
+        "scenario_status_label": status_label,
         "assumptions": "",
-        "policy": (
-            f"Maximum suppliers: {_integer(policy['max_suppliers'])}. "
-            + (
-                "No concentration limit. "
-                if concentration is None
-                else f"Maximum share per supplier: {_decimal(concentration) * 100:g}%. "
-            )
-            + "Alternative cost allowances: "
-            + (", ".join(f"{_decimal(e) * 100:g}%" for e in policy["epsilons"]) or "none")
-            + "."
+        "policy": tr(
+            "policy_text",
+            lang,
+            suppliers=_integer(policy["max_suppliers"]),
+            share=tr("policy_no_share", lang)
+            if concentration is None
+            else percent(_decimal(concentration), lang, 0),
+            allowance=", ".join(percent(_decimal(e), lang, 0) for e in policy["epsilons"])
+            or tr("none", lang),
         ),
         "alternative_notice": "",
-        "chart_min_cost": "",
-        "chart_max_cost": "",
-        "product_label": "Product "
-        + requirement["product_id"].removeprefix("odoo:product.product:")
-        if requirement["product_id"].startswith("odoo:product.product:")
-        else requirement["product_id"],
+        "product_label": _product_label(requirement["product_id"], lang, names),
         "decision_summary": "",
+        "min_cost_display": "",
+        "plan_count": "0",
         "explanations": "\n".join(f"{e['code']}: {e['detail']}" for e in result["explanations"]),
-        "buyer_diagnostics": _buyer_explanations(result["explanations"]),
+        "buyer_diagnostics": _buyer_explanations(result["explanations"], lang, names),
         "snapshot_json": json.dumps(snapshot, indent=2, ensure_ascii=False, allow_nan=False),
     }
     comparison = snapshot["comparison"]
     comparison_rows = []
     if comparison is not None:
         details["base_status"] = _required_string(comparison, "base_status").replace("_", " ")
-        details["base_status_label"] = status_labels[comparison["base_status"]]
+        details["base_status_label"] = tr("status_" + comparison["base_status"], lang)
         delta = comparison["minimum_cost"]
         details["comparison"] = _required_string(comparison, "meaning")
-        details["comparison_display"] = (
-            "This scenario has no comparable proven minimum-cost plan. "
-            "The original base case remains saved."
-        )
         if delta is not None:
             cost_delta = _decimal(delta["total_cost_delta"])
             minimum = result["minimum_cost_plan"]
-            details["scenario_cost"] = f"{_decimal(minimum['total_cost']):,f} {currency}"
-            details["base_cost"] = f"{_decimal(minimum['total_cost']) - cost_delta:,f} {currency}"
-            details["scenario_exposure"] = f"{_ratio(minimum['risk_exposure']) * 100:.1f} / 100"
-            base_exposure = _ratio(minimum["risk_exposure"]) - _ratio(delta["risk_exposure_delta"])
-            details["base_exposure"] = f"{base_exposure * 100:.1f} / 100"
             before, after = {}, {}
             for rows, target in (
                 (delta["base_allocations"], before),
@@ -474,40 +489,39 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 raise ValueError("Comparison differs from recorded plan")
             comparison_rows = [
                 {
-                    "name": _supplier_label(identity),
+                    "name": name(identity),
                     "base": str(before[identity]),
                     "scenario": str(after[identity]),
                     "change": f"{after[identity] - before[identity]:+d}",
                 }
                 for identity in sorted(supplier_ids)
             ]
-            details["comparison_display"] = (
-                f"Minimum cost changes by {cost_delta:+,f} {currency}. "
-                f"Schedule-watch exposure changes by "
-                f"{_ratio(delta['risk_exposure_delta']) * 100:+.1f} points on the 0–100 scale."
-            )
             details["comparison"] += (
-                f" Cost delta: {_decimal(delta['total_cost_delta']):,f} {currency}; "
+                f" Cost delta: {cost_delta:,f} {currency}; "
                 f"exposure delta: {_rational(delta['risk_exposure_delta'])}."
-            )
-        if base_quantity != quantity:
-            details["comparison_display"] += (
-                " Demand changed: these totals cover different quantities, "
-                "not a like-for-like saving."
             )
     if scenario is not None:
         assumptions = []
         if scenario["approved_quantity"] is not None:
-            assumptions.append(f"Demand: {scenario['approved_quantity']} ordered units")
+            assumptions.append(
+                tr("assume_demand", lang, quantity=pieces(scenario["approved_quantity"]))
+            )
         for change in scenario["suppliers"]:
-            name = _supplier_label(_required_string(change, "supplier_id"))
+            supplier = name(_required_string(change, "supplier_id"))
             if change["available"] is False:
-                assumptions.append(f"{name}: unavailable")
+                assumptions.append(tr("assume_outage", lang, name=supplier))
             if change["capacity"] is not None:
-                assumptions.append(f"{name}: capacity {change['capacity']}")
+                assumptions.append(
+                    tr("assume_capacity", lang, name=supplier, quantity=pieces(change["capacity"]))
+                )
             if change["unit_price"] is not None:
                 assumptions.append(
-                    f"{name}: price {_decimal(change['unit_price']):,f} {currency} per unit"
+                    tr(
+                        "assume_price",
+                        lang,
+                        name=supplier,
+                        price=amount(_decimal(change["unit_price"])),
+                    )
                 )
         details["assumptions"] = "; ".join(assumptions)
         if facts.get("input_kind") == "odoo_quotations_synthetic_history":
@@ -517,21 +531,20 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
     plans, allocations = [], []
     minimum = result["minimum_cost_plan"]
     recorded = ([] if minimum is None else [minimum]) + result["alternatives"]
+    details["plan_count"] = str(len(recorded))
     if recorded:
         costs = [_decimal(p["total_cost"]) for p in recorded]
         if any(cost <= 0 for cost in costs):
             raise ValueError("Invalid recorded plan cost")
-        low, high = min(costs), max(costs)
-        details["chart_min_cost"] = f"{low:,f} {currency}"
-        details["chart_max_cost"] = f"{high:,f} {currency}"
+        details["min_cost_display"] = amount(costs[0])
         if len(recorded) == 1:
-            details["alternative_notice"] = (
-                "Alternative search did not finish successfully. Only the proven minimum-cost "
-                "plan is shown; this does not establish that no alternative exists."
+            details["alternative_notice"] = tr(
+                "no_alternative_failed"
                 if status != "optimal"
-                else "No distinct alternative was found within the recorded cost allowances."
+                else "no_alternative_found"
                 if policy["epsilons"]
-                else "No alternatives were requested for this case."
+                else "no_alternative_requested",
+                lang,
             )
         else:
             alternative = min(recorded[1:], key=lambda p: _ratio(p["risk_exposure"]))
@@ -539,15 +552,15 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 _ratio(minimum["risk_exposure"]) - _ratio(alternative["risk_exposure"])
             ) * 100
             additional_cost = _decimal(alternative["total_cost"]) - _decimal(minimum["total_cost"])
-            change = (
-                f"reduces simulated exposure by {reduction:.1f} points"
-                if reduction > 0
-                else f"changes simulated exposure by {-reduction:+.1f} points"
+            details["decision_summary"] = tr(
+                "tradeoff_summary" if reduction > 0 else "tradeoff_summary_up",
+                lang,
+                amount=amount(additional_cost),
+                points=number(abs(reduction) if reduction > 0 else -reduction, lang, 1),
             )
-            details["decision_summary"] = (
-                f"The lowest-exposure saved alternative costs {additional_cost:,f} {currency} "
-                f"more and {change}. Compare its supplier split before choosing a plan."
-            )
+    lowest = min(
+        range(len(recorded)), key=lambda i: _ratio(recorded[i]["risk_exposure"]), default=0
+    )
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
         by_supplier = {}
@@ -565,41 +578,45 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         exposure = _ratio(plan["risk_exposure"])
         if not 0 <= exposure <= 1:
             raise ValueError("Invalid recorded exposure")
+        used = [i for i in sorted(by_supplier) if by_supplier[i] > 0]
         plans.append(
             {
                 "label": label,
+                "title": tr("plan_minimum", lang)
+                if index == 0
+                else tr("plan_alternative", lang, n=index),
+                "hint": tr("plan_lower_risk", lang) if index == lowest and index else "",
                 "number": str(index + 1),
                 "index": str(index),
-                "chart_x": "50%"
-                if high == low
-                else f"{100 * (_decimal(plan['total_cost']) - low) / (high - low):.4f}%",
-                "chart_y": f"{10 + 80 * (1 - exposure):.4f}%",
-                "cost": f"{_decimal(plan['total_cost']):,f} {currency}",
+                "cost": amount(_decimal(plan["total_cost"])),
                 "cost_exact": plan["total_cost"],
+                "cost_number": f"{_decimal(plan['total_cost']):f}",
                 "exposure": _rational(plan["risk_exposure"]),
+                "exposure_number": f"{exposure * 100:.1f}",
                 "premium": _rational(plan["cost_premium"]),
-                "premium_absolute": f"{extra_cost:+,f} {currency}",
+                "premium_absolute": amount(extra_cost, signed=True),
                 "premium_exact": (
                     f"{plan['cost_premium']['numerator']}/{plan['cost_premium']['denominator']}"
                 ),
                 "exposure_exact": (
                     f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}"
                 ),
+                "supplier_count": str(len(used)),
                 "allocation_summary": "; ".join(
-                    f"{_supplier_label(identity)}: {by_supplier[identity]} "
-                    f"{requirement['quantity_unit']} (promised "
-                    f"{saved_suppliers[identity]['promised_date']})"
-                    for identity in sorted(by_supplier)
-                    if by_supplier[identity] > 0
+                    f"{name(identity)}: {pieces(by_supplier[identity])}" for identity in used
                 ),
-                "exposure_display": f"{_ratio(plan['risk_exposure']) * 100:.1f} / 100",
-                "premium_display": "Minimum cost for these constraints"
+                "exposure_display": tr(
+                    "exposure_value", lang, value=number(exposure * 100, lang, 1)
+                ),
+                "premium_display": tr("minimum_for_limits", lang)
                 if index == 0
-                else (
-                    f"+{extra_cost:,f} "
-                    f"{currency} (+{_ratio(plan['cost_premium']) * 100:.1f}%) above minimum"
+                else tr(
+                    "above_minimum",
+                    lang,
+                    amount=f"{amount(extra_cost, signed=True)} "
+                    f"({percent(_ratio(plan['cost_premium']), lang)})",
                 ),
-                "buyer_notes": _buyer_explanations(plan["explanations"]),
+                "buyer_notes": _buyer_explanations(plan["explanations"], lang, names),
                 "explanations": "\n".join(
                     f"{e['supplier_id'] or 'Plan'} — {e['code']}: {e['detail']}"
                     for e in plan["explanations"]
@@ -611,16 +628,30 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "plan": label,
                 "supplier": identity,
                 "quantity": str(by_supplier[identity]),
-                "name": _supplier_label(identity),
-                "promised": saved_suppliers[identity]["promised_date"],
+                "quantity_display": pieces(by_supplier[identity]),
+                "name": name(identity),
+                "promised": day(saved_suppliers[identity]["promised_date"], lang),
                 "share": f"{Decimal(by_supplier[identity]) / quantity * 100:.2f}",
+                "share_display": percent(Decimal(by_supplier[identity]) / quantity, lang, 0),
             }
             for identity in sorted(by_supplier)
         )
+    if comparison is not None and comparison["minimum_cost"] is not None and plans:
+        delta = comparison["minimum_cost"]
+        details["comparison_display"] = tr(
+            "scenario_delta",
+            lang,
+            amount=amount(_decimal(delta["total_cost_delta"]), signed=True),
+            points=number(_ratio(delta["risk_exposure_delta"]) * 100, lang, 1),
+        )
+    elif comparison is not None:
+        details["comparison_display"] = tr("scenario_no_plan", lang)
+    if comparison is not None and base_quantity != quantity:
+        details["comparison_display"] += " " + tr("scenario_demand_changed", lang)
     assessments = []
+    history = facts.get("input_kind") == "odoo_quotations_odoo_history"
     for assessment in snapshot["assessments"]:
         feature = assessment["snapshot"]
-        history = facts.get("input_kind") == "odoo_quotations_odoo_history"
         expected_source = "odoo_purchase_history" if history else "t14_synthetic"
         if feature["source_type"] != expected_source or facts["source_type"] != expected_source:
             raise ValueError("Unsupported ML source")
@@ -628,38 +659,43 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         score = _decimal(assessment["score"])
         if type(predicted) is not int or predicted not in (0, 1) or not 0 <= score <= 1:
             raise ValueError("Unsupported assessment")
+        values = feature["values"]
+        class_key = (
+            ("problematic" if predicted else "regular")
+            if history
+            else ("schedule_watch" if predicted else "schedule_regular")
+        )
         assessments.append(
             {
                 "supplier": _required_string(feature["context"], "supplier_id"),
                 "score": str(_decimal(assessment["score"])),
-                "name": _supplier_label(feature["context"]["supplier_id"]),
-                "class_label": (
-                    ("Problematic" if predicted else "Regular")
-                    if history
-                    else ("Schedule watch" if predicted else "Schedule regular")
-                ),
-                "class_meaning": (
-                    "Training label: in the next 60 days the average delay exceeds 3 days "
-                    "or the fill rate is below 85%."
-                    if history
-                    else "Training label: at least two of five future synthetic receipts are late."
-                    if predicted
-                    else "Training label: fewer than two of five future synthetic receipts "
-                    "are late."
+                "name": name(feature["context"]["supplier_id"]),
+                "class_key": class_key,
+                "class_label": tr("class_" + class_key, lang),
+                "class_meaning": tr(
+                    "class_meaning_history" if history else "class_meaning_synthetic", lang
                 ),
                 "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
-                "score_display": f"{score * 100:.1f} / 100",
+                "score_display": tr("exposure_value", lang, value=number(score * 100, lang, 1)),
                 "history_summary": (
-                    f"{feature['values'][0] * 100:.0f}% on time, average lateness "
-                    f"{feature['values'][1]:.1f} days, fill rate "
-                    f"{feature['values'][3] * 100:.0f}% across {feature['values'][5]:g} "
-                    "settled Odoo purchase lines"
+                    tr(
+                        "history_summary",
+                        lang,
+                        on_time=percent(values[0], lang, 0),
+                        late=tr("days", lang, value=number(values[1], lang, 1)),
+                        fill=percent(values[3], lang, 0),
+                        lines=number(values[5], lang, 0),
+                    )
                     if history
-                    else f"{feature['values'][0]:g}% on time across "
-                    f"{feature['values'][1]:g} completed receipts"
+                    else tr(
+                        "history_summary_synthetic",
+                        lang,
+                        on_time=percent(Decimal(str(values[0])) / 100, lang, 0),
+                        receipts=number(values[1], lang, 0),
+                    )
                 ),
                 "history_window": (
-                    f"{feature['history_start'][:10]} to {feature['history_end'][:10]}"
+                    f"{day(feature['history_start'], lang)} – {day(feature['history_end'], lang)}"
                 ),
                 "class": _integer(assessment["predicted_class"]),
                 "model": _required_string(assessment, "model_id"),
@@ -667,7 +703,7 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                 "valid_until": _parse_datetime(assessment["valid_until"]).isoformat(),
                 "quantity_range": (
                     f"{_integer(assessment['quantities']['minimum'])}–"
-                    f"{_integer(assessment['quantities']['maximum'])} units"
+                    f"{_integer(assessment['quantities']['maximum'])} {unit_name}"
                 ),
                 "path": "\n".join(
                     f"{step['feature']} = {step['value_float32']} "
@@ -675,21 +711,10 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
                     for step in assessment["path"]
                 ),
                 "readable_path": "\n".join(
-                    f"{index + 1}. "
-                    + (
-                        f"On-time delivery ({step['value_float32']:.2f}%) "
-                        f"is {'at most' if step['operator'] == '<=' else 'above'} "
-                        f"{step['threshold']:.2f}%."
-                        if step["feature"] == "delivery_schedule_adherence"
-                        else f"Completed receipts ({step['value_float32']:g}) "
-                        f"are {'at most' if step['operator'] == '<=' else 'above'} "
-                        f"{step['threshold']:.2f}."
-                        if step["feature"] == "historical_completed_count"
-                        else _history_step(step)
-                    )
+                    f"{index + 1}. {_history_step(step, lang)}"
                     for index, step in enumerate(assessment["path"])
                 )
-                or "The saved tree classifies at its root; no branch conditions were needed.",
+                or tr("path_root", lang),
             }
         )
     provenance = [
@@ -701,20 +726,32 @@ def _map_case(payload: dict, expected_id: str) -> PlanningDisplay:
         }
         for entry in snapshot["provenance"]["entries"]
     ]
-    details.update(_final_decision_details(payload, recorded))
+    details.update(_final_decision_details(payload, recorded, lang))
     return PlanningDisplay(
-        details, plans, allocations, assessments, provenance, scenario_suppliers, comparison_rows
+        details,
+        plans,
+        allocations,
+        assessments,
+        provenance,
+        scenario_suppliers,
+        comparison_rows,
+        payload,
     )
 
 
-def _final_decision_details(payload, plans):
+def _final_decision_details(payload, plans, lang="en"):
     decision = payload.get("final_decision")
     details = {
         "final_outcome": "",
+        "final_outcome_label": tr("decision_draft", lang)
+        if payload["parent_id"] is None
+        else tr("decision_scenario", lang),
         "final_plan": "",
+        "final_plan_title": "",
         "final_actor": "",
         "final_reason": "",
         "final_recorded_at": "",
+        "final_recorded_display": "",
         "final_content_hash": "",
         "final_audit": "",
     }
@@ -753,16 +790,24 @@ def _final_decision_details(payload, plans):
         ):
             raise ValueError("Invalid approved content")
         details["final_plan"] = "Minimum cost" if index == 0 else f"Alternative {index}"
+        details["final_plan_title"] = (
+            tr("plan_minimum", lang) if index == 0 else tr("plan_alternative", lang, n=index)
+        )
     elif index is not None or content is not None or decision["approved_content_hash"] is not None:
         raise ValueError("Invalid no-award content")
     else:
         details["final_plan"] = "None (No-award)"
+        details["final_plan_title"] = tr("decision_no_award", lang)
     details.update(
         final_outcome="Approved" if intent["outcome"] == "approve" else "No-award",
+        final_outcome_label=tr(
+            "decision_approved" if intent["outcome"] == "approve" else "decision_no_award", lang
+        ),
         final_actor=_required_string(audit, "actor_reference"),
-        final_reason=audit["rationale"] or "No reason required for minimum-cost approval",
+        final_reason=audit["rationale"] or "",
         final_recorded_at=_parse_datetime(audit["recorded_at"]).isoformat(),
-        final_content_hash=decision["approved_content_hash"] or "No approved content",
+        final_recorded_display=moment(audit["recorded_at"], lang),
+        final_content_hash=decision["approved_content_hash"] or "",
         final_audit=json.dumps(decision, indent=2, ensure_ascii=False),
     )
     return details

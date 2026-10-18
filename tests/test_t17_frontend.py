@@ -12,6 +12,7 @@ from frontend.config import settings as frontend_settings
 from frontend.planning.page import planning_page
 from frontend.planning.state import PlanningState
 from frontend.planning_client import fetch_planning_case, submit_planning_request
+from tests.frontend_patching import patch_client
 from tests.test_t17_decisions import BASE, TOKEN, intent
 from tests.test_t17_decisions import configured as _configured
 from tests.test_t17_decisions import stored_cases as _stored_cases
@@ -27,15 +28,17 @@ def test_explicit_selection_and_lost_success_response_recovery(configured, monke
     transport = httpx.ASGITransport(app=app)
     lost = []
 
-    async def send(url, payload, key, token):
-        result = await submit_planning_request(url, payload, key, token, transport=transport)
+    async def send(url, payload, key, token, lang="en"):
+        result = await submit_planning_request(
+            url, payload, key, token, lang=lang, transport=transport
+        )
         lost.append((url, deepcopy(payload), key))
         if len(lost) == 1:
             assert result[0] is not None
             return None, "Response lost; retry the same decision", True
         return result
 
-    monkeypatch.setattr("frontend.planning.state.submit_planning_request", send)
+    patch_client(monkeypatch, "submit_planning_request", send)
 
     async def flow():
         display, error = await fetch_planning_case(
@@ -43,6 +46,7 @@ def test_explicit_selection_and_lost_success_response_recovery(configured, monke
         )
         assert not error
         state = PlanningState(_reflex_internal_init=True)
+        state.lang = "en"  # the assertions below read English texts
         state._show(display)
         assert state.final_choice == "" and state.details["final_outcome"] == ""
         form = {
@@ -52,7 +56,7 @@ def test_explicit_selection_and_lost_success_response_recovery(configured, monke
             "demonstration": "on",
         }
         state.review_final_decision(form)
-        assert not lost and "Explicitly choose" in state.error_message
+        assert not lost and "Choose a plan or No award" in state.error_message
         form["choice"] = "Alternative 1"
         state.review_final_decision(form)
         assert not lost and state.decision_open
@@ -103,10 +107,11 @@ def test_no_award_and_scenario_controls_and_unavailable_load(configured, monkeyp
     async def unavailable(*args, **kwargs):
         return None, "Backend unavailable"
 
-    monkeypatch.setattr("frontend.planning.state.fetch_planning_case", unavailable)
+    patch_client(monkeypatch, "fetch_planning_case", unavailable)
 
     async def run():
         state = PlanningState(_reflex_internal_init=True)
+        state.lang = "en"  # the assertions below read English texts
         state.details = {"final_outcome": "Approved"}
         state.has_case = True
         async for _ in state.load_case({"case_id": base["case_id"]}):
@@ -115,10 +120,11 @@ def test_no_award_and_scenario_controls_and_unavailable_load(configured, monkeyp
         state.has_case = True
         state.details = {"parent_id": child["case_id"], "final_outcome": ""}
         state.review_final_decision({})
-        assert "original base" in state.error_message and not state.has_pending
+        assert "undecided base case" in state.error_message and not state.has_pending
 
     asyncio.run(run())
     rendered = str(planning_page())
-    assert "Choose explicitly" in rendered and "No-award" in rendered
-    assert "not authenticated buyer identity" in rendered
-    assert "Stress scenarios remain analytical" in rendered
+    # Both languages are compiled into the page; the English texts are plain ASCII here.
+    assert "Record no award" in rendered and "Review approval" in rendered
+    assert "creates no Odoo order" in rendered
+    assert "A scenario cannot be decided" in rendered

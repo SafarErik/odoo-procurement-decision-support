@@ -24,15 +24,6 @@ from sqlalchemy import create_engine, text
 
 REPO = Path(__file__).resolve().parents[2]
 
-# P2 removed the synthetic demo creation (Demo tab, POST /, /from-odoo) that every flow
-# below starts from. The suite is not collected until P3 rebuilds the browser tests on
-# the Odoo-history flow; the harness stays as the reference for that rewrite.
-collect_ignore_glob = ["test_*.py"]
-
-
-def prepare_demo(directory):
-    raise RuntimeError("The synthetic demo preparation was removed in P2; see P3.")
-
 
 def free_port():
     with socket.socket() as sock:
@@ -51,7 +42,7 @@ def wait_until(check, label, seconds=60):
 
 class SmokeStack:
     def __init__(self):
-        self.root = REPO / ".artifacts" / f"t18-browser-{uuid4().hex[:12]}"
+        self.root = REPO / ".artifacts" / f"p3-browser-{uuid4().hex[:12]}"
         self.root.mkdir(parents=True)
         self.project = self.root.name
         self.env = dict(os.environ)
@@ -74,6 +65,13 @@ class SmokeStack:
             PYTHONUNBUFFERED="1",
             REFLEX_TELEMETRY_ENABLED="false",
         )
+        # Same provider as tools.dev: podman-compose drives the Podman CLI and needs no
+        # Docker-compatible pipe (Windows machines do not always expose one).
+        provider = Path(sys.executable).with_name(
+            "podman-compose.exe" if os.name == "nt" else "podman-compose"
+        )
+        if provider.exists():
+            self.env.setdefault("PODMAN_COMPOSE_PROVIDER", str(provider))
         self.api_url = f"http://127.0.0.1:{free_port()}"
         self.reflex_port = free_port()
         self.frontend_url = f"http://127.0.0.1:{free_port()}"
@@ -164,20 +162,15 @@ class SmokeStack:
         except httpx.HTTPError:
             return False
 
-    def start_api(self, *, stored_only=False):
-        self.env["SUPPLIER_MODEL_DIRECTORY"] = (
-            "" if stored_only else str(self.root / ".artifacts/t15-demo/model")
-        )
+    def start_api(self):
+        """Real API and PostgreSQL; Odoo and the history model come from the P1 fixtures."""
         self.api = self.start(
             [
                 sys.executable,
                 "-m",
-                "uvicorn",
-                "backend.app.main:app",
-                "--host",
-                "127.0.0.1",
-                "--port",
+                "tests.e2e.odoo_fixture_api",
                 self.api_url.rsplit(":", 1)[1],
+                str(self.root / ".artifacts/history-model"),
             ],
             "api",
         )
@@ -194,8 +187,7 @@ class SmokeStack:
             str(path.relative_to(self.root)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted((self.root / "frontend").rglob("*.py"))
         }
-        self.payload = prepare_demo(self.root / ".artifacts/t15-demo")
-        self.env["PLANNING_LIBRARY_COMPANY_ID"] = self.payload["company_id"]
+        self.env["PLANNING_LIBRARY_COMPANY_ID"] = "odoo:res.company:1"
         self.database_started = True  # Clean up even when Compose startup fails partway.
         self.compose("up", "-d")
         self.database_port = int(self.env["TEST_POSTGRES_PORT"])
@@ -216,6 +208,13 @@ class SmokeStack:
                     str(ssh["Port"]),
                     "-o",
                     "BatchMode=yes",
+                    # The local Podman VM gets a new host key when it is recreated; like
+                    # `podman machine ssh`, trust it by its identity key and keep its host
+                    # key in this run's folder instead of the user's known_hosts.
+                    "-o",
+                    "StrictHostKeyChecking=no",
+                    "-o",
+                    "UserKnownHostsFile=" + str(self.root / "known_hosts"),
                     "-o",
                     "ExitOnForwardFailure=yes",
                     "-N",
