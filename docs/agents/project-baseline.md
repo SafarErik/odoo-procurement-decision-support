@@ -1,7 +1,8 @@
 # Project and thesis alignment
 
-Reviewed 2026-10-09. This is a routing and traceability guide, not a replacement
-requirements register or a claim of complete acceptance.
+Reviewed 2026-10-19 against `main` at e3cbf84 (after revamp P0–P4) and the Drive
+living documents 00–08 as synchronized on 2026-10-18/19. This is a routing and
+traceability guide, not a replacement requirements register.
 
 ## Authoritative sources
 
@@ -13,8 +14,8 @@ against the task wording already recorded in Drive.
 - [Official task sheet](https://drive.google.com/file/d/1T4Fo_RsSFgs-zjV5NUPfF6_h7xOraog8/view).
 - [Project folder](https://drive.google.com/drive/folders/1UpOMvmBmFKYvLglf7doC_z3-29c5S-vX).
 - [00_THESIS_STATUS](https://docs.google.com/document/d/1X2WGVVYn0j1ymX0cv5kQQGIaJiEc7pcLSZYDIrXA3VU/edit): capability and current status.
-- [06_REQUIREMENTS_BASELINE](https://docs.google.com/document/d/1g0zie-3mEWdrkiBMUET--ST8eCdmOPOVfyjyWXr_Iig/edit): FR-V2, NFR-V2 and AC-V2 definitions.
-- [03_ARCHITECTURE_DECISIONS](https://docs.google.com/document/d/1HzhcD03TAiIpJT4n9_tYLurYT3u68ziRND_E9RHRTW4/edit): accepted ADRs and stability classifications.
+- [06_REQUIREMENTS_BASELINE](https://docs.google.com/document/d/1g0zie-3mEWdrkiBMUET--ST8eCdmOPOVfyjyWXr_Iig/edit): FR-V2, NFR-V2 and AC-V2 definitions and the AC-V2 status table.
+- [03_ARCHITECTURE_DECISIONS](https://docs.google.com/document/d/1HzhcD03TAiIpJT4n9_tYLurYT3u68ziRND_E9RHRTW4/edit): ADR-001–034 and stability classifications (ADR-028–034 record the revamp decisions).
 - [02_ROADMAP](https://docs.google.com/document/d/1jlTCsRsO8C-MZ2xT-szbFJvExM2OVuphE5524NpIOr4/edit): next increments and dependencies.
 - [07_DEVELOPMENT_STATUS](https://docs.google.com/document/d/1Xgphr_FEurdFlK651s2DTJWlubwt9vii1c5st9iO6E8/edit): detailed evidence and limitations.
 - [01_THESIS_OUTLINE](https://docs.google.com/document/d/1pFsBms54AE-3hMHSHBJOOswb4il-bThT0Y3Srupl2TY/edit): chapter structure.
@@ -36,8 +37,9 @@ request; when authorized, update only the affected documents and link the
 repository evidence rather than copying the execution diary.
 
 For baseline/product planning, refresh 00/06 and the affected 02/03 records.
-For implementation, read README and AGENTS.md, then only relevant runbooks,
-handoffs and code. For thesis work, refresh 01/04/05 and relevant evidence in 07.
+For implementation, read README and AGENTS.md, then only the relevant
+`docs/` reference (ARCHITECTURE, MODEL_ML, MODEL_MILP, TESTING, RUNBOOK,
+TRACEABILITY), handoffs and code. For thesis work, refresh 01/04/05 and relevant evidence in 07.
 If a necessary primary source cannot be read, identify the assumption and leave
 its conclusion unverified. Do not substitute an archive for a living record.
 
@@ -48,7 +50,7 @@ its conclusion unverified. Do not substitute an archive for a living record.
 | FIXED principles/scope | Python backend/core; side-by-side service; ERP-independent Decision Core; API-only replaceable frontend; Odoo 19 as the implemented ERP adapter; bounded, company-scoped, read-only Odoo access |
 | Required V2 capabilities | Decision Tree supplier evaluation; MILP supplier selection/order allocation; Python web UI; disruption scenarios with the same MILP; storage, human approval and approved PDF |
 | Current technology choices | FastAPI BASELINE/PROVISIONAL; own PostgreSQL, Reflex, Podman + Compose BASELINE |
-| Current replaceable libraries | scikit-learn DecisionTreeClassifier; PuLP + CBC PROVISIONAL; PDF library remains open |
+| Current replaceable libraries | scikit-learn DecisionTreeClassifier; PuLP + CBC; ReportLab PDF renderer — all PROVISIONAL implementation choices |
 | Runtime compatibility | Python 3.11 for local/CI compatibility, as required by AGENTS.md |
 
 Preserve existing choices unless the user explicitly accepts a change. The task
@@ -64,28 +66,33 @@ accepted scope. A contrary supervisor clarification must be surfaced and
 resolved, not silently ignored or inferred.
 
 Architectural, manual-Odoo, trust-boundary and verification rules remain in
-AGENTS.md. Keep V1 historical records compatible. WSM is historical/evaluation
-evidence, not a replacement for V2 MILP. Preserve synthetic versus observed
-provenance and the offline-training boundary.
+AGENTS.md. V1/WSM code and tables were removed in P0 (ADR-028); V1 evidence lives
+unchanged in `docs/history/` and the Drive archives, and is a historical contrast,
+not a V2 capability. Pre-P2 V2 records (including synthetic cases) stay readable.
+Preserve generated versus observed provenance and the offline-training boundary.
 
 ## Official-task traceability
 
 The clause groups below cover the task's substantive obligations. They do not
 create new requirements. Keep the canonical FR-V2/NFR-V2/AC-V2 identifiers.
 
+The full sentence-level mapping
+(task sentence → implementation → evidence → status → chapter) is
+[TRACEABILITY.md](../TRACEABILITY.md); keep it, not this table, current per change.
+
 | Task obligation | Requirement/evidence route | Thesis chapters |
 | --- | --- | --- |
-| Open ERP characteristics; Odoo procurement, supplier evaluation and ERP data handling | Official background sources; 04 research notes; Odoo mapping/history handoffs | 2, 3 |
-| Odoo/Python side-by-side development; roles of FastAPI, PostgreSQL and Reflex | ADR-001 through ADR-007/015/019; architecture and runtime evidence | 2, 4, 6 |
-| Relevant decision-support algorithms, especially Decision Trees and MILP | 04 research notes; T13/T14 designs; distinguish background from the project's own model | 2, 5 |
-| Controlled procurement history and source-attributed supplemental business data | FR-V2-01/02; AC-V2-01/02; T6/T7/T8 and T15 compatibility/input evidence | 3, 4, 5, 6, 7 |
-| Python supplier evaluation using performance features and Decision Trees; documented training data and interpreted decision paths | FR-V2-02/03/07; AC-V2-02/03; T14 design, handoff and evaluation report | 2, 5, 6, 7 |
-| MILP multi-supplier allocation with capacity, MOQ, supplier-count, concentration and delivery constraints; minimum cost and risk exposure | FR-V2-04/05/06/07; AC-V2-04 through AC-V2-07; T13 model/reference-optimum evidence | 2, 5, 6, 7 |
-| Python web UI for evaluations, allocations and explanations | FR-V2-07/09; AC-V2-09; T16 handoff and browser evidence | 4, 6, 7 |
-| Systematic plan storage, technical approval and final PDF | FR-V2-10/11/12; AC-V2-10/11/12; T15 storage evidence, future V2 approval/PDF evidence | 3, 4, 6, 7 |
-| Supplier outage, capacity, demand and price stress scenarios rerunning the same MILP | FR-V2-08; AC-V2-08; T15 API/scenario and T16 browser evidence | 2, 5, 6, 7 |
-| Reproducible models, integration, infeasible cases and complete decision-flow tests; sound ML evaluation | NFR-V2-02/03/04/06/08; AC-V2-01 through AC-V2-13; T13/T14/T15/T16 evidence and final integrated evaluation | 7 |
-| Further-development proposals | Derive proposals from measured limitations and RQ-V2 answers; do not promote them into current CORE scope | 8, 9 |
+| Open ERP characteristics; Odoo procurement, supplier evaluation and ERP data handling | Official background sources; 04 research notes; ARCHITECTURE (Odoo boundary) | 2, 3 |
+| Odoo/Python side-by-side development; roles of FastAPI, PostgreSQL and Reflex | ADR-001–007/015/019; [ARCHITECTURE](../ARCHITECTURE.md); `tests/test_architecture.py` | 2, 4, 6 |
+| Relevant decision-support algorithms, especially Decision Trees and MILP | 04 research notes; [MODEL_ML](../MODEL_ML.md), [MODEL_MILP](../MODEL_MILP.md); distinguish background from the project's own model | 2, 5 |
+| Controlled procurement history and source-attributed supplemental business data | FR-V2-01/02; AC-V2-01/02; ADR-030/031; [P1 handoff](../handoffs/P1_ODOO_HISTORY_ML.md), [P2 handoff](../handoffs/P2_BACKEND_CAPABILITIES.md); [P4_DEMO_REPORT](../evidence/P4_DEMO_REPORT.json); generated, not observed data ([L1](../LIMITATIONS_AND_FUTURE_WORK.md)) | 3, 4, 5, 6, 7 |
+| Python supplier evaluation using performance features and Decision Trees; documented training data and interpreted decision paths | FR-V2-02/03/07; AC-V2-02/03; ADR-025/030; [MODEL_ML](../MODEL_ML.md) dataset card; [P1_ML_REPORT](../evidence/P1_ML_REPORT.json), [P4_ML_REPORT_CHECK](../evidence/P4_ML_REPORT_CHECK.json) | 2, 5, 6, 7 |
+| MILP multi-supplier allocation with capacity, MOQ, supplier-count, concentration and delivery constraints; minimum cost and risk exposure | FR-V2-04/05/06/07; AC-V2-04 through AC-V2-07; ADR-024; [MODEL_MILP](../MODEL_MILP.md); [P4_MILP_EVALUATION](../evidence/P4_MILP_EVALUATION.json) (independent reference optimum, 4/5/10 suppliers) | 2, 5, 6, 7 |
+| Python web UI for evaluations, allocations and explanations | FR-V2-07/09; AC-V2-09; ADR-034; [P3 handoff](../handoffs/P3_FRONTEND_REVAMP.md), [P3 search fix](../handoffs/P3_LIBRARY_SEARCH_RELOAD_FIX.md); screenshots in [evidence/p3](../evidence/p3/) | 4, 6, 7 |
+| Systematic plan storage, technical approval and final PDF | FR-V2-10/11/12; AC-V2-10/11/12; ADR-026/033; [P2 handoff](../handoffs/P2_BACKEND_CAPABILITIES.md); [P4_DEMO_REPORT](../evidence/P4_DEMO_REPORT.json) (approval, No-award, HU/EN PDF, replay without Odoo and model) | 3, 4, 6, 7 |
+| Supplier outage, capacity, demand and price stress scenarios rerunning the same MILP | FR-V2-08; AC-V2-08; ADR-032 (both directions); [MODEL_MILP](../MODEL_MILP.md) §6; [P4_DEMO_REPORT](../evidence/P4_DEMO_REPORT.json) (nine scenarios, two infeasible) | 2, 5, 6, 7 |
+| Reproducible models, integration, infeasible cases and complete decision-flow tests; sound ML evaluation | NFR-V2-02/03/04/06/08; AC-V2-01 through AC-V2-13; [TESTING](../TESTING.md); [P4 handoff](../handoffs/P4_VALIDATION.md); all files in [evidence/](../evidence/) | 7 |
+| Further-development proposals | [LIMITATIONS_AND_FUTURE_WORK](../LIMITATIONS_AND_FUTURE_WORK.md) (L1–L13, each with evidence and a proposal); do not promote them into current CORE scope | 8, 9 |
 
 Before implementing or reviewing an increment, identify its task clause, existing
 FR/AC identifiers, concrete acceptance example and required checks. At handoff,
@@ -97,31 +104,40 @@ Keep planned, implemented, locally verified, hosted, live, browser and fully
 accepted states distinct. Synthetic model metrics do not establish observed
 supplier performance, calibrated failure probability or real business savings.
 
-## Dated reconciliation and open acceptance
+## Current state (main e3cbf84, 2026-10-18)
 
-As of this review, GitHub and local main agree on
-979b9b89e8517c65daefcf7e533c8b3f9c2c0ccd. [PR #18](https://github.com/SafarErik/odoo-procurement-decision-support/pull/18)
-merged on 2026-10-09. Exact-SHA [Quality](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37923795850)
-and [Container/API](https://github.com/SafarErik/odoo-procurement-decision-support/actions/runs/37923795924)
-succeeded. This is publication/CI evidence, not a new local runtime check or
-proof of complete thesis acceptance.
+Revamp P0–P4 merged as PRs #45–#49 ([REVAMP_PLAN](../REVAMP_PLAN.md), handoffs
+[P0](../handoffs/P0_REPO_CLEANUP.md) … [P4](../handoffs/P4_VALIDATION.md)). It
+changed no FR-V2/NFR-V2/AC-V2 definition; the reasons are recorded in Drive 03 as
+ADR-028–034.
 
-Drive's 2026-10-08 snapshots and repository pre-merge publication text retain an
-earlier status. Report that discrepancy; do not use it to reopen the completed
-merge gate. Refresh live GitHub before relying on this dated SHA in later work.
-Drive correction is a separate explicitly requested stage.
+- **Acceptance.** Every AC-V2-01…13 is LOCAL PASS in the named controlled scope: one
+  product, one approved demand, up to 10 suppliers, generated history in the
+  dedicated Odoo test database and buyer-entered (prefilled default) terms. This is
+  not acceptance on live, observed supplier data. Status table: Drive 06; per-task
+  mapping: [TRACEABILITY.md](../TRACEABILITY.md). Hosted CI (Quality,
+  Container/API) passed on e3cbf84 but runs no live Odoo, browser or validation
+  tools; AC-V2-13's demo was not re-run after the P4 review fixes.
+- **Data and ML.** The Decision Tree trains offline on purchase history that the
+  guarded seeder (`tools/seed_odoo_history.py`) wrote into the dedicated
+  `pdss_history_gen` Odoo database and that is read back only through the Odoo API
+  (ADR-030). The earlier synthetic T14 tree has no runtime role. Metrics prove the
+  method, not real supplier behaviour; the tree beats the majority baseline but not
+  the hand-written expert rule on unseen suppliers (L1–L3).
+- **Case creation.** Only from an open Odoo quotation group plus Odoo history
+  (ADR-031); synthetic demo creation paths are removed. Capacity/MOQ defaults are
+  source-tagged buyer input, in tension with the no-default rule (L6).
+- **Scenarios, PDF, UI.** Capacity, demand and price changes in both directions
+  (ADR-032); ReportLab PDF v2 in Hungarian or English with one purchase order
+  proposal per supplier, stored per language (ADR-033), not an Odoo PO;
+  Hungarian-default bilingual Reflex UI (ADR-034).
+- **Removed.** V1/WSM code, routes, tables and the Practice workspace (ADR-028/029);
+  their records stay in `docs/history/` and the Drive archives.
 
-V2 human plan approval/no-award, approved-snapshot PDF and full-flow acceptance
-remain open: AC-V2-11/12/13. Historical V1 finalization does not satisfy V2 plan
-approval. Observed-history/model promotion, broader Odoo quotation selection
-and final measured integrated evaluation retain their own open boundaries.
-Controlled synthetic ML is accepted by the current requirements, while the
-official controlled-history obligation must retain its explicit mapping and
-evidence; do not silently impose or waive an observed-model promotion gate.
-
-The next buyer-visible capability is selecting/finalizing a saved valid plan
-and downloading its approved snapshot PDF. This describes the roadmap; it does
-not authorize implementing that feature during skill setup.
+Open items are limitations and thesis work, not acceptance gates: approver
+identity is not authenticated (L9), no real buyer study (NOT ASSESSED), and the
+thesis prose itself. Refresh live GitHub and Drive before relying on this SHA in
+later work; Drive changes still need an explicit owner request.
 
 ## Thesis-writing completion
 
