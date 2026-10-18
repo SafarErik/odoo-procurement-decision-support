@@ -25,12 +25,24 @@ from pathlib import Path
 import httpx
 
 from tools.dev import ROOT, _env
+from tools.seed_odoo_history import REPRODUCTION_LAST_CUTOFF
 from tools.t17_demo import BASE, checked, run_flow, verify_stored, write_json
 
 PORT = 8010
 ORIGIN = f"http://127.0.0.1:{PORT}"
 # Replay settings: a closed local port instead of Odoo, and no model directory.
 ISOLATED = {"ODOO_BASE_URL": "http://127.0.0.1:9", "SUPPLIER_HISTORY_MODEL_DIRECTORY": ""}
+STORED_EVIDENCE = "docs/evidence/P4_DEMO_REPORT.json and docs/evidence/P4_MILP_EVALUATION.json"
+
+
+def check_reproduction_window(now: datetime | None = None) -> None:
+    """Live runs need seeded history inside the feature window; later runs use stored evidence."""
+    if (now or datetime.now(UTC)) > REPRODUCTION_LAST_CUTOFF:
+        raise RuntimeError(
+            f"The seeded history supports live cutoffs up to "
+            f"{REPRODUCTION_LAST_CUTOFF:%Y-%m-%d}; later live runs find no settled lines. "
+            f"Use the stored evidence instead: {STORED_EVIDENCE}."
+        )
 
 
 @contextmanager
@@ -209,6 +221,7 @@ def overview_summary(views: dict) -> list[dict]:
 
 
 def run(args) -> Path:
+    check_reproduction_window()
     env = _env()
     token = env.get("API_SERVICE_TOKEN", "")
     if not token:

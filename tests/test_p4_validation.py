@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
@@ -14,6 +15,7 @@ from tests.test_odoo_purchase_history import history as _history
 from tests.test_t13_planning import request, scored, supplier
 from tools import demo
 from tools.milp_evaluation import (
+    database_identity,
     describe,
     measure_workload,
     nearest_rank,
@@ -23,6 +25,8 @@ from tools.milp_evaluation import (
 )
 from tools.seed_odoo_history import (
     ALLOWED_DATABASE,
+    REPRODUCTION_LAST_CUTOFF,
+    TAG,
     OdooWriter,
     apply_evaluation_groups,
     build_plan,
@@ -49,8 +53,15 @@ def test_evaluation_groups_are_deterministic_nested_and_quote_the_rfq_product():
     assert len(set(groups[10])) == 10
 
 
-def fake_odoo(existing_groups=False):
+def fake_odoo(plan, existing=None):
+    """existing: None (empty), "grouped" (every RFQ of both sizes in one group), or "partial"
+    (an interrupted run: the first two RFQs of each size, without a group)."""
     calls = []
+    origins = [
+        (f"{TAG}:RFQ{size}:{code}", index)
+        for size, codes in evaluation_groups(plan).items()
+        for index, code in enumerate(codes)
+    ]
 
     def respond(request):
         model, method = request.url.path.split("/")[-2:]
@@ -67,7 +78,19 @@ def fake_odoo(existing_groups=False):
         if (model, method) == ("res.company", "search_read"):
             return httpx.Response(200, json=[{"id": 1}])
         if (model, method) == ("purchase.order", "search_read"):
-            return httpx.Response(200, json=[{"purchase_group_id": [7, "G"]}] * existing_groups)
+            prefix = body["domain"][0][2].removesuffix("%")
+            if prefix == f"{TAG}:RFQ:":  # the four-supplier RFQ group written by apply
+                return httpx.Response(200, json=[{"id": 1, "purchase_group_id": [7, "G"]}])
+            found = [
+                {
+                    "id": 1000 + index,
+                    "origin": origin,
+                    "purchase_group_id": [7, "G"] if existing == "grouped" else False,
+                }
+                for origin, index in origins
+                if origin.startswith(prefix) and (existing == "grouped" or index < 2)
+            ]
+            return httpx.Response(200, json=found if existing else [])
         if (model, method) == ("res.partner", "search_read"):
             refs = body["domain"][0][2]
             return httpx.Response(200, json=[{"id": 100 + i, "ref": r} for i, r in enumerate(refs)])
@@ -85,23 +108,49 @@ def fake_odoo(existing_groups=False):
 
 def test_evaluation_groups_write_tagged_rfqs_after_target_check_and_reuse_on_rerun():
     plan = build_plan(CLOCK)
-    writer, calls = fake_odoo()
+    writer, calls = fake_odoo(plan)
     groups = apply_evaluation_groups(plan, writer, log=lambda _: None)
     assert calls[0][:2] == ("ir.config_parameter", "get_param")
     created = [body["vals_list"][0] for m, method, body in calls if (m, method) == (
         "purchase.order", "create"
     )]  # fmt: skip
-    assert len(created) == 15 and set(groups) == {5, 10}
+    assert len(created) == 15 and set(groups) == {4, 5, 10} and groups[4] == 7
     assert all(v["origin"].startswith("PDSS-GEN-P1:RFQ") for v in created)
     assert all(v["partner_ref"] == "PDSS-GEN-P1" for v in created)
     assert all(v["order_line"][0][2]["product_qty"] == 200 for v in created)
 
-    writer, calls = fake_odoo(existing_groups=True)
-    assert apply_evaluation_groups(plan, writer, log=lambda _: None) == {5: 7, 10: 7}
+    writer, calls = fake_odoo(plan, existing="grouped")
+    assert apply_evaluation_groups(plan, writer, log=lambda _: None) == {4: 7, 5: 7, 10: 7}
     assert not [c for c in calls if c[1] == "create"]
 
 
+def test_evaluation_groups_complete_an_interrupted_run_without_a_group():
+    plan = build_plan(CLOCK)
+    writer, calls = fake_odoo(plan, existing="partial")
+    groups = apply_evaluation_groups(plan, writer, log=lambda _: None)
+    created = [c for c in calls if (c[0], c[1]) == ("purchase.order", "create")]
+    # Two RFQs per size exist; the missing 3 and 8 are created, then one group per size.
+    assert len(created) == 11
+    linked = [c for c in calls if (c[0], c[1]) == ("purchase.order.group", "create")]
+    assert len(linked) == 2 and set(groups) == {4, 5, 10}
+    assert len(linked[0][2]["vals_list"][0]["order_ids"][0][2]) == 5
+
+
 # --- Reference optimum and invariants -------------------------------------------------
+
+
+def test_reproduction_window_ends_where_the_seeded_feature_window_ends():
+    assert REPRODUCTION_LAST_CUTOFF == datetime(2027, 2, 28, tzinfo=UTC)
+    demo.check_reproduction_window(REPRODUCTION_LAST_CUTOFF)
+    with pytest.raises(RuntimeError, match="P4_DEMO_REPORT.json"):
+        demo.check_reproduction_window(datetime(2027, 3, 1, tzinfo=UTC))
+
+
+def test_test_database_must_not_be_the_development_database():
+    local = database_identity("postgresql+psycopg://a:secret@localhost:55432/planning_test")
+    assert local == database_identity("postgresql+psycopg://b:other@127.0.0.1:55432/planning_test")
+    assert local != database_identity("postgresql+psycopg://a:secret@localhost:55432/planning")
+    assert database_identity("postgresql+psycopg://a@db/planning") == ("db", 5432, "planning")
 
 
 def test_nearest_rank_p95_uses_the_29th_of_30_values():
@@ -183,6 +232,7 @@ def test_demo_runs_flow_replays_and_writes_summary(configured, monkeypatch, tmp_
             yield client
 
         monkeypatch.setattr(demo, "api", same_client)
+        monkeypatch.setattr(demo, "check_reproduction_window", lambda: None)
         monkeypatch.setattr(demo, "_env", lambda: {"API_SERVICE_TOKEN": "t", "ODOO_DATABASE": "x"})
         monkeypatch.setattr(
             demo,

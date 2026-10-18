@@ -23,6 +23,7 @@ Local timings describe this machine only; they are not a service-level agreement
 """
 
 import argparse
+import json
 import math
 import os
 import platform
@@ -41,17 +42,21 @@ from pathlib import Path
 from uuid import uuid4
 
 import httpx
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 from application.planning_serialization import read_request
 from decision_core.planning.models import MinimumOrder, PlanningStatus
 from decision_core.planning.planner import plan_procurement
 from optimization_adapter.pulp_cbc import PulpCbcSolver
-from tools.demo import api, git_revision, open_groups
+from tools.demo import api, check_reproduction_window, git_revision
 from tools.dev import ROOT, _env
 from tools.t17_demo import BASE, checked, write_json
 
 SIZES = (4, 5, 10)
 EPSILONS = {1: ("0.2",), 3: ("0.05", "0.1", "0.2")}
+GROUPS_FILE = ROOT / ".artifacts" / "seed" / "evaluation_groups.json"
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
 
 
 # --- Statistics ----------------------------------------------------------------------
@@ -328,7 +333,7 @@ def measure_workload(client, group_id, terms, epsilons, repetitions, warmups) ->
             lambda key=key: client.post(create, json=payload, headers={"Idempotency-Key": key}),
             201,
         )
-        _, t_scenario = timed(
+        scenario, t_scenario = timed(
             lambda case=case: client.post(
                 f"{BASE}/{case['case_id']}/scenarios",
                 json=delta,
@@ -336,6 +341,10 @@ def measure_workload(client, group_id, terms, epsilons, repetitions, warmups) ->
             ),
             201,
         )
+        # A price cut keeps the request feasible, so only an optimal result counts as a sample.
+        status = scenario["snapshot"]["result"]["status"]
+        if status != PlanningStatus.OPTIMAL.value:
+            raise ValueError(f"Price-change scenario returned {status}, expected optimal.")
         replay, t_retry = timed(
             lambda key=key: client.post(create, json=payload, headers={"Idempotency-Key": key}),
             200,
@@ -396,11 +405,41 @@ def environment() -> dict:
     }
 
 
+def database_identity(url: str) -> tuple:
+    """Host (loopback names equal), port and database name of a SQLAlchemy URL."""
+    try:
+        parsed = make_url(url)
+    except ArgumentError as error:
+        raise RuntimeError(
+            "TEST_DATABASE_URL or DECISION_DATABASE_URL is not a valid URL."
+        ) from error
+    host = parsed.host or "localhost"
+    return ("localhost" if host in LOOPBACK else host, parsed.port or 5432, parsed.database)
+
+
+def seeded_groups() -> dict[int, int]:
+    """Quotation group ids of the seeded workloads, written by ``seed_odoo_history groups``.
+
+    The listing shows only the newest open groups and carries no seed tag, so it cannot
+    identify the evaluation groups."""
+    if not GROUPS_FILE.exists():
+        raise RuntimeError("Run 'python -m tools.seed_odoo_history groups' first.")
+    stored = json.loads(GROUPS_FILE.read_text(encoding="utf-8"))
+    return {int(size): int(group) for size, group in stored.items()}
+
+
 def run(args) -> dict:
+    check_reproduction_window()
     env = _env()
     token, database = env.get("API_SERVICE_TOKEN", ""), env.get("TEST_DATABASE_URL", "")
     if not token or not database:
         raise RuntimeError("Set API_SERVICE_TOKEN and TEST_DATABASE_URL (RUNBOOK §6).")
+    development = env.get("DECISION_DATABASE_URL", "")
+    if development and database_identity(development) == database_identity(database):
+        raise RuntimeError(
+            "TEST_DATABASE_URL points at the development planning database; "
+            "use the disposable test database (RUNBOOK §6)."
+        )
     test_env = env | {"DECISION_DATABASE_URL": database}
     migrated = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=test_env, check=False
@@ -409,35 +448,31 @@ def run(args) -> dict:
         raise RuntimeError("Migrating the disposable test database failed.")
     args.directory.mkdir(parents=True, exist_ok=True)
     workloads, correctness = [], []
+    groups = seeded_groups()
+    missing = [size for size in SIZES if size not in groups]
+    if missing:
+        raise RuntimeError(f"No seeded group with {missing} suppliers; run seed groups.")
     with api(test_env, token, args.directory / "evaluation-api.log") as client:
-        groups = open_groups(client)
-        by_size = {}
-        for group in sorted(groups, key=lambda g: g["purchase_group_id"]):
-            by_size.setdefault(group["supplier_count"], group)
-        missing = [size for size in SIZES if size not in by_size]
-        if missing:
-            raise RuntimeError(f"No open group with {missing} suppliers; run seed groups.")
         for size in SIZES:
-            group = by_size[size]
+            group_id = groups[size]
             preview = checked(
-                client.get(
-                    f"{BASE}/odoo-history/preview",
-                    params={"purchase_group_id": group["purchase_group_id"]},
-                ),
+                client.get(f"{BASE}/odoo-history/preview", params={"purchase_group_id": group_id}),
                 200,
             )
+            if len(preview["terms"]["suppliers"]) != size:
+                raise RuntimeError(f"Group {group_id} does not have {size} suppliers.")
             for count, epsilons in EPSILONS.items():
                 print(f"Workload: {size} suppliers, {count} epsilon(s)", flush=True)
                 measured = measure_workload(
                     client,
-                    group["purchase_group_id"],
+                    group_id,
                     preview["terms"],
                     epsilons,
                     args.repetitions,
                     args.warmups,
                 )
                 base = measured.pop("base")
-                measured["purchase_group_id"] = group["purchase_group_id"]
+                measured["purchase_group_id"] = group_id
                 measured["solver_runtime"] = base["snapshot"]["solver"].get("runtime")
                 workloads.append(measured)
                 request = read_request(base["snapshot"]["request"])

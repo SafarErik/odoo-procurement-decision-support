@@ -32,6 +32,9 @@ SEED = 20261017
 MONTHS = 18
 # Fixed simulated clock: the plan is reproducible and every receipt lies in the past.
 CLOCK = datetime(2026, 10, 17, tzinfo=UTC)
+# The feature window reads expected arrivals in [cutoff - 134 d, cutoff - 14 d) (settlement 14 d,
+# lookback 120 d). The last seeded arrival is about CLOCK, so later live cutoffs find no lines.
+REPRODUCTION_LAST_CUTOFF = CLOCK + timedelta(days=134)
 ROOT = Path(__file__).resolve().parents[1]
 ODOO_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -554,42 +557,72 @@ def apply_evaluation_groups(plan: Plan, writer: OdooWriter, *, log=print) -> dic
         "res.company", "search_read", {"domain": [], "fields": ["id"], "limit": 1}
     )[0]["id"]
     base = next(p for p in plan.products if p.code == plan.rfq_product).base_price
-    groups = {}
+    # The four-supplier workload is the RFQ group written by ``apply``.
+    rfq = writer.call(
+        "purchase.order",
+        "search_read",
+        {
+            "domain": [["origin", "=like", f"{TAG}:RFQ:%"]],
+            "fields": ["purchase_group_id"],
+            "limit": 1,
+        },
+    )
+    if not rfq or not rfq[0]["purchase_group_id"]:
+        raise ValueError("Run 'apply' first: the four-supplier RFQ group is missing.")
+    groups = {len(plan.rfq_suppliers): rfq[0]["purchase_group_id"][0]}
     for size, codes in evaluation_groups(plan).items():
         prefix = f"{TAG}:RFQ{size}:"
         found = writer.call(
             "purchase.order", "search_read",
-            {"domain": [["origin", "=like", f"{prefix}%"]], "fields": ["purchase_group_id"]},
+            {
+                "domain": [["origin", "=like", f"{prefix}%"]],
+                "fields": ["id", "origin", "purchase_group_id"],
+            },
         )  # fmt: skip
-        if found:
-            groups[size] = found[0]["purchase_group_id"][0]
+        present = {r["origin"]: r for r in found}
+        expected = [f"{prefix}{code}" for code in codes]
+        # An interrupted earlier run may have written only some RFQs, or none of the group.
+        missing = [c for c, origin in zip(codes, expected, strict=True) if origin not in present]
+        created = []
+        if missing:
+            partners = dict(
+                (r["ref"], r["id"])
+                for r in writer.call(
+                    "res.partner", "search_read",
+                    {
+                        "domain": [["ref", "in", [f"{TAG}-{c}" for c in missing]]],
+                        "fields": ["id", "ref"],
+                    },
+                )
+            )  # fmt: skip
+            for code in missing:
+                supplier = next(s for s in plan.suppliers if s.code == code)
+                created += writer.call(
+                    "purchase.order",
+                    "create",
+                    {"vals_list": [{
+                        "partner_id": partners[f"{TAG}-{code}"], "company_id": company,
+                        "origin": f"{prefix}{code}", "partner_ref": TAG,
+                        "order_line": [[0, 0, {
+                            "product_id": product[0]["id"], "product_qty": 200,
+                            "product_uom_id": product[0]["uom_id"][0],
+                            "price_unit": round(base * supplier.price_factor, 2),
+                            "date_planned": _odoo(plan.now + timedelta(days=supplier.lead_days)),
+                            "tax_ids": [[6, 0, []]],
+                        }]],
+                    }]},
+                )  # fmt: skip
+        linked = {
+            present[o]["purchase_group_id"][0] if present[o]["purchase_group_id"] else None
+            for o in expected
+            if o in present
+        }
+        if not missing and len(linked) == 1 and None not in linked:
+            groups[size] = linked.pop()
             log(f"{size}-supplier group already present: {groups[size]}")
             continue
-        partners = dict(
-            (r["ref"], r["id"])
-            for r in writer.call(
-                "res.partner", "search_read",
-                {"domain": [["ref", "in", [f"{TAG}-{c}" for c in codes]]], "fields": ["id", "ref"]},
-            )
-        )  # fmt: skip
-        rfq_ids = []
-        for code in codes:
-            supplier = next(s for s in plan.suppliers if s.code == code)
-            rfq_ids += writer.call(
-                "purchase.order",
-                "create",
-                {"vals_list": [{
-                    "partner_id": partners[f"{TAG}-{code}"], "company_id": company,
-                    "origin": f"{prefix}{code}", "partner_ref": TAG,
-                    "order_line": [[0, 0, {
-                        "product_id": product[0]["id"], "product_qty": 200,
-                        "product_uom_id": product[0]["uom_id"][0],
-                        "price_unit": round(base * supplier.price_factor, 2),
-                        "date_planned": _odoo(plan.now + timedelta(days=supplier.lead_days)),
-                        "tax_ids": [[6, 0, []]],
-                    }]],
-                }]},
-            )  # fmt: skip
+        # Link the complete set of RFQs of this size in one group, reused or created.
+        rfq_ids = [present[o]["id"] for o in expected if o in present] + created
         groups[size] = writer.call(
             "purchase.order.group", "create", {"vals_list": [{"order_ids": [[6, 0, rfq_ids]]}]}
         )[0]
@@ -630,7 +663,14 @@ def main(argv: list[str]) -> int:
         settings.get("ODOO_SEED_ADMIN_API_KEY", ""),
     )
     if argv[0] == "groups":
-        print(json.dumps(apply_evaluation_groups(plan, writer)))
+        groups = apply_evaluation_groups(plan, writer)
+        # The evaluation reads these ids: the listing shows only the newest groups.
+        out = ROOT / ".artifacts" / "seed" / "evaluation_groups.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps({str(k): v for k, v in groups.items()}, indent=2), encoding="utf-8"
+        )
+        print(json.dumps(groups))
         return 0
     manifest = apply_plan(plan, writer, limit=limit)
     out = ROOT / ".artifacts" / "seed" / "manifest.json"

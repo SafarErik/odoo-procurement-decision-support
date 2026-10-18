@@ -97,7 +97,7 @@ PostgreSQL 16 on the same machine; one uvicorn worker; CBC 2.10.3 via PuLP 3.3.0
 | Base case | optimal; minimum cost 288,608 HUF (Fenyves 80, Kalocsa 120), exposure 0.60; alternative ε = 0.2: 293,132 HUF (Kalocsa 120, Alpha 80), exposure 0.333 |
 | Scenarios (target Kalocsa) | outage +10,846; capacity 100: +1,537; capacity 240: −3,074; demand 250: **infeasible** (K = 2 × 120 cap); demand 150: −74,457.5; price +30 %: +10,846 (Kalocsa dropped); price −20 %: −33,900; combined: +31,420; demand 1000: **infeasible** |
 | Decisions | alternative 1 approved; separate No-award recorded |
-| PDF | HU 41,219 B and EN 39,483 B, same approved content hash |
+| PDF | HU 41,210 B and EN 39,472 B, same approved content hash |
 | Replay without Odoo/model | Odoo preview 503; 13 exact retries = stored replays; all GETs, both PDFs and the HU/EN supplier overview identical; No-award PDF 422 |
 
 ### MILP/API evaluation
@@ -152,6 +152,16 @@ expert rule 0.658, majority 0.409 — unchanged.
   form during the on_load reload, so an Enter submit was dropped. Fix (separate session,
   [P3_LIBRARY_SEARCH_RELOAD_FIX.md](P3_LIBRARY_SEARCH_RELOAD_FIX.md)): filters stay usable
   during a reload and a submit made mid-load is re-applied; one fast state test added.
+- Review fixes after the runs above (CodeRabbit comments, applied and checked by
+  `tools.dev check`, 496 passed): the PDF byte counts now match `P4_DEMO_REPORT.json`;
+  live `demo` and `milp_evaluation` refuse cutoffs after 2027-02-28 (`REPRODUCTION_LAST_CUTOFF`,
+  the end of the 134-day feature window of the seeded history) and point to the stored
+  evidence; the evaluation reads its group ids from `.artifacts/seed/evaluation_groups.json`
+  written by `seed_odoo_history groups` (the quotation listing shows only the newest 20 groups
+  and has no seed tag); an unequal or identical TEST/DECISION database stops the run before
+  migration; a non-optimal price-change scenario fails the run; `groups` completes an interrupted
+  RFQ set. **Unrun after these fixes:** `groups` (rerun to write the id file), `demo` and
+  `milp_evaluation`; the JSON evidence was produced by the earlier code.
 - Hosted CI: not run (nothing pushed).
 - Live T6/T7/T7S fixture contracts: skipped (fixtures not recreated in `pdss_history_gen`,
   as in P1–P3).
