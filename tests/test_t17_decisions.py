@@ -46,11 +46,10 @@ def configured(stored_cases, monkeypatch):
     uow.rows = original.rows.copy()
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
-    monkeypatch.setattr(settings, "supplier_model_directory", None)
     for name in (
-        "infer_planning_features",
+        "infer_odoo_history_features",
         "planning_solver_factory",
-        "resolve_odoo_planning_input",
+        "resolve_odoo_history_input",
     ):
         monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
     for name in ("assemble_planning_input", "create_procurement_plans"):
@@ -280,12 +279,11 @@ def test_retained_proven_plan_after_later_failure_is_approvable(configured, inde
     decision = response.json()["final_decision"]
     assert decision["audit"]["incomplete_comparison"] is True
     assert decision["approved_content"]["planning_snapshot"]["result"]["status"] == "solver_error"
-    pdf = client.get(
-        f"{BASE}/{row.case_id}/approved-pdf/{decision['approved_content_hash']}",
-        headers=headers(),
-    )
-    assert pdf.status_code == 200, pdf.text
-    assert "INCOMPLETE COMPARISON" in PdfReader(BytesIO(pdf.content)).pages[0].extract_text()
+    url = f"{BASE}/{row.case_id}/approved-pdf/{decision['approved_content_hash']}"
+    for language, warning in (("en", "INCOMPLETE COMPARISON"), ("hu", "HIÁNYOS ÖSSZEHASONLÍTÁS")):
+        pdf = client.get(url, params={"language": language}, headers=headers())
+        assert pdf.status_code == 200, pdf.text
+        assert warning in PdfReader(BytesIO(pdf.content)).pages[0].extract_text()
 
 
 def test_transaction_failure_leaves_no_partial_approval(configured, monkeypatch):

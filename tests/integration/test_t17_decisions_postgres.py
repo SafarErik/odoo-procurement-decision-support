@@ -34,7 +34,6 @@ def configured(postgres_runtime, stored_cases, monkeypatch):
             uow.cases.add(row)
         uow.commit()
     monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
-    monkeypatch.setattr(settings, "supplier_model_directory", None)
     monkeypatch.setattr(
         "backend.app.routes.planning_cases.get_planning_unit_of_work",
         lambda: SqlAlchemyPlanningUnitOfWork(factory),

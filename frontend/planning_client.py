@@ -105,13 +105,12 @@ async def submit_planning_request(
                     ),
                     False,
                 )
-            if response.status_code == 422 and url.endswith("/from-odoo"):
+            if response.status_code == 422 and url.endswith("/from-odoo-history"):
                 return (
                     None,
                     (
-                        "Odoo quotations or planning terms no longer match the prepared inputs. "
-                        "Review the terms and re-prepare changed quotations offline; check the "
-                        "matching saved model."
+                        "Odoo quotations or planning terms no longer match the reviewed inputs. "
+                        "Reload the quotation group and review the terms again."
                     ),
                     False,
                 )
@@ -137,12 +136,6 @@ async def submit_planning_request(
             raise ValueError("Unexpected parent")
         if not url.endswith("/scenarios") and data["parent_id"] is not None:
             raise ValueError("Unexpected base")
-        if url.endswith("/from-odoo") and (
-            data["snapshot"]["facts"]["input_kind"] != "odoo_quotations_synthetic_history"
-            or data["snapshot"]["facts"]["comparison_case_id"]
-            != f"odoo:purchase.order.group:{payload['purchase_group_id']}"
-        ):
-            raise ValueError("Unexpected Odoo comparison")
         if url.endswith("/from-odoo-history"):
             facts = data["snapshot"]["facts"]
             capture = json.loads(facts["history"])

@@ -170,5 +170,7 @@ Output: `.artifacts/ml/{history_export,dataset,report}.json` and `.artifacts/ml/
 - Small held-out set (10 suppliers); semi-monthly cutoffs overlap, so rows are
   correlated and the metrics have wide uncertainty.
 - Scores are leaf frequencies, not calibrated probabilities.
-- The demo path (`POST /`, `POST /from-odoo`) still uses the earlier synthetic
-  two-feature tree ([history/T14_ML_DESIGN.md](history/T14_ML_DESIGN.md)).
+- P2 removed the demo creation path (`POST /`, `POST /from-odoo`) and with it the
+  runtime use of the earlier synthetic two-feature tree
+  ([history/T14_ML_DESIGN.md](history/T14_ML_DESIGN.md)); cases it created stay
+  readable, and its offline code remains only to rebuild such cases in tests.

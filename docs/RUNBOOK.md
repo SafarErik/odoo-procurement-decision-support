@@ -33,16 +33,11 @@ Runs `ruff format --check`, `ruff check`, `compileall`, the fast test suite
 (`not integration and not e2e`, with real CBC and scikit-learn) and a dependency
 check. Run it before every handoff.
 
-## 3. Train the supplier model and prepare demo input
+## 3. Supplier model
 
-```powershell
-python -m tools.t15_demo prepare
-```
-
-Generates the demo dataset, trains and saves the synthetic demo Decision Tree under
-`.artifacts/t15-demo/model` and writes the demo request used by the UI. Set
-`SUPPLIER_MODEL_DIRECTORY` in `.env` to the absolute path of that `model` folder.
-This model serves only the demo paths; Odoo-history cases use the model of §5.3.
+Since P2 every new case is created from an Odoo quotation group with the
+Odoo-history model (§5.3); the synthetic demo model and its `prepare` command were
+removed. Cases saved earlier with that model remain readable without it.
 
 ## 4. Planning database, API and UI
 
@@ -53,7 +48,9 @@ python -m tools.dev ui      # terminal 3: Reflex on http://localhost:3000
 ```
 
 Before `db-up`, set `APP_POSTGRES_PASSWORD` and the matching `DECISION_DATABASE_URL`,
-plus `API_SERVICE_TOKEN` and `PLANNING_LIBRARY_COMPANY_ID` in `.env`. The database
+plus `API_SERVICE_TOKEN` and `PLANNING_LIBRARY_COMPANY_ID` (the Odoo company, e.g.
+`odoo:res.company:1`; it scopes the case library and the quotation-group list) in `.env`.
+`db-up` also applies new migrations (P2 adds `20261019_01`: one PDF per language). The database
 keeps its data in a named volume; `python -m tools.dev db-down` stops it.
 
 After a schema change that squashes migrations (as on 2026-10-18), recreate the
@@ -112,10 +109,12 @@ is written to `.artifacts/seed/manifest.json` (`purchase_group_id` is needed bel
 python -m tools.train_history_model all   # read-only extraction, training, report
 ```
 
-Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/model`
-and `ODOO_HISTORY_PURCHASE_GROUP_ID` to the seeded group. The UI's **Use history from
-Odoo** then previews and saves cases from live Odoo history. Full HTTP flow:
-`python -m tools.t17_demo run --odoo-history <group> --actor … --reason … --no-award-reason …`.
+Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/model`.
+In the UI's **Odoo** tab, **Load open quotation groups** lists the company's open
+groups (`GET /api/v2/procurement/quotation-groups`); choose one and **Use history from
+Odoo** previews and saves a case from live Odoo history. Full HTTP flow:
+`python -m tools.t17_demo run --odoo-history <group> --actor … --reason … --no-award-reason …`
+(base case, nine scenarios in both directions, approval, No-award, HU PDF, stored replay).
 Opt-in live check: `RUN_ODOO_HISTORY_LIVE=true pytest tests/integration/test_live_purchase_history.py -m integration`.
 
 ## 6. Database integration tests

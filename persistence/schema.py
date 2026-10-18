@@ -55,13 +55,18 @@ class PlanningFinalDecisionRecord(Base):
 
 
 class PlanningDocumentRecord(Base):
-    """One immutable rendered artifact for the immutable approved content."""
+    """One immutable rendered artifact per language for the immutable approved content."""
 
     __tablename__ = "planning_documents"
+    __table_args__ = (
+        PrimaryKeyConstraint("case_id", "language", name="pk_planning_documents"),
+        CheckConstraint("language IN ('hu', 'en')", name="ck_planning_documents_language"),
+    )
 
     case_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("planning_final_decisions.case_id"), primary_key=True
+        String(36), ForeignKey("planning_final_decisions.case_id"), nullable=False
     )
+    language: Mapped[str] = mapped_column(String(2), nullable=False)
     content_version: Mapped[str] = mapped_column(String(64), nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     reference: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)

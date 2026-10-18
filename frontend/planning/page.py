@@ -25,8 +25,8 @@ def _test_guide() -> rx.Component:
                 "and exposure trade-off."
             ),
             rx.el.li(
-                "In What-if, remove a supplier or reduce its capacity. Inspect the "
-                "saved change from the base."
+                "In What-if, remove a supplier or raise or lower its capacity, price or "
+                "the demand. Inspect the saved change from the base."
             ),
             rx.el.li(
                 "Increase demand beyond available capacity. Expect No feasible "
@@ -340,14 +340,15 @@ def planning_page() -> rx.Component:
                 margin_top="1.5rem",
             ),
             rx.cond(
-                ~PlanningState.has_case | (PlanningState.details.get("origin", "") == "demo"),
+                ~PlanningState.has_case,
                 _test_guide(),
             ),
             rx.el.details(
                 rx.el.summary("Evidence boundary", padding=".75rem 0"),
                 rx.text(
-                    "Odoo quotations may be live. Supplier history and model evidence remain "
-                    "synthetic. What-if changes are assumptions, not Odoo updates.",
+                    "Odoo quotations and purchase history are read from Odoo (in the test "
+                    "database the history is generated). Cases saved before P2 used a synthetic "
+                    "demo model. What-if changes are assumptions, not Odoo updates.",
                     size="2",
                     color=MUTED,
                     max_width="75ch",

@@ -1,7 +1,7 @@
-"""Thin bounded T15 API; controlled facts only, no Odoo writes or live promotion."""
+"""Thin bounded planning API; Odoo is read only, never written; stored cases are immutable."""
 
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.routing import APIRoute
@@ -11,6 +11,7 @@ from application.planning_cases import (
     PlanningCaseError,
     case_origin,
     create_planning_case,
+    get_planning_case,
     normalize_planning_facts,
 )
 from application.planning_decisions import (
@@ -21,23 +22,20 @@ from application.planning_decisions import (
 from application.planning_documents import approved_document
 from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_library import library_query, list_planning_cases
+from application.supplier_overview import supplier_overview
 from backend.app.api_common import require_trusted_caller
 from backend.app.config import settings
 from backend.app.dependencies import (
     get_planning_unit_of_work,
     infer_odoo_history_features,
-    infer_planning_features,
     planning_solver_factory,
     preview_odoo_history,
     render_approved_document,
     resolve_odoo_history_input,
-    resolve_odoo_planning_input,
 )
 from backend.app.planning_case_schemas import (
     OdooHistoryCreateRequest,
-    OdooPlanningCreateRequest,
     PlanningCaseResponse,
-    PlanningCreateRequest,
     PlanningFinalDecisionRequest,
     ScenarioRequest,
 )
@@ -158,46 +156,6 @@ def _creation_response(case, replay):
     return _response(case, replay, decision)
 
 
-@router.post("", response_model=PlanningCaseResponse, status_code=201)
-def post_planning_case(
-    request: PlanningCreateRequest, response: Response, idempotency_key: Annotated[str, Header()]
-):
-    try:
-        case, replay = create_planning_case(
-            get_planning_unit_of_work(),
-            idempotency_key,
-            facts=request.to_facts(),
-            infer=infer_planning_features,
-            solver_factory=planning_solver_factory,
-        )
-        response.status_code = 200 if replay else 201
-        return _creation_response(case, replay)
-    except (PlanningCaseError, RepositoryError, ValueError) as error:
-        _error(error)
-
-
-@router.post("/from-odoo", response_model=PlanningCaseResponse, status_code=201)
-def post_odoo_planning_case(
-    request: OdooPlanningCreateRequest,
-    response: Response,
-    idempotency_key: Annotated[str, Header()],
-):
-    try:
-        facts = normalize_planning_facts(request.controlled_input.to_facts())
-        case, replay = create_planning_case(
-            get_planning_unit_of_work(),
-            idempotency_key,
-            base_intent={"purchase_group_id": request.purchase_group_id, "facts": facts},
-            load_base=lambda: resolve_odoo_planning_input(request.purchase_group_id, facts),
-            infer=infer_planning_features,
-            solver_factory=planning_solver_factory,
-        )
-        response.status_code = 200 if replay else 201
-        return _creation_response(case, replay)
-    except (PlanningCaseError, RepositoryError, ValueError) as error:
-        _error(error)
-
-
 @router.post("/{case_id}/scenarios", response_model=PlanningCaseResponse, status_code=201)
 def post_scenario(
     case_id: str,
@@ -211,7 +169,7 @@ def post_scenario(
             idempotency_key,
             parent_id=case_id,
             delta=request.to_delta(),
-            infer=infer_planning_features,
+            infer=infer_odoo_history_features,  # never called: scenarios reuse saved scores
             solver_factory=planning_solver_factory,
         )
         response.status_code = 200 if replay else 201
@@ -250,6 +208,16 @@ def post_odoo_history_case(
         _error(error)
 
 
+@router.get("/{case_id}/suppliers")
+def get_supplier_overview(case_id: str, language: Annotated[Literal["hu", "en"], Query()] = "hu"):
+    """Stored-only supplier KPIs, assessment and readable tree path; no Odoo or model."""
+    try:
+        case = get_planning_case(get_planning_unit_of_work(), case_id)
+        return {"case_id": case.case_id} | supplier_overview(json.loads(case.snapshot), language)
+    except (PlanningCaseError, RepositoryError) as error:
+        _error(error)
+
+
 @router.get("/{case_id}", response_model=PlanningCaseResponse)
 def get_case(case_id: str):
     try:
@@ -280,10 +248,16 @@ def post_final_decision(
 
 
 @router.get("/{case_id}/approved-pdf/{content_hash}")
-def get_approved_pdf(case_id: str, content_hash: str, download: bool = False):
+def get_approved_pdf(
+    case_id: str,
+    content_hash: str,
+    download: bool = False,
+    language: Annotated[Literal["hu", "en"], Query()] = "hu",
+):
+    """Approved snapshot as a document in the UI language; one stored artifact per language."""
     try:
         document = approved_document(
-            get_planning_unit_of_work(), case_id, content_hash, render_approved_document
+            get_planning_unit_of_work(), case_id, content_hash, render_approved_document, language
         )
         disposition = "attachment" if download else "inline"
         return Response(
@@ -297,6 +271,7 @@ def get_approved_pdf(case_id: str, content_hash: str, download: bool = False):
                 "X-Content-Version": document.content_version,
                 "X-PDF-Reference": document.reference,
                 "X-PDF-SHA256": document.pdf_hash,
+                "Content-Language": document.language,
             },
         )
     except RepositoryError as error:

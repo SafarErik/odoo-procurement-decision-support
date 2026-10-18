@@ -26,9 +26,9 @@ def _scenario_form() -> rx.Component:
                     rx.el.option(label, value=value)
                     for label, value in (
                         ("Supplier outage", "supplier_outage"),
-                        ("Capacity reduction", "capacity_reduction"),
-                        ("Demand increase", "demand_increase"),
-                        ("Price increase", "price_increase"),
+                        ("Capacity change", "capacity_change"),
+                        ("Demand change", "demand_change"),
+                        ("Price change", "price_change"),
                         ("Combined changes", "combined"),
                     )
                 ],
@@ -44,7 +44,7 @@ def _scenario_form() -> rx.Component:
                 background=SURFACE,
             ),
             rx.cond(
-                PlanningState.scenario_kind != "demand_increase",
+                PlanningState.scenario_kind != "demand_change",
                 rx.box(
                     rx.el.label(
                         "Supplier to change (original terms)",
@@ -89,7 +89,7 @@ def _scenario_form() -> rx.Component:
             ),
             rx.flex(
                 rx.cond(
-                    (PlanningState.scenario_kind == "demand_increase") | combined,
+                    (PlanningState.scenario_kind == "demand_change") | combined,
                     rx.box(
                         rx.el.label(
                             "New demand quantity", html_for="stress-quantity", display="block"
@@ -111,7 +111,7 @@ def _scenario_form() -> rx.Component:
                             border_radius="6px",
                         ),
                         rx.text(
-                            "Must exceed original demand: ",
+                            "Higher or lower than the original demand: ",
                             PlanningState.details["base_quantity"],
                             " units.",
                             size="2",
@@ -123,7 +123,7 @@ def _scenario_form() -> rx.Component:
                     ),
                 ),
                 rx.cond(
-                    (PlanningState.scenario_kind == "capacity_reduction") | combined,
+                    (PlanningState.scenario_kind == "capacity_change") | combined,
                     rx.box(
                         rx.el.label(
                             "New capacity limit", html_for="stress-capacity", display="block"
@@ -145,7 +145,7 @@ def _scenario_form() -> rx.Component:
                             border_radius="6px",
                         ),
                         rx.text(
-                            "Must be lower than the original capacity. Zero removes capacity; "
+                            "Higher or lower than the original capacity. Zero removes capacity; "
                             "MOQ still applies.",
                             size="2",
                             color=MUTED,
@@ -156,7 +156,7 @@ def _scenario_form() -> rx.Component:
                     ),
                 ),
                 rx.cond(
-                    (PlanningState.scenario_kind == "price_increase") | combined,
+                    (PlanningState.scenario_kind == "price_change") | combined,
                     rx.box(
                         rx.el.label("New price per unit", html_for="stress-price", display="block"),
                         rx.el.input(
@@ -176,8 +176,8 @@ def _scenario_form() -> rx.Component:
                             border_radius="6px",
                         ),
                         rx.text(
-                            "Must exceed the original price. This is a simulated quote, not a "
-                            "fresh Odoo price.",
+                            "Higher or lower than the original price. This is a simulated quote, "
+                            "not a fresh Odoo price.",
                             size="2",
                             color=MUTED,
                             margin_top="0.4rem",

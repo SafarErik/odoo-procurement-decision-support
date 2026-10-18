@@ -22,9 +22,16 @@ import httpx
 import pytest
 from sqlalchemy import create_engine, text
 
-from tools.t15_demo import prepare_demo
-
 REPO = Path(__file__).resolve().parents[2]
+
+# P2 removed the synthetic demo creation (Demo tab, POST /, /from-odoo) that every flow
+# below starts from. The suite is not collected until P3 rebuilds the browser tests on
+# the Odoo-history flow; the harness stays as the reference for that rewrite.
+collect_ignore_glob = ["test_*.py"]
+
+
+def prepare_demo(directory):
+    raise RuntimeError("The synthetic demo preparation was removed in P2; see P3.")
 
 
 def free_port():

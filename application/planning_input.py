@@ -59,6 +59,8 @@ class PlanningFacts:
 @dataclass(frozen=True, slots=True)
 class OdooHistoryPlanningFacts(PlanningFacts):
     history: str = ""
+    # Odoo display names captured at creation (identity -> name); never used in planning.
+    labels: tuple[tuple[str, str], ...] = ()
 
 
 def assemble_planning_input(facts: PlanningFacts):

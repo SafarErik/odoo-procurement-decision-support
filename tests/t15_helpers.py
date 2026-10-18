@@ -1,8 +1,8 @@
-"""Shared controlled demonstration inputs and transactional fast-test repository."""
+"""Transactional fast-test repository and shared payload helpers."""
 
 import json
 
-from tools.t15_demo import prepare_assets as controlled_assets
+from tests.legacy_cases import prepare_assets as controlled_assets
 
 __all__ = ["MemoryPlanningUnitOfWork", "controlled_assets", "copy_payload"]
 
@@ -85,9 +85,10 @@ class MemoryPlanningDocuments:
     def lock(self, case_id):
         pass
 
-    def get(self, case_id):
-        return self.rows.get(case_id)
+    def get(self, case_id, language):
+        return self.rows.get((case_id, language))
 
     def add(self, document):
-        assert document.case_id not in self.rows
-        self.rows[document.case_id] = document
+        key = (document.case_id, document.language)
+        assert key not in self.rows
+        self.rows[key] = document

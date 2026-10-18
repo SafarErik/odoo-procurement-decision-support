@@ -41,7 +41,7 @@ Running the UI, database and Odoo: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 | `backend/` | FastAPI app |
 | `frontend/` | Reflex web UI |
 | `infra/` | Compose files (Odoo, planning DB, test DB) and the Odoo history addon |
-| `tools/` | `tools.dev` entry point, demos, evaluation harness |
+| `tools/` | `tools.dev` entry point, Odoo test-data seeder, offline training, HTTP acceptance demo |
 | `tests/` | Fast, integration and browser tests |
 
 ## Documentation
@@ -67,7 +67,8 @@ All five required capabilities work end to end in a controlled local setup:
 Decision Tree supplier evaluation, MILP allocation with alternatives, Reflex UI,
 stress scenarios, and human approval with PDF. The current revamp (see the plan)
 cleans the repository (P0, done), retrains the model from Odoo-sourced history
-(P1, done), extends scenarios/PDF/API (P2), rebuilds the UI in Hungarian/English (P3)
-and closes validation (P4). The supplier model is trained from purchase history read
-from Odoo; in the test database that history is generated, so no real-world predictive
-accuracy is claimed.
+(P1, done), extends scenarios/PDF/API (P2, done: open quotation-group selection,
+two-way stress changes, supplier overview, Hungarian/English purchase order proposal
+PDF), rebuilds the UI in Hungarian/English (P3) and closes validation (P4). The
+supplier model is trained from purchase history read from Odoo; in the test database
+that history is generated, so no real-world predictive accuracy is claimed.

@@ -93,28 +93,59 @@ def _odoo_creation_controls() -> rx.Component:
     )
     return rx.tabs.content(
         rx.text(
-            "Use the prepared Odoo quotation comparison. FastAPI reads Odoo again before saving. "
-            "You supply demand and supplier limits. Choose separately synthetic history or "
-            "the purchase history read from Odoo for the configured quotation group.",
+            "Choose an open Odoo quotation group. FastAPI reads its quotations and the "
+            "product's purchase history from Odoo, and reads them again before saving. "
+            "You supply demand and supplier limits.",
             color=MUTED,
             size="2",
             max_width="75ch",
             margin_bottom="1rem",
         ),
-        rx.button(
-            "Load prepared Odoo comparison",
-            id="load-odoo",
-            on_click=PlanningState.prepare_odoo,
-            disabled=busy,
-            variant="soft",
-        ),
-        rx.button(
-            "Use history from Odoo",
-            id="load-odoo-history",
-            on_click=PlanningState.prepare_odoo_history,
-            disabled=busy,
-            variant="soft",
-            margin_left="0.75rem",
+        rx.flex(
+            rx.button(
+                "Load open quotation groups",
+                id="load-quotation-groups",
+                on_click=PlanningState.load_quotation_groups,
+                disabled=busy,
+                variant="soft",
+            ),
+            rx.el.label(
+                "Quotation group",
+                html_for="quotation-group",
+                position="absolute",
+                width="1px",
+                height="1px",
+                overflow="hidden",
+            ),
+            rx.el.select(
+                rx.el.option("Choose a quotation group", value="", disabled=True),
+                rx.foreach(
+                    PlanningState.quotation_groups,
+                    lambda row: rx.el.option(
+                        row["label"], value=row["value"], disabled=row["selectable"] == ""
+                    ),
+                ),
+                id="quotation-group",
+                value=PlanningState.selected_group,
+                on_change=PlanningState.select_quotation_group,
+                disabled=busy | (PlanningState.quotation_groups.length() == 0),
+                padding="0.5rem",
+                border=f"1px solid {HAIRLINE}",
+                border_radius="6px",
+                max_width="100%",
+                min_width="0",
+                flex="1 1 16rem",
+            ),
+            rx.button(
+                "Use history from Odoo",
+                id="load-odoo-history",
+                on_click=PlanningState.prepare_odoo_history,
+                disabled=busy | (PlanningState.selected_group == ""),
+                variant="soft",
+            ),
+            gap="0.75rem",
+            flex_wrap="wrap",
+            align="center",
         ),
         rx.cond(
             PlanningState.odoo_history_mode,
@@ -244,110 +275,8 @@ def _planning_controls() -> rx.Component:
         rx.tabs.list(
             rx.tabs.trigger("Saved case", value="stored", id="input-stored", disabled=busy),
             rx.tabs.trigger("Odoo", value="odoo", id="input-odoo", disabled=busy),
-            rx.tabs.trigger("Demo", value="create", id="input-create", disabled=busy),
         ),
         _odoo_creation_controls(),
-        rx.tabs.content(
-            rx.text(
-                (
-                    "Use the prepared synthetic fixture to test input assembly, the saved "
-                    "Decision Tree and MILP. No Odoo data is acquired in this form."
-                ),
-                color=MUTED,
-                size="2",
-                max_width="70ch",
-                margin_bottom="1rem",
-            ),
-            rx.button(
-                "Load demo inputs",
-                id="load-demo",
-                on_click=PlanningState.prepare_demo,
-                disabled=busy,
-                variant="soft",
-            ),
-            rx.cond(
-                PlanningState.demo_ready,
-                rx.box(
-                    rx.heading("Prepared synthetic facts", as_="h3", size="4"),
-                    rx.text(PlanningState.demo_details, size="2", color=MUTED, margin_y="1rem"),
-                    rx.flex(
-                        rx.foreach(
-                            PlanningState.demo_offers,
-                            lambda row: rx.box(
-                                rx.text(row["name"], font_weight="600", size="2"),
-                                rx.text(
-                                    row["price"],
-                                    " per unit · capacity ",
-                                    row["capacity"],
-                                    size="2",
-                                    color=MUTED,
-                                ),
-                                padding_right="1.5rem",
-                            ),
-                        ),
-                        flex_wrap="wrap",
-                        gap="1rem",
-                        margin_bottom="1rem",
-                    ),
-                    rx.el.form(
-                        rx.heading("Your demand", as_="h3", size="4", margin_bottom="1rem"),
-                        rx.flex(
-                            rx.box(
-                                rx.el.label(
-                                    "Demand quantity",
-                                    html_for="demo-quantity",
-                                    display="block",
-                                    margin_bottom="0.4rem",
-                                ),
-                                rx.input(
-                                    id="demo-quantity",
-                                    aria_invalid=PlanningState.creation_errors.get(
-                                        "demo-quantity", ""
-                                    )
-                                    != "",
-                                    aria_describedby="demo-quantity-error",
-                                    name="quantity",
-                                    type="number",
-                                    min="1",
-                                    max="1000",
-                                    step="1",
-                                    on_change=PlanningState.mark_creation_dirty,
-                                    default_value=PlanningState.demo_quantity,
-                                    required=True,
-                                    disabled=busy
-                                    | (PlanningState.creation_review.get("kind", "") != ""),
-                                    width="10rem",
-                                ),
-                                field_error("demo-quantity"),
-                            ),
-                            rx.button(
-                                "Review demo terms",
-                                type="submit",
-                                disabled=busy
-                                | (PlanningState.creation_review.get("kind", "") != ""),
-                                size="3",
-                            ),
-                            align="end",
-                            gap="1rem",
-                            flex_wrap="wrap",
-                        ),
-                        on_submit=PlanningState.review_demo,
-                        no_validate=True,
-                        reset_on_submit=False,
-                    ),
-                    rx.text(
-                        PlanningState.demo_policy,
-                        size="2",
-                        color=MUTED,
-                        margin_top="1rem",
-                        max_width="70ch",
-                    ),
-                    creation_review("demo"),
-                ),
-            ),
-            value="create",
-            padding_top="1.25rem",
-        ),
         rx.tabs.content(
             rx.text(
                 (

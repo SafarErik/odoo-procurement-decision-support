@@ -104,8 +104,6 @@ def test_definitive_scenario_failure_keeps_original_without_success_navigation(
         return None, "Rejected scenario.", False
 
     monkeypatch.setattr("frontend.planning.state.submit_planning_request", reject)
-    events = consume(
-        state, PlanningState.run_scenario, {"kind": "demand_increase", "quantity": "12"}
-    )
+    events = consume(state, PlanningState.run_scenario, {"kind": "demand_change", "quantity": "12"})
     assert events == [None] and state.original_plan == before
     assert state.details["parent_id"] == "Base case" and not state.has_pending

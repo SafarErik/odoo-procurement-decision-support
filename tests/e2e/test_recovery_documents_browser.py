@@ -106,7 +106,7 @@ def test_pending_scenario_and_finalized_conflict_reopen_only(smoke_stack, smoke_
     stack.start_api(stored_only=True)
     route = stack.frontend_url + f"/planning?case_id={identity}&view=whatif"
     page.goto(route)
-    page.get_by_label("Scenario type").select_option("capacity_reduction")
+    page.get_by_label("Scenario type").select_option("capacity_change")
     supplier = request["suppliers"][0]["supplier_id"]
     page.get_by_label("Supplier to change (original terms)").select_option(supplier)
     page.get_by_label("New capacity limit").fill("4")

@@ -152,6 +152,12 @@ def test_summaries_preserve_source_lineage_and_decision(configured):
         list_planning_cases(uow, library_query(company, parent_id=child["case_id"]))
     with pytest.raises(RepositoryError):
         case_summary(uow.rows[base["case_id"]], None, "other")
+    legacy = deepcopy(child["snapshot"])
+    legacy["scenario"]["kind"] = "capacity_reduction"  # stored before P2 renamed the kinds
+    legacy_row = case_summary(
+        replace(uow.rows[child["case_id"]], snapshot=snapshot_json(legacy)), None, company
+    )
+    assert legacy_row["scenario_kind"] == "capacity_change"
     invalid = deepcopy(child["snapshot"])
     invalid["scenario"]["suppliers"][0]["available"] = True
     with pytest.raises(RepositoryError):

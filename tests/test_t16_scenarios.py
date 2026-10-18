@@ -26,7 +26,7 @@ def configured(stored_cases, monkeypatch):
     uow = MemoryPlanningUnitOfWork()
     uow.rows = dict(existing.rows)
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    for name in ("infer_planning_features", "resolve_odoo_planning_input"):
+    for name in ("infer_odoo_history_features", "resolve_odoo_history_input"):
         monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
     monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
     monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
@@ -53,9 +53,9 @@ async def event(state, handler, *args):
 @pytest.mark.parametrize(
     "form",
     [
-        {"kind": "capacity_reduction", "supplier": "synthetic-S226", "capacity": "4"},
-        {"kind": "demand_increase", "quantity": "12"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "12.00"},
+        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "4"},
+        {"kind": "demand_change", "quantity": "12"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "12.00"},
         {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"},
         {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "price": "12.00"},
     ],
@@ -98,7 +98,7 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
         assert calls[0][1]["suppliers"][0]["unit_price"] == "12.00"
     # Changing a scenario again still compares with the original base, not the child.
     asyncio.run(
-        event(state, PlanningState.run_scenario, {"kind": "demand_increase", "quantity": "11"})
+        event(state, PlanningState.run_scenario, {"kind": "demand_change", "quantity": "11"})
     )
     assert not state.error_message and state.details["parent_id"] == base["case_id"]
     assert calls[0][0] == calls[1][0] and calls[0][2] != calls[1][2]
@@ -120,7 +120,7 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
 def test_infeasibility_is_saved_without_fabricated_comparison(configured):
     state, uow, base, _, _ = configured
     asyncio.run(
-        event(state, PlanningState.run_scenario, {"kind": "demand_increase", "quantity": "30"})
+        event(state, PlanningState.run_scenario, {"kind": "demand_change", "quantity": "30"})
     )
     assert not state.error_message and state.details["status"] == "infeasible"
     assert (
@@ -139,19 +139,19 @@ def test_infeasibility_is_saved_without_fabricated_comparison(configured):
 @pytest.mark.parametrize(
     "form",
     [
-        {"kind": "demand_increase", "quantity": "10"},
-        {"kind": "demand_increase", "quantity": "1001"},
-        {"kind": "demand_increase", "quantity": "١٢"},
-        {"kind": "demand_increase", "quantity": 12},
-        {"kind": "capacity_reduction", "supplier": "synthetic-S226", "capacity": "6"},
-        {"kind": "capacity_reduction", "supplier": "synthetic-S226", "capacity": "-1"},
-        {"kind": "capacity_reduction", "supplier": "unknown", "capacity": "0"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "10"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "NaN"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "1e2"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "١٢"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": "01.5"},
-        {"kind": "price_increase", "supplier": "synthetic-S226", "price": 12.0},
+        {"kind": "demand_change", "quantity": "10"},
+        {"kind": "demand_change", "quantity": "1001"},
+        {"kind": "demand_change", "quantity": "١٢"},
+        {"kind": "demand_change", "quantity": 12},
+        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "6"},
+        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "-1"},
+        {"kind": "capacity_change", "supplier": "unknown", "capacity": "0"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "10"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "NaN"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "1e2"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "١٢"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "01.5"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": 12.0},
         {"kind": "combined", "supplier": "synthetic-S226", "quantity": "12"},
         {"kind": "combined", "supplier": "synthetic-S226"},
         {"kind": "unsupported"},
@@ -186,8 +186,8 @@ def test_lost_response_recovers_exact_scenario_without_solving_again(configured,
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.has_pending and len(uow.rows) == count + 1
     pending = state.recovery_json
-    PlanningState.change_scenario_kind.fn(state, "price_increase")
-    assert state.scenario_kind == "capacity_reduction"
+    PlanningState.change_scenario_kind.fn(state, "price_change")
+    assert state.scenario_kind == "capacity_change"
     asyncio.run(event(state, PlanningState.run_scenario, {**form, "quantity": "13"}))
     assert len(requests) == 1 and state.recovery_json == pending
     monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)

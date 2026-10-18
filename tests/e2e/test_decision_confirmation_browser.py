@@ -33,7 +33,7 @@ def test_deliberate_decisions_cancel_reopen_child_and_recovery(smoke_stack, smok
     reply = stack.client.post(
         f"{BASE}/{identity}/scenarios",
         json={
-            "kind": "demand_increase",
+            "kind": "demand_change",
             "approved_quantity": 25,
             "suppliers": [],
             "source": {

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -13,13 +13,6 @@ class FrontendSettings(BaseSettings):
 
     backend_base_url: str = "http://127.0.0.1:8000"
     api_service_token: SecretStr = SecretStr("")
-    # Quotation group used by "Use history from Odoo" until P2 adds RFQ selection.
-    odoo_history_purchase_group_id: int | None = None
-
-    @field_validator("odoo_history_purchase_group_id", mode="before")
-    @classmethod
-    def optional_group(cls, value):
-        return None if value == "" else value
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
@@ -38,14 +31,8 @@ class FrontendSettings(BaseSettings):
         return f"{self.backend_base_url.rstrip('/')}/api/v2/procurement/planning-cases"
 
     @property
-    def controlled_demo_file(self) -> Path:
-        """Reuse the existing offline demo; browsers cannot choose files or models."""
-        return PROJECT_ROOT / ".artifacts/t15-demo/create-request.json"
-
-    @property
-    def controlled_odoo_file(self) -> Path:
-        # ponytail: one prepared comparison; add discovery with matched-model support.
-        return PROJECT_ROOT / ".artifacts/t15-odoo-demo/create-request.json"
+    def quotation_groups_url(self) -> str:
+        return f"{self.backend_base_url.rstrip('/')}/api/v2/procurement/quotation-groups"
 
 
 settings = FrontendSettings()

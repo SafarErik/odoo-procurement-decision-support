@@ -8,7 +8,7 @@ drives a real browser against Reflex + FastAPI + PostgreSQL. Unknown markers fai
 | --- | --- |
 | `python -m tools.dev check` | Format, lint, compile, all fast tests, dependency consistency |
 | `pytest -m "integration and not e2e"` | Real PostgreSQL migrations, immutability triggers, idempotency races, live Odoo contracts (opt-in) |
-| `pytest -m e2e` | Browser flows (create, compare, scenario, approve, PDF, recovery) |
+| `pytest -m e2e` | Browser flows; **not collected since P2** (they start from the removed synthetic demo); P3 rebuilds them on the Odoo-history flow |
 
 CI: `.github/workflows/quality.yml` (required) runs the fast gate on Python 3.11;
 `integration.yml` (path-filtered, optional) runs the container/API tests with
@@ -19,17 +19,17 @@ Docker Compose on Ubuntu.
 | Area | Main test files |
 | --- | --- |
 | MILP model: bounds, optimum vs. brute-force reference, alternatives, tie-break, infeasible / time-limit / solver-error states | `test_t13_planning.py`, `test_t13_solver_runtime.py` |
-| ML on Odoo purchase history: export policy, adapter, as-of features, next-window label, supplier/time split, depth selection, baselines, artifact, inference, readable path, seeding guards, full case lifecycle | `test_odoo_purchase_history.py` |
-| Demo ML (synthetic V1 tree): dataset generation, label window, leakage guards, training, artifact reload | `test_t14_dataset.py`, `test_t14_model.py`, `test_t14_runtime.py` |
+| ML on Odoo purchase history: export policy, adapter, as-of features, next-window label, supplier/time split, depth selection, baselines, artifact, inference, readable path, seeding guards, full case lifecycle, strict terms, supplier overview, PDF v2 names | `test_odoo_purchase_history.py`, `test_supplier_overview.py` |
+| Pre-P2 synthetic V1 tree (offline library; rebuilds stored demo cases via `tests/legacy_cases.py`) | `test_t14_dataset.py`, `test_t14_model.py`, `test_t14_runtime.py` |
 | ML → MILP risk bridge and score validity | `test_t14_planning_bridge.py` |
 | Historical KPI (delivery schedule adherence) and the bounded Odoo projection | `test_historical_performance.py`, `test_t7s_projection_policy.py`, `test_odoo_historical_performance_adapter.py` |
-| Odoo readers (RFQs, comparison groups, purchase history) with mocked transport | `test_odoo_adapter.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
-| Planning API: creation, provenance, fail-closed inputs, idempotent replay, stored-only GET | `test_t15_planning_api.py`, `test_t15_odoo_planning.py` |
-| Stress scenarios against the original base | `test_t16_scenarios.py`, `test_scenario_baseline.py` |
-| Human decision, No-award, conflicts, approved PDF content | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
+| Odoo readers (RFQs, open quotation groups, comparison groups, purchase history) with mocked transport | `test_odoo_adapter.py`, `test_quotation_groups.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
+| Planning API: Odoo-history creation, fail-closed terms, idempotent replay, stored-only GET of new and pre-P2 cases | `test_odoo_purchase_history.py`, `test_t15_planning_api.py` |
+| Stress scenarios against the original base, both directions | `test_t15_planning_api.py`, `test_t16_scenarios.py`, `test_scenario_baseline.py` |
+| Human decision, No-award, conflicts, approved PDF v2 (HU/EN, per-language storage, pre-P2 English artifact) | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
 | Saved-case library | `test_planning_library.py` |
 | Frontend state and HTTP clients (no browser) | `test_t16_*`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
-| Full demo flows and the evaluation harness | `test_t15_demo.py`, `test_t17_demo.py`, `test_t18_evaluation.py` |
+| Full HTTP acceptance flow on Odoo history | `test_t17_demo.py` |
 | Architecture boundaries | `test_architecture.py`, `test_t13_architecture.py`, `test_t14_architecture.py` |
 
 Test file names still carry historical increment numbers; they are renamed by

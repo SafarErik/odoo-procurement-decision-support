@@ -66,33 +66,6 @@ def get_planning_unit_of_work():
     return SqlAlchemyPlanningUnitOfWork(factory)
 
 
-def infer_planning_features(features):
-    """Load only the owner-configured, locally generated artifact on new base creation."""
-    import hashlib
-    import json
-
-    from application.errors import RepositoryError
-    from supplier_evaluation.artifacts import load_model
-
-    directory = settings.supplier_model_directory
-    try:
-        if directory is None:
-            raise ValueError("No trusted model configured.")
-        manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-        model = load_model(directory, trusted_local=True)
-        if (
-            manifest["metadata"] != model.metadata
-            or manifest["artifact_sha256"]
-            != hashlib.sha256((directory / "tree.joblib").read_bytes()).hexdigest()
-        ):
-            raise ValueError("Artifact changed during loading.")
-    except Exception as error:
-        raise RepositoryError(
-            "model_unavailable", "The configured trusted model is unavailable or incompatible."
-        ) from error
-    return tuple(model.infer(snapshot, quantities) for snapshot, quantities in features), manifest
-
-
 def planning_solver_factory():
     """Concrete solver/runtime construction stays at composition, after replay lookup."""
     from dataclasses import asdict
@@ -115,34 +88,10 @@ def planning_solver_factory():
     return solver, evidence
 
 
-def render_approved_document(content):
+def render_approved_document(content, language):
     from document_adapter.approved_pdf import render_approved_pdf
 
-    return render_approved_pdf(content)
-
-
-def resolve_odoo_planning_input(group_id, facts):
-    """Read through adapters inside the locked new-case computation, never on replay."""
-    import asyncio
-
-    from application.errors import RepositoryError
-    from application.odoo_planning_input import bind_controlled_odoo_input
-    from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
-
-    async def read():
-        reader = get_comparison_case_reader()
-        case = await reader.read_comparison_case(group_id)
-        if not case.offers:
-            raise ValueError("An explicit comparison case is required.")
-        code, observed_at = await reader.read_currency_code(case.offers[0].currency_id)
-        return bind_controlled_odoo_input(case, facts, code, observed_at)
-
-    try:
-        return asyncio.run(read())
-    except (ProcurementDataUnavailable, ProcurementDataResponseError) as error:
-        raise RepositoryError(
-            "odoo_unavailable", "The selected Odoo input is unavailable."
-        ) from error
+    return render_approved_pdf(content, language)
 
 
 def get_purchase_history_reader():
@@ -188,6 +137,7 @@ def resolve_odoo_history_input(group_id, facts):
     facts = replace(
         facts,
         history=capture,
+        labels=case.labels,
         suppliers=tuple(
             replace(s, history_reference=references.get(s.terms.supplier_id, s.history_reference))
             for s in facts.suppliers

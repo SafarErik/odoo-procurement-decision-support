@@ -224,17 +224,23 @@ def get_planning_case(uow: PlanningUnitOfWork, case_id: str) -> PlanningCase:
         return case
 
 
+SCENARIO_KINDS = frozenset(
+    {"supplier_outage", "capacity_change", "demand_change", "price_change", "combined"}
+)
+# Scenario snapshots stored before P2 keep their one-directional names; they stay readable.
+LEGACY_SCENARIO_KINDS = {
+    "capacity_reduction": "capacity_change",
+    "demand_increase": "demand_change",
+    "price_increase": "price_change",
+}
+
+
 def _scenario_request(base: dict, delta: ScenarioDelta):
+    """Apply explicit what-if changes; capacity, demand and price may move either way."""
     request = read_request(base["request"])
     as_of = datetime.fromisoformat(base["facts"]["as_of"])
     validate_source(delta.source, "scenario_delta", as_of)
-    if delta.kind not in {
-        "supplier_outage",
-        "capacity_reduction",
-        "demand_increase",
-        "price_increase",
-        "combined",
-    }:
+    if delta.kind not in SCENARIO_KINDS:
         raise ValueError("Unsupported scenario kind.")
     changes = {s.supplier_id: s for s in delta.suppliers}
     if len(changes) != len(delta.suppliers) or set(changes) - {
@@ -254,19 +260,24 @@ def _scenario_request(base: dict, delta: ScenarioDelta):
             replacements["available"] = False
             kinds.add("supplier_outage")
         if change.capacity is not None:
-            if type(change.capacity) is not int or not 0 <= change.capacity < terms.capacity:
-                raise ValueError("Capacity must be strictly reduced.")
+            if (
+                type(change.capacity) is not int
+                or change.capacity < 0
+                or change.capacity == terms.capacity
+            ):
+                raise ValueError("Capacity must change to a different non-negative integer.")
             replacements["capacity"] = change.capacity
-            kinds.add("capacity_reduction")
+            kinds.add("capacity_change")
         if change.unit_price is not None:
             if (
                 not isinstance(change.unit_price, Decimal)
                 or not change.unit_price.is_finite()
-                or change.unit_price <= terms.unit_price
+                or change.unit_price <= 0
+                or change.unit_price == terms.unit_price
             ):
-                raise ValueError("Price must be strictly increased.")
+                raise ValueError("Price must change to a different positive decimal.")
             replacements["unit_price"] = change.unit_price
-            kinds.add("price_increase")
+            kinds.add("price_change")
         if not replacements:
             raise ValueError("Empty supplier disturbance.")
         suppliers.append(replace(terms, **replacements))
@@ -274,11 +285,12 @@ def _scenario_request(base: dict, delta: ScenarioDelta):
     if delta.approved_quantity is not None:
         if (
             type(delta.approved_quantity) is not int
-            or delta.approved_quantity <= requirement.approved_quantity
+            or delta.approved_quantity < 1
+            or delta.approved_quantity == requirement.approved_quantity
         ):
-            raise ValueError("Scenario demand must be strictly increased.")
+            raise ValueError("Scenario demand must change to a different positive integer.")
         requirement = replace(requirement, approved_quantity=delta.approved_quantity)
-        kinds.add("demand_increase")
+        kinds.add("demand_change")
     if (delta.kind == "combined" and len(kinds) < 2) or (
         delta.kind != "combined" and kinds != {delta.kind}
     ):
@@ -350,12 +362,16 @@ def create_planning_case(
     solver_factory: Callable,
     base_intent: dict | None = None,
     load_base: Callable | None = None,
-    base_kind: str = "odoo_quotations_synthetic_history",
+    base_kind: str = HISTORY_INPUT_KIND,
 ) -> tuple[PlanningCase, bool]:
-    """One locked transaction contains computation and immutable key/case insertion."""
+    """One locked transaction contains computation and immutable key/case insertion.
+
+    HTTP creates bases only from an Odoo quotation group with Odoo purchase history
+    (``load_base``). The ``facts`` path recreates pre-P2 synthetic demo cases in tests.
+    """
     canonical_uuid(key)
     loaded_base = base_intent is not None and load_base is not None
-    if base_kind not in {"odoo_quotations_synthetic_history", HISTORY_INPUT_KIND}:
+    if base_kind != HISTORY_INPUT_KIND:
         raise ValueError("Unsupported creation path.")
     if (
         sum((facts is not None, parent_id is not None, loaded_base)) != 1

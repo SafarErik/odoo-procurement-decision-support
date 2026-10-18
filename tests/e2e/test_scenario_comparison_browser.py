@@ -50,13 +50,13 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
     cases = []
     for kind, fields in (
         ("supplier_outage", {}),
-        ("capacity_reduction", {"New capacity limit": "4"}),
-        ("price_increase", {"New price per unit": "12.00"}),
-        ("demand_increase", {"New demand quantity": "25"}),
+        ("capacity_change", {"New capacity limit": "4"}),
+        ("price_change", {"New price per unit": "12.00"}),
+        ("demand_change", {"New demand quantity": "25"}),
         ("combined", {"New demand quantity": "12", "New capacity limit": "4"}),
     ):
         page.get_by_label("Scenario type", exact=True).select_option(kind)
-        if kind != "demand_increase":
+        if kind != "demand_change":
             page.get_by_label("Supplier to change (original terms)", exact=True).select_option(
                 supplier
             )
@@ -122,7 +122,7 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
             expect(row.get_by_role("cell").nth(1)).to_have_text(
                 str(after[sid]) if sid in after else "Unavailable"
             )
-        if kind in {"demand_increase", "combined"}:
+        if kind in {"demand_change", "combined"}:
             expect(page.locator("body")).to_contain_text("not a like-for-like saving")
         expect(page.locator("body")).to_contain_text("not fresh quotations")
         expect(page.get_by_role("button", name="Review approval", exact=True)).to_have_count(0)
@@ -179,7 +179,7 @@ def test_original_base_all_types_infeasibility_and_recovery(smoke_stack, smoke_p
             path=str(stack.root / "infeasible-original-retained-320.png"), full_page=True
         )
         assert len(children()) == 5
-        fresh.get_by_label("Scenario type", exact=True).select_option("demand_increase")
+        fresh.get_by_label("Scenario type", exact=True).select_option("demand_change")
         fresh.get_by_label("New demand quantity", exact=True).fill("12")
         route = fresh.url
         stack.stop(stack.api)
