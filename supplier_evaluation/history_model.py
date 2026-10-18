@@ -15,6 +15,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.tree import DecisionTreeClassifier, export_text
 
 from supplier_evaluation.contracts import (
+    HISTORY_DATA_ORIGINS,
     HISTORY_DATASET_VERSION,
     HISTORY_FEATURE_VERSION,
     HISTORY_FEATURES,
@@ -221,9 +222,12 @@ def check_manifest_metadata(metadata: dict) -> None:
         "mapping_version": HISTORY_MAPPING_VERSION,
         "dataset_version": HISTORY_DATASET_VERSION,
         "source_type": HISTORY_SOURCE,
-        "data_origin": "generated",
     }
-    if set(metadata) != METADATA_FIELDS or any(metadata[k] != v for k, v in expected.items()):
+    if (
+        set(metadata) != METADATA_FIELDS
+        or any(metadata[k] != v for k, v in expected.items())
+        or metadata["data_origin"] not in HISTORY_DATA_ORIGINS
+    ):
         raise ValueError("Incompatible history model metadata.")
     depth = metadata["depth_selection"]["chosen"]
     if metadata["config"] != dict(BASE_CONFIG, max_depth=depth) or depth not in DEPTHS:
@@ -241,7 +245,10 @@ def check_manifest_metadata(metadata: dict) -> None:
         raise ValueError("Insufficient history model training support.")
 
 
-def train(split: HistorySplit, *, database: str) -> HistoryTreeModel:
+def train(split: HistorySplit, *, database: str, data_origin: str) -> HistoryTreeModel:
+    """``data_origin`` is the declared origin of the exported history, kept in the artifact."""
+    if data_origin not in HISTORY_DATA_ORIGINS:
+        raise ValueError(f"Unsupported history data origin: {data_origin!r}.")
     rows = tuple(sorted(split.train, key=lambda r: r.row_id))
     support = Counter(r.label for r in rows)
     if any(support[k] < 20 for k in (0, 1)):
@@ -266,7 +273,7 @@ def train(split: HistorySplit, *, database: str) -> HistoryTreeModel:
         "config": config,
         "runtime": runtime(),
         "source_type": HISTORY_SOURCE,
-        "data_origin": "generated",
+        "data_origin": data_origin,
         "database": database,
         "company_id": rows[0].context.company_id,
         "training_id": rows_id(rows),

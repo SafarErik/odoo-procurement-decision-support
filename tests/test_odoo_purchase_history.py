@@ -4,6 +4,7 @@ import asyncio
 import importlib.util
 import json
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -14,6 +15,10 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
+from application.errors import RepositoryError
+from application.planning_cases import validate_snapshot
+from application.planning_history import capture_features, capture_origin
+from application.planning_serialization import snapshot_json
 from application.purchase_history import (
     PurchaseHistoryQuery,
     PurchaseLineHistory,
@@ -25,8 +30,21 @@ from backend.app.main import app
 from frontend.planning_client import _map_case
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
-from supplier_evaluation.contracts import HISTORY_FEATURES, Context, QuantityValidity
-from supplier_evaluation.history_model import evaluate, load_model, path_text, save_model, train
+from supplier_evaluation.contracts import (
+    HISTORY_FEATURES,
+    Context,
+    QuantityValidity,
+    canonical,
+    digest,
+)
+from supplier_evaluation.history_model import (
+    check_manifest_metadata,
+    evaluate,
+    load_model,
+    path_text,
+    save_model,
+    train,
+)
 from supplier_evaluation.purchase_history import (
     build_rows,
     feature_snapshot,
@@ -123,7 +141,7 @@ def build_history(directory):
     boundary = max(r.cutoff for r in rows) - timedelta(days=92)
     boundary = boundary.replace(day=1 if boundary.day < 16 else 16)
     split = split_rows(rows, boundary=boundary)
-    model = train(split, database=DATABASE)
+    model = train(split, database=DATABASE, data_origin="generated")
     save_model(model, directory)
     return {
         "now": now,
@@ -481,6 +499,7 @@ def install_fake_odoo(history, monkeypatch):
         ),
     )
     monkeypatch.setattr(settings, "odoo_database", DATABASE)
+    monkeypatch.setattr(settings, "odoo_history_data_origin", "generated")
     monkeypatch.setattr(settings, "supplier_history_model_directory", history["dir"])
     monkeypatch.setattr(settings, "api_service_token", SecretStr("history-test-token"))
     return calls
@@ -740,6 +759,77 @@ def test_missing_model_blocks_creation_without_a_saved_case(configured, monkeypa
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "odoo_history_model_incompatible"
     assert not uow.rows
+
+
+def test_model_origin_is_explicit_and_validated(history):
+    observed = train(history["split"], database=DATABASE, data_origin="observed")
+    assert observed.metadata["data_origin"] == "observed"
+    check_manifest_metadata(observed.metadata)
+    with pytest.raises(ValueError, match="origin"):
+        train(history["split"], database=DATABASE, data_origin="synthetic")
+    with pytest.raises(ValueError, match="metadata"):
+        check_manifest_metadata(history["model"].metadata | {"data_origin": "synthetic"})
+
+
+def test_model_of_another_data_origin_cannot_assess_the_database(configured, monkeypatch):
+    _, uow = configured
+    monkeypatch.setattr(settings, "odoo_history_data_origin", "observed")
+    with TestClient(app) as client:
+        data = client.get(
+            BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()
+        ).json()
+        assert data["data_origin"] == "observed"
+        assert data["model_readiness"] == "model_unavailable"
+        response = client.post(
+            BASE + "/from-odoo-history",
+            json={"purchase_group_id": 501, "terms": data["terms"]},
+            headers=headers(),
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "odoo_history_model_incompatible"
+    assert not uow.rows
+
+
+def _without_origin(encoded):
+    """A capture as stored before the declared origin was recorded."""
+    payload = json.loads(encoded)
+    old_hash = payload["capture_hash"]
+    del payload["evidence"]["data_origin"]
+    payload["capture_hash"] = digest(payload["evidence"])
+    for feature in payload["features"]:
+        feature["source_reference"] = feature["source_reference"].replace(
+            old_hash, payload["capture_hash"]
+        )
+    del payload["payload_hash"]
+    payload["payload_hash"] = digest(payload)
+    return canonical(payload)
+
+
+def test_stored_case_requires_model_origin_equal_to_history_origin(configured):
+    _, uow = configured
+    with TestClient(app) as client:
+        data = client.get(
+            BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()
+        ).json()
+        response = client.post(
+            BASE + "/from-odoo-history",
+            json={"purchase_group_id": 501, "terms": data["terms"]},
+            headers=headers(),
+        )
+    assert response.status_code == 201, response.text
+    (case,) = uow.rows.values()
+    stored = json.loads(case.snapshot)
+    assert capture_origin(stored["facts"]["history"]) == "generated"
+    validate_snapshot(case)
+    mismatched = json.loads(case.snapshot)
+    mismatched["model_manifest"]["metadata"]["data_origin"] = "observed"
+    with pytest.raises(RepositoryError) as error:
+        validate_snapshot(replace(case, snapshot=snapshot_json(mismatched)))
+    assert "compatibility mismatch" in str(error.value.__cause__)
+    legacy = json.loads(case.snapshot)
+    legacy["facts"]["history"] = _without_origin(legacy["facts"]["history"])
+    assert capture_origin(legacy["facts"]["history"]) == "generated"
+    assert len(capture_features(legacy["facts"]["history"])) == 3
 
 
 # --- Seeding tool guards -------------------------------------------------------------
