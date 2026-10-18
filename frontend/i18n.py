@@ -63,7 +63,8 @@ def money(value, currency: str, lang: str, *, signed: bool = False) -> str:
     lang = language(lang)
     amount = Decimal(str(value))
     # Pad to two decimals but never round stored digits (no quantize: it fails on long values).
-    exponent = amount.normalize().as_tuple().exponent
+    # Read the stored exponent: normalize() rounds to the context precision first.
+    exponent = amount.as_tuple().exponent
     text = f"{amount:.2f}" if isinstance(exponent, int) and exponent >= -2 else f"{amount:f}"
     grouped = _group(text, lang)
     sign = ""

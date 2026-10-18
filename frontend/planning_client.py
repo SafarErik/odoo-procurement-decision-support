@@ -220,7 +220,8 @@ def _product_label(identity: str, lang: str, names: dict) -> str:
 def _unit_label(identity: str, lang: str, names: dict) -> str:
     if names.get(identity):
         return unit(names[identity], lang)
-    return unit("Units" if identity.startswith("odoo:uom.uom:") else identity, lang)
+    # Without a saved name the unit is not known to mean pieces; keep the identity visible.
+    return identity if identity.startswith("odoo:uom.uom:") else unit(identity, lang)
 
 
 def _explanation(entry: dict, lang: str) -> str | None:
