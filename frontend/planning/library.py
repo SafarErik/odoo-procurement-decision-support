@@ -25,7 +25,9 @@ def _origin_badge(row):
 
 
 def _filters():
-    disabled = ~PlanningState.library_loaded | PlanningState.library_loading
+    # Only the very first load disables the filters. A reload (on_load after returning from a
+    # case) keeps them usable: disabling them mid-typing silently dropped an Enter submit.
+    disabled = ~PlanningState.library_loaded
     return rx.form(
         rx.grid(
             rx.box(

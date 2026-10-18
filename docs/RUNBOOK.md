@@ -117,6 +117,35 @@ Odoo** previews and saves a case from live Odoo history. Full HTTP flow:
 (base case, nine scenarios in both directions, approval, No-award, HU PDF, stored replay).
 Opt-in live check: `RUN_ODOO_HISTORY_LIVE=true pytest tests/integration/test_live_purchase_history.py -m integration`.
 
+### 5.4 Reproducible demonstration and evaluation (P4)
+
+Prerequisites: §5.1–5.3 done, `.env` complete (including `API_SERVICE_TOKEN` and, for
+the evaluation, `TEST_DATABASE_URL` with the test database of §6 running). Port 8010
+must be free: both tools start their own API there.
+
+```powershell
+python -m tools.dev demo                      # one command: Odoo + planning DB + demonstration
+python -m tools.seed_odoo_history groups      # once: open groups with 5 and 10 suppliers
+python -m tools.milp_evaluation               # ~15 min: latency + correctness report
+python -m tools.train_history_model report    # re-evaluate the saved model, no training
+```
+
+- `demo` picks the four-supplier group (or `python -m tools.demo --group N`), runs case →
+  plans → nine scenarios (both directions, two infeasible) → approval of the
+  lower-exposure alternative and a separate No-award → HU and EN PDF, then restarts the
+  API with `ODOO_BASE_URL` pointing to a closed port and no model directory and replays
+  every case, retry, PDF and supplier overview from storage. Summary:
+  `docs/evidence/P4_DEMO_REPORT.json`; full responses, PDFs and the API log:
+  `.artifacts/demo/`. Cases are stored in the development planning database.
+- `groups` writes 15 open tax-free RFQs and two quotation groups (origins
+  `PDSS-GEN-P1:RFQ5:*`, `PDSS-GEN-P1:RFQ10:*`) into `pdss_history_gen` only, with the
+  same guards as `apply`; a rerun reuses them. Rollback: cancel and delete those RFQs in
+  **Purchase > Orders > Requests for Quotation** (filter by Source Document).
+- `milp_evaluation` writes its measured cases into the disposable test database, never
+  the development library. Report: `docs/evidence/P4_MILP_EVALUATION.json`.
+- `report` writes `docs/evidence/P4_ML_REPORT_CHECK.json` (offline; needs
+  `.artifacts/ml/history_export.json` and `.artifacts/ml/model`).
+
 ## 6. Database integration tests
 
 ```powershell

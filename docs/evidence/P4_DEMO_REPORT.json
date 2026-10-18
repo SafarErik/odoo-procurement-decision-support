@@ -1,0 +1,391 @@
+{
+  "report": "P4 one-command demonstration (Odoo-history path)",
+  "generated_at": "2026-10-18T18:32:46+00:00",
+  "repository": {
+    "commit": "62caf801c4f718e454466d4b7f3babe347aa9d70",
+    "dirty": true
+  },
+  "environment": {
+    "python": "3.11.15",
+    "platform": "Windows-10-10.0.26200-SP0"
+  },
+  "data_notice": "Generated purchase history in the dedicated Odoo test database; values do not describe real suppliers.",
+  "odoo_database": "pdss_history_gen",
+  "quotation_group": {
+    "purchase_group_id": 1,
+    "product": "[PDSS-GEN-P1-PRD-01] [GEN] Steel bracket M8",
+    "quantity": "200.0",
+    "currency": "HUF",
+    "suppliers": {
+      "odoo:res.partner:8": "[GEN] Alpha Metals",
+      "odoo:res.partner:13": "[GEN] Fenyves Trade",
+      "odoo:res.partner:18": "[GEN] Kalocsa Profiles",
+      "odoo:res.partner:11": "[GEN] Danube Parts"
+    }
+  },
+  "model": {
+    "model_id": "9b45987ce6f3659b9160b8e4beb36491f866cc69df22d58db88aa844a7457dbf",
+    "training_id": "1ea66751df968c1c639377459c556e4e658a71dabdb45a80d7b0f8058eca5dda",
+    "artifact_sha256": "a07c2448e33a3de0398785d5aa8c8e5398dcbf277d19af16f627fbd194173112",
+    "data_origin": "generated"
+  },
+  "supplier_assessment": [
+    {
+      "supplier_id": "odoo:res.partner:11",
+      "supplier_name": "[GEN] Danube Parts",
+      "class": "regular",
+      "score": "0.3636",
+      "summary_en": "Similar past cases: 4 of 11 became problematic in the following period; risk score 0.3636.",
+      "unit_price": "1509.45"
+    },
+    {
+      "supplier_id": "odoo:res.partner:13",
+      "supplier_name": "[GEN] Fenyves Trade",
+      "class": "problematic",
+      "score": "1",
+      "summary_en": "Similar past cases: 13 of 13 became problematic in the following period; risk score 1.",
+      "unit_price": "1489.15"
+    },
+    {
+      "supplier_id": "odoo:res.partner:18",
+      "supplier_name": "[GEN] Kalocsa Profiles",
+      "class": "regular",
+      "score": "0.3333",
+      "summary_en": "Similar past cases: 5 of 15 became problematic in the following period; risk score 0.3333.",
+      "unit_price": "1412.3"
+    },
+    {
+      "supplier_id": "odoo:res.partner:8",
+      "supplier_name": "[GEN] Alpha Metals",
+      "class": "regular",
+      "score": "0.3333",
+      "summary_en": "Similar past cases: 5 of 15 became problematic in the following period; risk score 0.3333.",
+      "unit_price": "1545.7"
+    }
+  ],
+  "base_case": {
+    "case_id": "62d31f23-f9fc-41ab-94fd-a3041a4f2496",
+    "status": "optimal",
+    "policy": {
+      "concentration_limit": "0.8",
+      "epsilons": [
+        "0.2"
+      ],
+      "max_suppliers": 2
+    },
+    "approved_quantity": 200,
+    "plans": [
+      {
+        "label": "minimum_cost",
+        "allocations": {
+          "odoo:res.partner:13": 80,
+          "odoo:res.partner:18": 120
+        },
+        "total_cost": "288608",
+        "risk_exposure": 0.6
+      },
+      {
+        "label": "alternative_1",
+        "allocations": {
+          "odoo:res.partner:18": 120,
+          "odoo:res.partner:8": 80
+        },
+        "total_cost": "293132",
+        "risk_exposure": 0.3333
+      }
+    ],
+    "seconds": 0.468
+  },
+  "scenarios": [
+    {
+      "kind": "supplier_outage",
+      "approved_quantity": null,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "available": false
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "10846",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:11": 80,
+            "odoo:res.partner:13": 120
+          },
+          "total_cost": "299454",
+          "risk_exposure": 0.7454
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:11": 80,
+            "odoo:res.partner:8": 120
+          },
+          "total_cost": "306240",
+          "risk_exposure": 0.3454
+        }
+      ],
+      "seconds": 0.193
+    },
+    {
+      "kind": "capacity_change",
+      "approved_quantity": null,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "capacity": 100
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "1537",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:13": 100,
+            "odoo:res.partner:18": 100
+          },
+          "total_cost": "290145",
+          "risk_exposure": 0.6666
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 100,
+            "odoo:res.partner:8": 100
+          },
+          "total_cost": "295800",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.188
+    },
+    {
+      "kind": "capacity_change",
+      "approved_quantity": null,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "capacity": 240
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "-3074",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:13": 40,
+            "odoo:res.partner:18": 160
+          },
+          "total_cost": "285534",
+          "risk_exposure": 0.4666
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 160,
+            "odoo:res.partner:8": 40
+          },
+          "total_cost": "287796",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.243
+    },
+    {
+      "kind": "demand_change",
+      "approved_quantity": 250,
+      "supplier_changes": [],
+      "status": "infeasible",
+      "total_cost_delta": null,
+      "plans": [],
+      "seconds": 0.088
+    },
+    {
+      "kind": "demand_change",
+      "approved_quantity": 150,
+      "supplier_changes": [],
+      "status": "optimal",
+      "total_cost_delta": "-74457.5",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:13": 30,
+            "odoo:res.partner:18": 120
+          },
+          "total_cost": "214150.5",
+          "risk_exposure": 0.4666
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 120,
+            "odoo:res.partner:8": 30
+          },
+          "total_cost": "215847",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.303
+    },
+    {
+      "kind": "price_change",
+      "approved_quantity": null,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "unit_price": "1836.0"
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "10846",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:11": 80,
+            "odoo:res.partner:13": 120
+          },
+          "total_cost": "299454",
+          "risk_exposure": 0.7454
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 80,
+            "odoo:res.partner:8": 120
+          },
+          "total_cost": "332364",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.245
+    },
+    {
+      "kind": "price_change",
+      "approved_quantity": null,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "unit_price": "1129.8"
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "-33900",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:13": 80,
+            "odoo:res.partner:18": 120
+          },
+          "total_cost": "254708",
+          "risk_exposure": 0.6
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 120,
+            "odoo:res.partner:8": 80
+          },
+          "total_cost": "259232",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.204
+    },
+    {
+      "kind": "combined",
+      "approved_quantity": 220,
+      "supplier_changes": [
+        {
+          "supplier_id": "odoo:res.partner:18",
+          "capacity": 100,
+          "unit_price": "1413.3"
+        }
+      ],
+      "status": "optimal",
+      "total_cost_delta": "31420",
+      "plans": [
+        {
+          "label": "minimum_cost",
+          "allocations": {
+            "odoo:res.partner:13": 120,
+            "odoo:res.partner:18": 100
+          },
+          "total_cost": "320028",
+          "risk_exposure": 0.697
+        },
+        {
+          "label": "alternative_1",
+          "allocations": {
+            "odoo:res.partner:18": 100,
+            "odoo:res.partner:8": 120
+          },
+          "total_cost": "326814",
+          "risk_exposure": 0.3333
+        }
+      ],
+      "seconds": 0.199
+    },
+    {
+      "kind": "demand_change",
+      "approved_quantity": 1000,
+      "supplier_changes": [],
+      "status": "infeasible",
+      "total_cost_delta": null,
+      "plans": [],
+      "seconds": 0.058
+    }
+  ],
+  "decisions": {
+    "approved": {
+      "case_id": "62d31f23-f9fc-41ab-94fd-a3041a4f2496",
+      "plan_index": 1,
+      "approved_content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044"
+    },
+    "no_award": {
+      "case_id": "e5f9fccb-7899-4de3-92b9-143b447c9c65",
+      "outcome": "no_award",
+      "approved_pdf_denied": true
+    }
+  },
+  "pdf": {
+    "hu": {
+      "sha256": "e7837cbfb28fb3e6cceed097662d5b29af68d95f4d6ad01d89fcc498e575e31f",
+      "bytes": 41210,
+      "content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044",
+      "language": "hu"
+    },
+    "en": {
+      "sha256": "139ddc92028ac3900e83b0092abd19fe5ebf0a88741d49a7e2cbc533cd35e7be",
+      "bytes": 39472,
+      "content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044",
+      "language": "en"
+    }
+  },
+  "stored_replay": {
+    "settings": {
+      "ODOO_BASE_URL": "http://127.0.0.1:9",
+      "SUPPLIER_HISTORY_MODEL_DIRECTORY": "(empty: no model)"
+    },
+    "odoo_preview_status": 503,
+    "checks": [
+      "GET of every saved case equals the created snapshot, hash and decision",
+      "exact retry of every POST is an idempotent stored replay (HTTP 200)",
+      "HU and EN approved PDFs byte-identical to the first download",
+      "supplier overview (HU, EN) identical",
+      "No-award case has no approved PDF (HTTP 422)"
+    ],
+    "operations_replayed": 13,
+    "passed": true
+  },
+  "flow_seconds": 3.819,
+  "total_seconds": 16.527,
+  "full_report": "kept locally under .artifacts/demo (contains every response)"
+}

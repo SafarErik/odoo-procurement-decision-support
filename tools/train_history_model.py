@@ -3,6 +3,7 @@
     python -m tools.train_history_model extract [--products 1,2,3] [--company 1]
     python -m tools.train_history_model train
     python -m tools.train_history_model all
+    python -m tools.train_history_model report   re-evaluate the saved model, no training
 
 ``extract`` reads Odoo through the restricted history user (ODOO_T7S_API_KEY) and
 writes the raw export; ``train`` never touches Odoo. Output: .artifacts/ml/.
@@ -21,7 +22,7 @@ from pathlib import Path
 from application.purchase_history import PurchaseHistoryQuery, PurchaseLineHistory, ReceiptEvent
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
 from supplier_evaluation.contracts import HISTORY_FEATURES, canonical, digest
-from supplier_evaluation.history_model import evaluate, save_model, train
+from supplier_evaluation.history_model import evaluate, load_model, save_model, train
 from supplier_evaluation.purchase_history import (
     GRACE,
     HORIZON,
@@ -115,7 +116,7 @@ def load_lines(export: dict) -> tuple[PurchaseLineHistory, ...]:
     return tuple(line(raw) for raw in export["lines"])
 
 
-def train_from_export(export: dict) -> dict:
+def _split(export: dict):
     lines = load_lines(export)
     extracted_at = datetime.fromisoformat(export["extracted_at"])
     rows, coverage = build_rows(lines, extracted_at=extracted_at)
@@ -123,8 +124,39 @@ def train_from_export(export: dict) -> dict:
     candidates = semi_monthly_cutoffs(
         min(r.cutoff for r in rows), last - BOUNDARY_BEFORE_LAST_CUTOFF
     )
-    boundary = max(candidates)
-    split = split_rows(rows, boundary=boundary)
+    return lines, rows, coverage, split_rows(rows, boundary=max(candidates))
+
+
+def report_check(export: dict, model_directory: Path, reference: dict) -> dict:
+    """Evaluate the saved model on the stored export again; compare with the reference."""
+    _, _, _, split = _split(export)
+    model, manifest = load_model(model_directory, trusted_local=True)
+    evaluation = evaluate(model, split)
+    same = {
+        "artifact_sha256": manifest["artifact_sha256"] == reference["artifact_sha256"],
+        "export_hash": digest(export["lines"]) == reference["dataset_card"]["export_hash"],
+        "train_id": rows_id(split.train) == reference["dataset_card"]["split"]["train_id"],
+        "evaluation": canonical(evaluation) == canonical(reference["evaluation"]),
+    }
+    primary = evaluation["primary_supplier_and_time_holdout"]
+    return {
+        "report": "P4 ML evaluation check: saved model re-evaluated, not retrained",
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "model_id": model.metadata["model_id"],
+        "artifact_sha256": manifest["artifact_sha256"],
+        "export_hash": digest(export["lines"]),
+        "identical_to_reference": same,
+        "unchanged": all(same.values()),
+        "primary_macro_f1": {
+            "decision_tree": primary["decision_tree"]["macro"]["f1"],
+            **{k: v["macro"]["f1"] for k, v in primary["baselines"].items()},
+        },
+        "evaluation": evaluation,
+    }
+
+
+def train_from_export(export: dict) -> dict:
+    lines, rows, coverage, split = _split(export)
     model = train(split, database=export["database"])
     manifest = save_model(model, OUT / "model")
     report = {
@@ -199,7 +231,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("command", choices=("extract", "train", "all"))
+    parser.add_argument("command", choices=("extract", "train", "all", "report"))
     parser.add_argument("--products", type=lambda v: [int(x) for x in v.split(",")])
     parser.add_argument("--company", type=int, default=1)
     args = parser.parse_args()
@@ -209,6 +241,16 @@ def main() -> None:
         export = asyncio.run(extract(args.products or _default_products(), args.company))
         export_path.write_text(canonical(export) + "\n", encoding="utf-8")
         print(f"Extracted {len(export['lines'])} purchase lines from {export['database']}")
+    if args.command == "report":
+        reference = ROOT / "docs" / "evidence" / "P1_ML_REPORT.json"
+        check = report_check(
+            json.loads(export_path.read_text(encoding="utf-8")),
+            OUT / "model",
+            json.loads(reference.read_text(encoding="utf-8")),
+        )
+        target = ROOT / "docs" / "evidence" / "P4_ML_REPORT_CHECK.json"
+        target.write_text(json.dumps(check, indent=2) + "\n", encoding="utf-8")
+        print(canonical({k: check[k] for k in ("unchanged", "identical_to_reference")}))
     if args.command in ("train", "all"):
         report = train_from_export(json.loads(export_path.read_text(encoding="utf-8")))
         primary = report["evaluation"]["primary_supplier_and_time_holdout"]
