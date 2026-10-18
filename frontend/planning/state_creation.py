@@ -32,6 +32,32 @@ def _form_date(value: Any) -> str:
     return value
 
 
+SUPPLIER_TERM_FIELDS = (
+    "capacity",
+    "available",
+    "minimum_order_quantity",
+    "price_quantities",
+    "delivery_quantities",
+    "promised_date",
+)
+REQUIREMENT_TERM_FIELDS = ("approved_quantity", "required_date")
+
+
+def _reviewed_source(saved: dict, suggested: dict, fields: tuple[str, ...], as_of: str) -> dict:
+    """Buyer-reviewed terms that record which values were kept from the preview suggestion.
+
+    The preview proposes defaults (e.g. capacity, "no MOQ", validity ranges). Saving
+    them is an explicit buyer decision, but the stored source must still show which
+    values the buyer left at the suggestion instead of claiming they were entered.
+    """
+    kept = [name for name in fields if saved[name] == suggested[name]]
+    return {
+        "source_type": "buyer_reviewed_terms",
+        "source_reference": "ui-odoo-terms-v2;kept-suggested=" + (",".join(kept) or "none"),
+        "observed_at": as_of,
+    }
+
+
 class CreationMixin(rx.State, mixin=True):
     odoo_ready: bool = False
     odoo_details: str = ""
@@ -294,14 +320,15 @@ class CreationMixin(rx.State, mixin=True):
         facts["requirement"]["approved_quantity"] = quantity
         facts["requirement"]["required_date"] = required
         facts["approval_reference"] = f"controlled-demand-{quantity}-t16-odoo-v1"
-        source = {
-            "source_type": "controlled_business_terms",
-            "source_reference": "t16-ui-odoo-terms-v1",
-            "observed_at": facts["as_of"],
-        }
-        facts["requirement_source"] = source.copy()
+        suggested = self._odoo_payload["controlled_input"]
+        facts["requirement_source"] = _reviewed_source(
+            facts["requirement"], suggested["requirement"], REQUIREMENT_TERM_FIELDS, facts["as_of"]
+        )
+        proposals = {s["supplier_id"]: s for s in suggested["suppliers"]}
         for supplier in facts["suppliers"]:
-            supplier["source"] = source.copy()
+            supplier["source"] = _reviewed_source(
+                supplier, proposals[supplier["supplier_id"]], SUPPLIER_TERM_FIELDS, facts["as_of"]
+            )
         return {"purchase_group_id": payload["purchase_group_id"], "terms": facts}
 
     def _set_review(self, payload):

@@ -92,7 +92,11 @@ linear penalty on each supplier's share; compare plans on simulated delivery out
 **Observed.** Odoo quotations carry price, quantity and dates but no supplier capacity or
 MOQ. The preview proposes source-attributed defaults (`buyer_default_terms`): capacity
 ⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε = 0.2. The demonstration and
-the evaluation use these defaults; the buyer can change them before saving.
+the evaluation use these defaults; the buyer can change them before saving. Since the
+[L6 provenance handoff](handoffs/L6_TERMS_PROVENANCE.md), a case saved in the UI records per
+supplier and for the requirement which values were kept from the suggestion
+(`buyer_reviewed_terms`, `kept-suggested=…`); the policy keeps `buyer_default_terms`. The
+values are still not supplier-confirmed.
 
 **Proposal.** Read capacity and MOQ from Odoo where they exist (vendor pricelist
 `product.supplierinfo` minimum quantity; a custom capacity field in the history addon)
