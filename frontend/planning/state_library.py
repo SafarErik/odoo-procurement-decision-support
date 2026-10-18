@@ -28,13 +28,21 @@ class LibraryMixin(rx.State, mixin=True):
     _library_params: dict = {}
     _library_raw: list = []
     _children_raw: list = []
+    # Saved scenarios of the open base case (Scenarios tab); same read-only GET as the library.
+    base_scenarios: list[dict[str, str]] = []
+    base_scenarios_cursor: str = ""
+    base_scenarios_error: str = ""
+    base_scenarios_loading: bool = False
+    base_scenarios_case: str = ""
+    _base_scenarios_raw: list = []
 
     def _relabel_library(self):
         try:
             self.library_rows = [library_row(i, self._lang()) for i in self._library_raw]
             self.library_children = [library_row(i, self._lang()) for i in self._children_raw]
+            self.base_scenarios = [library_row(i, self._lang()) for i in self._base_scenarios_raw]
         except (ValueError, TypeError, KeyError, ArithmeticError):
-            self.library_rows = self.library_children = []
+            self.library_rows = self.library_children = self.base_scenarios = []
 
     @rx.var
     def library_selection(self) -> dict[str, str]:
@@ -169,3 +177,44 @@ class LibraryMixin(rx.State, mixin=True):
                 self._children_raw = page["raw"]
         finally:
             self.children_loading = False
+
+    def _clear_base_scenarios(self):
+        self.base_scenarios = []
+        self._base_scenarios_raw = []
+        self.base_scenarios_cursor = self.base_scenarios_error = self.base_scenarios_case = ""
+
+    @rx.event
+    async def load_base_scenarios(self, more: bool = False):
+        """Read-only GET of the open base case's saved scenarios; never re-reads Odoo or solves."""
+        case_id = self.details.get("case_id", "")
+        if (
+            self.base_scenarios_loading
+            or not self.has_case
+            or self.details.get("parent_id") != "Base case"
+            or (more and (case_id != self.base_scenarios_case or not self.base_scenarios_cursor))
+        ):
+            return
+        cursor = self.base_scenarios_cursor if more else ""
+        if not more:
+            self._clear_base_scenarios()
+        self.base_scenarios_case = case_id
+        self.base_scenarios_loading = True
+        self.base_scenarios_error = ""
+        yield
+        try:
+            page, error = await fetch_library(
+                f"{settings.planning_cases_url}/{case_id}/scenarios",
+                settings.api_service_token.get_secret_value(),
+                {"cursor": cursor} if cursor else {},
+                lang=self._lang(),
+            )
+            # Another case may have been opened while the page was on its way.
+            if self.details.get("case_id") != case_id:
+                return
+            self.base_scenarios_error = self._tr("err_base_scenarios") if error else ""
+            if page is not None:
+                self.base_scenarios = self.base_scenarios + page["items"]
+                self._base_scenarios_raw = self._base_scenarios_raw + page["raw"]
+                self.base_scenarios_cursor = page["next_cursor"]
+        finally:
+            self.base_scenarios_loading = False

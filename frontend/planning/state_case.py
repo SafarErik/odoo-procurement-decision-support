@@ -103,6 +103,7 @@ class CaseMixin(rx.State, mixin=True):
         self.stress_capacity = self.stress_quantity = self.stress_price = ""
         self.original_error = ""
         self.supplier_cards, self.supplier_charts, self.suppliers_error = [], {}, ""
+        self._clear_base_scenarios()
         if self.details["parent_id"] == "Base case":
             self._set_original(result)
         elif not self._original_matches_context(self.original_details):

@@ -298,12 +298,108 @@ def _comparison() -> rx.Component:
     )
 
 
+def _saved_scenario(row) -> rx.Component:
+    return rx.flex(
+        rx.box(
+            rx.text(row["scenario"], font_weight="650", size="2"),
+            rx.text(
+                t("col_demand"),
+                ": ",
+                row["quantity"],
+                " · ",
+                row["outcome"],
+                size="2",
+                color=MUTED,
+            ),
+            min_width="0",
+        ),
+        rx.button(
+            t("open_scenario"),
+            on_click=PlanningState.open_saved_case(row["case_id"], "scenarios"),
+            disabled=BUSY,
+            size="2",
+            variant="outline",
+            flex_shrink="0",
+        ),
+        justify="between",
+        align="center",
+        gap="1rem",
+        padding="0.6rem 0",
+        border_top=f"1px solid {HAIRLINE}",
+    )
+
+
+def _saved_scenarios() -> rx.Component:
+    """The base case's saved scenarios: a read-only GET, loaded when this tab opens."""
+    # Nothing requested yet counts as loading, so the empty text never flashes before the GET.
+    loading = PlanningState.base_scenarios_loading | (PlanningState.base_scenarios_case == "")
+    return card(
+        heading("saved_scenarios", size="4", id="base-scenarios-heading"),
+        muted("base_scenarios_body", margin_top="0.25rem", margin_bottom="0.5rem"),
+        rx.grid(
+            rx.foreach(PlanningState.base_scenarios, _saved_scenario),
+            columns=rx.breakpoints(initial="1", lg="2"),
+            column_gap="2rem",
+        ),
+        rx.cond(
+            loading,
+            rx.flex(
+                rx.spinner(size="2"),
+                rx.text(t("loading_scenarios"), size="2", color=MUTED),
+                role="status",
+                align="center",
+                gap="0.5rem",
+                padding="0.6rem 0",
+            ),
+            rx.cond(
+                PlanningState.base_scenarios_error != "",
+                rx.flex(
+                    rx.callout(
+                        PlanningState.base_scenarios_error,
+                        role="alert",
+                        color_scheme="red",
+                        size="1",
+                    ),
+                    rx.button(
+                        t("retry"),
+                        on_click=PlanningState.load_base_scenarios(False),
+                        variant="outline",
+                        size="2",
+                    ),
+                    gap="0.75rem",
+                    align="center",
+                    wrap="wrap",
+                    margin_top="0.5rem",
+                ),
+                rx.cond(
+                    PlanningState.base_scenarios.length() == 0,
+                    muted("no_scenarios", padding="0.6rem 0"),
+                    rx.cond(
+                        PlanningState.base_scenarios_cursor != "",
+                        rx.button(
+                            t("more_scenarios"),
+                            on_click=PlanningState.load_base_scenarios(True),
+                            size="2",
+                            variant="ghost",
+                            margin_top="0.5rem",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        on_mount=PlanningState.load_base_scenarios(False),
+    )
+
+
 def scenarios_view() -> rx.Component:
     return rx.flex(
         rx.cond(
             CHILD,
             _comparison(),
-            rx.callout(t("scenarios_intro"), icon="info", size="1"),
+            rx.fragment(
+                rx.callout(t("scenarios_intro"), icon="info", size="1"),
+                _saved_scenarios(),
+            ),
         ),
         _scenario_form(),
         direction="column",

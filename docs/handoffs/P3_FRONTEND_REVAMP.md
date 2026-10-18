@@ -139,8 +139,7 @@ selection and approval never depend on the language; the old v1 RFQ ledger page 
   export` step were reproduced and pass locally.
 - The approved PDF opened in the e2e flow (Hungarian, viewer shows "1. oldal / N"); the PDF
   pages themselves were not re-reviewed as images in P3 (P2 reviewed the layout).
-- A base case's Scenarios tab does not list its saved scenarios; they are reachable from
-  Cases → Scenarios. A small follow-up.
+- A base case's Scenarios tab now lists its saved scenarios (see the addendum below).
 - KPI time series (owner decision 2): not built.
 - Screen reader pass with a real assistive technology: not done; checked roles, labels,
   focus targets and keyboard-reachable controls only.
@@ -173,3 +172,34 @@ selection and approval never depend on the language; the old v1 RFQ ledger page 
 - Ch. 7 (evaluation): browser evidence at desktop and 375 px, the two e2e flows, the
   screenshots in `docs/evidence/p3/` (usable as thesis figures).
 - Ch. 9: KPI time series, durable recovery, user identity instead of typed actor names.
+
+## Addendum: saved scenarios on the base case's Scenarios tab
+
+- Problem: on a base case the Scenarios tab showed only the composer; the base's saved
+  scenarios were reachable only from Cases → "Forgatókönyvek".
+- Decision: reuse the existing read-only library GET
+  (`{planning_cases_url}/{case_id}/scenarios` via `fetch_library` / `library_row`); no new
+  backend route, nothing re-read from Odoo or re-solved.
+- Behavior: a "Mentett forgatókönyvek" card above the composer lists each scenario's kind,
+  demand and outcome with an Open button (`open_saved_case(id, "scenarios")`); two columns
+  from the `lg` breakpoint, one below. It loads when the tab mounts on a base case
+  (`LibraryMixin.load_base_scenarios`), shows loading, empty ("Ehhez az ügyhöz még nincs
+  forgatókönyv."), error with Retry, and "További forgatókönyvek" when a next page exists.
+  Showing any case (including the child just saved) clears the list, so returning to the
+  base reloads it; a page that arrives for a case no longer open is dropped; a language
+  switch re-labels the stored rows without HTTP.
+- Evidence: `pytest tests/test_p3_frontend.py` (3 new tests, 17 passed);
+  `python -m tools.dev check` passed (483 passed, 51 deselected). Built-in browser against
+  the local Postgres stack: 1440×900 English list of 9 scenarios in two columns, 375×812
+  Hungarian list and empty state, Open navigates to the child, API stopped → error +
+  Retry, API restarted → Retry loads; horizontal overflow 0 px at 375 px (−15 px at 1440,
+  i.e. none).
+- Integration into this branch (2026-10-18): the change was made in a separate worktree
+  on top of `cda3f64` and applied here as a patch on top of `b3ddfba` (six files, no
+  `reflex.lock` changes). After applying, `python -m tools.dev check` on this branch:
+  PASS, 484 passed, 51 deselected.
+- Not run: integration/e2e suites (no persistence or flow change beyond this read);
+  hosted CI.
+- Limitation: the list is read when the tab mounts; a scenario saved in another browser
+  tab appears after re-opening the tab.
+- Thesis: Ch. 4 (case navigation), Ch. 7 (browser evidence).

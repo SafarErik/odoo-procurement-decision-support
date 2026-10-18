@@ -3,6 +3,7 @@
 import asyncio
 from copy import deepcopy
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -152,3 +153,117 @@ def test_scenario_validation_reads_naturally_in_hungarian(stored_cases):
     form = {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "6"}
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.error_message.endswith("azonos az eredetivel (6 db). A 0 megszünteti.")
+
+
+def _scenario_item(base_id, kind="supplier_outage", quantity=10):
+    return {
+        "case_id": str(uuid4()),
+        "parent_id": base_id,
+        "created_at": "2026-10-18T10:00:00+00:00",
+        "company_id": "demo:company:1",
+        "product_id": "demo:product:1",
+        "product_label": "Demo product",
+        "unit_label": "Units",
+        "approved_quantity": quantity,
+        "quantity_unit": "demo:uom:1",
+        "currency": "EUR",
+        "required_date": "2026-10-25",
+        "planning_status": "optimal",
+        "decision_status": "draft",
+        "source_kind": "controlled_synthetic",
+        "origin": "demo",
+        "data_origin": "synthetic",
+        "minimum_cost": "102.00",
+        "scenario_kind": kind,
+        "changed_assumptions": None,
+    }
+
+
+def _scenario_pages(base_id, calls, pages):
+    async def fetch(url, token, params, *, lang="en", transport=None):
+        calls.append((url, dict(params)))
+        raw, cursor, error = pages.pop(0)
+        if raw is None:
+            return None, error
+        return {
+            "items": [library_row(i, lang) for i in raw],
+            "raw": raw,
+            "next_cursor": cursor,
+        }, ""
+
+    return fetch
+
+
+async def _drain(handler, state, *args):
+    async for _ in handler.fn(state, *args):
+        pass
+
+
+def test_base_scenarios_tab_lists_saved_scenarios_read_only(stored_cases, monkeypatch):
+    base = stored_cases[1]
+    state = PlanningState(_reflex_internal_init=True)
+    state._show(_map_case(base, base["case_id"], "hu"))
+    first = [_scenario_item(base["case_id"]), _scenario_item(base["case_id"], "demand_change", 12)]
+    more = [_scenario_item(base["case_id"], "price_change")]
+    calls = []
+    pages = [(first, "next-page", ""), (more, "", "")]
+    patch_client(monkeypatch, "fetch_library", _scenario_pages(base["case_id"], calls, pages))
+
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
+    assert calls[0][0].endswith(f"/{base['case_id']}/scenarios") and calls[0][1] == {}
+    assert [r["scenario"] for r in state.base_scenarios] == [
+        tr("kind_supplier_outage", "hu"),
+        tr("kind_demand_change", "hu"),
+    ]
+    assert state.base_scenarios[1]["quantity"] == "12 db"
+    assert state.base_scenarios[0]["outcome"] == tr("status_optimal", "hu")
+    assert state.base_scenarios_cursor == "next-page" and not state.base_scenarios_loading
+
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, True))
+    assert calls[1][1] == {"cursor": "next-page"} and len(state.base_scenarios) == 3
+    assert state.base_scenarios_cursor == ""
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, True))  # no further page
+    assert len(calls) == 2
+
+    PlanningState.set_language.fn(state, "en")
+    assert len(calls) == 2 and state.base_scenarios[2]["scenario"] == tr("kind_price_change", "en")
+
+
+def test_base_scenarios_show_empty_and_error_and_never_load_for_a_scenario(
+    stored_cases, monkeypatch
+):
+    base, child = stored_cases[1], stored_cases[2]
+    state = PlanningState(_reflex_internal_init=True)
+    state._show(_map_case(base, base["case_id"], "hu"))
+    calls = []
+    pages = [(None, "", tr("err_library", "hu")), ([], "", "")]
+    patch_client(monkeypatch, "fetch_library", _scenario_pages(base["case_id"], calls, pages))
+
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
+    assert state.base_scenarios_error == UI_TEXT["err_base_scenarios"][0]
+    assert state.base_scenarios == []
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))  # Retry
+    assert state.base_scenarios_error == "" and state.base_scenarios == []
+    assert state.base_scenarios_case == base["case_id"]
+    assert UI_TEXT["no_scenarios"][0] == "Ehhez az ügyhöz még nincs forgatókönyv."
+
+    # Saving a scenario shows the child: the base list is dropped and reloads on return.
+    state._show(_map_case(child, child["case_id"], "hu"))
+    assert state.base_scenarios_case == "" and state.base_scenarios == []
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
+    assert len(calls) == 2
+
+
+def test_base_scenarios_page_for_a_case_no_longer_open_is_dropped(stored_cases, monkeypatch):
+    base, child = stored_cases[1], stored_cases[2]
+    state = PlanningState(_reflex_internal_init=True)
+    state._show(_map_case(base, base["case_id"], "hu"))
+
+    async def fetch(url, token, params, *, lang="en", transport=None):
+        state._show(_map_case(child, child["case_id"], "hu"))  # another case opened meanwhile
+        raw = [_scenario_item(base["case_id"])]
+        return {"items": [library_row(i, lang) for i in raw], "raw": raw, "next_cursor": ""}, ""
+
+    patch_client(monkeypatch, "fetch_library", fetch)
+    asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
+    assert state.base_scenarios == [] and not state.base_scenarios_loading

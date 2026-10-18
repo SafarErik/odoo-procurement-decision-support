@@ -256,6 +256,15 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "Try what happens if a supplier drops out or capacity, demand or price changes. Each "
         "scenario is saved separately; the base case stays unchanged.",
     ),
+    "err_base_scenarios": (
+        "A mentett forgatókönyvek most nem érhetők el. Próbálja újra.",
+        "Saved scenarios are unavailable right now. Please retry.",
+    ),
+    "loading_scenarios": ("Forgatókönyvek betöltése…", "Loading scenarios…"),
+    "base_scenarios_body": (
+        "A megnyitás a mentett eredményt mutatja; semmi nem számolódik újra.",
+        "Opening one shows the saved result; nothing is recalculated.",
+    ),
     "scenario_new": ("Új forgatókönyv", "New scenario"),
     "scenario_new_body": (
         "Mindig az eredeti alapügyből indul, ugyanazzal az optimalizálással és a mentett "
