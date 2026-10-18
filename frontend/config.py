@@ -21,12 +21,6 @@ class FrontendSettings(BaseSettings):
     )
 
     @property
-    def rfqs_url(self) -> str:
-        """Return the documented open-RFQ endpoint."""
-
-        return f"{self.backend_base_url.rstrip('/')}/api/v1/procurement/rfqs"
-
-    @property
     def planning_cases_url(self) -> str:
         return f"{self.backend_base_url.rstrip('/')}/api/v2/procurement/planning-cases"
 

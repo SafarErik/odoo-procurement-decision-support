@@ -1,141 +1,57 @@
-"""Buyer workflow, navigation and request recovery."""
+"""Case page: header with business facts, tabs, and Audit as a secondary view."""
 
 import reflex as rx
 
 from frontend.planning.audit import audit_view
-from frontend.planning.decision import decision_view, selection_review
-from frontend.planning.inputs import _planning_controls
-from frontend.planning.results import plans_view, suppliers_view
-from frontend.planning.scenarios import _scenario_comparison, _scenario_form
+from frontend.planning.decision import decision_view
+from frontend.planning.overview import overview_view
+from frontend.planning.recovery import recovery
+from frontend.planning.results import plans_view
+from frontend.planning.scenarios import scenarios_view
 from frontend.planning.state import PlanningState
-from frontend.theme import HAIRLINE, MUTED, SURFACE
-from frontend.workspace import workspace_shell
+from frontend.planning.suppliers import suppliers_view
+from frontend.theme import ACCENT, MUTED
+from frontend.ui import BUSY, decision_badge, error_state, loading_state, t
+from frontend.workspace import page_frame, workspace_shell
+
+TABS = (
+    ("overview", "tab_overview"),
+    ("suppliers", "tab_suppliers"),
+    ("plans", "tab_plans"),
+    ("scenarios", "tab_scenarios"),
+    ("decision", "tab_decision"),
+)
 
 
-def _test_guide() -> rx.Component:
-
-    return rx.el.details(
-        rx.el.summary("What should I test?", font_weight="650", cursor="pointer"),
-        rx.el.ol(
-            rx.el.li(
-                "Open or create a base case. Check demand, price and supplier limits in Audit."
-            ),
-            rx.el.li(
-                "Compare Plans: quantities must meet demand. Read the extra cost "
-                "and exposure trade-off."
-            ),
-            rx.el.li(
-                "In What-if, remove a supplier or raise or lower its capacity, price or "
-                "the demand. Inspect the saved change from the base."
-            ),
-            rx.el.li(
-                "Increase demand beyond available capacity. Expect No feasible "
-                "plan, never invented allocations."
-            ),
-            rx.el.li(
-                "Copy the new case ID, then reopen it. Costs, quantities and "
-                "snapshot hash must stay the same."
-            ),
-            padding_left="1.2rem",
-            line_height="1.7",
-            font_size="0.875rem",
-        ),
-        rx.text(
-            "Model accuracy is a separate evaluation; these checks validate the "
-            "controlled decision workflow.",
-            size="2",
-            color=MUTED,
-        ),
-        padding="1rem",
-        background=SURFACE,
-        border=f"1px solid {HAIRLINE}",
-        border_radius="8px",
-    )
-
-
-def _recovery() -> rx.Component:
-
+def _status_code():
     return rx.cond(
-        (PlanningState.has_pending | PlanningState.decision_conflict) & ~PlanningState.is_loading,
-        rx.box(
-            rx.heading(
-                rx.cond(
-                    PlanningState.decision_conflict,
-                    "Reopen the recorded decision",
-                    "Recover the same save before continuing",
-                ),
-                as_="h2",
-                size="3",
-                id="request-recovery-heading",
-                tab_index=-1,
-                on_mount=PlanningState.focus_pending_save,
-            ),
-            rx.text(
-                rx.cond(
-                    PlanningState.decision_conflict,
-                    "The server reported a conflict. Read the saved outcome before continuing; "
-                    "another approval attempt cannot replace it.",
-                    "The response was not received. This save may already be stored. "
-                    "Retry retrieves or completes the same save using the original inputs and key. "
-                    "Approval is not a recovery step. "
-                    "Do not create a replacement or change context.",
-                ),
-                size="2",
-                margin_y="0.75rem",
-            ),
-            rx.cond(
-                PlanningState.decision_conflict,
-                rx.callout(PlanningState.error_message, role="alert", color_scheme="red"),
-            ),
-            rx.cond(
-                PlanningState.decision_conflict,
-                rx.button(
-                    "Reopen saved decision", on_click=PlanningState.reopen_conflicted_decision
-                ),
-                rx.button("Retry the same request", on_click=PlanningState.recover_request),
-            ),
-            rx.text(
-                "Recovery details stay in this session. Closing it or a server restart can lose "
-                "these details; it does not delete comparisons already saved in the database. "
-                "Copy the recovery record before leaving and give it to the owner if recovery "
-                "fails. Recovery across sessions is not automatic.",
-                size="2",
-                margin_top="0.75rem",
-                max_width="75ch",
-            ),
-            rx.el.details(
-                rx.el.summary("Copy recovery record before leaving", cursor="pointer"),
-                rx.text(
-                    "Idempotency key: ",
-                    PlanningState.request_key,
-                    size="2",
-                    overflow_wrap="anywhere",
-                ),
-                rx.button(
-                    "Copy exact request",
-                    variant="soft",
-                    on_click=rx.set_clipboard(PlanningState.recovery_json),
-                ),
-                rx.text_area(
-                    value=PlanningState.recovery_json,
-                    read_only=True,
-                    aria_label="Exact request recovery JSON",
-                    width="100%",
-                    height="10rem",
-                ),
-                margin_top="1rem",
-            ),
-            padding="1rem",
-            border="1px solid #956018",
-            background="#FFF8EB",
-            margin_bottom="1rem",
+        PlanningState.details["parent_id"] != "Base case",
+        "scenario",
+        rx.match(
+            PlanningState.details["final_outcome"],
+            ("Approved", "approved"),
+            ("No-award", "no_award"),
+            "draft",
         ),
     )
 
 
-def _workspace() -> rx.Component:
-
+def _header() -> rx.Component:
     return rx.box(
+        rx.flex(
+            rx.link(
+                t("nav_cases"),
+                on_click=PlanningState.navigate_global("cases"),
+                href="#",
+                color=MUTED,
+                size="2",
+            ),
+            rx.text("/", size="2", color=MUTED),
+            rx.text(PlanningState.details["product_label"], size="2", color=MUTED, truncate=True),
+            gap="0.5rem",
+            align="center",
+            min_width="0",
+        ),
         rx.flex(
             rx.box(
                 rx.heading(
@@ -144,228 +60,150 @@ def _workspace() -> rx.Component:
                     size="7",
                     id="saved-case-heading",
                     tab_index=-1,
-                    on_mount=rx.set_focus("saved-case-heading"),
+                    margin_top="0.35rem",
                 ),
-                rx.text(
-                    PlanningState.details["quantity"],
-                    " ",
-                    PlanningState.details["unit"],
-                    " · ",
-                    PlanningState.details["currency"],
-                    " · required ",
-                    PlanningState.details["required_date"],
-                    size="2",
-                    color=MUTED,
-                ),
-            ),
-            rx.box(
-                rx.badge(PlanningState.details["status_label"], color_scheme="green"),
-                rx.text(
-                    rx.cond(
-                        PlanningState.details["final_outcome"] == "",
-                        "Awaiting decision",
-                        PlanningState.details["final_outcome"],
+                rx.flex(
+                    rx.text(
+                        PlanningState.details["quantity_display"],
+                        " · ",
+                        PlanningState.details["currency"],
+                        " · ",
+                        t("required_short"),
+                        " ",
+                        PlanningState.details["required_display"],
+                        size="2",
+                        color=MUTED,
                     ),
-                    font_weight="650",
+                    decision_badge(_status_code()),
+                    rx.cond(
+                        PlanningState.details["scenario_label"] != "",
+                        rx.badge(
+                            PlanningState.details["scenario_label"],
+                            color_scheme="iris",
+                            variant="soft",
+                        ),
+                    ),
+                    rx.cond(
+                        PlanningState.details["origin_badge"] != "",
+                        rx.badge(
+                            PlanningState.details["origin_badge"],
+                            color_scheme="gray",
+                            variant="soft",
+                        ),
+                    ),
+                    gap="0.6rem",
+                    align="center",
+                    wrap="wrap",
+                    margin_top="0.35rem",
                 ),
-                rx.text(PlanningState.details["scenario_label"], size="2", margin_top="0.25rem"),
-            ),
-            justify="between",
-            flex_wrap="wrap",
-            gap="1rem",
-        ),
-        rx.text(
-            "Data origin: ",
-            PlanningState.details["origin_label"],
-            font_weight="650",
-            margin_top="0.75rem",
-        ),
-        rx.text(
-            "Captured cutoff: ",
-            PlanningState.details["as_of"],
-            " · Saved: ",
-            PlanningState.details["created_at"],
-            size="2",
-            color=MUTED,
-        ),
-        rx.text("Original base: ", PlanningState.details["base_id"], size="1", color=MUTED),
-        rx.flex(
-            rx.text(
-                "Saved case ",
-                PlanningState.details["case_id"],
-                size="1",
-                color=MUTED,
-                overflow_wrap="anywhere",
+                min_width="0",
             ),
             rx.button(
-                "Copy case ID",
-                variant="soft",
-                size="1",
-                on_click=rx.set_clipboard(PlanningState.details["case_id"]),
+                rx.icon("file-search", size=16),
+                t("audit"),
+                id="view-audit",
+                on_click=PlanningState.change_view("audit"),
+                disabled=BUSY,
+                variant=rx.cond(PlanningState.view == "audit", "solid", "ghost"),
+                color_scheme="gray",
             ),
-            rx.cond(
-                PlanningState.details["parent_id"] != "Base case",
-                rx.button(
-                    "View base case",
-                    variant="soft",
-                    size="1",
-                    disabled=PlanningState.is_loading | PlanningState.has_pending,
-                    on_click=PlanningState.open_saved_case(PlanningState.details["base_id"]),
-                ),
-            ),
-            gap="0.6rem",
-            align="center",
-            flex_wrap="wrap",
-            margin_y="0.75rem",
+            justify="between",
+            align="end",
+            gap="1rem",
+            wrap="wrap",
         ),
-        rx.text(PlanningState.details["input_kind"], size="2", color=MUTED, margin_bottom="1rem"),
+        margin_bottom="1rem",
+    )
+
+
+def _messages() -> rx.Component:
+    return rx.box(
+        rx.cond(
+            (PlanningState.error_message != "")
+            & ~PlanningState.decision_conflict
+            & PlanningState.has_case
+            & (PlanningState.error_target != "decision")
+            & (PlanningState.error_target != "scenario"),
+            rx.callout(
+                PlanningState.error_message, color_scheme="red", role="alert", margin_bottom="1rem"
+            ),
+        ),
+        recovery(),
+        rx.cond(
+            PlanningState.notice != "",
+            rx.callout(
+                PlanningState.notice,
+                icon="circle-check",
+                color_scheme="green",
+                role="status",
+                margin_bottom="1rem",
+            ),
+        ),
+        rx.cond(
+            PlanningState.has_case
+            & (PlanningState.comparison_state != "")
+            & (PlanningState.has_pending | PlanningState.decision_conflict),
+            rx.text(PlanningState.comparison_state, role="status", font_weight="650"),
+        ),
+    )
+
+
+def _workspace() -> rx.Component:
+    return rx.box(
+        _header(),
         rx.tabs.root(
             rx.tabs.list(
                 *[
-                    rx.tabs.trigger(
-                        label,
-                        value=value,
-                        id="view-" + value,
-                        disabled=PlanningState.has_pending | PlanningState.is_loading,
-                    )
-                    for label, value in (
-                        ("Plans", "plans"),
-                        ("What-if", "whatif"),
-                        ("Suppliers", "suppliers"),
-                        ("Audit", "audit"),
-                    )
-                ]
+                    rx.tabs.trigger(t(label), value=value, id="view-" + value, disabled=BUSY)
+                    for value, label in TABS
+                ],
+                size="2",
+                color_scheme="iris",
             ),
-            rx.tabs.content(plans_view(), value="plans", padding_top="1.25rem"),
-            rx.tabs.content(
-                _scenario_comparison(),
-                _scenario_form(),
-                value="whatif",
-                padding_top="1.25rem",
-            ),
-            rx.tabs.content(suppliers_view(), value="suppliers", padding_top="1.25rem"),
-            rx.tabs.content(audit_view(), value="audit", padding_top="1.25rem"),
+            *[
+                rx.tabs.content(view(), value=value, padding_top="1.25rem")
+                for value, view in (
+                    ("overview", overview_view),
+                    ("suppliers", suppliers_view),
+                    ("plans", plans_view),
+                    ("scenarios", scenarios_view),
+                    ("decision", decision_view),
+                    ("audit", audit_view),
+                )
+            ],
             value=PlanningState.view,
             on_change=PlanningState.change_view,
             width="100%",
         ),
-        selection_review(),
-        decision_view(),
-        background=SURFACE,
-        border=f"1px solid {HAIRLINE}",
-        border_radius="10px",
-        padding=["1rem", "1.5rem"],
-        min_width="0",
     )
 
 
 def planning_page() -> rx.Component:
-
     return workspace_shell(
-        rx.box(
+        page_frame(
+            _messages(),
             rx.cond(
-                ~PlanningState.has_case,
-                rx.heading("Start a comparison", as_="h1", size="7", margin_bottom="1rem"),
-            ),
-            rx.cond(
-                PlanningState.is_loading,
-                rx.hstack(
-                    rx.spinner(),
-                    rx.text("Waiting for the planning API..."),
-                    role="status",
-                    margin_bottom="1rem",
-                ),
-            ),
-            rx.cond(
-                (PlanningState.error_message != "")
-                & ~PlanningState.decision_conflict
-                & (
-                    (PlanningState.error_target != "decision")
-                    | ~PlanningState.has_case
-                    | PlanningState.has_pending
-                )
-                & ((PlanningState.view != "whatif") | (PlanningState.error_target != "scenario")),
-                rx.callout(
-                    PlanningState.error_message,
-                    color_scheme="red",
-                    role="alert",
-                    margin_bottom="1rem",
-                ),
-            ),
-            _recovery(),
-            rx.cond(
-                (PlanningState.error_message != "")
-                & ~PlanningState.has_pending
-                & ~PlanningState.decision_conflict
-                & (PlanningState.recovery_json != ""),
-                rx.el.details(
-                    rx.el.summary("Last request for support", cursor="pointer"),
-                    rx.text(
-                        "Keep the response message with this original URL, payload and key.",
-                        size="2",
+                PlanningState.has_case,
+                _workspace(),
+                rx.cond(
+                    PlanningState.is_loading,
+                    loading_state("loading_case"),
+                    rx.cond(
+                        (PlanningState.error_message != "") & ~PlanningState.has_pending,
+                        rx.box(
+                            error_state(PlanningState.error_message, title="case_error_title"),
+                            rx.button(
+                                t("back_to_cases"),
+                                on_click=PlanningState.navigate_global("cases"),
+                                background=ACCENT,
+                                color="white",
+                                margin_top="1rem",
+                            ),
+                        ),
+                        loading_state("loading_case"),
                     ),
-                    rx.button(
-                        "Copy exact request", on_click=rx.set_clipboard(PlanningState.recovery_json)
-                    ),
-                    rx.text_area(
-                        value=PlanningState.recovery_json,
-                        read_only=True,
-                        aria_label="Exact request recovery JSON",
-                        width="100%",
-                        height="10rem",
-                    ),
-                    margin_bottom="1rem",
                 ),
             ),
-            rx.cond(
-                PlanningState.notice != "",
-                rx.callout(
-                    PlanningState.notice, color_scheme="green", role="status", margin_bottom="1rem"
-                ),
-            ),
-            rx.text(PlanningState.comparison_state, role="status", font_weight="650"),
-            rx.cond(PlanningState.has_case, _workspace()),
-            rx.el.details(
-                rx.el.summary(
-                    "Open or create a comparison",
-                    font_weight="650",
-                    cursor="pointer",
-                    padding=".75rem 0",
-                ),
-                _planning_controls(),
-                open=~PlanningState.has_case,
-                background=SURFACE,
-                border=f"1px solid {HAIRLINE}",
-                padding="1rem",
-                margin_top="1.5rem",
-            ),
-            rx.cond(
-                ~PlanningState.has_case,
-                _test_guide(),
-            ),
-            rx.el.details(
-                rx.el.summary("Evidence boundary", padding=".75rem 0"),
-                rx.text(
-                    "Odoo quotations and purchase history are read from Odoo (in the test "
-                    "database the history is generated). Cases saved before P2 used a synthetic "
-                    "demo model. What-if changes are assumptions, not Odoo updates.",
-                    size="2",
-                    color=MUTED,
-                    max_width="75ch",
-                ),
-                rx.text(
-                    "Original bases support saved human approval or No-award. Approved plans "
-                    "have a viewable and downloadable PDF.",
-                    size="2",
-                    color=MUTED,
-                    max_width="75ch",
-                ),
-            ),
-            max_width="88rem",
-            margin="auto",
-            padding=["1rem", "1.5rem", "2rem"],
-            min_width="0",
-            class_name="cockpit",
         ),
         active="cases",
     )

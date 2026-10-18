@@ -149,7 +149,14 @@ def case_summary(case, decision, company):
             "created_at": case.created_at.isoformat(),
             "company_id": company,
             "product_id": requirement["product_id"],
-            "product_label": requirement["product_id"],
+            # Odoo display name stored with the snapshot (P2); older cases show the identity.
+            "product_label": dict(facts.get("labels", ())).get(
+                requirement["product_id"], requirement["product_id"]
+            ),
+            "unit_label": dict(facts.get("labels", ())).get(requirement["quantity_unit"]),
+            "minimum_cost": None
+            if snapshot["result"]["minimum_cost_plan"] is None
+            else snapshot["result"]["minimum_cost_plan"]["total_cost"],
             "approved_quantity": requirement["approved_quantity"],
             "quantity_unit": requirement["quantity_unit"],
             "currency": requirement["currency"],
@@ -158,6 +165,13 @@ def case_summary(case, decision, company):
             "decision_status": outcome,
             "source_kind": source,
             "origin": case_origin(facts),
+            # Same rule as the PDF notice: the history model records where its data came from.
+            "data_origin": (
+                snapshot.get("model_manifest", {}).get("metadata", {}).get("data_origin")
+                if source == "odoo_quotations_odoo_history"
+                else "synthetic"
+            )
+            or "generated",
             "scenario_kind": None
             if scenario is None
             else LEGACY_SCENARIO_KINDS.get(scenario["kind"], scenario["kind"]),
