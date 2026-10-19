@@ -1,9 +1,9 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-18T18:32:46+00:00",
+  "generated_at": "2026-10-18T22:35:50+00:00",
   "repository": {
-    "commit": "62caf801c4f718e454466d4b7f3babe347aa9d70",
-    "dirty": true
+    "commit": "bb9badf5534046a369ac06df94a6f8d6fe446ec4",
+    "dirty": false
   },
   "environment": {
     "python": "3.11.15",
@@ -64,7 +64,7 @@
     }
   ],
   "base_case": {
-    "case_id": "62d31f23-f9fc-41ab-94fd-a3041a4f2496",
+    "case_id": "11dc7aea-db38-4d30-8fa9-ea56361eb14c",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -94,7 +94,7 @@
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.468
+    "seconds": 0.52
   },
   "scenarios": [
     {
@@ -128,7 +128,7 @@
           "risk_exposure": 0.3454
         }
       ],
-      "seconds": 0.193
+      "seconds": 0.198
     },
     {
       "kind": "capacity_change",
@@ -161,7 +161,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.188
+      "seconds": 0.182
     },
     {
       "kind": "capacity_change",
@@ -194,7 +194,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.243
+      "seconds": 0.186
     },
     {
       "kind": "demand_change",
@@ -203,7 +203,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.088
+      "seconds": 0.054
     },
     {
       "kind": "demand_change",
@@ -231,7 +231,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.303
+      "seconds": 0.182
     },
     {
       "kind": "price_change",
@@ -264,7 +264,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.245
+      "seconds": 0.179
     },
     {
       "kind": "price_change",
@@ -297,7 +297,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.204
+      "seconds": 0.18
     },
     {
       "kind": "combined",
@@ -331,7 +331,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.199
+      "seconds": 0.224
     },
     {
       "kind": "demand_change",
@@ -340,32 +340,32 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.058
+      "seconds": 0.052
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "62d31f23-f9fc-41ab-94fd-a3041a4f2496",
+      "case_id": "11dc7aea-db38-4d30-8fa9-ea56361eb14c",
       "plan_index": 1,
-      "approved_content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044"
+      "approved_content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7"
     },
     "no_award": {
-      "case_id": "e5f9fccb-7899-4de3-92b9-143b447c9c65",
+      "case_id": "964d36e6-c8f3-4cbd-b832-1878228baeb1",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
   },
   "pdf": {
     "hu": {
-      "sha256": "e7837cbfb28fb3e6cceed097662d5b29af68d95f4d6ad01d89fcc498e575e31f",
-      "bytes": 41210,
-      "content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044",
+      "sha256": "36532bab27919a91ec489a2f4d4083d42248a415b196f4f057a32a662b7c21b5",
+      "bytes": 41211,
+      "content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7",
       "language": "hu"
     },
     "en": {
-      "sha256": "139ddc92028ac3900e83b0092abd19fe5ebf0a88741d49a7e2cbc533cd35e7be",
-      "bytes": 39472,
-      "content_hash": "f5a1a54bdab0e88b3d69019fe71c8bc42225e0c30f5cbcbc8a285d71a75c5044",
+      "sha256": "a8f29eec7b94ae9da3b54d2a57b3e30d0e334b180114dc159d2870dca74d987c",
+      "bytes": 39467,
+      "content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7",
       "language": "en"
     }
   },
@@ -385,7 +385,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 3.819,
-  "total_seconds": 16.527,
+  "flow_seconds": 3.276,
+  "total_seconds": 15.422,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }

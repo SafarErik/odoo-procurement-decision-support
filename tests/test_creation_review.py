@@ -151,6 +151,34 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     assert not state.final_choice and not state.details["final_outcome"]
 
 
+def test_saved_terms_record_which_values_were_kept_from_the_suggestion(prepared_state):
+    state, form = prepared_state
+    suggested = state._odoo_payload["controlled_input"]
+    first, second = (s["supplier_id"] for s in suggested["suppliers"][:2])
+    form[first + "_moq"] = ""  # the preview suggests "no MOQ"; the buyer keeps it
+    form[second + "_capacity"] = str(suggested["suppliers"][1]["capacity"] + 1)
+    PlanningState.review_odoo.fn(state, form)
+    terms = state._review_payload["terms"]
+    sources = {s["supplier_id"]: s["source"] for s in terms["suppliers"]}
+    assert {s["source_type"] for s in sources.values()} == {"buyer_reviewed_terms"}
+    assert sources[first]["source_reference"] == (
+        "ui-odoo-terms-v2;kept-suggested=capacity,available,minimum_order_quantity,"
+        "price_quantities,delivery_quantities,promised_date"
+    )
+    assert sources[second]["source_reference"] == (
+        "ui-odoo-terms-v2;kept-suggested=available,price_quantities,delivery_quantities,"
+        "promised_date"
+    )
+    assert terms["requirement_source"]["source_reference"] == (
+        "ui-odoo-terms-v2;kept-suggested=approved_quantity,required_date"
+    )
+    assert terms["policy_source"] == suggested["policy_source"]  # policy is not editable
+    PlanningState.edit_creation_terms.fn(state)
+    PlanningState.review_odoo.fn(state, form | {"odoo_quantity": "201"})
+    changed = state._review_payload["terms"]["requirement_source"]["source_reference"]
+    assert changed == "ui-odoo-terms-v2;kept-suggested=required_date"
+
+
 @pytest.mark.parametrize(
     "field,value,identity",
     [
