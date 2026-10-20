@@ -11,6 +11,8 @@ writes the raw export; ``train`` never touches Odoo. ``--data-origin`` declares 
 the database holds (``generated`` by tools/seed_odoo_history.py, the default, or
 ``observed`` business history); it travels export -> dataset card -> model metadata,
 and the backend only uses a model whose origin matches ODOO_HISTORY_DATA_ORIGIN.
+``--products`` is required with ``--data-origin observed``; without it the generated
+seed manifest's products are used, which applies only to generated history.
 Output: .artifacts/ml/.
 The backend only loads the resulting model (SUPPLIER_HISTORY_MODEL_DIRECTORY).
 """
@@ -158,6 +160,8 @@ def report_check(export: dict, model_directory: Path, reference: dict) -> dict:
         "export_hash": digest(export["lines"]) == reference["dataset_card"]["export_hash"],
         "train_id": rows_id(split.train) == reference["dataset_card"]["split"]["train_id"],
         "evaluation": canonical(evaluation) == canonical(reference["evaluation"]),
+        "data_origin_model": export["data_origin"] == model.metadata["data_origin"],
+        "data_origin_reference": export["data_origin"] == reference["dataset_card"]["data_origin"],
     }
     primary = evaluation["primary_supplier_and_time_holdout"]
     return {
@@ -252,10 +256,17 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("command", choices=("extract", "train", "all", "report"))
-    parser.add_argument("--products", type=lambda v: [int(x) for x in v.split(",")])
+    parser.add_argument(
+        "--products",
+        type=lambda v: [int(x) for x in v.split(",")],
+        help="Odoo product.product ids; required with --data-origin observed",
+    )
     parser.add_argument("--company", type=int, default=1)
     parser.add_argument("--data-origin", choices=HISTORY_DATA_ORIGINS, default="generated")
     args = parser.parse_args()
+    needs_products = args.command in ("extract", "all") and args.data_origin == "observed"
+    if needs_products and not args.products:
+        parser.error("--data-origin observed requires --products (Odoo product.product ids).")
     OUT.mkdir(parents=True, exist_ok=True)
     export_path = OUT / "history_export.json"
     if args.command in ("extract", "all"):

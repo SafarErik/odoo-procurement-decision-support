@@ -106,8 +106,10 @@ delivery outcomes.
 MOQ. The preview proposes source-attributed defaults (`buyer_default_terms`): capacity
 ⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε = 0.2. The preview also proposes price and delivery
 quantity validity ranges of 1–1000 per supplier. The demonstration and the evaluation use
-these defaults; the buyer can change all of them, including both ranges, before saving,
-and the pre-save review lists both ranges and marks values still at the suggestion. Since the
+these defaults. Before saving, the buyer can edit the demand, the required date and, per
+supplier, capacity, MOQ, promised date and both quantity ranges; K, the concentration limit
+and ε are shown as displayed policy defaults and are not editable in the form. The pre-save
+review lists both ranges and marks values still at the suggestion. Since the
 [L6 provenance handoff](handoffs/L6_TERMS_PROVENANCE.md), a case saved in the UI records per
 supplier and for the requirement which values were kept from the suggestion
 (`buyer_reviewed_terms`, `kept-suggested=…`); the policy keeps `buyer_default_terms`. The
