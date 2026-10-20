@@ -38,7 +38,7 @@ See [project baseline](../agents/project-baseline.md) for the canonical mappings
 | Understand supplier evaluation | KPI help, reference timestamp, historical record counts and existing readable tree paths remain next to actual values. Help distinguishes first-receipt timing, the one-day grace period, quantity fill and tree training support. Exposure is not described as failure probability. |
 | Explore optionally | “What if…?” is visibly optional; original/changed assumptions and saved differences remain. Only explicit submission calculates and saves. Original cases and supplier scores remain unchanged. |
 | Close deliberately | The UI now requires a rationale even for minimum cost. Backend compatibility retains its existing minimum-cost exception. Existing one-time confirmation, conflict/recovery handling, scenario non-approvability, No-award without PDF and per-language approved PDF remain. |
-| Stay oriented | Current status/next action appears in the case header. The active case tab is revealed inside its own horizontal strip after navigation/bookmark loading/language changes without scrolling the document or moving focus. |
+| Stay oriented | The case header shows the decision status; the Overview “Next step” card shows the next action. The active case tab is revealed inside its own horizontal strip after navigation/bookmark loading/language changes without scrolling the document or moving focus. |
 
 New shared primitives live in `frontend/components/`; business screens stay in
 `frontend/planning/`. Translation additions live in `frontend/i18n_revamp.py`.

@@ -589,11 +589,12 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
     lowest = min(
         range(len(recorded)), key=lambda i: _ratio(recorded[i]["risk_exposure"]), default=0
     )
-    # Runs are in ascending allowance order, so the first run naming a plan is its tightest budget.
+    # Keep the tightest allowance that proves each plan, independent of run order.
     budgets = {}
     for run in result.get("runs", []):
         if run.get("plan_index"):
-            budgets.setdefault(run["plan_index"], _decimal(run["epsilon"]))
+            epsilon = _decimal(run["epsilon"])
+            budgets[run["plan_index"]] = min(epsilon, budgets.get(run["plan_index"], epsilon))
     balanced = {
         r["plan_index"] for r in result.get("runs", []) if r.get("kind") == "diversified"
     } - {0}

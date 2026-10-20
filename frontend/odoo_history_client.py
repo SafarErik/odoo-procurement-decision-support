@@ -129,7 +129,7 @@ def quotation_rows(item: dict, lang: str) -> list[dict[str, str]]:
                     "price": money(Decimal(line["unit_price"]), currency, lang)
                     if currency
                     else str(line["unit_price"]),
-                    "quantity": number(Decimal(line["quantity"]), lang)
+                    "quantity": number(Decimal(line["quantity"]).normalize(), lang)
                     + " "
                     + unit(line.get("uom_name") or "", lang),
                     "status": tr(
