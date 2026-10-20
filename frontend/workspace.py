@@ -9,6 +9,34 @@ from frontend.ui import t
 
 _CSS = """
 .workspace { font-variant-numeric:tabular-nums; -webkit-tap-highlight-color:transparent; }
+.workspace { --accent-9:#413b76; --accent-10:#373164; --accent-11:#413b76;
+    --accent-a11:#413b76; --accent-a9:#413b76; --accent-a8:#71699c;
+    caret-color:#413b76; }
+.workspace h1 { letter-spacing:-.025em; line-height:1.14; text-wrap:balance; }
+.workspace h2, .workspace h3 { letter-spacing:-.015em; }
+.workspace a { text-underline-offset:3px; }
+.workspace button { touch-action:manipulation; }
+.workspace button:not(:disabled):active { transform:scale(.98); }
+.workspace button:disabled { cursor:not-allowed; }
+.workspace .rt-TextFieldRoot:focus-within { outline:2px solid #413b76; outline-offset:2px; }
+.workspace .rt-TableColumnHeaderCell { color:#536964; font-weight:550; }
+.workspace .rt-TableCell, .workspace .rt-TableRowHeaderCell {
+    padding-top:1rem; padding-bottom:1rem; }
+.brand-mark { display:grid; place-items:center; width:2.8rem; height:2.8rem;
+    flex-shrink:0; border:1px solid #668b85; border-radius:12px; color:#e4eee9; }
+.workflow-steps { display:flex; gap:.7rem; overflow-x:auto; padding:1.2rem 0;
+    margin-bottom:1rem; }
+.workflow-step { flex-shrink:0; gap:.55rem; margin:0!important; padding:.35rem .65rem!important; }
+.step-number { display:grid; place-items:center; width:1.8rem; height:1.8rem;
+    border-radius:50%; border:1px solid #d1ded6; font-size:.8rem; flex-shrink:0; }
+@media(max-width:600px) {
+    .workflow-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+    .workflow-step { justify-content:flex-start; }
+}
+.workspace .decision-summary { border-top:3px solid #413b76; }
+@media (hover:hover) and (pointer:fine) {
+    .workspace button { transition:background-color 140ms ease, border-color 140ms ease; }
+}
 .workspace :focus-visible { outline:3px solid #413b76; outline-offset:3px; }
 .workspace .rail :focus-visible, .workspace-drawer :focus-visible { outline-color:white; }
 .workspace-dialog :focus-visible { outline:3px solid #413b76; outline-offset:3px; }
@@ -63,6 +91,7 @@ def _navigation(active: str, *, drawer: bool = False):
                 class_name="nav-item",
             )
             for destination, label, icon in (
+                ("home", "nav_home", "house"),
                 ("cases", "nav_cases", "folder-open"),
                 ("rfqs", "nav_rfqs", "file-text"),
             )
@@ -131,9 +160,14 @@ def _discard_dialog():
 
 
 def _brand():
-    return rx.box(
-        rx.text(t("app_name"), font_weight="650", line_height="1.25"),
-        rx.text("Odoo 19", size="1", opacity="0.75", margin_top="0.25rem"),
+    return rx.flex(
+        rx.box(rx.icon("git-compare-arrows", size=23), class_name="brand-mark"),
+        rx.box(
+            rx.text(t("app_name"), font_weight="650", line_height="1.25"),
+            rx.text("Odoo 19", size="1", opacity="0.8", margin_top="0.35rem"),
+        ),
+        gap="0.75rem",
+        align="center",
     )
 
 
@@ -251,7 +285,7 @@ def workspace_shell(content: rx.Component, *, active: str) -> rx.Component:
 
 def page_frame(*children, **props):
     style = {
-        "max_width": "84rem",
+        "max_width": "92rem",
         "margin": "0 auto",
         "padding": ["1rem", "1.5rem", "2rem"],
         "min_width": "0",

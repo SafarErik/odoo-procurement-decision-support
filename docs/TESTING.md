@@ -30,7 +30,8 @@ Docker Compose on Ubuntu.
 | Saved-case library | `test_planning_library.py` |
 | Frontend state and HTTP clients (no browser) | `test_t16_*`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
 | UI language and formatting: Hungarian default, HU/EN texts, locale money/date/number, relabel on switch without HTTP, supplier cards and KPI chart data | `test_p3_frontend.py` |
-| Browser: open RFQ → case → tabs → approval → Hungarian PDF → English switch; 375 px case list, scenario chart, empty and error states | `tests/e2e/test_odoo_flow_browser.py`, `tests/e2e/test_cases_scenarios_mobile_browser.py` |
+| Guided preparation: draft preservation, field validation, group-change guard, bounded home requests, explicit chart selection | `test_guided_workspace.py`, `test_creation_review.py` |
+| Browser: quotation → demand → terms → review → saved case → approval → HU/EN PDF; step/language preservation; 375 px scenario and error states; home and case views at 1440/1280/768/390 px, confirmation cancellation and No-award reopening without PDF | `tests/e2e/test_odoo_flow_browser.py`, `test_cases_scenarios_mobile_browser.py`, `test_guided_workspace_browser.py` |
 | Full HTTP acceptance flow on Odoo history (HU and EN PDF) | `test_t17_demo.py` |
 | P4 validation tools: evaluation-group seeding guards, exhaustive reference optimum and invariants (K, ties, infeasible variants), nearest-rank p95, latency workload, one-command demo with isolated replay | `test_p4_validation.py` |
 | Architecture boundaries | `test_architecture.py`, `test_t13_architecture.py`, `test_t14_architecture.py` |

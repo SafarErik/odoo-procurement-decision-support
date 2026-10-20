@@ -290,7 +290,7 @@ def _decision_form() -> rx.Component:
                         max_length=2000,
                         width="100%",
                         placeholder=t("reason_placeholder"),
-                        required=PlanningState.final_choice != "Minimum cost",
+                        required=True,
                         disabled=BUSY,
                     ),
                 ),

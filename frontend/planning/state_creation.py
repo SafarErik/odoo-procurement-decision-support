@@ -8,8 +8,13 @@ from typing import Any
 import reflex as rx
 
 from frontend.config import settings
-from frontend.i18n import day, money, number, percent, tr, unit
-from frontend.odoo_history_client import fetch_odoo_history, fetch_quotation_groups, group_row
+from frontend.i18n import day, moment, money, number, percent, tr, unit
+from frontend.odoo_history_client import (
+    fetch_odoo_history,
+    fetch_quotation_groups,
+    group_row,
+    quotation_rows,
+)
 from frontend.planning.state_base import focus
 from frontend.planning_client import _supplier_label
 
@@ -66,6 +71,13 @@ def _reviewed_source(saved: dict, suggested: dict, fields: tuple[str, ...], as_o
 
 
 class CreationMixin(rx.State, mixin=True):
+    creation_step: int = 0
+    creation_values: dict[str, str] = {}
+    creation_suggestions: dict[str, str] = {}
+    expanded_suppliers: list[str] = []
+    groups_retrieved_at: str = ""
+    groups_company: str = ""
+    creation_origin: str = ""
     odoo_ready: bool = False
     odoo_details: str = ""
     odoo_policy: str = ""
@@ -102,6 +114,81 @@ class CreationMixin(rx.State, mixin=True):
     @rx.var
     def selected_group_row(self) -> dict[str, str]:
         return next((g for g in self.quotation_groups if g["value"] == self.selected_group), {})
+
+    @rx.var
+    def selected_quotations(self) -> list[dict[str, str]]:
+        group = next(
+            (g for g in self._groups_raw if str(g["purchase_group_id"]) == self.selected_group),
+            None,
+        )
+        return quotation_rows(group, self._lang()) if group else []
+
+    @rx.var
+    def groups_retrieved_display(self) -> str:
+        return moment(self.groups_retrieved_at, self._lang()) if self.groups_retrieved_at else ""
+
+    @rx.event
+    def update_creation_field(self, name: str, value: str):
+        if self.is_loading or self.has_pending or self._review_payload:
+            return
+        if name in self.creation_values:
+            self.creation_values[name] = value
+            self.creation_dirty = True
+            self.creation_errors = {}
+
+    def _demand_valid(self) -> bool:
+        self.creation_errors = {}
+        try:
+            _bounded_form_integer(self.creation_values.get("odoo_quantity"), minimum=1)
+        except (TypeError, ValueError):
+            self.creation_errors["odoo-quantity"] = self._tr("err_quantity")
+        try:
+            value = _form_date(self.creation_values.get("odoo_required_date"))
+            if date.fromisoformat(value) < datetime.now(UTC).date():
+                self.creation_errors["odoo-required-date"] = self._tr("err_date_past")
+        except (TypeError, ValueError):
+            self.creation_errors["odoo-required-date"] = self._tr("err_date")
+        return not self.creation_errors
+
+    @rx.event
+    def go_creation_step(self, step: int):
+        if self.is_loading or self.has_pending or step not in (0, 1, 2, 3):
+            return
+        if step > 0 and not self.odoo_ready:
+            return
+        if step == 3 and not self._review_payload:
+            return
+        if step == 2 and not self._demand_valid():
+            self.creation_step = 1
+            return focus(next(iter(self.creation_errors)))
+        if step < 3:
+            self._clear_review()
+        self.creation_step = step
+        return focus(
+            {0: "quotation-details-heading", 3: "creation-review-heading"}.get(
+                step, "creation-step-heading"
+            )
+        )
+
+    @rx.event
+    def advance_creation(self, form_data: dict[str, Any]):
+        if self.is_loading or self.has_pending or self._review_payload:
+            return
+        self.creation_values.update(
+            {k: str(v) for k, v in form_data.items() if k in self.creation_values}
+        )
+        if self.creation_step == 1:
+            return self.go_creation_step(2)
+        return self.review_odoo(dict(self.creation_values))
+
+    @rx.event
+    def toggle_supplier_terms(self, supplier: str):
+        if supplier not in {r["supplier"] for r in self.odoo_offers}:
+            return
+        if supplier in self.expanded_suppliers:
+            self.expanded_suppliers.remove(supplier)
+        else:
+            self.expanded_suppliers.append(supplier)
 
     def _relabel_creation(self):
         try:
@@ -153,6 +240,8 @@ class CreationMixin(rx.State, mixin=True):
                 self._groups_raw = listing["raw"]
                 self._group_names = listing["names"]
                 self.groups_truncated = listing["truncated"]
+                self.groups_retrieved_at = listing.get("retrieved_at", "")
+                self.groups_company = listing.get("company_id", "")
             usable = [r["value"] for r in self.quotation_groups if r["selectable"]]
             if self.selected_group not in usable:
                 self._switch_group(usable[0] if usable else "")
@@ -161,18 +250,25 @@ class CreationMixin(rx.State, mixin=True):
 
     @rx.event
     def select_quotation_group(self, value: str):
+        if value == self.selected_group:
+            return
         if (
             not self.is_loading
             and not self.has_pending
             and any(r["value"] == value and r["selectable"] for r in self.quotation_groups)
         ):
-            self._switch_group(value)
+            return self._guard_navigation("select-group", value, "choose-" + value)
 
     def _switch_group(self, value: str):
         """A preview belongs to one group: drop it (and its review) when the group changes."""
         if value == self.selected_group:
             return
         self.selected_group = value
+        self.creation_values = {}
+        self.creation_suggestions = {}
+        self.creation_step = 0
+        self.expanded_suppliers = []
+        self.creation_origin = ""
         self._clear_review()
         self.creation_errors = {}
         self.odoo_ready = self.odoo_history_mode = False
@@ -185,11 +281,11 @@ class CreationMixin(rx.State, mixin=True):
     @rx.event
     def prepare_odoo_history(self, group: str = ""):
         if group and group == self.selected_group and self.odoo_ready:
-            return focus("creation-terms-heading")  # terms already loaded below; keep the draft
-        if group:
-            self.select_quotation_group(group)
-            if self.selected_group != group:
-                return
+            return self.go_creation_step(1)
+        if group and group != self.selected_group:
+            if any(g["value"] == group and g["selectable"] for g in self.quotation_groups):
+                return self._guard_navigation("prepare-group", group, "start-" + group)
+            return
         return self._guard_navigation("odoo-history", "", "load-odoo-history")
 
     @rx.event
@@ -226,6 +322,7 @@ class CreationMixin(rx.State, mixin=True):
             self.odoo_required_date = facts["requirement"]["required_date"]
             self.odoo_ready = True
             self.creation_dirty = True
+            self.creation_step = 1
             self.error_message = (
                 "" if data["model_readiness"] == "ready" else self._tr("err_model_unavailable")
             )
@@ -234,7 +331,7 @@ class CreationMixin(rx.State, mixin=True):
         finally:
             self.is_loading = False
         if self.odoo_ready:
-            yield focus("creation-terms-heading")
+            yield focus("creation-step-heading")
 
     def _apply_preview(self, data):
         """Display strings for a verified preview; called again when the language changes."""
@@ -242,6 +339,7 @@ class CreationMixin(rx.State, mixin=True):
         facts = data["terms"]
         currency = facts["requirement"]["currency"]
         self._preview = data
+        self.creation_origin = data.get("data_origin", "")
         self.odoo_history_mode = True
         self.odoo_history_readiness = data["model_readiness"]
         self.odoo_offers = [
@@ -263,6 +361,25 @@ class CreationMixin(rx.State, mixin=True):
             }
             for s in facts["suppliers"]
         ]
+        if not self.creation_values:
+            self.creation_values = {
+                "odoo_quantity": str(facts["requirement"]["approved_quantity"]),
+                "odoo_required_date": facts["requirement"]["required_date"],
+                **{
+                    row["supplier"] + "_" + key: row[key]
+                    for row in self.odoo_offers
+                    for key in (
+                        "capacity",
+                        "moq",
+                        "promised_date",
+                        "price_min",
+                        "price_max",
+                        "delivery_min",
+                        "delivery_max",
+                    )
+                },
+            }
+            self.creation_suggestions = dict(self.creation_values)
         self.odoo_history_rows = [
             {
                 "supplier": self._name(r["supplier_id"]),
@@ -385,6 +502,15 @@ class CreationMixin(rx.State, mixin=True):
                 "captured": self._odoo_payload["controlled_input"]["as_of"],
                 "origin": "Odoo",
                 "policy": self.odoo_policy,
+                "suggested_requirements": ", ".join(
+                    tr(key, lang)
+                    for field, key in (
+                        ("approved_quantity", "demand_label"),
+                        ("required_date", "required_label"),
+                    )
+                    if field in _kept_suggested(facts["requirement_source"])
+                )
+                or tr("none", lang),
             }
 
             def quantities(s, key):
@@ -407,11 +533,24 @@ class CreationMixin(rx.State, mixin=True):
                     "promised": day(s["promised_date"], lang),
                     "available": tr("available" if s["available"] else "not_available", lang),
                     "offer": s["offer_id"],
+                    "suggested": ", ".join(
+                        tr(key, lang)
+                        for field, key in (
+                            ("capacity", "capacity_label"),
+                            ("minimum_order_quantity", "moq_label"),
+                            ("promised_date", "promised_label"),
+                            ("price_quantities", "price_range_label"),
+                            ("delivery_quantities", "delivery_range_label"),
+                        )
+                        if field in _kept_suggested(s["source"])
+                    )
+                    or tr("none", lang),
                 }
                 for s in facts["suppliers"]
             ]
             self.error_message = ""
             self.error_target = "creation"
+            self.creation_step = 3
             return focus("creation-review-heading")
         except (KeyError, TypeError, ValueError, ArithmeticError):
             self._clear_review()
@@ -441,6 +580,14 @@ class CreationMixin(rx.State, mixin=True):
         payload = self._odoo_request(form_data)
         if payload is None:
             if self.creation_errors:
+                self.creation_step = (
+                    1 if any(k.startswith("odoo-") for k in self.creation_errors) else 2
+                )
+                self.expanded_suppliers = [
+                    row["supplier"]
+                    for row in self.odoo_offers
+                    if any(k.startswith(row["supplier"] + "_") for k in self.creation_errors)
+                ]
                 # Foreach supplier inputs have dynamic IDs, without static Reflex refs.
                 identity = json.dumps(next(iter(self.creation_errors)))
                 return rx.call_script(f"document.getElementById({identity})?.focus()")
@@ -452,6 +599,7 @@ class CreationMixin(rx.State, mixin=True):
         if self.is_loading or self.has_pending:
             return
         self._clear_review()
+        self.creation_step = 1
         return focus("odoo-quantity")
 
     @rx.event
@@ -480,6 +628,9 @@ class CreationMixin(rx.State, mixin=True):
         self._preview = {}
         self.odoo_ready = False
         self.creation_dirty = False
+        self.creation_values = {}
+        self.creation_suggestions = {}
+        self.creation_step = 0
         return [
             rx.redirect(f"/planning?case_id={self.details['case_id']}&view=overview"),
             focus("saved-case-heading"),

@@ -1,7 +1,13 @@
-"""Open RFQs: pick an open Odoo quotation group, set business terms, review, save a case."""
+"""Guided quotation selection, attributed buyer input, review and explicit case creation."""
 
 import reflex as rx
 
+from frontend.components.workflow import (
+    creation_steps,
+    field_hint,
+    source_badge,
+    source_explanation,
+)
 from frontend.planning.recovery import recovery
 from frontend.planning.state import PlanningState
 from frontend.theme import ACCENT, HAIRLINE, INK, MUTED
@@ -20,84 +26,159 @@ def field_error(identity):
     )
 
 
-def _field(label, identity, name, *, default, kind="number", minimum=None, required=True):
+def _field(label, identity, name, *, hint, kind="number", minimum=None, required=True):
     props = {"min": minimum, "max": "1000", "step": "1"} if kind == "number" else {}
+    suggested = PlanningState.creation_values.get(
+        name, ""
+    ) == PlanningState.creation_suggestions.get(name, "")
     return rx.box(
-        rx.el.label(t(label), html_for=identity, display="block", size="2", font_weight="550"),
+        rx.flex(
+            rx.el.label(t(label), html_for=identity, font_weight="600", font_size="14px"),
+            rx.cond(suggested, source_badge("suggested"), source_badge("buyer")),
+            gap="0.5rem",
+            wrap="wrap",
+            align="center",
+            margin_bottom="0.4rem",
+        ),
         rx.input(
             id=identity,
             name=name,
             type=kind,
             input_mode="numeric" if kind == "number" else None,
             required=required,
-            default_value=default,
-            on_change=PlanningState.mark_creation_dirty,
+            value=PlanningState.creation_values.get(name, ""),
+            on_change=lambda value: PlanningState.update_creation_field(name, value),
             disabled=LOCKED,
             aria_invalid=PlanningState.creation_errors.get(identity, "") != "",
-            aria_describedby=identity + "-error",
+            aria_describedby=identity + "-hint " + identity + "-error",
             width="100%",
             size="3",
             **props,
         ),
+        field_hint(hint, identity),
         field_error(identity),
+        display="flex",
+        flex_direction="column",
+        gap="0.35rem",
         min_width="0",
     )
 
 
 def _group_card(row):
     selected = PlanningState.selected_group == row["value"]
-    return card(
+    return rx.box(
         rx.flex(
             rx.box(
                 rx.text(row["name"], size="2", color=MUTED),
-                rx.heading(row["product"], as_="h3", size="4", margin_top="0.15rem"),
+                rx.heading(row["product"], as_="h3", size="4", margin_top="0.25rem"),
                 rx.text(
-                    row["quantity"],
-                    " · ",
-                    row["currency"],
-                    " · ",
                     row["supplier_count"],
                     " ",
                     t("suppliers_word"),
+                    " · ",
+                    row["currency"],
                     size="2",
+                    color=MUTED,
+                    margin_top="0.4rem",
+                ),
+                min_width="0",
+                flex="1",
+            ),
+            rx.cond(selected, rx.icon("circle-check", size=20, color=ACCENT)),
+            justify="between",
+            gap="0.5rem",
+            align="start",
+        ),
+        rx.text(row["date"], size="1", color=MUTED, margin_top="0.4rem"),
+        rx.cond(
+            row["selectable"] == "",
+            rx.text(row["issue"], size="2", color=MUTED, margin_top="0.5rem"),
+            rx.button(
+                t("choose_group"),
+                rx.icon("arrow-right", size=15),
+                id="choose-" + row["value"],
+                on_click=PlanningState.select_quotation_group(row["value"]),
+                disabled=BUSY,
+                variant="ghost",
+                margin_top="0.65rem",
+                aria_pressed=selected,
+            ),
+        ),
+        padding="1.1rem",
+        background=rx.cond(selected, "#f1eff8", "white"),
+        border=f"1px solid {HAIRLINE}",
+        border_color=rx.cond(selected, ACCENT, HAIRLINE),
+        border_radius="12px",
+        aria_label=row["label"],
+    )
+
+
+def _quotation(row):
+    return rx.box(
+        rx.flex(
+            rx.box(
+                rx.text(row["supplier"], font_weight="650", size="2"),
+                rx.text(
+                    t("quotation_reference"),
+                    ": ",
+                    row["reference"],
+                    size="1",
                     color=MUTED,
                     margin_top="0.25rem",
                 ),
                 min_width="0",
                 flex="1",
             ),
-            rx.cond(
-                row["selectable"] == "",
-                rx.badge(t("not_usable"), color_scheme="gray", variant="soft"),
-                rx.text(row["date"], size="2", color=MUTED, white_space="nowrap"),
-            ),
+            rx.text(row["price"], font_weight="650", white_space="nowrap"),
             justify="between",
-            align="start",
-            gap="1rem",
+            gap="0.75rem",
+            wrap="wrap",
         ),
-        rx.text(row["offers"], size="2", margin_top="0.75rem"),
-        rx.cond(
-            row["selectable"] == "",
-            rx.text(row["issue"], size="2", color=MUTED, margin_top="0.5rem"),
-            rx.button(
-                rx.cond(
-                    selected & PlanningState.odoo_ready,
-                    t("terms_below"),
-                    t("start_comparison"),
+        rx.flex(
+            rx.text(t("quotation_quantity"), ": ", row["quantity"], size="2", color=MUTED),
+            rx.text(t("quotation_state"), ": ", row["status"], size="1", color=MUTED),
+            justify="between",
+            gap="0.5rem",
+            wrap="wrap",
+            margin_top="0.45rem",
+        ),
+        padding_y="0.85rem",
+        border_bottom=f"1px solid {HAIRLINE}",
+    )
+
+
+def _group_details():
+    row = PlanningState.selected_group_row
+    return rx.cond(
+        row.get("value", "") != "",
+        card(
+            rx.flex(
+                heading(
+                    "quotation_details", size="5", id="quotation-details-heading", tab_index=-1
                 ),
-                id="start-" + row["value"],
-                on_click=PlanningState.prepare_odoo_history(row["value"]),
+                source_badge("odoo"),
+                justify="between",
+                wrap="wrap",
+                gap="0.5rem",
+            ),
+            rx.text(row.get("name", ""), size="2", color=MUTED, margin_top="0.5rem"),
+            rx.text(row.get("product", ""), size="3", font_weight="600", margin_top="0.25rem"),
+            rx.button(
+                t("start_comparison"),
+                rx.icon("arrow-right", size=17),
+                id="start-" + row.get("value", ""),
+                on_click=PlanningState.prepare_odoo_history(row.get("value", "")),
                 disabled=BUSY,
-                background=rx.cond(selected & PlanningState.odoo_ready, "white", ACCENT),
-                color=rx.cond(selected & PlanningState.odoo_ready, ACCENT, "white"),
-                border=f"1px solid {ACCENT}",
+                background=ACCENT,
+                color="white",
+                size="3",
                 margin_top="1rem",
             ),
+            muted("quotation_quantity_note", margin_top="1rem"),
+            rx.foreach(PlanningState.selected_quotations, _quotation),
+            position=rx.breakpoints(initial="static", lg="sticky"),
+            top="1.5rem",
         ),
-        border=rx.cond(
-            selected & PlanningState.odoo_ready, f"2px solid {ACCENT}", f"1px solid {HAIRLINE}"
-        ),
-        aria_label=row["label"],
     )
 
 
@@ -113,9 +194,16 @@ def _groups():
                 empty_state("empty_rfqs_title", "empty_rfqs_body"),
                 rx.box(
                     rx.grid(
-                        rx.foreach(PlanningState.quotation_groups, _group_card),
-                        columns=rx.breakpoints(initial="1", md="2", xl="3"),
-                        gap="1rem",
+                        rx.flex(
+                            rx.foreach(PlanningState.quotation_groups, _group_card),
+                            direction="column",
+                            gap="0.75rem",
+                            min_width="0",
+                        ),
+                        _group_details(),
+                        columns=rx.breakpoints(initial="1", lg="minmax(0, 0.8fr) minmax(0, 1.2fr)"),
+                        gap="1.5rem",
+                        align_items="start",
                     ),
                     rx.cond(
                         PlanningState.groups_truncated,
@@ -124,6 +212,109 @@ def _groups():
                 ),
             ),
         ),
+    )
+
+
+def _supplier_terms(row):
+    supplier = row["supplier"]
+    expanded = PlanningState.expanded_suppliers.contains(supplier)
+    return rx.box(
+        rx.button(
+            rx.box(
+                rx.text(row["name"], font_weight="650", text_align="left"),
+                rx.text(
+                    t("offer_price"),
+                    ": ",
+                    row["price"],
+                    " · ",
+                    t("capacity_label"),
+                    ": ",
+                    PlanningState.creation_values.get(supplier + "_capacity", ""),
+                    size="2",
+                    color=MUTED,
+                    text_align="left",
+                ),
+                min_width="0",
+                flex="1",
+            ),
+            rx.icon(rx.cond(expanded, "chevron-up", "chevron-down"), size=18),
+            on_click=PlanningState.toggle_supplier_terms(supplier),
+            aria_expanded=expanded,
+            aria_controls="terms-" + supplier,
+            type="button",
+            variant="ghost",
+            width="100%",
+            margin="0",
+            box_sizing="border-box",
+            padding="1rem",
+            height="auto",
+            color=INK,
+        ),
+        rx.box(
+            rx.grid(
+                _field(
+                    "capacity_label",
+                    supplier + "_capacity",
+                    supplier + "_capacity",
+                    hint="capacity_help",
+                    minimum="0",
+                ),
+                _field(
+                    "moq_label",
+                    supplier + "_moq",
+                    supplier + "_moq",
+                    hint="moq_help",
+                    minimum="1",
+                    required=False,
+                ),
+                _field(
+                    "promised_label",
+                    supplier + "_promised_date",
+                    supplier + "_promised_date",
+                    hint="promised_help",
+                    kind="date",
+                ),
+                columns=rx.breakpoints(initial="1", md="3"),
+                gap="1rem",
+            ),
+            rx.grid(
+                *[
+                    rx.el.fieldset(
+                        rx.el.legend(t(f"{name}_range_label"), font_weight="600", font_size="14px"),
+                        rx.grid(
+                            *[
+                                _field(
+                                    f"range_{end}",
+                                    supplier + f"_{name}_{end}",
+                                    supplier + f"_{name}_{end}",
+                                    hint="range_help",
+                                    minimum="1",
+                                )
+                                for end in ("min", "max")
+                            ],
+                            columns="2",
+                            gap="0.75rem",
+                            margin_top="0.5rem",
+                        ),
+                        border="none",
+                        padding="0",
+                        margin="0",
+                        min_width="0",
+                    )
+                    for name in ("price", "delivery")
+                ],
+                columns=rx.breakpoints(initial="1", lg="2"),
+                gap="1.5rem",
+                margin_top="1.25rem",
+            ),
+            id="terms-" + supplier,
+            display=rx.cond(expanded, "block", "none"),
+            padding="0.5rem 1rem 1.25rem",
+        ),
+        border=f"1px solid {HAIRLINE}",
+        border_radius="12px",
+        background="white",
+        min_width="0",
     )
 
 
@@ -163,68 +354,6 @@ def _history_table():
         role="region",
         aria_label=t("history_title"),
         tab_index=0,
-    )
-
-
-def _supplier_terms(row):
-    return card(
-        rx.text(row["name"], font_weight="650"),
-        rx.text(t("offer_price"), ": ", row["price"], size="2", color=MUTED),
-        rx.grid(
-            _field(
-                "capacity_label",
-                row["supplier"] + "_capacity",
-                row["supplier"] + "_capacity",
-                default=row["capacity"],
-                minimum="0",
-            ),
-            _field(
-                "moq_label",
-                row["supplier"] + "_moq",
-                row["supplier"] + "_moq",
-                default=row["moq"],
-                minimum="1",
-                required=False,
-            ),
-            *[
-                rx.el.fieldset(
-                    rx.el.legend(
-                        t(f"{name}_range_label"), font_size="14px", font_weight="650", padding="0"
-                    ),
-                    rx.grid(
-                        *[
-                            _field(
-                                f"range_{end}",
-                                row["supplier"] + f"_{name}_{end}",
-                                row["supplier"] + f"_{name}_{end}",
-                                default=row[f"{name}_{end}"],
-                                minimum="1",
-                            )
-                            for end in ("min", "max")
-                        ],
-                        columns="2",
-                        gap="0.5rem",
-                        margin_top="0.25rem",
-                    ),
-                    border="none",
-                    margin="0",
-                    padding="0",
-                    min_width="0",
-                )
-                for name in ("price", "delivery")
-            ],
-            _field(
-                "promised_label",
-                row["supplier"] + "_promised_date",
-                row["supplier"] + "_promised_date",
-                default=row["promised_date"],
-                kind="date",
-            ),
-            columns="1",
-            gap="0.75rem",
-            margin_top="0.75rem",
-        ),
-        padding="1rem",
     )
 
 
@@ -276,6 +405,7 @@ def _review():
                 tab_index=-1,
             ),
             muted("review_body", margin_top="0.35rem"),
+            muted("review_sources", margin_top="0.5rem"),
             rx.grid(
                 *[
                     rx.box(
@@ -334,6 +464,24 @@ def _review():
                 gap="0.75rem",
             ),
             rx.text(t("policy_label"), ": ", review.get("policy", ""), size="2", margin_top="1rem"),
+            rx.el.details(
+                rx.el.summary(t("suggested_terms"), font_weight="600"),
+                rx.text(
+                    t("demand_title"),
+                    ": ",
+                    review.get("suggested_requirements", ""),
+                    size="2",
+                    margin_top="0.5rem",
+                ),
+                rx.foreach(
+                    PlanningState.review_suppliers,
+                    lambda row: rx.text(
+                        row["name"], ": ", row["suggested"], size="2", margin_top="0.35rem"
+                    ),
+                ),
+                margin_top="1rem",
+                open=True,
+            ),
             rx.callout(
                 rx.cond(PlanningState.has_pending, t("review_pending"), t("review_note")),
                 icon="info",
@@ -377,90 +525,136 @@ def _terms():
         rx.box(
             rx.flex(
                 rx.box(
-                    rx.text(PlanningState.selected_group_row["name"], size="2", color=MUTED),
-                    heading(
-                        "terms_title",
-                        size="5",
-                        id="creation-terms-heading",
-                        tab_index=-1,
+                    rx.text(t("selected_group"), size="1", color=MUTED),
+                    rx.text(
+                        PlanningState.selected_group_row.get("product", ""),
+                        font_weight="650",
+                        size="3",
+                    ),
+                    rx.text(PlanningState.odoo_details, size="1", color=MUTED),
+                    rx.cond(
+                        (PlanningState.creation_origin != "")
+                        & (PlanningState.creation_origin != "observed"),
+                        rx.badge(t("badge_generated"), color_scheme="amber", margin_top="0.4rem"),
                     ),
                 ),
-                rx.text(PlanningState.odoo_details, size="1", color=MUTED),
+                rx.button(
+                    t("change_group"),
+                    on_click=PlanningState.go_creation_step(0),
+                    disabled=BUSY,
+                    variant="ghost",
+                ),
                 justify="between",
-                align="end",
-                gap="1rem",
                 wrap="wrap",
+                align="center",
+                gap="0.75rem",
+                padding_y="1rem",
+                border_bottom=f"1px solid {HAIRLINE}",
+                margin_bottom="1.5rem",
             ),
-            card(
-                heading("history_title", size="3"),
-                muted("history_note", margin_y="0.5rem"),
-                _history_table(),
-                margin_top="1rem",
+            rx.heading(
+                rx.match(
+                    PlanningState.creation_step,
+                    (1, t("demand_title")),
+                    (2, t("supplier_terms_title")),
+                    t("review_title"),
+                ),
+                as_="h2",
+                size="6",
+                id="creation-step-heading",
+                tab_index=-1,
+                margin_bottom="0.75rem",
+                display=rx.cond(PlanningState.creation_step == 3, "none", "block"),
             ),
             rx.form(
-                card(
-                    heading("demand_title", size="3"),
+                rx.box(
+                    muted("demand_intro", margin_bottom="1.5rem"),
                     rx.grid(
                         _field(
                             "demand_label",
                             "odoo-quantity",
                             "odoo_quantity",
-                            default=PlanningState.odoo_quantity,
+                            hint="demand_help",
                             minimum="1",
                         ),
                         _field(
                             "required_label",
                             "odoo-required-date",
                             "odoo_required_date",
-                            default=PlanningState.odoo_required_date,
+                            hint="date_help",
                             kind="date",
                         ),
-                        columns=rx.breakpoints(initial="1", sm="2"),
-                        gap="1rem",
-                        margin_top="0.75rem",
-                        max_width="32rem",
+                        columns=rx.breakpoints(initial="1", md="2"),
+                        gap="1.5rem",
                     ),
-                    margin_top="1rem",
+                    rx.button(
+                        t("continue_terms"),
+                        rx.icon("arrow-right", size=17),
+                        type="submit",
+                        background=ACCENT,
+                        color="white",
+                        size="3",
+                        disabled=LOCKED,
+                        margin_top="1.5rem",
+                    ),
+                    display=rx.cond(PlanningState.creation_step == 1, "block", "none"),
+                    max_width="54rem",
                 ),
                 rx.box(
-                    heading("supplier_terms_title", size="3"),
-                    muted("supplier_terms_note", margin_y="0.5rem"),
-                    rx.grid(
+                    muted("terms_guidance", margin_bottom="1rem"),
+                    rx.flex(
                         rx.foreach(PlanningState.odoo_offers, _supplier_terms),
-                        columns=rx.breakpoints(initial="1", sm="2", lg="4"),
+                        direction="column",
                         gap="0.75rem",
                     ),
-                    margin_top="1.25rem",
-                ),
-                rx.text(
-                    t("policy_label"),
-                    ": ",
-                    PlanningState.odoo_policy,
-                    size="2",
-                    color=MUTED,
-                    margin_top="1rem",
-                ),
-                rx.button(
-                    t("review_terms"),
-                    type="submit",
-                    disabled=LOCKED
-                    | (
-                        PlanningState.odoo_history_mode
-                        & (PlanningState.odoo_history_readiness != "ready")
+                    rx.el.details(
+                        rx.el.summary(t("show_history"), font_weight="600"),
+                        muted("history_note", margin_y="0.5rem"),
+                        _history_table(),
+                        margin_top="1rem",
                     ),
-                    size="3",
-                    margin_top="1rem",
-                    background=ACCENT,
-                    color="white",
+                    rx.box(
+                        rx.text(
+                            t("policy_label"),
+                            ": ",
+                            PlanningState.odoo_policy,
+                            size="2",
+                            font_weight="600",
+                        ),
+                        muted("policy_explanation", margin_top="0.4rem"),
+                        padding="1rem",
+                        background="#e7eeea",
+                        border_radius="12px",
+                        margin_top="1rem",
+                    ),
+                    rx.flex(
+                        rx.button(
+                            t("back_demand"),
+                            on_click=PlanningState.go_creation_step(1),
+                            type="button",
+                            variant="outline",
+                            disabled=BUSY,
+                        ),
+                        rx.button(
+                            t("review_terms"),
+                            rx.icon("arrow-right", size=17),
+                            type="submit",
+                            background=ACCENT,
+                            color="white",
+                            disabled=LOCKED | (PlanningState.odoo_history_readiness != "ready"),
+                        ),
+                        gap="0.75rem",
+                        wrap="wrap",
+                        margin_top="1.25rem",
+                    ),
+                    display=rx.cond(PlanningState.creation_step == 2, "block", "none"),
                 ),
-                on_submit=PlanningState.review_odoo,
+                on_submit=PlanningState.advance_creation,
                 no_validate=True,
                 reset_on_submit=False,
             ),
             _review(),
-            margin_top="2rem",
-            padding_top="1.5rem",
-            border_top=f"1px solid {HAIRLINE}",
+            muted("draft_session_note", margin_top="1.25rem"),
         ),
     )
 
@@ -470,24 +664,44 @@ def rfqs_page() -> rx.Component:
         page_frame(
             rx.flex(
                 rx.box(
-                    rx.heading(t("rfqs_title"), as_="h1", size="7", color=INK),
-                    muted("rfqs_subtitle", margin_top="0.35rem", max_width="62ch"),
+                    rx.heading(
+                        rx.cond(
+                            PlanningState.creation_step == 0,
+                            t("rfqs_title"),
+                            t("prepare_title"),
+                        ),
+                        as_="h1",
+                        size="7",
+                        color=INK,
+                    ),
+                    rx.text(
+                        rx.cond(
+                            PlanningState.creation_step == 0,
+                            t("rfqs_subtitle"),
+                            t("prepare_subtitle"),
+                        ),
+                        size="2",
+                        color=MUTED,
+                        margin_top="0.5rem",
+                    ),
                 ),
-                rx.button(
-                    rx.icon("refresh-cw", size=16),
-                    t("refresh"),
-                    id="load-quotation-groups",
-                    on_click=PlanningState.load_quotation_groups,
-                    disabled=BUSY,
-                    variant="outline",
-                    size="3",
+                rx.cond(
+                    PlanningState.creation_step == 0,
+                    rx.button(
+                        rx.icon("refresh-cw", size=16),
+                        t("refresh"),
+                        id="load-quotation-groups",
+                        on_click=PlanningState.load_quotation_groups,
+                        disabled=BUSY | PlanningState.creation_dirty,
+                        variant="outline",
+                    ),
                 ),
-                direction=rx.breakpoints(initial="column", sm="row"),
                 justify="between",
-                align=rx.breakpoints(initial="start", sm="center"),
+                align="center",
                 gap="1rem",
-                margin_bottom="1.25rem",
+                wrap="wrap",
             ),
+            creation_steps(),
             recovery(),
             rx.cond(
                 (PlanningState.error_message != "")
@@ -502,10 +716,29 @@ def rfqs_page() -> rx.Component:
             ),
             rx.cond(
                 PlanningState.is_loading & PlanningState.groups_loaded,
-                rx.box(loading_state("waiting_api"), margin_bottom="0.5rem"),
+                loading_state("waiting_api"),
             ),
-            _groups(),
-            _terms(),
+            rx.box(
+                source_explanation(),
+                rx.flex(
+                    rx.text(
+                        t("groups_updated"),
+                        " ",
+                        PlanningState.groups_retrieved_display,
+                        size="1",
+                        color=MUTED,
+                    ),
+                    rx.text(
+                        t("group_company"), " ", PlanningState.groups_company, size="1", color=MUTED
+                    ),
+                    gap="1rem",
+                    wrap="wrap",
+                    margin_bottom="1rem",
+                ),
+                _groups(),
+                display=rx.cond(PlanningState.creation_step == 0, "block", "none"),
+            ),
+            rx.box(_terms(), display=rx.cond(PlanningState.creation_step > 0, "block", "none")),
         ),
         active="rfqs",
     )

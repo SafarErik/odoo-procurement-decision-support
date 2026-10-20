@@ -5,6 +5,13 @@ defined on Drive in 06_REQUIREMENTS_BASELINE. Status as of 2026-10-18 (P4); upda
 table whenever a capability changes. Evidence files under `evidence/` are machine-readable
 reports of commands actually run ([P4 handoff](handoffs/P4_VALIDATION.md)).
 
+The 2026-10-20 [guided workspace increment](handoffs/GUIDED_WORKSPACE.md) extends
+task rows 4, 6, 8 and 9: bounded Home lists, attributed quotation preparation,
+explanations beside supplier indicators, explicit plan comparison and confirmed
+decisions. Its tests and remaining browser coverage are recorded separately from
+the historical P4 evidence below. The UI now requires a rationale for every
+decision; the backend minimum-cost exception described in row 9 remains unchanged.
+
 | # | Task sentence (abridged) | Implementation | Evidence | Status | Chapter |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Open ERP systems; Odoo procurement, supplier evaluation, ERP data handling | — (literature) | Chapter 2 prose | Done | 2 |

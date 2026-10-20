@@ -1,5 +1,7 @@
 """Static screen texts (English keys → Hungarian, English); merged into ``i18n.TEXT``."""
 
+from frontend.i18n_revamp import REVAMP_TEXT
+
 UI_TEXT: dict[str, tuple[str, str]] = {
     # Generic
     "error_title": ("Valami nem sikerült", "Something went wrong"),
@@ -331,9 +333,9 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "record_decision": ("Döntés rögzítése", "Record the decision"),
     "record_decision_body": (
         "Válasszon tervet, vagy rögzítse, hogy nem ítéli oda a beszerzést. A döntés egyszeri "
-        "és nem írható felül. Alternatívához és „Nincs odaítélés” döntéshez indoklás kell.",
+        "és nem írható felül. Minden döntéshez rövid indoklás kell.",
         "Choose a plan or record no award. The decision is one-time and cannot be replaced. "
-        "An alternative or no award needs a reason.",
+        "Every decision needs a brief reason.",
     ),
     "plan_for_approval": ("Jóváhagyandó terv", "Plan to approve"),
     "choose_plan": ("Válasszon tervet…", "Choose a plan…"),
@@ -463,3 +465,5 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "The labels above do not replace this record.",
     ),
 }
+
+UI_TEXT.update(REVAMP_TEXT)

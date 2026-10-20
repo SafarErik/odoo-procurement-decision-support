@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-20T18:55:48.472015+00:00",
+  "scope": "Local uncommitted guided-workspace increment; not CI or release evidence",
+  "boundaries": {
+    "backend_api_schema_changed": false,
+    "odoo_runtime_writes": false,
+    "owner_cases_written_by_checks": false,
+    "commit_push_merge": false
+  },
+  "checks": [
+    {
+      "name": "tools.dev check",
+      "result": "passed on final code",
+      "passed": 516,
+      "deselected": 52,
+      "includes": [
+        "ruff format",
+        "ruff check",
+        "compileall",
+        "dependency consistency"
+      ],
+      "warning": "Existing Starlette/httpx deprecation",
+      "seconds": 89.22
+    },
+    {
+      "name": "Reflex compile and production build",
+      "result": "passed",
+      "version": "0.9.12"
+    },
+    {
+      "name": "Isolated Chromium E2E suite",
+      "result": "passed",
+      "passed": 3,
+      "artifacts": [
+        ".artifacts/p3-browser-eb3fd9965b40",
+        ".artifacts/p3-browser-040dbcd8c281",
+        ".artifacts/p3-browser-991b3e33465e"
+      ],
+      "coverage": [
+        "wizard back/language preservation",
+        "approval",
+        "Hungarian and English PDF",
+        "No-award and reload",
+        "scenario",
+        "error and empty states",
+        "1440/1280/768/390 px and additional 375 px"
+      ]
+    },
+    {
+      "name": "Final mobile tab and chart regression",
+      "result": "passed",
+      "passed": 1,
+      "seconds": 62.31,
+      "artifact": ".artifacts/p3-browser-9e50c2f5b7a7",
+      "coverage": [
+        "programmatic Decision navigation",
+        "Decision bookmark reload",
+        "reduced motion",
+        "No-award cancellation and confirmation",
+        "four-width screenshot matrix"
+      ]
+    },
+    {
+      "name": "Isolated database integration",
+      "result": "27 passed, 21 skipped, 1 environment failure",
+      "artifact": ".artifacts/p3-browser-2c28d292fd08",
+      "failure": "Harness supplies empty Odoo base URL to a runtime HTTP probe"
+    },
+    {
+      "name": "Runtime service probes after explicit local URLs and startup",
+      "result": "passed",
+      "passed": 3,
+      "note": "Resolves the integration environment failure; 28 distinct integration tests passed across runs, not in a single all-green run"
+    },
+    {
+      "name": "Live generated Odoo groups",
+      "result": "read-only manual browser check passed",
+      "suppliers": [
+        4,
+        5,
+        10
+      ],
+      "coverage": [
+        "source preview",
+        "cancel/discard group switching",
+        "ten-supplier terms at four widths"
+      ]
+    },
+    {
+      "name": "Impeccable detector",
+      "result": [],
+      "limitation": "Limited Python wrapper coverage; not accessibility certification"
+    },
+    {
+      "name": "Independent finish review",
+      "initial_disposition": "fix",
+      "final_disposition": "ship",
+      "scope": "Only two scored fixes: mobile active-tab visibility and noncolliding minimum-cost chart label",
+      "artifact": ".artifacts/p3-browser-9e50c2f5b7a7"
+    }
+  ],
+  "failed_attempts_resolved": [
+    {
+      "artifact": ".artifacts/p3-browser-f4de82903dd8",
+      "reason": "Regression test attempted disabled review button before selecting a plan; test corrected"
+    },
+    {
+      "artifact": ".artifacts/p3-browser-b768ab8febed",
+      "reason": "Real tab visibility race after hydration; bounded mount/active-state observer fixed and final regression passed"
+    }
+  ],
+  "not_claimed": [
+    "21 opt-in integration contracts skipped",
+    "physical phone",
+    "Safari/Firefox",
+    "full screen reader audit",
+    "exhaustive long-name matrix",
+    "complete browser fault injection matrix",
+    "unaided owner usability walkthrough"
+  ],
+  "source_sha256": {
+    "frontend/app.py": "d093fbdef05d7962bdccec34b964b3678dab5b9ae4660a5e93cd9dd57e3d9b4e",
+    "frontend/i18n_revamp.py": "3ffd5a6b57b702099abdeda079ad0bdc227256ceb8db87b036fcd0f401f66c55",
+    "frontend/i18n_ui.py": "ac563d359c41ccc4869c41bd05e83f879cf771250693a099d91f93cc9f216926",
+    "frontend/odoo_history_client.py": "98d403dbd6e49e83a821dd448717b5a25ca6b43d71aad77a5dbabefdd0cbb901",
+    "frontend/planning_library_client.py": "3145da07e3b775f854212ef2c5355f9d89e34d0b77c0735ff06e8d1eb0bf4f66",
+    "frontend/rxconfig.py": "b85ac16d988507279400d173782694a927362419aab3856fa3636ba8466a4186",
+    "frontend/theme.py": "8707d04511ba04182a18f72afd3561dfe2d90fad85616c604f4460995688bc4b",
+    "frontend/ui.py": "5b7ef1c0ef5efdb479f0c69f3807aedf3d48e3a1448205a65b3b7d3f75d3999c",
+    "frontend/workspace.py": "80ccf40122a1553fa9b657e22fad589223b09cdd201091024db477bdf19ae166",
+    "frontend/components/workflow.py": "78611871dd78a24f91d547503e789147228666376c8d79633a79bfb58ad39519",
+    "frontend/components/__init__.py": "e26d427635e8f3d85344fc6f3218c79b9705aeaa68dfc1cba86e87940d34d622",
+    "frontend/planning/charts.py": "fcbfdde51f07c061f1e26737bcd12a36d83e0b20997aee01fad977e543668859",
+    "frontend/planning/decision.py": "89d8cdd818a68d34f47f22b7f07263c4b74a942f399fac2bdf469202b88aae8d",
+    "frontend/planning/home.py": "5ec772828d20cea01930bf5c426aa9d232c940b4e06a8ee6064ea960f1db4384",
+    "frontend/planning/library.py": "56544aca1ed7a6f00ffdecfc926dc82056ed4947d9a0dfdcfaba41c004e8d387",
+    "frontend/planning/overview.py": "32fd37f6bcb810a8b90783f9bfbfa30c5bc8d679129b99380188ce6d375c4384",
+    "frontend/planning/page.py": "121004ee2473a5b2ab125bde3ea5126610484c24989c92e8d04b48a6eb5e9702",
+    "frontend/planning/results.py": "003708616920dff726a449dec7051eea03e1e7f048991ec287110aef2759c1e2",
+    "frontend/planning/rfqs.py": "2a899b50553c00dd9de63a4feb09b57ec6ecbad238a59e22b2dcb3aae8ba89cc",
+    "frontend/planning/scenarios.py": "2b87dc4c915a5451ab91a30a422e68dde301cfad0cbe4423b73957f07ef301f7",
+    "frontend/planning/state.py": "6ce041f48b46cc4896f1902cff4bc29a7bb86e2a6b2b73976a7b5250875f0569",
+    "frontend/planning/state_base.py": "e2438768ea7b07fe10d8021e7d0a1657866855f760284ae0a5ce3ee3be10a3f8",
+    "frontend/planning/state_case.py": "c0b3b6406b623650aafa36453fd5ca2d3a6942acef1c38c633591ef416a81ce9",
+    "frontend/planning/state_creation.py": "261ff5b0d2637d696531b10ae85ece91f789b3542a2508f59ff057d2d7ce54de",
+    "frontend/planning/state_decision.py": "e9f00bd72c34177f898afde5a750f30350be2a40ec49767ff5ec4215b622eeed",
+    "frontend/planning/state_library.py": "77e70d44f1545c67320ed790d3f57356ad383db45aba02ca7e835a40ee36ac33",
+    "frontend/planning/suppliers.py": "dc2ebd21fe9792d1d35e01bedbbdc2db252c7ca632f04668ce135169280aa455",
+    "tests/frontend_patching.py": "da5b59e4a6e0156ab86b9fc42287247509f1f1ede1527d594d37e9f969151ce8",
+    "tests/test_creation_review.py": "cd54c7623801f99052d470e0e1fb4b8e8350bc12735ec73d59765789897a578d",
+    "tests/test_decision_confirmation.py": "6fc149c104253fd5ad4986dbd19bbd5a904f8c7c81a30d949277739cfc97434b",
+    "tests/test_guided_workspace.py": "76975bf65216e2600ea35a92d79f35691a92c61ab771d62f8ea61573c0d5ff8c",
+    "tests/test_p3_frontend.py": "5ba9d6a9fb4d832f35a5eba08718d87ff5b149c3b5b9bbb485095527f6cc623c",
+    "tests/e2e/test_cases_scenarios_mobile_browser.py": "a9187bbbf021703decb8a452c16e814c4382de7939b509191f5d6c5ebfaa3362",
+    "tests/e2e/test_guided_workspace_browser.py": "bfd320cc98ed04d161393ad34a92d13c93a4dffcf8f8d3c2e88e254f59a10b00",
+    "tests/e2e/test_odoo_flow_browser.py": "c2e95f079d093fe94500302176da5626a263fd46a70520662e0289f4f6638c40"
+  }
+}

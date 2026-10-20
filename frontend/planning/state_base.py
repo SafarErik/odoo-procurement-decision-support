@@ -20,6 +20,34 @@ def focus(identity: str):
     return rx.call_script(f"document.getElementById({json.dumps(identity)})?.focus()")
 
 
+def reveal_active_case_tab(view: str):
+    """Keep the current view discoverable without moving the page or keyboard focus."""
+    script = """
+        (() => {
+            const reveal = () => {
+                const list = document.getElementById('case-tablist');
+                const tab = document.getElementById(TARGET);
+                if (!list || !tab || tab.dataset.state !== 'active') return;
+                const bounds = list.getBoundingClientRect();
+                const active = tab.getBoundingClientRect();
+                if (!bounds.width || !active.width) return;
+                const delta = active.left < bounds.left ? active.left - bounds.left :
+                    active.right > bounds.right ? active.right - bounds.right : 0;
+                if (delta) list.scrollBy({left: delta, behavior: 'instant'});
+            };
+            // Bookmark hydration can mount the strip after the server event arrives.
+            const observer = new MutationObserver(() => requestAnimationFrame(reveal));
+            observer.observe(document.body, {
+                childList: true, subtree: true, attributes: true,
+                attributeFilter: ['data-state']
+            });
+            requestAnimationFrame(reveal);
+            setTimeout(() => observer.disconnect(), 5000);
+        })();
+    """
+    return rx.call_script(script.replace("TARGET", json.dumps("view-" + view)))
+
+
 class BaseMixin(rx.State, mixin=True):
     """Fields and helpers every feature needs; secrets and executable artifacts stay server-side."""
 
@@ -66,6 +94,8 @@ class BaseMixin(rx.State, mixin=True):
             event = getattr(self, method)()
             if event is not None:
                 events.append(event)
+        if self.has_case:
+            events.append(reveal_active_case_tab(self.view))
         return events or None
 
     def _guard_navigation(self, action: str, value: str, focus_id: str = ""):
@@ -91,6 +121,11 @@ class BaseMixin(rx.State, mixin=True):
                 return rx.redirect(f"/planning?case_id={self.details['case_id']}&view={value}")
         elif action == "odoo-history":
             return type(self).load_odoo_history
+        elif action in ("select-group", "prepare-group"):
+            self._switch_group(value)
+            if action == "prepare-group":
+                return type(self).load_odoo_history
+            return focus("quotation-details-heading")
 
     def _discard_drafts(self):
         self._clear_review()
@@ -101,6 +136,9 @@ class BaseMixin(rx.State, mixin=True):
         self.odoo_history_rows = []
         self._odoo_payload = {}
         self._preview = {}
+        self.creation_values = {}
+        self.creation_suggestions = {}
+        self.creation_step = 0
         self.stress_supplier = self.stress_capacity = self.stress_quantity = self.stress_price = ""
         self.error_message = self.error_target = ""
 
@@ -128,7 +166,7 @@ class BaseMixin(rx.State, mixin=True):
 
     @rx.event
     def navigate_global(self, destination: str):
-        routes = {"cases": "/cases", "rfqs": "/rfqs"}
+        routes = {"home": "/", "cases": "/cases", "rfqs": "/rfqs"}
         if destination in routes:
             return self._guard_navigation("route", routes[destination], "nav-" + destination)
 

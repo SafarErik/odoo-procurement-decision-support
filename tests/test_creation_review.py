@@ -93,6 +93,9 @@ def test_switching_group_drops_the_loaded_preview(prepared_state):
     assert state._review_payload and state.odoo_ready and state.odoo_offers
     state.quotation_groups = [*state.quotation_groups, {"value": "502", "selectable": "yes"}]
     PlanningState.select_quotation_group.fn(state, "502")
+    assert state.selected_group == "501" and state.navigation_open
+    assert state._review_payload and state.odoo_ready
+    PlanningState.discard_navigation.fn(state)
     assert state.selected_group == "502"
     assert not state.odoo_ready and not state.odoo_history_mode
     assert not state._review_payload and not state.creation_review

@@ -90,13 +90,17 @@ def _step(number: int, title: str, body: str):
 def _next_step():
     return card(
         heading("next_step", size="4"),
-        rx.flex(
-            _step(1, "step_saved", "step_saved_body"),
-            _step(2, "step_choose", "step_choose_body"),
-            _step(3, "step_decide", "step_decide_body"),
-            direction="column",
-            gap="1.1rem",
-            margin_top="1rem",
+        rx.cond(
+            DECIDED | ~BASE,
+            rx.text(PlanningState.next_action_text, size="2", color=MUTED, margin_top="1rem"),
+            rx.flex(
+                _step(1, "step_saved", "step_saved_body"),
+                _step(2, "step_choose", "step_choose_body"),
+                _step(3, "step_decide", "step_decide_body"),
+                direction="column",
+                gap="1.1rem",
+                margin_top="1rem",
+            ),
         ),
         rx.cond(
             DECIDED,

@@ -53,6 +53,7 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
     required_string(item, "quantity_unit")
     return {
         "case_id": case_id,
+        "short_id": case_id[:8],
         "parent_id": parent or "",
         "product": _product(required_string(item, "product_label"), lang),
         "quantity": tr("pieces", lang, quantity=number(quantity, lang), unit=unit_name),

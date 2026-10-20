@@ -60,7 +60,6 @@ def _comparison_table():
                                 plan["hint"] != "",
                                 rx.text(plan["hint"], size="1", color=MUTED),
                             ),
-                            _selection_button(plan),
                             min_width="11rem",
                             vertical_align="top",
                             background=rx.cond(_is_selected(plan), SELECTED_BG, "transparent"),
@@ -158,6 +157,35 @@ def _allocation_bar(row):
     )
 
 
+def _plan_summary(plan):
+    return rx.box(
+        rx.flex(
+            rx.heading(plan["title"], as_="h3", size="4"),
+            rx.cond(plan["hint"] != "", rx.badge(plan["hint"], color_scheme="jade")),
+            justify="between",
+            wrap="wrap",
+            gap="0.5rem",
+        ),
+        rx.text(plan["cost"], size="7", font_weight="650", margin_top="0.75rem", color=INK),
+        rx.text(plan["premium_display"], size="2", color=MUTED, margin_top="0.25rem"),
+        rx.flex(
+            rx.text(t("risk_exposure"), size="2", color=MUTED),
+            rx.text(plan["exposure_display"], font_weight="650", size="2"),
+            justify="between",
+            gap="0.75rem",
+            margin_top="1rem",
+        ),
+        rx.text(plan["allocation_summary"], size="2", margin_top="0.75rem"),
+        _selection_button(plan),
+        padding="1.25rem",
+        min_width="0",
+        border=f"1px solid {HAIRLINE}",
+        border_color=rx.cond(_is_selected(plan), ACCENT, HAIRLINE),
+        background=rx.cond(_is_selected(plan), SELECTED_BG, "white"),
+        border_radius="12px",
+    )
+
+
 def _selected_panel():
     plan = PlanningState.focus_plan
     return card(
@@ -173,6 +201,13 @@ def _selected_panel():
         rx.heading(plan.get("title", ""), as_="h2", size="4", margin_top="0.15rem"),
         rx.text(plan.get("cost", ""), size="7", font_weight="650", color=INK),
         rx.text(plan.get("premium_display", ""), size="2", color=MUTED, margin_bottom="1rem"),
+        rx.flex(
+            rx.text(t("chart_exposure"), size="2", color=MUTED),
+            rx.text(plan.get("exposure_display", ""), size="2", font_weight="650"),
+            justify="between",
+            gap="0.5rem",
+            margin_bottom="1rem",
+        ),
         rx.foreach(PlanningState.focus_allocation, _allocation_bar),
         rx.flex(
             rx.text(t("total"), size="2", font_weight="650"),
@@ -198,6 +233,7 @@ def _selected_panel():
             muted("selection_not_approval", margin_top="0.5rem", text_align="center"),
         ),
         id="selection-review",
+        class_name="decision-summary",
         role="status",
         aria_live="polite",
     )
@@ -231,9 +267,18 @@ def plans_view() -> rx.Component:
         PlanningState.plans.length() > 0,
         rx.grid(
             rx.flex(
+                rx.box(
+                    heading("plan_comparison", size="5"),
+                    muted("plans_intro", margin_y="0.5rem"),
+                    rx.grid(
+                        rx.foreach(PlanningState.plans, _plan_summary),
+                        columns=rx.breakpoints(initial="1", sm="2"),
+                        gap="0.75rem",
+                        margin_top="1rem",
+                    ),
+                ),
                 card(
-                    heading("plan_comparison", size="4"),
-                    muted("plans_intro", margin_y="0.35rem"),
+                    heading("allocation_details", size="4"),
                     _comparison_table(),
                     rx.cond(
                         PlanningState.details["alternative_notice"] != "",
@@ -248,6 +293,10 @@ def plans_view() -> rx.Component:
                     heading("chart_tradeoff", size="4"),
                     muted("chart_tradeoff_note", margin_y="0.35rem"),
                     cost_exposure_chart(),
+                    rx.el.details(
+                        rx.el.summary(t("chart_exposure"), font_weight="550"),
+                        muted("exposure_explained", margin_top="0.5rem"),
+                    ),
                 ),
                 card(_constraint_notes()),
                 direction="column",

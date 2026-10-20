@@ -7,7 +7,7 @@ from typing import Any
 import reflex as rx
 
 from frontend.config import settings
-from frontend.planning.state_base import VIEW_ALIASES, VIEWS, focus
+from frontend.planning.state_base import VIEW_ALIASES, VIEWS, focus, reveal_active_case_tab
 from frontend.planning_client import _map_case, fetch_planning_case
 from frontend.supplier_overview_client import fetch_supplier_overview
 
@@ -236,6 +236,7 @@ class CaseMixin(rx.State, mixin=True):
         view = view if view in VIEWS else "overview"
         if self.has_case and params.get("case_id") == self.details.get("case_id"):
             self.view = view
+            yield reveal_active_case_tab(self.view)
             if not self.supplier_cards and not self.suppliers_error:
                 yield type(self).load_supplier_overview
             return
@@ -243,6 +244,7 @@ class CaseMixin(rx.State, mixin=True):
             yield event
         if self.has_case:
             self.view = view
+            yield reveal_active_case_tab(self.view)
             yield type(self).load_supplier_overview
             yield focus("saved-case-heading")
 
@@ -315,6 +317,31 @@ class CaseMixin(rx.State, mixin=True):
             }
             for p in self.plans[1:]
         ]
+
+    @rx.var
+    def chart_selected(self) -> list[dict[str, Any]]:
+        plan = self.selected_plan
+        return (
+            [
+                {
+                    "name": plan["title"],
+                    "cost": float(plan["cost_number"]),
+                    "exposure": float(plan["exposure_number"]),
+                }
+            ]
+            if plan
+            else []
+        )
+
+    @rx.var
+    def next_action_text(self) -> str:
+        if self.details.get("parent_id", "Base case") != "Base case":
+            return self._tr("case_next_scenario")
+        if self.details.get("final_outcome"):
+            return self._tr("case_next_closed")
+        if not self.plans:
+            return self._tr("case_next_unavailable")
+        return self._tr("case_next_decide" if self.final_choice else "case_next_compare")
 
     @rx.var
     def focus_plan(self) -> dict[str, str]:

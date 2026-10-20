@@ -129,7 +129,8 @@ def test_starting_an_already_loaded_group_keeps_the_draft_and_focuses_the_terms(
     state.selected_group, state.odoo_ready = "1", True
     state._odoo_payload = {"draft": True}
     event = PlanningState.prepare_odoo_history.fn(state, "1")
-    assert "creation-terms-heading" in str(event) and state._odoo_payload == {"draft": True}
+    assert "creation-step-heading" in str(event) and state._odoo_payload == {"draft": True}
+    assert state.creation_step == 1
 
 
 def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_cases):
