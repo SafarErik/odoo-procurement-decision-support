@@ -91,8 +91,10 @@ invented); totals across different demands are not like-for-like savings.
 
 - **Linear exposure does not reward diversification.** `R(x)/Q` is a weighted
   average of supplier scores, so splitting an order between two equally scored
-  suppliers has the same exposure as buying from one. Diversification is only
-  enforced by the concentration limit `c` and the supplier-count limit `K`.
+  suppliers has the same exposure as buying from one. Capacity limits and the
+  concentration limit `c` can make several suppliers necessary; the supplier-count
+  limit `K` is only an upper bound on how many suppliers may be used and never
+  forces a split.
 - The score is an uncalibrated ranking signal, not a failure probability.
 - Single period, single product; no transport cost or lead-time dimension beyond
   the date eligibility rule.

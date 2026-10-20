@@ -41,6 +41,13 @@ SUPPLIER_TERM_FIELDS = (
     "promised_date",
 )
 REQUIREMENT_TERM_FIELDS = ("approved_quantity", "required_date")
+RANGE_FIELDS = (("price_quantities", "price"), ("delivery_quantities", "delivery"))
+
+
+def _kept_suggested(source: dict) -> set[str]:
+    reference = source["source_reference"]
+    kept = reference.split(";kept-suggested=", 1)[1] if ";kept-suggested=" in reference else ""
+    return set(kept.split(",")) - {"none", ""}
 
 
 def _reviewed_source(saved: dict, suggested: dict, fields: tuple[str, ...], as_of: str) -> dict:
@@ -248,6 +255,11 @@ class CreationMixin(rx.State, mixin=True):
                 if s["minimum_order_quantity"] is not None
                 else "",
                 "promised_date": s["promised_date"],
+                **{
+                    f"{prefix}_{end}": str(s[key][bound])
+                    for key, prefix in RANGE_FIELDS
+                    for end, bound in (("min", "minimum"), ("max", "maximum"))
+                },
             }
             for s in facts["suppliers"]
         ]
@@ -313,6 +325,19 @@ class CreationMixin(rx.State, mixin=True):
             supplier["promised_date"] = field(
                 prefix + "_promised_date", prefix + "_promised_date", _form_date, "err_date"
             )
+            for key, name in RANGE_FIELDS:
+                low, high = (
+                    field(
+                        f"{prefix}_{name}_{end}",
+                        f"{prefix}_{name}_{end}",
+                        lambda value: _bounded_form_integer(value, minimum=1),
+                        "err_range",
+                    )
+                    for end in ("min", "max")
+                )
+                if low is not None and high is not None and low > high:
+                    self.creation_errors[f"{prefix}_{name}_max"] = self._tr("err_range")
+                supplier[key] = {"minimum": low, "maximum": high}
         if self.creation_errors:
             self.error_message = self._tr("err_fix_fields")
             return None
@@ -361,6 +386,14 @@ class CreationMixin(rx.State, mixin=True):
                 "origin": "Odoo",
                 "policy": self.odoo_policy,
             }
+
+            def quantities(s, key):
+                values = s[key]
+                text = f"{number(values['minimum'], lang, 0)}–{number(values['maximum'], lang, 0)}"
+                if key in _kept_suggested(s["source"]):
+                    text += f" ({tr('suggested_value', lang)})"
+                return text
+
             self.review_suppliers = [
                 {
                     "name": self._name(s["supplier_id"]),
@@ -369,6 +402,8 @@ class CreationMixin(rx.State, mixin=True):
                     "moq": tr("none", lang)
                     if s["minimum_order_quantity"] is None
                     else str(s["minimum_order_quantity"]),
+                    "price_range": quantities(s, "price_quantities"),
+                    "delivery_range": quantities(s, "delivery_quantities"),
                     "promised": day(s["promised_date"], lang),
                     "available": tr("available" if s["available"] else "not_available", lang),
                     "offer": s["offer_id"],

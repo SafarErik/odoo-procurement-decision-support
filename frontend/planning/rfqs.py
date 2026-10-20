@@ -186,6 +186,33 @@ def _supplier_terms(row):
                 minimum="1",
                 required=False,
             ),
+            *[
+                rx.el.fieldset(
+                    rx.el.legend(
+                        t(f"{name}_range_label"), font_size="14px", font_weight="650", padding="0"
+                    ),
+                    rx.grid(
+                        *[
+                            _field(
+                                f"range_{end}",
+                                row["supplier"] + f"_{name}_{end}",
+                                row["supplier"] + f"_{name}_{end}",
+                                default=row[f"{name}_{end}"],
+                                minimum="1",
+                            )
+                            for end in ("min", "max")
+                        ],
+                        columns="2",
+                        gap="0.5rem",
+                        margin_top="0.25rem",
+                    ),
+                    border="none",
+                    margin="0",
+                    padding="0",
+                    min_width="0",
+                )
+                for name in ("price", "delivery")
+            ],
             _field(
                 "promised_label",
                 row["supplier"] + "_promised_date",
@@ -198,6 +225,42 @@ def _supplier_terms(row):
             margin_top="0.75rem",
         ),
         padding="1rem",
+    )
+
+
+REVIEW_COLUMNS = (
+    ("offer_price", "price"),
+    ("capacity_label", "capacity"),
+    ("moq_label", "moq"),
+    ("price_range_label", "price_range"),
+    ("delivery_range_label", "delivery_range"),
+    ("promised_label", "promised"),
+    ("availability", "available"),
+)
+NOWRAP = {"price", "promised"}
+
+
+def _review_supplier_card(r):
+    return rx.box(
+        rx.text(r["name"], as_="p", font_weight="650"),
+        rx.el.dl(
+            *[
+                item
+                for key, field in REVIEW_COLUMNS
+                for item in (
+                    rx.el.dt(t(key), color=MUTED, font_size="14px"),
+                    rx.el.dd(r[field], margin="0", font_size="14px"),
+                )
+            ],
+            display="grid",
+            grid_template_columns="minmax(0, 1fr) minmax(0, 1fr)",
+            column_gap="0.75rem",
+            row_gap="0.35rem",
+            margin="0.5rem 0 0",
+        ),
+        border="1px solid var(--gray-a5)",
+        border_radius="8px",
+        padding="0.75rem",
     )
 
 
@@ -233,17 +296,11 @@ def _review():
                 rx.table.root(
                     rx.table.header(
                         rx.table.row(
+                            rx.table.column_header_cell(t("col_supplier"), white_space="nowrap"),
                             *[
                                 rx.table.column_header_cell(t(key), white_space="nowrap")
-                                for key in (
-                                    "col_supplier",
-                                    "offer_price",
-                                    "capacity_label",
-                                    "moq_label",
-                                    "promised_label",
-                                    "availability",
-                                )
-                            ]
+                                for key, _ in REVIEW_COLUMNS
+                            ],
                         )
                     ),
                     rx.table.body(
@@ -251,11 +308,13 @@ def _review():
                             PlanningState.review_suppliers,
                             lambda r: rx.table.row(
                                 rx.table.row_header_cell(r["name"]),
-                                rx.table.cell(r["price"], white_space="nowrap"),
-                                rx.table.cell(r["capacity"]),
-                                rx.table.cell(r["moq"]),
-                                rx.table.cell(r["promised"], white_space="nowrap"),
-                                rx.table.cell(r["available"]),
+                                *[
+                                    rx.table.cell(
+                                        r[field],
+                                        white_space="nowrap" if field in NOWRAP else "normal",
+                                    )
+                                    for _, field in REVIEW_COLUMNS
+                                ],
                             ),
                         )
                     ),
@@ -266,6 +325,13 @@ def _review():
                 role="region",
                 aria_label=t("review_title"),
                 tab_index=0,
+                display=rx.breakpoints(initial="none", md="block"),
+            ),
+            # Narrow screens: one card per supplier, so no term hides behind a scroll.
+            rx.box(
+                rx.foreach(PlanningState.review_suppliers, _review_supplier_card),
+                display=rx.breakpoints(initial="grid", md="none"),
+                gap="0.75rem",
             ),
             rx.text(t("policy_label"), ": ", review.get("policy", ""), size="2", margin_top="1rem"),
             rx.callout(

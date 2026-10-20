@@ -494,6 +494,10 @@ TEXT: dict[str, tuple[str, str]] = {
         "Hagyja üresen, vagy adjon meg 1 és 1000 közötti egész számot.",
         "Leave blank, or enter a whole number from 1 to 1,000.",
     ),
+    "err_range": (
+        "Adjon meg 1 és 1000 közötti egész számokat; az alsó határ nem lehet nagyobb a felsőnél.",
+        "Enter whole numbers from 1 to 1,000; the lower bound cannot exceed the upper bound.",
+    ),
     "err_date": ("Adjon meg érvényes dátumot.", "Enter a valid date."),
     "err_date_past": (
         "A szükséges dátum nem lehet a múltban.",

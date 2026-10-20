@@ -15,6 +15,7 @@ from application.errors import RepositoryError
 from application.planning_history import (
     HISTORY_INPUT_KIND,
     capture_features,
+    capture_origin,
 )
 from application.planning_input import PlanningFacts, assemble_planning_input, validate_source
 from application.planning_serialization import (
@@ -158,7 +159,8 @@ def validate_snapshot(case: PlanningCase) -> dict:
             check_manifest_metadata(metadata)
             captured = capture_features(facts["history"])
             if (
-                facts["source_type"] != HISTORY_SOURCE
+                metadata["data_origin"] != capture_origin(facts["history"])
+                or facts["source_type"] != HISTORY_SOURCE
                 or facts["input_kind"] != HISTORY_INPUT_KIND
                 or metadata["company_id"] != facts["company_id"]
                 or snapshot_json(sorted(captured, key=lambda f: f.context.supplier_id))

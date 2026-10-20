@@ -106,6 +106,12 @@ supplier performance, calibrated failure probability or real business savings.
 
 ## Current state (main e3cbf84, 2026-10-18)
 
+Working status 2026-10-20: branch `feature/cleanup` at `cbc00d1` plus the uncommitted
+external-review fixes ([REVIEW_FIXES](../handoffs/REVIEW_FIXES.md)). Evidence run on that
+tree: fast gate 504 passed, live integration 46 passed / 3 skipped, e2e 2/2, and `demo`,
+`milp_evaluation` and `train_history_model report` all passed with `dirty: true` in their
+JSON. Rerun the three tools after the commit for a commit-exact record.
+
 Revamp P0–P4 merged as PRs #45–#49 ([REVAMP_PLAN](../REVAMP_PLAN.md), handoffs
 [P0](../handoffs/P0_REPO_CLEANUP.md) … [P4](../handoffs/P4_VALIDATION.md)). It
 changed no FR-V2/NFR-V2/AC-V2 definition; the reasons are recorded in Drive 03 as
@@ -116,8 +122,14 @@ ADR-028–034.
   dedicated Odoo test database and buyer-entered (prefilled default) terms. This is
   not acceptance on live, observed supplier data. Status table: Drive 06; per-task
   mapping: [TRACEABILITY.md](../TRACEABILITY.md). Hosted CI (Quality,
-  Container/API) passed on e3cbf84 but runs no live Odoo, browser or validation
-  tools; AC-V2-13's demo was not re-run after the P4 review fixes.
+  Container/API) passed on e3cbf84. Its scope: Quality runs format, lint, compile,
+  the fast tests with CBC and scikit-learn and dependency/Compose checks;
+  Container/API starts an empty Odoo and the test PostgreSQL, checks reachability,
+  runs the integration tests that need no seeded history, compiles the frontend and
+  checks named-volume persistence. It does not run the live Odoo-history path, the
+  browser flow or the P4 tools (`demo`, `milp_evaluation`, `train_history_model
+  report`); those are local evidence, recorded per run with branch, commit and
+  dirty flag (see the evidence JSON `repository` field and the latest handoff).
 - **Data and ML.** The Decision Tree trains offline on purchase history that the
   guarded seeder (`tools/seed_odoo_history.py`) wrote into the dedicated
   `pdss_history_gen` Odoo database and that is read back only through the Odoo API
@@ -125,8 +137,12 @@ ADR-028–034.
   method, not real supplier behaviour; the tree beats the majority baseline but not
   the hand-written expert rule on unseen suppliers (L1–L3).
 - **Case creation.** Only from an open Odoo quotation group plus Odoo history
-  (ADR-031); synthetic demo creation paths are removed. Capacity/MOQ defaults are
-  source-tagged buyer input, in tension with the no-default rule (L6).
+  (ADR-031); synthetic demo creation paths are removed. Capacity, MOQ and price/delivery
+  quantity-range defaults are source-tagged buyer input that the buyer can edit and
+  sees, marked when still suggested, in the pre-save review; saved values record
+  `kept-suggested=…` (L6). This remains in tension with the no-default rule.
+  The history model's `data_origin` (`generated` | `observed`) must equal the
+  capture's declared origin (`ODOO_HISTORY_DATA_ORIGIN`).
 - **Scenarios, PDF, UI.** Capacity, demand and price changes in both directions
   (ADR-032); ReportLab PDF v2 in Hungarian or English with one purchase order
   proposal per supplier, stored per language (ADR-033), not an Odoo PO;

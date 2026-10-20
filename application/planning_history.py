@@ -16,9 +16,11 @@ from application.purchase_history import (
     ReceiptEvent,
 )
 from supplier_evaluation.contracts import (
+    HISTORY_DATA_ORIGINS,
     HISTORY_LOOKBACK,
     HISTORY_SETTLEMENT,
     HISTORY_SOURCE,
+    LEGACY_HISTORY_DATA_ORIGIN,
     Context,
     FeatureSnapshot,
     canonical,
@@ -41,13 +43,23 @@ def history_query(company_id: str, product_id: str, read_end: datetime) -> Purch
 
 
 def build_capture(
-    snapshot: PurchaseHistorySnapshot, contexts: tuple[Context, ...], database: str
+    snapshot: PurchaseHistorySnapshot,
+    contexts: tuple[Context, ...],
+    database: str,
+    data_origin: str,
 ) -> str:
-    """Freeze raw lines, the cutoff and one feature snapshot per quoted supplier."""
+    """Freeze raw lines, the cutoff and one feature snapshot per quoted supplier.
+
+    ``data_origin`` is the operator's declaration of what the database holds
+    (generated or observed history); it is frozen with the evidence.
+    """
+    if data_origin not in HISTORY_DATA_ORIGINS:
+        raise ValueError(f"Unsupported history data origin: {data_origin!r}.")
     cutoff = snapshot.observed_at
     evidence = {
         "version": CAPTURE_VERSION,
         "database": database,
+        "data_origin": data_origin,
         "cutoff": cutoff,
         "contexts": [asdict(c) for c in sorted(contexts, key=lambda c: c.supplier_id)],
         "snapshot": asdict(snapshot),
@@ -109,6 +121,14 @@ def _snapshot(raw: dict) -> PurchaseHistorySnapshot:
     )
 
 
+def capture_origin(encoded: str) -> str:
+    """Declared origin of a stored capture; older captures predate the field."""
+    origin = json.loads(encoded)["evidence"].get("data_origin", LEGACY_HISTORY_DATA_ORIGIN)
+    if origin not in HISTORY_DATA_ORIGINS:
+        raise ValueError("Unsupported history capture data origin.")
+    return origin
+
+
 def capture_features(encoded: str) -> tuple[FeatureSnapshot, ...]:
     """Validate a stored capture and re-derive its features from the raw lines only."""
     payload = json.loads(encoded)
@@ -119,6 +139,7 @@ def capture_features(encoded: str) -> tuple[FeatureSnapshot, ...]:
     evidence = payload["evidence"]
     if digest(evidence) != payload["capture_hash"] or evidence["version"] != CAPTURE_VERSION:
         raise ValueError("History capture evidence integrity mismatch.")
+    capture_origin(encoded)
     snapshot = _snapshot(evidence["snapshot"])
     cutoff = datetime.fromisoformat(evidence["cutoff"])
     window = snapshot.query

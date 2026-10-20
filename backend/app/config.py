@@ -1,6 +1,7 @@
 """Configuration for the minimal API service."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,8 @@ class Settings(BaseSettings):
     api_service_token: SecretStr = SecretStr("")
     # Model trained offline from Odoo purchase history (tools.train_history_model).
     supplier_history_model_directory: Path | None = None
+    # Declared origin of the purchase history in ODOO_DATABASE; the model must match it.
+    odoo_history_data_origin: Literal["generated", "observed"] = "generated"
     planning_library_company_id: str = ""
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     run_t6_live_contracts: bool = False
