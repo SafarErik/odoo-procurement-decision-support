@@ -63,7 +63,11 @@ async def fetch_planning_pdf(
                     or hashlib.sha256(data).hexdigest() != response.headers.get("x-pdf-sha256")
                 ):
                     raise ValueError("Invalid PDF integrity")
-                name = "megrendelesi-javaslat" if language == "hu" else "purchase-order-proposal"
+                name = (
+                    "jovahagyott-beszerzesi-terv"
+                    if language == "hu"
+                    else "approved-procurement-plan"
+                )
                 return PlanningPDF(
                     data,
                     f"{name}-{case_id}-{content_hash[:12]}-{language}.pdf",

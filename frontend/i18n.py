@@ -122,7 +122,6 @@ TEXT: dict[str, tuple[str, str]] = {
     "close_menu": ("Menü bezárása", "Close menu"),
     "skip": ("Ugrás a tartalomra", "Skip to content"),
     "language": ("Nyelv", "Language"),
-    "beside_odoo": ("Odoo mellett, csak olvasás", "Beside Odoo, read-only"),
     "discard_title": ("Elveti a nem mentett módosításokat?", "Discard your unsaved changes?"),
     "discard_body": (
         "Maradjon a szerkesztésnél, vagy vesse el a vázlatot. A mentett ügyek megmaradnak.",
@@ -165,49 +164,47 @@ TEXT: dict[str, tuple[str, str]] = {
     "status_invalid_input": ("Elutasított bemenet", "Input rejected"),
     "decision_draft": ("Döntésre vár", "Awaiting decision"),
     "decision_approved": ("Jóváhagyva", "Approved"),
-    "decision_no_award": ("Nincs odaítélés", "No award"),
+    "decision_no_award": ("Nem rendelünk", "No award"),
     "decision_scenario": ("Forgatókönyv – döntés az alapügyön", "Scenario – decide on the base"),
     # Plans
-    "plan_minimum": ("Legkisebb költség", "Minimum cost"),
+    "plan_minimum": ("Legolcsóbb terv", "Cheapest plan"),
     "plan_alternative": ("{n}. alternatíva", "Alternative {n}"),
-    "plan_lower_risk": ("kisebb kockázat", "lower risk"),
-    "above_minimum": ("{amount} a legkisebb fölött", "{amount} above minimum"),
+    "plan_lower_risk": ("legkisebb kockázat", "lowest risk"),
+    "above_minimum": ("{amount} a legolcsóbbhoz képest", "{amount} above minimum"),
     "minimum_for_limits": (
         "A legolcsóbb terv ezekkel a feltételekkel",
         "Cheapest plan under these limits",
     ),
     "exposure_value": ("{value} / 100", "{value} / 100"),
     "tradeoff_summary": (
-        "A legkisebb kockázatú alternatíva {amount} többe kerül, és {points} ponttal "
-        "csökkenti a kockázati kitettséget.",
-        "The lowest-risk alternative costs {amount} more and lowers risk exposure by "
-        "{points} points.",
+        "A legkisebb kockázatú terv {amount} összeggel drágább, és {points} ponttal kisebb a "
+        "kockázati kitettsége.",
+        "The lowest-risk plan costs {amount} more and lowers risk exposure by {points} points.",
     ),
     "tradeoff_summary_up": (
-        "A legkisebb kockázatú alternatíva {amount} többe kerül, a kockázati kitettség "
+        "A legkisebb kockázatú terv {amount} összeggel drágább; a kockázati kitettség "
         "{points} ponttal változik.",
-        "The lowest-risk alternative costs {amount} more and changes risk exposure by "
-        "{points} points.",
+        "The lowest-risk plan costs {amount} more; risk exposure changes by {points} points.",
     ),
     "no_alternative_failed": (
-        "Az alternatívakeresés nem fejeződött be; csak a legkisebb költségű terv látható. "
-        "Ebből nem következik, hogy nincs alternatíva.",
-        "The alternative search did not finish; only the minimum-cost plan is shown. "
-        "This does not establish that no alternative exists.",
+        "Az alternatívák keresése nem fejeződött be, ezért csak a legolcsóbb terv látható. Ez "
+        "nem jelenti, hogy nincs alternatíva.",
+        "The search for alternatives did not finish, so only the cheapest plan is shown. This "
+        "does not establish that no alternative exists.",
     ),
     "no_alternative_found": (
-        "A megengedett többletköltségen belül nincs eltérő alternatíva.",
-        "No distinct alternative was found within the allowed extra cost.",
+        "A megengedett többletköltségen belül nincs kisebb kockázatú terv.",
+        "No lower-risk plan exists within the allowed extra cost.",
     ),
     "no_alternative_requested": (
         "Ehhez az ügyhöz nem kértünk alternatívát.",
         "No alternatives were requested for this case.",
     ),
     "policy_text": (
-        "Legfeljebb {suppliers} szállító · szállítónként legfeljebb {share} · "
-        "alternatíva legfeljebb {allowance} többletköltséggel",
-        "At most {suppliers} suppliers · at most {share} per supplier · "
-        "alternatives up to {allowance} extra cost",
+        "Legfeljebb {suppliers} szállító · szállítónként legfeljebb {share} · alternatívák "
+        "{allowance} többletköltségig",
+        "At most {suppliers} suppliers · at most {share} per supplier · alternatives up to "
+        "{allowance} extra cost",
     ),
     "policy_no_share": ("nincs részesedési korlát", "no share limit"),
     # Buyer explanations of solver notes
@@ -332,13 +329,13 @@ TEXT: dict[str, tuple[str, str]] = {
         "Save unconfirmed – retry the same request",
     ),
     "state_approved": ("Jóváhagyott terv", "Approved plan"),
-    "state_no_award": ("Rögzítve: nincs odaítélés", "Recorded: no award"),
+    "state_no_award": ("Rögzítve: nem rendelünk", "Recorded: no award"),
     "state_scenario": (
         "Mentett forgatókönyv – döntés az alapügyön",
         "Saved scenario – decide on the base case",
     ),
     "state_no_award_selected": (
-        "„Nincs odaítélés” kiválasztva – még nincs rögzítve",
+        "„Nem rendelünk” kiválasztva – még nincs rögzítve",
         "No award selected – not yet recorded",
     ),
     "state_selected": (
@@ -516,7 +513,7 @@ TEXT: dict[str, tuple[str, str]] = {
         "Only an undecided base case can be decided.",
     ),
     "err_choose_plan": (
-        "Válasszon tervet vagy a „Nincs odaítélés” lehetőséget.",
+        "Válasszon tervet, vagy jelölje, hogy most nem rendel.",
         "Choose a plan or No award.",
     ),
     "err_actor": ("Adja meg a nevét (1–255 karakter).", "Enter your name (1–255 characters)."),

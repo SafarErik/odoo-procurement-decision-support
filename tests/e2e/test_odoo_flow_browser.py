@@ -68,6 +68,14 @@ def test_rfq_to_approved_pdf_in_hungarian_then_english(smoke_stack, smoke_page):
     page.get_by_role("tab", name="Tervek").click()
     expect(page.get_by_role("region", name="Tervek összehasonlítása")).to_be_visible()
     expect(page.get_by_role("img", name=re.compile("Pontdiagram"))).to_be_visible()
+    expect(
+        page.get_by_role("row", name=re.compile("Legnagyobb függés egy szállítótól"))
+    ).to_be_visible()
+    runs = saved["snapshot"]["result"]["runs"]
+    risk_plans = {r["plan_index"] for r in runs if r.get("kind", "risk") == "risk"}
+    if runs[-1].get("kind") == "diversified" and runs[-1]["plan_index"] not in risk_plans | {0}:
+        expect(page.get_by_role("heading", name="Kiegyensúlyozott terv")).to_be_visible()
+    page.screenshot(path=str(stack.root / "plans-1440.png"), full_page=True)
 
     page.get_by_role("tab", name="Döntés és PDF").click()
     page.locator("#final-choice").select_option("Minimum cost")

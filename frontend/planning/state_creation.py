@@ -76,7 +76,6 @@ class CreationMixin(rx.State, mixin=True):
     creation_suggestions: dict[str, str] = {}
     expanded_suppliers: list[str] = []
     groups_retrieved_at: str = ""
-    groups_company: str = ""
     creation_origin: str = ""
     odoo_ready: bool = False
     odoo_details: str = ""
@@ -241,7 +240,6 @@ class CreationMixin(rx.State, mixin=True):
                 self._group_names = listing["names"]
                 self.groups_truncated = listing["truncated"]
                 self.groups_retrieved_at = listing.get("retrieved_at", "")
-                self.groups_company = listing.get("company_id", "")
             usable = [r["value"] for r in self.quotation_groups if r["selectable"]]
             if self.selected_group not in usable:
                 self._switch_group(usable[0] if usable else "")

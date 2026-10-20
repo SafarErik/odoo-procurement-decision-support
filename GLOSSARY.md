@@ -17,6 +17,10 @@ _Avoid_: Stress scenario, approved plan
 A complete allocation of one approved product demand across suppliers, with its cost, exposure and business constraints.
 _Avoid_: Supplier ranking, selected offer
 
+**Balanced plan**:
+An alternative procurement plan that minimises the largest quantity depending on one supplier, within a cost allowance and without more exposure than the minimum-cost plan.
+_Avoid_: Diversification guarantee, risk-free plan
+
 **Order allocation**:
 The quantity assigned to each supplier within a procurement plan.
 _Avoid_: Supplier score

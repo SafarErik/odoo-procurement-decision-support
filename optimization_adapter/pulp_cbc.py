@@ -55,6 +55,7 @@ class EncodedModel:
     costs: tuple[int, ...]
     risks: tuple[int, ...]
     cost_unit: Fraction
+    risk_unit: Fraction
 
 
 class PulpCbcSolver:
@@ -115,7 +116,9 @@ class PulpCbcSolver:
         suppliers = tuple(sorted(request.suppliers, key=lambda s: s.supplier_id))
         costs, cost_unit = self._scale(tuple(s.unit_price for s in suppliers))
         scores = {c.supplier_id: c.value for c in request.risk_coefficients or ()}
-        risks, _ = self._scale(tuple(scores.get(s.supplier_id, Decimal(0)) for s in suppliers))
+        risks, risk_unit = self._scale(
+            tuple(scores.get(s.supplier_id, Decimal(0)) for s in suppliers)
+        )
         # Risk zero here is an unused internal cost-only expression, not an asserted missing score.
         q = request.requirement.approved_quantity
         require(
@@ -150,6 +153,7 @@ class PulpCbcSolver:
             costs,
             risks,
             cost_unit,
+            risk_unit,
         )
 
     def _integer_values(self, problem: pulp.LpProblem) -> dict[pulp.LpVariable, int]:
@@ -284,6 +288,57 @@ class PulpCbcSolver:
                 return self._outcome(status, model)
             cost = sum(c * x for c, x in zip(model.costs, self._quantities(model), strict=True))
             model.problem += model.cost == cost, "secondary_minimum_cost"
+            return self._outcome(self._tie_break(model, deadline), model)
+        except InvalidPlanningInput as exc:
+            return SolveOutcome(PlanningStatus.INVALID_INPUT, code=exc.code)
+        except (pulp.PulpSolverError, OSError, ValueError, OverflowError):
+            return SolveOutcome(PlanningStatus.SOLVER_ERROR, code="solver_or_verification_failure")
+
+    def diversified_alternative(
+        self,
+        request: PlanningRequest,
+        reference_cost: Fraction,
+        reference_risk: Fraction,
+        epsilon: Decimal,
+        deadline: float,
+    ) -> SolveOutcome:
+        """Smallest largest-supplier quantity within the cost cap, never above reference risk.
+
+        Lexicographic: min max_i x_i, then min exposure, then min cost, then the stable
+        tie-break. ``largest >= x_i`` bounds what one supplier's outage takes from demand.
+        """
+        try:
+            require(validate_risk(request), "risk_unavailable", "Risk coefficients are incomplete.")
+            model = self._model(request)
+            q = request.requirement.approved_quantity
+            cap = int(reference_cost / model.cost_unit * (1 + self._fraction(epsilon)))
+            # Exposure is Σ rᵢxᵢ / Q; the integer risk expression is Σ (rᵢ / risk_unit) xᵢ.
+            risk_cap = math.floor(reference_risk * q / model.risk_unit)
+            require(
+                max(cap, risk_cap) <= self.configuration.exact_integer_budget,
+                "unsupported_numeric_contract",
+                "Cost- or risk-cap RHS exceeds adapter budget.",
+            )
+            model.problem += model.cost <= cap, "epsilon_cost_cap"
+            model.problem += model.risk <= risk_cap, "reference_risk_cap"
+            largest = pulp.LpVariable("largest_quantity", 0, q, cat="Integer")
+            for i, x in enumerate(model.quantities):
+                model.problem += x <= largest, f"largest_quantity_{i}"
+            model.problem.setObjective(largest)
+            status = self._run(model, deadline)
+            if status is not PlanningStatus.OPTIMAL:
+                return self._outcome(status, model)
+            model.problem += largest == max(self._quantities(model)), "proven_minimum_largest"
+            for objective, weights, name in (
+                (model.risk, model.risks, "secondary_minimum_risk"),
+                (model.cost, model.costs, "tertiary_minimum_cost"),
+            ):
+                model.problem.setObjective(objective)
+                status = self._run(model, deadline)
+                if status is not PlanningStatus.OPTIMAL:
+                    return self._outcome(status, model)
+                optimum = sum(w * x for w, x in zip(weights, self._quantities(model), strict=True))
+                model.problem += objective == optimum, name
             return self._outcome(self._tie_break(model, deadline), model)
         except InvalidPlanningInput as exc:
             return SolveOutcome(PlanningStatus.INVALID_INPUT, code=exc.code)

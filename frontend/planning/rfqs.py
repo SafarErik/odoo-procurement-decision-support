@@ -2,12 +2,7 @@
 
 import reflex as rx
 
-from frontend.components.workflow import (
-    creation_steps,
-    field_hint,
-    source_badge,
-    source_explanation,
-)
+from frontend.components.workflow import creation_steps, field_hint, source_badge
 from frontend.planning.recovery import recovery
 from frontend.planning.state import PlanningState
 from frontend.theme import ACCENT, HAIRLINE, INK, MUTED
@@ -719,20 +714,12 @@ def rfqs_page() -> rx.Component:
                 loading_state("waiting_api"),
             ),
             rx.box(
-                source_explanation(),
-                rx.flex(
-                    rx.text(
-                        t("groups_updated"),
-                        " ",
-                        PlanningState.groups_retrieved_display,
-                        size="1",
-                        color=MUTED,
-                    ),
-                    rx.text(
-                        t("group_company"), " ", PlanningState.groups_company, size="1", color=MUTED
-                    ),
-                    gap="1rem",
-                    wrap="wrap",
+                rx.text(
+                    t("groups_updated"),
+                    " ",
+                    PlanningState.groups_retrieved_display,
+                    size="1",
+                    color=MUTED,
                     margin_bottom="1rem",
                 ),
                 _groups(),

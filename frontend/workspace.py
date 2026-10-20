@@ -249,10 +249,7 @@ def workspace_shell(content: rx.Component, *, active: str) -> rx.Component:
             _brand(),
             _navigation(active),
             rx.box(flex="1"),
-            rx.box(
-                language_switch(),
-                rx.text(t("beside_odoo"), size="1", opacity="0.75", margin_top="0.75rem"),
-            ),
+            language_switch(),
             direction="column",
             gap="2rem",
             class_name="rail",

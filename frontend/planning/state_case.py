@@ -1,5 +1,6 @@
 """One saved case: loading, tabs, original base, supplier overview and chart data."""
 
+import math
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -297,6 +298,14 @@ class CaseMixin(rx.State, mixin=True):
     # Chart and panel data (numbers stay numbers; text is already localized).
 
     @rx.var
+    def chart_exposure_domain(self) -> list[int]:
+        """Whole-point exposure axis around the saved plans, so small differences stay visible."""
+        values = [float(p["exposure_number"]) for p in self.plans]
+        if not values:
+            return [0, 100]
+        return [max(0, math.floor(min(values)) - 2), min(100, math.ceil(max(values)) + 2)]
+
+    @rx.var
     def chart_minimum(self) -> list[dict[str, Any]]:
         return [
             {
@@ -316,6 +325,20 @@ class CaseMixin(rx.State, mixin=True):
                 "exposure": float(p["exposure_number"]),
             }
             for p in self.plans[1:]
+            if p.get("stage") != "balanced"
+        ]
+
+    @rx.var
+    def chart_balanced(self) -> list[dict[str, Any]]:
+        """Separate series: its label sits left of the point, clear of close risk alternatives."""
+        return [
+            {
+                "name": p["title"],
+                "cost": float(p["cost_number"]),
+                "exposure": float(p["exposure_number"]),
+            }
+            for p in self.plans
+            if p.get("stage") == "balanced"
         ]
 
     @rx.var

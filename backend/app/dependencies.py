@@ -229,7 +229,12 @@ def preview_odoo_history(group_id):
         },
         "requirement_source": source,
         "policy_source": source,
-        "policy": {"max_suppliers": 2, "concentration_limit": "0.8", "epsilons": ["0.2"]},
+        "policy": {
+            "max_suppliers": 2,
+            "concentration_limit": "0.8",
+            "epsilons": ["0.05", "0.1", "0.2"],
+            "diversification_epsilon": "0.2",
+        },
         "suppliers": suppliers,
     }
     parsed = json.loads(capture)

@@ -3,7 +3,7 @@
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, INK, MUTED
+from frontend.theme import ACCENT, HAIRLINE, MUTED
 from frontend.ui import BUSY, card, decision_badge, error_state, loading_state, t
 from frontend.workspace import page_frame, workspace_shell
 
@@ -107,32 +107,6 @@ def home_page():
                 gap="1.5rem",
                 wrap="wrap",
                 padding_y="1.5rem",
-            ),
-            rx.flex(
-                *[
-                    rx.flex(
-                        rx.icon(icon, size=19, color=ACCENT),
-                        rx.box(
-                            rx.text(t(title), size="2", font_weight="650", color=INK),
-                            rx.text(t(body), size="2", color=MUTED),
-                        ),
-                        gap="0.65rem",
-                        align="start",
-                        flex="1",
-                        min_width="12rem",
-                    )
-                    for icon, title, body in (
-                        ("files", "home_source_title", "home_source_body"),
-                        ("chart-no-axes-combined", "home_compare_title", "home_compare_body"),
-                        ("file-check-2", "home_decide_title", "home_decide_body"),
-                    )
-                ],
-                gap="1.5rem",
-                wrap="wrap",
-                padding_y="1.5rem",
-                border_top=f"1px solid {HAIRLINE}",
-                border_bottom=f"1px solid {HAIRLINE}",
-                margin_bottom="2rem",
             ),
             rx.cond(
                 PlanningState.home_loading,

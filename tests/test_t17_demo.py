@@ -31,6 +31,9 @@ def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monk
         alternatives = report["base"]["snapshot"]["result"]["alternatives"]
         approved = report["approved"]["final_decision"]["approved_content"]
         assert approved["plan_index"] == (1 if alternatives else 0)
+        # The preview policy adds the balanced stage; it is stored, verified and approvable.
+        runs = report["base"]["snapshot"]["result"]["runs"]
+        assert runs[-1]["kind"] == "diversified" and runs[-1]["status"] == "optimal"
         assert report["no_award"]["final_decision"]["approved_content"] is None
         assert report["no_award"]["final_decision"]["audit"]["rationale"] == (
             "No purchase authorized in this separate demonstration."

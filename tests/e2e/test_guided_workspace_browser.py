@@ -42,7 +42,7 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
             ("overview", "Áttekintés"),
             ("suppliers", "Szállítók"),
             ("plans", "Tervek"),
-            ("scenarios", "Mi történne, ha…?"),
+            ("scenarios", "Mi lenne, ha…?"),
         ):
             page.get_by_role("tab", name=name, exact=True).click()
             expect(page.get_by_role("tab", name=name, exact=True)).to_have_attribute(
@@ -61,7 +61,7 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
     page.get_by_role("button", name="Kiválasztás", exact=True).first.click()
     page.get_by_role("button", name="Döntés áttekintése").click()
     page.wait_for_function(ACTIVE_TAB_VISIBLE)
-    page.get_by_role("button", name="Nincs odaítélés rögzítése").click()
+    page.get_by_role("button", name="Most nem rendelünk").click()
     page.locator("#final-actor").fill("Isolated usability test")
     page.locator("#final-reason").fill("The buyer requests revised supplier terms.")
     page.locator("input[name=demonstration]").check()
@@ -73,12 +73,12 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
     before = stack.client.get(f"/api/v2/procurement/planning-cases/{base['case_id']}").json()
     assert before["final_decision"] is None
     page.locator("#decision-review-button").click()
-    dialog.get_by_role("button", name="Nincs odaítélés megerősítése").click()
-    expect(page.locator("#saved-decision-heading")).to_have_text("Nincs odaítélés")
+    dialog.get_by_role("button", name="Megerősítem: nem rendelünk").click()
+    expect(page.locator("#saved-decision-heading")).to_have_text("Nem rendelünk")
     expect(page.get_by_role("button", name="Jóváhagyott PDF megtekintése")).to_have_count(0)
     closed_url = page.url
     page.reload()
-    expect(page.locator("#saved-decision-heading")).to_have_text("Nincs odaítélés")
+    expect(page.locator("#saved-decision-heading")).to_have_text("Nem rendelünk")
     page.wait_for_function(ACTIVE_TAB_VISIBLE)
     assert page.url == closed_url
     assert _no_horizontal_scroll(page)

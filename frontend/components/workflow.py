@@ -51,16 +51,3 @@ def creation_steps():
         class_name="workflow-steps",
         border_bottom=f"1px solid {HAIRLINE}",
     )
-
-
-def source_explanation():
-    return rx.flex(
-        rx.icon("database", size=19, color=ACCENT, flex_shrink="0"),
-        rx.box(
-            rx.text(t("source_explainer_title"), font_weight="650", size="2"),
-            rx.text(t("source_explainer_body"), color=MUTED, size="2", max_width="76ch"),
-        ),
-        gap="0.75rem",
-        padding="1rem 0",
-        align="start",
-    )

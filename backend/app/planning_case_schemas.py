@@ -68,6 +68,7 @@ class PolicyRequest(StrictModel):
     max_suppliers: PositiveCount
     concentration_limit: Money | None
     epsilons: list[Money] = Field(min_length=1, max_length=3)
+    diversification_epsilon: Money | None = None
 
 
 class CommercialSupplierRequest(StrictModel):
@@ -143,6 +144,7 @@ class OdooHistoryTermsRequest(StrictModel):
                 p.max_suppliers,
                 None if p.concentration_limit is None else Decimal(p.concentration_limit),
                 tuple(Decimal(e) for e in p.epsilons),
+                None if p.diversification_epsilon is None else Decimal(p.diversification_epsilon),
             ),
             self.policy_source.attribution("policy"),
             suppliers,

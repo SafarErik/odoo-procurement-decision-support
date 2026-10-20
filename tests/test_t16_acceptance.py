@@ -38,7 +38,7 @@ def test_equal_cost_and_endpoint_exposures_stay_on_the_fixed_0_100_scale(stored_
     assert [p["exposure_number"] for p in display.plans] == ["0.0", "100.0"]
     state = PlanningState(_reflex_internal_init=True)
     state._show(display)
-    assert state.chart_minimum == [{"name": "Minimum cost", "cost": 102.0, "exposure": 0.0}]
+    assert state.chart_minimum == [{"name": "Cheapest plan", "cost": 102.0, "exposure": 0.0}]
     assert [p["exposure"] for p in state.chart_alternatives] == [100.0]
 
 
@@ -47,7 +47,7 @@ def test_single_saved_plan_has_honest_alternative_message_and_no_fabricated_poin
     payload["snapshot"]["result"]["alternatives"] = []
     display = _map_case(payload, payload["case_id"])
     assert len(display.plans) == 1 and display.plans[0]["cost_number"]
-    assert "No distinct alternative" in display.details["alternative_notice"]
+    assert "No lower-risk plan" in display.details["alternative_notice"]
     payload["snapshot"]["result"]["status"] = "solver_error"
     display = _map_case(payload, payload["case_id"])
     assert "did not finish" in display.details["alternative_notice"]

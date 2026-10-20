@@ -302,7 +302,6 @@ def _context_panel():
             gap="0.5rem",
             margin_top="1.25rem",
         ),
-        rx.callout(t("cases_note"), icon="info", size="1", margin_top="1.25rem"),
         position="sticky",
         top="1.5rem",
     )

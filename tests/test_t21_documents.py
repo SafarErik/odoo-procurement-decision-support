@@ -56,7 +56,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert response.headers["content-type"] == "application/pdf"
     assert response.headers["content-language"] == "hu"
     assert response.headers["content-disposition"].startswith("inline;")
-    assert "megrendelesi-javaslat" in response.headers["content-disposition"]
+    assert "jovahagyott-beszerzesi-terv" in response.headers["content-disposition"]
     assert response.headers["x-approved-content-hash"] == decision["approved_content_hash"]
     assert response.headers["x-pdf-reference"] == (
         f"t17-approved-pdf-v2:{base['case_id']}:hu:{decision['approved_content_hash']}"
@@ -85,7 +85,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert required in compact
     allocated = [a for a in plan["allocations"] if a["quantity"] > 0]
     pages = [page.extract_text() for page in reader.pages]
-    proposals = [p for p in pages if "Megrendelési javaslat" in p]
+    proposals = [p for p in pages if "Rendelési tétel" in p]
     assert len(proposals) == len(allocated)
     for page, allocation in zip(proposals, allocated, strict=True):
         assert allocation["supplier_id"] in page and str(allocation["quantity"]) in page
@@ -100,7 +100,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     english = client.get(url, params={"language": "en"}, headers=headers())
     assert english.status_code == 200 and english.headers["content-language"] == "en"
     english_text = extracted(english.content)
-    assert english_text.count("Purchase order proposal") == len(allocated)
+    assert english_text.count("Order line") == len(allocated)
     assert "Audit appendix" in english_text and "Approved procurement plan" in english_text
     assert english.content != response.content and len(uow.documents.rows) == 2
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)
@@ -335,3 +335,17 @@ def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption)
     )
     # Hungarian is the default document language, so the message is Hungarian too.
     assert result is None and error == tr("err_pdf", "hu") and TOKEN not in error
+
+
+def test_pdf_names_a_plan_proved_only_by_the_balanced_stage(configured):
+    client, _, base, *_ = configured
+    decision, _ = approve(client, base, 1)
+    content = deepcopy(decision["approved_content"])
+    for run in content["planning_snapshot"]["result"]["runs"]:
+        if run["plan_index"] == 1:
+            run["kind"] = "diversified"
+    hu, _ = render_approved_pdf(content, "hu")
+    en, _ = render_approved_pdf(content, "en")
+    assert "Kiegyensúlyozott terv" in extracted(hu)
+    assert "Balanced plan" in extracted(en)
+    assert "Rendelési tétel – jóváhagyott terv" in extracted(hu)

@@ -22,10 +22,23 @@ def _plan_option(plan):
                 flex_shrink="0",
             ),
             rx.box(
-                rx.text(plan["title"], font_weight="650", color=INK),
+                rx.flex(
+                    rx.text(plan["title"], font_weight="650", color=INK),
+                    rx.cond(
+                        plan["hint"] != "",
+                        rx.badge(plan["hint"], color_scheme="jade", size="1"),
+                    ),
+                    rx.cond(
+                        plan["balanced"] != "",
+                        rx.badge(plan["balanced"], color_scheme="iris", size="1"),
+                    ),
+                    gap="0.5rem",
+                    align="center",
+                    wrap="wrap",
+                ),
                 rx.cond(
-                    plan["hint"] != "",
-                    rx.text(plan["hint"], size="1", color=MUTED),
+                    plan["budget"] != "",
+                    rx.text(plan["budget"], size="1", color=MUTED),
                 ),
                 flex="1",
                 text_align="left",
@@ -175,36 +188,21 @@ def _options():
     )
 
 
-def _suppliers_summary():
+def _suppliers_tile():
     counts = PlanningState.supplier_class_counts
     return card(
+        rx.text(t("kpi_suppliers"), size="2", color=MUTED),
+        rx.text(counts["total"], size="7", font_weight="650", color=INK, margin_top="0.25rem"),
         rx.flex(
-            rx.box(
-                rx.text(
-                    counts["total"],
-                    " ",
-                    t("suppliers_evaluated"),
-                    font_weight="650",
-                    color=INK,
-                ),
-                rx.text(
-                    counts["flagged"],
-                    " ",
-                    t("suppliers_flagged"),
-                    size="2",
-                    color=MUTED,
-                ),
-            ),
-            rx.button(
+            rx.text(counts["flagged"], " ", t("suppliers_flagged"), size="2", color=MUTED),
+            rx.link(
                 t("inspect_suppliers"),
-                rx.icon("arrow-right", size=16),
+                href="#",
                 on_click=PlanningState.change_view("suppliers"),
-                disabled=BUSY,
-                variant="ghost",
+                size="2",
             ),
             justify="between",
-            align="center",
-            gap="1rem",
+            gap="0.5rem",
             wrap="wrap",
         ),
     )
@@ -222,12 +220,12 @@ def overview_view() -> rx.Component:
                 ),
             ),
             kpi("kpi_plans", PlanningState.details["plan_count"]),
-            kpi("kpi_decision", PlanningState.details["final_outcome_label"]),
+            _suppliers_tile(),
             columns=rx.breakpoints(initial="1", sm="3"),
             gap="1rem",
         ),
         rx.grid(
-            rx.flex(_options(), _suppliers_summary(), direction="column", gap="1rem"),
+            _options(),
             _next_step(),
             columns=rx.breakpoints(initial="1", lg="minmax(0,1.6fr) minmax(0,1fr)"),
             gap="1rem",

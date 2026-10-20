@@ -50,19 +50,12 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "Új beszerzés",
         "New procurement",
     ),
-    "home_title": (
-        "Átlátható beszerzés. Megalapozott döntés.",
-        "Clear procurement. Informed decisions.",
-    ),
+    "home_title": ("Beszerzési döntések", "Procurement decisions"),
     "home_intro": (
-        "Indítson új összehasonlítást az Odoo ajánlataiból, vagy folytassa egy mentett ügy "
-        "értékelését.",
-        "Start a comparison from Odoo quotations or continue evaluating a saved case.",
+        "Folytasson egy döntésre váró ügyet, vagy indítson újat az Odoo-ajánlatokból.",
+        "Continue a case that awaits a decision, or start a new one from Odoo quotations.",
     ),
-    "new_procurement": (
-        "Új beszerzési döntés",
-        "New procurement decision",
-    ),
+    "new_procurement": ("Új beszerzés", "New procurement"),
     "continue_case": (
         "Ügy folytatása",
         "Continue case",
@@ -79,43 +72,14 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "Legutóbb mentett ügyek",
         "Recently saved cases",
     ),
-    "home_pending_empty": (
-        "Nincs döntésre váró mentett ügy. Új összehasonlítást az Odoo ajánlataiból indíthat.",
-        "No saved cases await a decision. Start a new comparison from Odoo quotations.",
-    ),
+    "home_pending_empty": ("Nincs döntésre váró ügy.", "No case is waiting for a decision."),
     "home_recent_empty": (
         "Még nincs mentett ügy. Az első terv elkészítése után itt folytathatja a munkát.",
         "No saved cases yet. Your first saved plan will appear here.",
     ),
     "home_scope": (
-        "Listánként a legutóbbi legfeljebb öt ügy látható. A mentett tervek megtekintése "
-        "nem kér új adatokat az Odoo-ból.",
-        "Each list shows up to five recent cases. Viewing saved plans does not request new "
-        "Odoo data.",
-    ),
-    "home_source_title": (
-        "1. Ellenőrizze az adatokat",
-        "1. Check the inputs",
-    ),
-    "home_source_body": (
-        "Odoo-ajánlatok és beszerzői feltételek.",
-        "Odoo quotations and buyer-supplied terms.",
-    ),
-    "home_compare_title": (
-        "2. Mérlegelje a terveket",
-        "2. Compare the plans",
-    ),
-    "home_compare_body": (
-        "Költség, kitettség és beszállítói megosztás.",
-        "Cost, exposure and supplier allocation.",
-    ),
-    "home_decide_title": (
-        "3. Rögzítse a döntését",
-        "3. Record your decision",
-    ),
-    "home_decide_body": (
-        "Jóváhagyás után letölthető PDF-javaslat.",
-        "Download a proposal PDF after approval.",
+        "Listánként a legutóbbi öt ügy látható.",
+        "Each list shows the five most recent cases.",
     ),
     "step_source": (
         "Ajánlatok",
@@ -148,18 +112,6 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
     "source_suggested": (
         "Javasolt érték",
         "Suggested value",
-    ),
-    "source_explainer_title": (
-        "Honnan jönnek az ajánlatok?",
-        "Where do these quotations come from?",
-    ),
-    "source_explainer_body": (
-        "Az Odoo-ban már összekapcsolt ajánlatkéréseket mutatjuk, csoportonként. Egy "
-        "csoport egy termék beszállítói ajánlatait fogja össze. Az árakat és előzményeket "
-        "beolvassuk; az igényt és a kiegészítő feltételeket Ön ellenőrzi.",
-        "These groups contain requests for quotation already linked in Odoo. Each group "
-        "brings together supplier quotations for one product. We read prices and history; "
-        "you review the demand and supplemental terms.",
     ),
     "rfqs_title": (
         "Odoo-ajánlatok kiválasztása",
@@ -198,9 +150,9 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "Other status",
     ),
     "quotation_quantity_note": (
-        "Az ajánlati mennyiség nem a jóváhagyott beszerzési igény. A szükséges mennyiséget "
-        "a következő lépésben adja meg.",
-        "Quoted quantities are not approved demand. Enter the required quantity in the next step.",
+        "Az ajánlati mennyiség nem azonos a beszerzendő mennyiséggel; azt a következő "
+        "lépésben adja meg.",
+        "The quoted quantity is not the quantity to buy; you enter that in the next step.",
     ),
     "choose_group": (
         "Ajánlatok megtekintése",
@@ -221,10 +173,6 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
     "groups_updated": (
         "Ajánlatok lekérve:",
         "Quotations retrieved:",
-    ),
-    "group_company": (
-        "Vállalati hatókör:",
-        "Company scope:",
     ),
     "continue_terms": (
         "Tovább a beszállítói feltételekhez",
@@ -269,11 +217,10 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "supplier commitments.",
     ),
     "policy_explanation": (
-        "Ezek az alkalmazás megjelenített alapszabályai. A költségkeret az olcsóbb tervhez "
-        "képest megengedett többlet, amelyen belül kisebb kitettségű alternatívát keresünk.",
-        "These are the application's displayed default rules. The cost allowance is the "
-        "permitted premium over the cheapest plan when searching for a lower-exposure "
-        "alternative.",
+        "A költségkeret megmutatja, legfeljebb mennyivel lehet drágább egy alternatíva a "
+        "legolcsóbb tervnél. Ezen belül kisebb kockázatú megosztást keresünk.",
+        "The allowance is how much more an alternative may cost than the cheapest plan; "
+        "within it we look for a lower-risk split.",
     ),
     "draft_session_note": (
         "Az előkészítés még nincs mentve. A lépések között visszaléphet; az oldal "
@@ -290,10 +237,8 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "Calculate and save plans",
     ),
     "review_body": (
-        "Ellenőrizze az igényt, a beszállítói feltételeket és az adatforrásokat. A "
-        "tervkészítés elmenti az összehasonlítást; a jóváhagyás külön lépés.",
-        "Check demand, supplier terms and sources. Calculating plans saves the comparison; "
-        "approval is a separate step.",
+        "Ellenőrizze az igényt, a beszállítói feltételeket és az adatok forrását.",
+        "Check the demand, the supplier terms and where each value comes from.",
     ),
     "review_sources": (
         "A javaslaton maradt értékeket külön jelöljük. Az ár Odoo-adat; az itt ellenőrzött "
@@ -321,16 +266,7 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
         "Nincs jóváhagyható terv. Tekintse át az eredmény állapotát és magyarázatát.",
         "No plan can be approved. Review the outcome and its explanation.",
     ),
-    "tab_scenarios": (
-        "Mi történne, ha…?",
-        "What if…?",
-    ),
-    "scenario_optional": (
-        "Választható vizsgálat: az alapügy változatlan marad. A módosított ár "
-        "feltételezés, nem új Odoo-ajánlat.",
-        "Optional analysis: the base case stays unchanged. A modified price is an "
-        "assumption, not a new Odoo quotation.",
-    ),
+    "tab_scenarios": ("Mi lenne, ha…?", "What if…?"),
     "exposure_explained": (
         "A kitettség a beszállítói értékelések mennyiséggel súlyozott jelzőszáma. Kisebb "
         "érték kisebb modellezett kitettséget jelent, nem garantált szállítást vagy "
@@ -353,5 +289,23 @@ REVAMP_TEXT: dict[str, tuple[str, str]] = {
     "suggested_terms": (
         "Javaslaton maradt értékek",
         "Unchanged suggested values",
+    ),
+    "plan_budget": ("legfeljebb +{allowance} többletköltséggel", "within +{allowance} extra cost"),
+    "kpi_suppliers": ("Értékelt szállítók", "Assessed suppliers"),
+    "plan_balanced": ("Kiegyensúlyozott terv", "Balanced plan"),
+    "plan_balanced_hint": ("kiegyensúlyozott", "balanced"),
+    "policy_balanced": (
+        " · kiegyensúlyozott terv {allowance} többletköltségig",
+        " · balanced plan up to {allowance} extra cost",
+    ),
+    "largest_share_label": ("Legnagyobb függés egy szállítótól", "Largest share of one supplier"),
+    "balanced_explained": (
+        "A kiegyensúlyozott terv a lehető legkisebbre veszi azt a mennyiséget, amely egyetlen "
+        "szállítótól függ, a megadott költségkereten belül, és a kockázati kitettsége nem "
+        "lehet nagyobb a legolcsóbb tervénél. Ha egy szállító kiesik, legfeljebb ennyi "
+        "hiányzik az igényből.",
+        "The balanced plan minimises the quantity that depends on a single supplier, within "
+        "the cost allowance and without a higher risk exposure than the cheapest plan. If one "
+        "supplier drops out, at most this share of the demand is missing.",
     ),
 }

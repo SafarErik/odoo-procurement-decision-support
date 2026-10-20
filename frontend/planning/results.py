@@ -51,16 +51,22 @@ def _comparison_table():
         rx.table.root(
             rx.table.header(
                 rx.table.row(
-                    rx.table.column_header_cell(t("col_metric"), min_width="9rem"),
+                    rx.table.column_header_cell(t("col_metric"), min_width="8rem"),
                     rx.foreach(
                         PlanningState.plans,
                         lambda plan: rx.table.column_header_cell(
-                            rx.text(plan["title"], font_weight="650", color=INK),
+                            rx.text(
+                                plan["title"],
+                                font_weight="650",
+                                color=INK,
+                                overflow_wrap="normal",
+                                hyphens="auto",
+                            ),
                             rx.cond(
                                 plan["hint"] != "",
                                 rx.text(plan["hint"], size="1", color=MUTED),
                             ),
-                            min_width="11rem",
+                            min_width="7.5rem",
                             vertical_align="top",
                             background=rx.cond(_is_selected(plan), SELECTED_BG, "transparent"),
                         ),
@@ -117,6 +123,12 @@ def _comparison_table():
                         PlanningState.plans, lambda plan: _cell(plan, plan["exposure_display"])
                     ),
                 ),
+                rx.table.row(
+                    rx.table.row_header_cell(t("largest_share_label")),
+                    rx.foreach(
+                        PlanningState.plans, lambda plan: _cell(plan, plan["largest_share"])
+                    ),
+                ),
             ),
             variant="ghost",
             size="2",
@@ -161,11 +173,17 @@ def _plan_summary(plan):
     return rx.box(
         rx.flex(
             rx.heading(plan["title"], as_="h3", size="4"),
-            rx.cond(plan["hint"] != "", rx.badge(plan["hint"], color_scheme="jade")),
+            rx.flex(
+                rx.cond(plan["hint"] != "", rx.badge(plan["hint"], color_scheme="jade")),
+                rx.cond(plan["balanced"] != "", rx.badge(plan["balanced"], color_scheme="iris")),
+                gap="0.35rem",
+                wrap="wrap",
+            ),
             justify="between",
             wrap="wrap",
             gap="0.5rem",
         ),
+        rx.cond(plan["budget"] != "", rx.text(plan["budget"], size="1", color=MUTED)),
         rx.text(plan["cost"], size="7", font_weight="650", margin_top="0.75rem", color=INK),
         rx.text(plan["premium_display"], size="2", color=MUTED, margin_top="0.25rem"),
         rx.flex(
@@ -174,6 +192,13 @@ def _plan_summary(plan):
             justify="between",
             gap="0.75rem",
             margin_top="1rem",
+        ),
+        rx.flex(
+            rx.text(t("largest_share_label"), size="2", color=MUTED),
+            rx.text(plan["largest_share"], font_weight="650", size="2"),
+            justify="between",
+            gap="0.75rem",
+            margin_top="0.35rem",
         ),
         rx.text(plan["allocation_summary"], size="2", margin_top="0.75rem"),
         _selection_button(plan),
@@ -296,6 +321,10 @@ def plans_view() -> rx.Component:
                     rx.el.details(
                         rx.el.summary(t("chart_exposure"), font_weight="550"),
                         muted("exposure_explained", margin_top="0.5rem"),
+                    ),
+                    rx.el.details(
+                        rx.el.summary(t("largest_share_label"), font_weight="550"),
+                        muted("balanced_explained", margin_top="0.5rem"),
                     ),
                 ),
                 card(_constraint_notes()),

@@ -153,17 +153,6 @@ def _messages() -> rx.Component:
 def _workspace() -> rx.Component:
     return rx.box(
         _header(),
-        rx.flex(
-            rx.icon("route", size=18, color=ACCENT),
-            rx.text(PlanningState.next_action_text, size="2", font_weight="550"),
-            gap="0.6rem",
-            align="center",
-            padding="0.85rem 1rem",
-            background="#e5ede8",
-            border_radius="10px",
-            margin_bottom="1.25rem",
-            role="status",
-        ),
         rx.tabs.root(
             rx.tabs.list(
                 *[

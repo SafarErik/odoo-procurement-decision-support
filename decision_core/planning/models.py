@@ -1,6 +1,6 @@
 """Immutable one-product planning contracts. Critical business fields are explicit."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
@@ -150,9 +150,14 @@ class PlanningPolicy:
     max_suppliers: int
     concentration_limit: Decimal | None
     epsilons: tuple[Decimal, ...]
+    # Cost allowance for the balanced (min–max supplier share) alternative; None skips it.
+    # Recorded only when set, so snapshots saved before it existed keep their exact JSON.
+    diversification_epsilon: Decimal | None = field(default=None, metadata={"omit_default": True})
 
     def __post_init__(self):
         integer(self.max_suppliers, "maximum supplier count", 1)
+        if self.diversification_epsilon is not None:
+            decimal(self.diversification_epsilon, "diversification epsilon")
         if self.concentration_limit is not None:
             decimal(self.concentration_limit, "concentration", positive=True)
             require(self.concentration_limit <= 1, "invalid_concentration", "Limit exceeds 1.")
@@ -251,6 +256,8 @@ class AlternativeRun:
     status: PlanningStatus
     plan_index: int | None
     code: str
+    # "risk": minimum exposure within the allowance; "diversified": minimum largest share.
+    kind: str = field(default="risk", metadata={"omit_default": True})
 
 
 @dataclass(frozen=True, slots=True)

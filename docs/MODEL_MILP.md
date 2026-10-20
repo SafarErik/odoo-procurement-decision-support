@@ -9,7 +9,8 @@ One product, one approved integer demand `Q`, suppliers `i = 1..N`. Per supplier
 unit price `p_i`, capacity `cap_i`, availability, hard MOQ or explicit "no MOQ",
 quantity ranges in which the quoted price and the delivery promise are valid,
 promised date. Policy: maximum number of suppliers `K`, optional concentration
-limit `c` (share of `Q`), list of cost tolerances `ε`. Risk coefficient
+limit `c` (share of `Q`), list of cost tolerances `ε`, optional balanced-plan
+tolerance `ε_d`. Risk coefficient
 `r_i ∈ [0,1]` comes from the supplier evaluation (higher = worse).
 
 ## 2. Bounds (eligibility before optimization)
@@ -40,7 +41,20 @@ Objectives (lexicographic, each solved to proven optimality):
 2. **Alternatives**, for every `ε`: `min R(x) = Σ r_i x_i` subject to
    `C(x) ≤ (1+ε)·C*`, then minimum cost among those. Reported risk exposure is
    `R(x)/Q`.
-3. **Deterministic tie-break**: fix quantities one by one in supplier-id order
+3. **Balanced alternative** (when `ε_d` is set; ADR-035 proposal): with an extra
+   integer `m`,
+
+   ```text
+   x_i ≤ m                         for every supplier
+   C(x) ≤ (1+ε_d)·C*               same kind of cost cap
+   R(x) ≤ R(x_min)                 never more exposure than the minimum-cost plan
+   ```
+
+   `min m`, then `min R(x)`, then `min C(x)`. `m` is the largest quantity that
+   depends on one supplier, i.e. the most that one supplier's outage can take from
+   `Q`; the plan reports it as `largest_share = m/Q`. It is a separate run with
+   `kind = "diversified"`, recorded after the `ε` runs.
+4. **Deterministic tie-break**: fix quantities one by one in supplier-id order
    (maximize each in turn) so equal-cost optima always yield the same plan.
 
 Prices and scores are scaled to exact integers (rational arithmetic), so the solver
@@ -94,7 +108,8 @@ invented); totals across different demands are not like-for-like savings.
   suppliers has the same exposure as buying from one. Capacity limits and the
   concentration limit `c` can make several suppliers necessary; the supplier-count
   limit `K` is only an upper bound on how many suppliers may be used and never
-  forces a split.
+  forces a split. The balanced alternative (objective 3) offers a split explicitly;
+  it does not change the exposure measure, and with `K = 2` its best is 50/50.
 - The score is an uncalibrated ranking signal, not a failure probability.
 - Single period, single product; no transport cost or lead-time dimension beyond
   the date eligibility rule.

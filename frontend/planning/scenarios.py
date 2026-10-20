@@ -48,7 +48,6 @@ def _scenario_form() -> rx.Component:
     return card(
         heading("scenario_new", size="4"),
         muted("scenario_new_body", margin_y="0.35rem", max_width="70ch"),
-        rx.callout(t("scenario_optional"), icon="info", size="1", margin_y="1rem"),
         rx.el.form(
             rx.grid(
                 rx.box(
@@ -336,7 +335,6 @@ def _saved_scenarios() -> rx.Component:
     loading = PlanningState.base_scenarios_loading | (PlanningState.base_scenarios_case == "")
     return card(
         heading("saved_scenarios", size="4", id="base-scenarios-heading"),
-        muted("base_scenarios_body", margin_top="0.25rem", margin_bottom="0.5rem"),
         rx.grid(
             rx.foreach(PlanningState.base_scenarios, _saved_scenario),
             columns=rx.breakpoints(initial="1", lg="2"),

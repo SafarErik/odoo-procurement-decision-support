@@ -1,7 +1,7 @@
 """Exact JSON snapshot encoding and explicit T13/T14 stored-value reconstruction."""
 
 import json
-from dataclasses import asdict, is_dataclass
+from dataclasses import fields, is_dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from fractions import Fraction
@@ -40,7 +40,12 @@ def decimal_text(value: Decimal) -> str:
 
 def json_value(value):
     if is_dataclass(value):
-        return json_value(asdict(value))
+        # Fields marked omit_default are left out at their default, keeping older records exact.
+        return {
+            f.name: json_value(getattr(value, f.name))
+            for f in fields(value)
+            if not (f.metadata.get("omit_default") and getattr(value, f.name) == f.default)
+        }
     if isinstance(value, Decimal):
         return decimal_text(value)
     if isinstance(value, datetime):
@@ -91,6 +96,7 @@ def read_request(value: dict) -> PlanningRequest:
         p["max_suppliers"],
         None if p["concentration_limit"] is None else Decimal(p["concentration_limit"]),
         tuple(Decimal(e) for e in p["epsilons"]),
+        None if p.get("diversification_epsilon") is None else Decimal(p["diversification_epsilon"]),
     )
     risk = tuple(
         RiskCoefficient(
@@ -180,7 +186,11 @@ def read_result(value: dict) -> PlanningResult:
     alternatives = tuple(plan(p) for p in value["alternatives"])
     runs = tuple(
         AlternativeRun(
-            Decimal(r["epsilon"]), PlanningStatus(r["status"]), r["plan_index"], r["code"]
+            Decimal(r["epsilon"]),
+            PlanningStatus(r["status"]),
+            r["plan_index"],
+            r["code"],
+            r.get("kind", "risk"),
         )
         for r in value["runs"]
     )
@@ -199,6 +209,8 @@ def read_result(value: dict) -> PlanningResult:
     for run in runs:
         if not run.epsilon.is_finite() or run.epsilon < 0:
             raise ValueError("Invalid recorded epsilon.")
+        if run.kind not in ("risk", "diversified"):
+            raise ValueError("Invalid recorded alternative kind.")
         if run.status is PlanningStatus.OPTIMAL:
             if (
                 minimum is None
