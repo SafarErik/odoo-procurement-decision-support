@@ -1,7 +1,8 @@
 # Measured limitations and further development
 
 Input for thesis chapter 9 (further development) and the limitation paragraphs of
-chapters 5 and 7. Status 2026-10-18 (P4). Each item states what was **measured or
+chapters 5 and 7. Status 2026-10-19 (P4 plus the external-review fixes in
+[REVIEW_FIXES](handoffs/REVIEW_FIXES.md)). Each item states what was **measured or
 observed**, links the evidence, and proposes a concrete next step. Proposals are not
 part of the accepted scope and are not implemented.
 
@@ -31,10 +32,15 @@ seeding day; only business dates are back-dated.
 
 **Consequence.** Metrics validate the method, not real supplier performance.
 
-**Proposal.** Run the unchanged extraction and training (`python -m tools.train_history_model
-all`) on an anonymised copy of a real company's Odoo purchase history (≥ 12 months,
-≥ 30 suppliers), report the same held-out metrics, and add a data-quality report
-(missing Expected Arrival, manual receipt corrections, returns).
+**Proposal.** The pipeline is adaptable to observed Odoo history, not usable on it
+unchanged. The data origin is now an explicit parameter (`--data-origin observed` on
+extraction, recorded in the dataset card and model metadata, and checked against
+`ODOO_HISTORY_DATA_ORIGIN` at runtime), so an observed-history model is technically
+accepted. Before its scores are trusted, it needs a separate validation on real data:
+run the extraction and training on an anonymised copy of a real company's Odoo purchase
+history (≥ 12 months, ≥ 30 suppliers), check that the label definition and feature
+windows fit that company's receipt practice, report the same held-out metrics, and add a
+data-quality report (missing Expected Arrival, manual receipt corrections, returns).
 
 ## L2 Tree below a hand-written rule on unseen suppliers
 
@@ -44,8 +50,10 @@ all`) on an anonymised copy of a real company's Odoo purchase history (≥ 12 mo
 the stored export without retraining: artifact hash, export hash, train split and every
 metric are identical to the P1 report (`unchanged: true`).
 
-**Why.** The generator's latent variable is an on-time probability, so the on-time rate
-is nearly sufficient and the 80 % threshold matches the generator.
+**Possible explanation (not tested).** The generator's latent variable is an on-time
+probability, so the on-time rate may be nearly sufficient, and the 80 % threshold is
+close to the generator's profiles. The measurement above does not show which cause
+dominates; the drift in L3 is a second candidate.
 
 **Proposal.** (a) Keep the expert rule as a mandatory baseline and show it next to the
 tree in the UI; (b) add class weights or threshold tuning for problematic recall, chosen
@@ -81,26 +89,36 @@ frequency) before the score enters the MILP.
 ε = 0.2: 120 + 80 units from two suppliers both scored 0.3333 → exposure **0.3333**,
 cost 293,132 HUF (+1.6 %). Splitting between two equally scored suppliers gives exactly
 the exposure of buying everything from one of them: Σrᵢxᵢ/Q is a weighted average.
-Diversification comes only from the concentration limit and K.
+Capacity and the concentration limit can make several suppliers necessary; K only caps
+how many may be used and never forces a split.
 
-**Proposal.** Add a concave or scenario-based risk term while staying a MILP: e.g.
-expected shortfall over joint-failure scenarios with binary indicators, or a piecewise
-linear penalty on each supplier's share; compare plans on simulated delivery outcomes.
+**Proposal.** Keep the model a MILP and make concentration costly explicitly: (a) a
+piecewise-linear convex penalty on each supplier's share (increasing slopes, so splitting
+is rewarded), or (b) explicit outage scenarios (each supplier, or a pair, fails to
+deliver) with binary indicators and an expected or worst-case shortfall term. A concave
+share penalty is not a substitute: it can reward concentration and, when minimised, is
+not representable as a MILP without extra binary variables. Compare plans on simulated
+delivery outcomes.
 
 ## L6 Buyer terms are defaults, not Odoo facts
 
 **Observed.** Odoo quotations carry price, quantity and dates but no supplier capacity or
 MOQ. The preview proposes source-attributed defaults (`buyer_default_terms`): capacity
-⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε = 0.2. The demonstration and
-the evaluation use these defaults; the buyer can change them before saving. Since the
+⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε = 0.2. The preview also proposes price and delivery
+quantity validity ranges of 1–1000 per supplier. The demonstration and the evaluation use
+these defaults; the buyer can change all of them, including both ranges, before saving,
+and the pre-save review lists both ranges and marks values still at the suggestion. Since the
 [L6 provenance handoff](handoffs/L6_TERMS_PROVENANCE.md), a case saved in the UI records per
 supplier and for the requirement which values were kept from the suggestion
 (`buyer_reviewed_terms`, `kept-suggested=…`); the policy keeps `buyer_default_terms`. The
 values are still not supplier-confirmed.
 
-**Proposal.** Read capacity and MOQ from Odoo where they exist (vendor pricelist
-`product.supplierinfo` minimum quantity; a custom capacity field in the history addon)
-and keep the defaults only as an explicit fallback with their own source type.
+**Proposal.** Read supplier-confirmed capacity and hard MOQ from Odoo once a source for
+them exists (e.g. dedicated fields in the history addon, maintained by purchasing), and
+keep the defaults only as an explicit fallback with their own source type. The vendor
+pricelist minimum quantity (`product.supplierinfo.min_qty`) is not such a source: it is
+the quantity from which a price applies, not a hard minimum order (ADR-017); at most it
+can inform the price validity range.
 
 ## L7 One product, one period
 

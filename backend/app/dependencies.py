@@ -13,6 +13,7 @@ from application.planning_history import (
     HistoryCaptureError,
     build_capture,
     capture_features,
+    capture_origin,
     history_query,
 )
 from application.planning_serialization import json_value
@@ -119,7 +120,14 @@ def capture_odoo_history(group_id):
         contexts = tuple(
             Context(o.supplier_id, company, line.product_id, line.uom_id) for o in case.offers
         )
-        return case, code, observed, build_capture(snapshot, contexts, settings.odoo_database)
+        return (
+            case,
+            code,
+            observed,
+            build_capture(
+                snapshot, contexts, settings.odoo_database, settings.odoo_history_data_origin
+            ),
+        )
 
     try:
         return asyncio.run(read())
@@ -155,6 +163,8 @@ def load_history_model():
     model, manifest = load_model(directory, trusted_local=True)
     if model.metadata["database"] != settings.odoo_database:
         raise ValueError("The history model was trained on another Odoo database.")
+    if model.metadata["data_origin"] != settings.odoo_history_data_origin:
+        raise ValueError("The history model was trained on history of another data origin.")
     return model, manifest
 
 
@@ -175,10 +185,9 @@ def preview_odoo_history(group_id):
     """Read-only preview with suggested buyer terms; nothing is stored."""
     case, code, observed, capture = capture_odoo_history(group_id)
     features = capture_features(capture)
-    readiness, origin = "ready", "unknown"
+    readiness, origin = "ready", capture_origin(capture)
     try:
         model, _ = load_history_model()
-        origin = model.metadata["data_origin"]
         if model.metadata["company_id"] != case.offers[0].company_id:
             raise ValueError("Model company mismatch.")
     except Exception:

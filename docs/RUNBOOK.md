@@ -82,7 +82,8 @@ python -m tools.dev odoo-down
    access**, add it to `T7-S Inventory-History Projection Reader`; temporarily enable
    **Settings > Permissions > Customers can generate API Keys**, create the key at
    `/my/security?debug=1`, disable the setting again → `ODOO_T7S_API_KEY`.
-7. `ODOO_DATABASE=pdss_history_gen`.
+7. `ODOO_DATABASE=pdss_history_gen` and `ODOO_HISTORY_DATA_ORIGIN=generated` (the
+   declared origin of its purchase history; the default).
 
 Rollback: delete the database in the database manager. Earlier setups (T6/T7 fixtures)
 are in [history/](history/).
@@ -108,6 +109,11 @@ is written to `.artifacts/seed/manifest.json` (`purchase_group_id` is needed bel
 ```powershell
 python -m tools.train_history_model all   # read-only extraction, training, report
 ```
+
+`--data-origin generated|observed` (default `generated`) declares what the database
+holds; it is stored in the export, the dataset card and the model metadata. The
+backend only uses a model whose origin equals `ODOO_HISTORY_DATA_ORIGIN`, and the
+origin is frozen in every case's history capture.
 
 Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/model`.
 In the UI's **Odoo** tab, **Load open quotation groups** lists the company's open

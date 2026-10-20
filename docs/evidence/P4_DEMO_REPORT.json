@@ -1,9 +1,9 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-18T22:35:50+00:00",
+  "generated_at": "2026-10-20T07:30:20+00:00",
   "repository": {
-    "commit": "bb9badf5534046a369ac06df94a6f8d6fe446ec4",
-    "dirty": false
+    "commit": "cbc00d11faf74e3d7ff944061f1218d8f2de17fd",
+    "dirty": true
   },
   "environment": {
     "python": "3.11.15",
@@ -64,7 +64,7 @@
     }
   ],
   "base_case": {
-    "case_id": "11dc7aea-db38-4d30-8fa9-ea56361eb14c",
+    "case_id": "3ed01e62-31f0-42c5-87e5-ceef17df6f23",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -94,7 +94,7 @@
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.52
+    "seconds": 0.514
   },
   "scenarios": [
     {
@@ -128,7 +128,7 @@
           "risk_exposure": 0.3454
         }
       ],
-      "seconds": 0.198
+      "seconds": 0.157
     },
     {
       "kind": "capacity_change",
@@ -161,7 +161,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.182
+      "seconds": 0.19
     },
     {
       "kind": "capacity_change",
@@ -194,7 +194,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.186
+      "seconds": 0.204
     },
     {
       "kind": "demand_change",
@@ -203,7 +203,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.054
+      "seconds": 0.057
     },
     {
       "kind": "demand_change",
@@ -231,7 +231,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.182
+      "seconds": 0.213
     },
     {
       "kind": "price_change",
@@ -264,7 +264,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.179
+      "seconds": 0.2
     },
     {
       "kind": "price_change",
@@ -297,7 +297,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.18
+      "seconds": 0.192
     },
     {
       "kind": "combined",
@@ -331,7 +331,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.224
+      "seconds": 0.185
     },
     {
       "kind": "demand_change",
@@ -340,32 +340,32 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.052
+      "seconds": 0.056
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "11dc7aea-db38-4d30-8fa9-ea56361eb14c",
+      "case_id": "3ed01e62-31f0-42c5-87e5-ceef17df6f23",
       "plan_index": 1,
-      "approved_content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7"
+      "approved_content_hash": "e60332664b229e2d5c2baeb2828c40bb408a1914dc060658955d7dc9eff9df5b"
     },
     "no_award": {
-      "case_id": "964d36e6-c8f3-4cbd-b832-1878228baeb1",
+      "case_id": "7d890fbb-36fc-427e-8605-95458b7109a8",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
   },
   "pdf": {
     "hu": {
-      "sha256": "36532bab27919a91ec489a2f4d4083d42248a415b196f4f057a32a662b7c21b5",
-      "bytes": 41211,
-      "content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7",
+      "sha256": "e9b25270633d5f0db0e61fb08eeaa4861e1081f3888eba917738253cea3769b4",
+      "bytes": 41209,
+      "content_hash": "e60332664b229e2d5c2baeb2828c40bb408a1914dc060658955d7dc9eff9df5b",
       "language": "hu"
     },
     "en": {
-      "sha256": "a8f29eec7b94ae9da3b54d2a57b3e30d0e334b180114dc159d2870dca74d987c",
+      "sha256": "85f3bdb3a60a3b47aca65fe4df5b3c32c3b8a32401046d3f01b6e5dd008b82bc",
       "bytes": 39467,
-      "content_hash": "bdeb59271c9e9a7f705c60afce9c40f921237fbfb642b924d37d632bba1275a7",
+      "content_hash": "e60332664b229e2d5c2baeb2828c40bb408a1914dc060658955d7dc9eff9df5b",
       "language": "en"
     }
   },
@@ -385,7 +385,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 3.276,
-  "total_seconds": 15.422,
+  "flow_seconds": 3.19,
+  "total_seconds": 15.267,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }

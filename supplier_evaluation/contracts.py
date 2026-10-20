@@ -20,6 +20,10 @@ SYNTHETIC = "t14_synthetic"
 
 # V2: features computed from the bounded Odoo purchase-history export (docs/MODEL_ML.md).
 HISTORY_SOURCE = "odoo_purchase_history"
+# Who produced the Odoo records: the seeding tool ("generated") or real business ("observed").
+# Declared by the operator for the export and the runtime database, never guessed from data.
+HISTORY_DATA_ORIGINS = ("generated", "observed")
+LEGACY_HISTORY_DATA_ORIGIN = "generated"  # captures stored before the origin was recorded
 HISTORY_FEATURE_VERSION = "odoo-purchase-history-features-v2"
 HISTORY_FEATURES = (
     "on_time_rate",

@@ -104,15 +104,22 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "required_label": ("Szükséges dátum", "Required by"),
     "supplier_terms_title": ("Szállítói feltételek", "Supplier terms"),
     "supplier_terms_note": (
-        "Az árak az Odoo-ajánlatokból jönnek. A kapacitást, a minimális rendelési mennyiséget "
-        "és a vállalt dátumot Ön adja meg.",
-        "Prices come from the Odoo quotations. You set capacity, minimum order quantity and "
-        "the promised date.",
+        "Az árak az Odoo-ajánlatokból jönnek. A kapacitást, a minimális rendelési mennyiséget, "
+        "az ár és a szállítás érvényes mennyiségi tartományát és a vállalt dátumot Ön adja meg; "
+        "az előre kitöltött értékek csak javaslatok.",
+        "Prices come from the Odoo quotations. You set capacity, minimum order quantity, the "
+        "quantity ranges in which the price and the delivery are valid, and the promised date; "
+        "pre-filled values are only suggestions.",
     ),
     "offer_price": ("Egységár", "Unit price"),
     "capacity_label": ("Kapacitás", "Capacity"),
     "moq_label": ("Min. rendelési mennyiség", "Minimum order qty"),
     "promised_label": ("Vállalt szállítás", "Promised date"),
+    "price_range_label": ("Ár érvényes mennyiségre", "Price valid for qty"),
+    "delivery_range_label": ("Szállítás érvényes mennyiségre", "Delivery valid for qty"),
+    "range_min": ("Legkisebb", "Minimum"),
+    "range_max": ("Legnagyobb", "Maximum"),
+    "suggested_value": ("javasolt, nem módosította", "suggested, not changed"),
     "policy_label": ("Szabályok", "Rules"),
     "review_terms": ("Feltételek áttekintése", "Review terms"),
     "review_title": ("Áttekintés mentés előtt", "Review before saving"),

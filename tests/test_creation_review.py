@@ -66,6 +66,11 @@ def prepared_state(configured, monkeypatch):
                 s["supplier_id"] + "_capacity": str(s["capacity"]),
                 s["supplier_id"] + "_moq": "5",
                 s["supplier_id"] + "_promised_date": s["promised_date"],
+                **{
+                    f"{s['supplier_id']}_{name}_{end}": str(s[f"{name}_quantities"][bound])
+                    for name in ("price", "delivery")
+                    for end, bound in (("min", "minimum"), ("max", "maximum"))
+                },
             }
         )
     return state, form
@@ -179,6 +184,29 @@ def test_saved_terms_record_which_values_were_kept_from_the_suggestion(prepared_
     assert changed == "ui-odoo-terms-v2;kept-suggested=required_date"
 
 
+def test_review_shows_quantity_ranges_and_marks_kept_suggestions(prepared_state):
+    state, form = prepared_state
+    suggested = state._odoo_payload["controlled_input"]["suppliers"]
+    assert {
+        (s["price_quantities"]["minimum"], s["price_quantities"]["maximum"]) for s in suggested
+    } == {(1, 1000)}
+    first = suggested[0]["supplier_id"]
+    assert state.odoo_offers[0]["price_max"] == "1000"
+    form[first + "_price_max"] = "500"
+    PlanningState.review_odoo.fn(state, form)
+    saved = state._review_payload["terms"]["suppliers"][0]
+    assert saved["price_quantities"] == {"minimum": 1, "maximum": 500}
+    assert "price_quantities" not in saved["source"]["source_reference"]
+    row, other = state.review_suppliers[:2]
+    assert row["price_range"] == "1–500"
+    assert row["delivery_range"] == "1–1,000 (suggested, not changed)"
+    assert other["price_range"] == "1–1,000 (suggested, not changed)"
+    state.lang = "hu"
+    PlanningState.edit_creation_terms.fn(state)
+    PlanningState.review_odoo.fn(state, form)
+    assert state.review_suppliers[0]["delivery_range"].endswith("(javasolt, nem módosította)")
+
+
 @pytest.mark.parametrize(
     "field,value,identity",
     [
@@ -188,6 +216,8 @@ def test_saved_terms_record_which_values_were_kept_from_the_suggestion(prepared_
         ("odoo:res.partner:301_capacity", "-1", "odoo:res.partner:301_capacity"),
         ("odoo:res.partner:301_moq", "0", "odoo:res.partner:301_moq"),
         ("odoo:res.partner:301_promised_date", "bad", "odoo:res.partner:301_promised_date"),
+        ("odoo:res.partner:301_price_min", "0", "odoo:res.partner:301_price_min"),
+        ("odoo:res.partner:301_delivery_max", "1001", "odoo:res.partner:301_delivery_max"),
     ],
 )
 def test_review_field_errors_cannot_create_intent(prepared_state, field, value, identity):
@@ -195,6 +225,14 @@ def test_review_field_errors_cannot_create_intent(prepared_state, field, value, 
     result = PlanningState.review_odoo.fn(state, form | {field: value})
     assert result and identity in state.creation_errors
     assert not state._review_payload and not state._pending and not state.request_key
+
+
+def test_inverted_quantity_range_cannot_create_intent(prepared_state):
+    state, form = prepared_state
+    inverted = {"odoo:res.partner:301_price_min": "600", "odoo:res.partner:301_price_max": "500"}
+    assert PlanningState.review_odoo.fn(state, form | inverted)
+    assert "odoo:res.partner:301_price_max" in state.creation_errors
+    assert not state._review_payload and not state._pending
 
 
 def test_edit_and_malformed_prepared_data_remove_review(prepared_state):

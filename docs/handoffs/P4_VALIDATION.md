@@ -96,7 +96,7 @@ PostgreSQL 16 on the same machine; one uvicorn worker; CBC 2.10.3 via PuLP 3.3.0
 | --- | --- |
 | Base case | optimal; minimum cost 288,608 HUF (Fenyves 80, Kalocsa 120), exposure 0.60; alternative ε = 0.2: 293,132 HUF (Kalocsa 120, Alpha 80), exposure 0.333 |
 | Scenarios (target Kalocsa) | outage +10,846; capacity 100: +1,537; capacity 240: −3,074; demand 250: **infeasible** (K = 2 × 120 cap); demand 150: −74,457.5; price +30 %: +10,846 (Kalocsa dropped); price −20 %: −33,900; combined: +31,420; demand 1000: **infeasible** |
-| Decisions | alternative 1 approved; separate No-award recorded |
+| Decisions | alternative 1 approved with the mandatory reason (any plan other than the minimum-cost plan requires one); separate No-award recorded with its mandatory reason; No-award has no approved PDF |
 | PDF | HU 41,210 B and EN 39,472 B, same approved content hash |
 | Replay without Odoo/model | Odoo preview 503; 13 exact retries = stored replays; all GETs, both PDFs and the HU/EN supplier overview identical; No-award PDF 422 |
 
@@ -162,7 +162,8 @@ expert rule 0.658, majority 0.409 — unchanged.
   migration; a non-optimal price-change scenario fails the run; `groups` completes an interrupted
   RFQ set. **Unrun after these fixes:** `groups` (rerun to write the id file), `demo` and
   `milp_evaluation`; the JSON evidence was produced by the earlier code.
-- Hosted CI: not run (nothing pushed).
+- Hosted CI: not run (nothing pushed). Its scope, for later reference: hosted CI (Quality: format, lint, compile, fast tests with CBC and scikit-learn, dependency and Compose checks; Container/API: starts an empty Odoo and the test PostgreSQL, checks Odoo and API reachability, runs the integration tests that need no seeded history, compiles the frontend and checks named-volume persistence) does not run the live Odoo-history path, the browser flow or the P4 tools.
+  Those are local evidence only.
 - Live T6/T7/T7S fixture contracts: skipped (fixtures not recreated in `pdss_history_gen`,
   as in P1–P3).
 - The demo PDFs were checked by hash, size, content type, language header and identity on
