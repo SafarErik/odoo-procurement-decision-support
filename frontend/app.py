@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from frontend.planning.home import home_page
 from frontend.planning.library import library_page
 from frontend.planning.page import planning_page
 from frontend.planning.rfqs import rfqs_page
@@ -9,7 +10,7 @@ from frontend.planning.state import PlanningState
 
 app = rx.App()
 app.add_page(
-    library_page, route="/", title="Procurement cases", on_load=PlanningState.library_on_load
+    home_page, route="/", title="Procurement workspace", on_load=PlanningState.home_on_load
 )
 app.add_page(
     library_page, route="/cases", title="Procurement cases", on_load=PlanningState.library_on_load

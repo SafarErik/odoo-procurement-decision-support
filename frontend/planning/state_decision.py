@@ -92,11 +92,7 @@ class DecisionMixin(rx.State, mixin=True):
             index = next((i for i, p in enumerate(self.plans) if p["label"] == choice), None)
             if not isinstance(actor, str) or not 1 <= len(actor.strip()) <= 255:
                 raise ValueError(self._tr("err_actor"))
-            if (
-                not isinstance(reason, str)
-                or len(reason) > 2000
-                or (index != 0 and not reason.strip())
-            ):
+            if not isinstance(reason, str) or len(reason) > 2000 or not reason.strip():
                 raise ValueError(self._tr("err_reason"))
             if form_data.get("demonstration") != "on":
                 raise ValueError(self._tr("err_ack"))

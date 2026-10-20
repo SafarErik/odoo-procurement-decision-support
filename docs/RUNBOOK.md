@@ -47,6 +47,13 @@ python -m tools.dev api     # terminal 2: FastAPI on http://127.0.0.1:8000 (docs
 python -m tools.dev ui      # terminal 3: Reflex on http://localhost:3000
 ```
 
+`tools.dev ui` starts the development server. For a compiled local demonstration,
+run `..\.venv\Scripts\reflex.exe run --env prod` from `frontend/`. Reflex
+0.9.12 serves the production build on the configured backend port, normally
+`http://localhost:8001/`; use the URL printed in its log. Production does not
+hot-reload: restart it after frontend edits. Do not run two Reflex instances on
+the same port.
+
 Before `db-up`, set `APP_POSTGRES_PASSWORD` and the matching `DECISION_DATABASE_URL`,
 plus `API_SERVICE_TOKEN` and `PLANNING_LIBRARY_COMPANY_ID` (the Odoo company, e.g.
 `odoo:res.company:1`; it scopes the case library and the quotation-group list) in `.env`.

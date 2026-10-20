@@ -115,6 +115,26 @@ def suppliers_view() -> rx.Component:
                     card(
                         heading("kpi_compare", size="4"),
                         muted("kpi_compare_note", margin_top="0.25rem"),
+                        rx.text(
+                            t("kpi_reference"),
+                            ": ",
+                            PlanningState.details.get("as_of_display", ""),
+                            size="1",
+                            color=MUTED,
+                            margin_top="0.4rem",
+                        ),
+                        rx.el.details(
+                            rx.el.summary(t("kpi_help_title"), font_weight="600"),
+                            *[
+                                muted(key, margin_top="0.6rem", max_width="75ch")
+                                for key in (
+                                    "kpi_help_rates",
+                                    "kpi_help_lateness",
+                                    "kpi_help_sample",
+                                )
+                            ],
+                            margin_top="0.5rem",
+                        ),
                         rx.grid(
                             kpi_chart("on_time_rate", "kpi_on_time", "%"),
                             kpi_chart("fill_rate", "kpi_fill", "%"),

@@ -31,6 +31,14 @@ class AllocationSolver(Protocol):
     def risk_alternative(
         self, request: PlanningRequest, reference_cost: Fraction, epsilon: Decimal, deadline: float
     ) -> SolveOutcome: ...
+    def diversified_alternative(
+        self,
+        request: PlanningRequest,
+        reference_cost: Fraction,
+        reference_risk: Fraction,
+        epsilon: Decimal,
+        deadline: float,
+    ) -> SolveOutcome: ...
 
 
 def plan_procurement(
@@ -95,10 +103,21 @@ def plan_procurement(
     distinct, runs = [], []
     signatures = {minimum.allocations: 0}
     status = PlanningStatus.OPTIMAL
-    for epsilon in sorted(set(request.policy.epsilons)):
+    stages = [(epsilon, "risk") for epsilon in sorted(set(request.policy.epsilons))]
+    if request.policy.diversification_epsilon is not None:
+        stages.append((request.policy.diversification_epsilon, "diversified"))
+    for epsilon, kind in stages:
         try:
-            outcome = solver.risk_alternative(
-                request, Fraction(minimum.total_cost), epsilon, deadline
+            outcome = (
+                solver.risk_alternative(request, Fraction(minimum.total_cost), epsilon, deadline)
+                if kind == "risk"
+                else solver.diversified_alternative(
+                    request,
+                    Fraction(minimum.total_cost),
+                    minimum.risk_exposure,
+                    epsilon,
+                    deadline,
+                )
             )
             if outcome.status is PlanningStatus.INFEASIBLE:
                 outcome = SolveOutcome(
@@ -106,13 +125,18 @@ def plan_procurement(
                 )
             if outcome.status is not PlanningStatus.OPTIMAL:
                 status = outcome.status
-                runs.append(AlternativeRun(epsilon, status, None, outcome.code))
+                runs.append(AlternativeRun(epsilon, status, None, outcome.code, kind))
                 break
             plan = checked_plan(request, outcome.allocations, Fraction(minimum.total_cost), epsilon)
             if plan.risk_exposure is None or plan.risk_exposure > minimum.risk_exposure:
                 raise InvalidPlanningInput(
                     "invalid_solver_output",
                     "Alternative worsens the feasible minimum's score exposure.",
+                )
+            if kind == "diversified" and plan.largest_share > minimum.largest_share:
+                raise InvalidPlanningInput(
+                    "invalid_solver_output",
+                    "Balanced alternative raises the minimum plan's largest supplier share.",
                 )
             duplicate = plan.allocations in signatures
             if not duplicate:
@@ -124,10 +148,13 @@ def plan_procurement(
                     PlanningStatus.OPTIMAL,
                     signatures[plan.allocations],
                     "duplicate_allocation" if duplicate else "distinct_alternative",
+                    kind,
                 )
             )
         except Exception:
             status = PlanningStatus.SOLVER_ERROR
-            runs.append(AlternativeRun(epsilon, status, None, "alternative_verification_failed"))
+            runs.append(
+                AlternativeRun(epsilon, status, None, "alternative_verification_failed", kind)
+            )
             break
     return PlanningResult(status, minimum, tuple(distinct), tuple(runs), diagnostics)

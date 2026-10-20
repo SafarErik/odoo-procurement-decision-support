@@ -19,7 +19,7 @@ def card(*children, **props):
     style = {
         "background": SURFACE,
         "border": f"1px solid {HAIRLINE}",
-        "border_radius": "10px",
+        "border_radius": "14px",
         "padding": ["1rem", "1.25rem"],
         "min_width": "0",
         "width": "100%",
@@ -58,12 +58,12 @@ def decision_badge(status):
 
 
 def loading_state(key: str = "loading"):
-    return rx.flex(
-        rx.spinner(size="3"),
-        rx.text(t(key), color=MUTED),
+    return rx.box(
+        rx.text(t(key), color=MUTED, size="2", margin_bottom="1rem"),
+        rx.skeleton(height="1rem", width="38%", margin_bottom="0.75rem"),
+        rx.skeleton(height="1rem", width="74%", margin_bottom="0.75rem"),
+        rx.skeleton(height="1rem", width="56%"),
         role="status",
-        align="center",
-        gap="0.75rem",
         padding="2rem 0",
     )
 

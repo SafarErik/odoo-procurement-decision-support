@@ -9,8 +9,8 @@ from frontend.i18n import day, money, number, tr, unit
 
 ISSUES = {
     "unsupported_offer_count": (
-        "Kettőnél kevesebb vagy túl sok ajánlat",
-        "Too few or too many quotations",
+        "Legalább 3, legfeljebb 10 ajánlat szükséges",
+        "Between 3 and 10 quotations are required",
     ),
     "not_all_open": ("Nem minden ajánlat nyitott", "Not every quotation is open"),
     "not_single_line": ("Az ajánlatok nem egysorosak", "Quotations are not single-line"),
@@ -109,6 +109,35 @@ async def fetch_quotation_groups(url, token, *, lang="en", transport=None):
             "raw": data["items"],
             "names": names,
             "truncated": bool(data.get("truncated")),
+            "retrieved_at": data.get("retrieved_at", ""),
+            "company_id": data.get("company_id", ""),
         }, ""
     except (httpx.HTTPError, ValueError, KeyError, TypeError, ArithmeticError):
         return None, tr("err_groups_data", lang)
+
+
+def quotation_rows(item: dict, lang: str) -> list[dict[str, str]]:
+    """Keep quotation identities and quantities visible without regrouping source facts."""
+    currency = item.get("currency") or ""
+    rows = []
+    for quotation in item["quotations"]:
+        for line in quotation["lines"]:
+            rows.append(
+                {
+                    "reference": quotation["reference"],
+                    "supplier": quotation["supplier_name"],
+                    "price": money(Decimal(line["unit_price"]), currency, lang)
+                    if currency
+                    else str(line["unit_price"]),
+                    "quantity": number(Decimal(line["quantity"]).normalize(), lang)
+                    + " "
+                    + unit(line.get("uom_name") or "", lang),
+                    "status": tr(
+                        "quotation_" + quotation["state"]
+                        if quotation["state"] in {"draft", "sent"}
+                        else "quotation_other",
+                        lang,
+                    ),
+                }
+            )
+    return rows

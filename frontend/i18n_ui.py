@@ -1,5 +1,7 @@
 """Static screen texts (English keys → Hungarian, English); merged into ``i18n.TEXT``."""
 
+from frontend.i18n_revamp import REVAMP_TEXT
+
 UI_TEXT: dict[str, tuple[str, str]] = {
     # Generic
     "error_title": ("Valami nem sikerült", "Something went wrong"),
@@ -20,11 +22,8 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "request_key": ("Kérésazonosító", "Request key"),
     # Cases
     "cases_title": ("Ügyek", "Cases"),
-    "cases_subtitle": (
-        "Mentett beszerzési összehasonlítások. A megnyitás semmit nem számol újra.",
-        "Saved procurement comparisons. Opening one never recalculates anything.",
-    ),
-    "new_comparison": ("Új összehasonlítás", "New comparison"),
+    "cases_subtitle": ("Mentett beszerzési összehasonlítások.", "Saved procurement comparisons."),
+    "new_comparison": ("Új beszerzés", "New procurement"),
     "search_label": ("Keresés", "Search"),
     "search_placeholder": ("Termék vagy ügyazonosító", "Product or case ID"),
     "filter_status": ("Döntés állapota", "Decision status"),
@@ -51,10 +50,6 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "more_scenarios": ("További forgatókönyvek", "More scenarios"),
     "selected_case": ("Kijelölt ügy", "Selected case"),
     "view_pdf": ("Jóváhagyott PDF megtekintése", "View approved PDF"),
-    "cases_note": (
-        "A mentett összehasonlítások jóváhagyás nélkül is megmaradnak.",
-        "Saved comparisons remain available without approval.",
-    ),
     "cases_on_page": ("ügy ezen az oldalon", "cases on this page"),
     "next_page": ("Következő oldal", "Next page"),
     "loading_cases": ("Ügyek betöltése…", "Loading cases…"),
@@ -92,8 +87,8 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "terms_title": ("Igény és szállítói feltételek", "Demand and supplier terms"),
     "history_title": ("Szállítói előzmények az Odoo-ból", "Supplier history from Odoo"),
     "history_note": (
-        "A lezárt beszerzési sorokból számolva. Itt nincs modelltanítás.",
-        "Computed from settled purchase lines. No model training happens here.",
+        "A lezárt beszerzési sorokból számolva.",
+        "Calculated from settled purchase lines.",
     ),
     "kpi_on_time": ("Határidőre", "On time"),
     "kpi_lateness": ("Átlagos késés (nap)", "Average lateness (days)"),
@@ -124,12 +119,12 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "review_terms": ("Feltételek áttekintése", "Review terms"),
     "review_title": ("Áttekintés mentés előtt", "Review before saving"),
     "review_body": (
-        "Ellenőrizze az adatokat. A mentéskor az Odoo-adatokat újra kiolvassuk.",
-        "Check the data. Odoo data is read again when saving.",
+        "Ellenőrizze az igényt, a beszállítói feltételeket és az adatok forrását.",
+        "Check the demand, the supplier terms and where each value comes from.",
     ),
     "review_note": (
-        "A számítás elmenti az összehasonlítást, de nem hagy jóvá tervet.",
-        "Calculating saves the comparison; it does not approve a plan.",
+        "A tervek elkészítése elmenti az összehasonlítást, de még nem hagy jóvá semmit.",
+        "Calculating saves the comparison; it does not approve anything.",
     ),
     "review_pending": (
         "A mentés visszaigazolásra vár. Ismételje meg ugyanazt a kérést.",
@@ -141,13 +136,12 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "tab_overview": ("Áttekintés", "Overview"),
     "tab_suppliers": ("Szállítók", "Suppliers"),
     "tab_plans": ("Tervek", "Plans"),
-    "tab_scenarios": ("Forgatókönyvek", "Scenarios"),
+    "tab_scenarios": ("Mi lenne, ha…?", "Scenarios"),
     "tab_decision": ("Döntés és PDF", "Decision & PDF"),
     "loading_case": ("Ügy betöltése…", "Loading case…"),
     "case_error_title": ("Az ügy nem nyitható meg", "The case cannot be opened"),
     "kpi_min_cost": ("Legkisebb költség", "Minimum cost"),
     "kpi_plans": ("Összevethető tervek", "Plans to compare"),
-    "kpi_decision": ("Döntés", "Decision"),
     "compare_options": ("Hasonlítsa össze a lehetőségeket", "Compare your options"),
     "options_note": (
         "Válasszon tervet a szállítói megosztás alapján. A kiválasztás még nem jóváhagyás.",
@@ -158,12 +152,14 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "The decision is recorded; plans are read-only.",
     ),
     "compare_plans": ("Tervek összehasonlítása", "Compare plans"),
-    "suppliers_evaluated": ("szállító értékelve", "suppliers evaluated"),
-    "suppliers_flagged": ("közülük problémás besorolású", "of them flagged as problematic"),
+    "suppliers_flagged": ("problémás besorolású", "flagged as problematic"),
     "inspect_suppliers": ("Szállítók megtekintése", "Inspect suppliers"),
     "next_step": ("Következő lépés", "Next step"),
     "step_saved": ("Összehasonlítás mentve", "Comparison saved"),
-    "step_saved_body": ("Az összehasonlítás már el van tárolva.", "Your comparison is stored."),
+    "step_saved_body": (
+        "A tervek elkészültek és mentve vannak.",
+        "The plans are calculated and saved.",
+    ),
     "step_choose": ("Terv kiválasztása", "Choose a plan"),
     "step_choose_body": (
         "Válassza ki, melyik tervvel menne tovább.",
@@ -246,7 +242,7 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "chart_exposure": ("Kitettség", "Exposure"),
     "chart_alternatives": ("Alternatívák", "Alternatives"),
     "selected_allocation": ("Kiválasztott megosztás", "Selected allocation"),
-    "suggested_look": ("Javasolt megtekintésre", "Worth a look"),
+    "suggested_look": ("Legkisebb kockázatú terv", "Lowest-risk plan"),
     "selection_not_approval": (
         "A kiválasztás még nem jóváhagyás.",
         "Selecting does not approve the plan.",
@@ -258,26 +254,21 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     ),
     # Scenarios
     "scenarios_intro": (
-        "Próbálja ki, mi történik, ha egy szállító kiesik, vagy változik a kapacitás, az igény "
-        "vagy az ár. Minden forgatókönyv új, külön mentett eset; az alapügy változatlan marad.",
+        "Próbálja ki, mi történik, ha egy szállító kiesik, vagy megváltozik a kapacitás, az "
+        "igény vagy az ár. A forgatókönyv külön mentődik; az eredeti ügy és az Odoo nem "
+        "változik.",
         "Try what happens if a supplier drops out or capacity, demand or price changes. Each "
-        "scenario is saved separately; the base case stays unchanged.",
+        "scenario is saved separately; the original case and Odoo stay unchanged.",
     ),
     "err_base_scenarios": (
         "A mentett forgatókönyvek most nem érhetők el. Próbálja újra.",
         "Saved scenarios are unavailable right now. Please retry.",
     ),
     "loading_scenarios": ("Forgatókönyvek betöltése…", "Loading scenarios…"),
-    "base_scenarios_body": (
-        "A megnyitás a mentett eredményt mutatja; semmi nem számolódik újra.",
-        "Opening one shows the saved result; nothing is recalculated.",
-    ),
     "scenario_new": ("Új forgatókönyv", "New scenario"),
     "scenario_new_body": (
-        "Mindig az eredeti alapügyből indul, ugyanazzal az optimalizálással és a mentett "
-        "szállítói értékeléssel. Az Odoo-ban semmi nem változik.",
-        "Always starts from the original base case with the same optimisation and saved "
-        "supplier assessments. Nothing changes in Odoo.",
+        "Az eredeti ügyből indul, ugyanazzal az optimalizálással és szállítói értékeléssel.",
+        "Starts from the original case with the same optimisation and supplier assessment.",
     ),
     "scenario_type": ("Forgatókönyv típusa", "Scenario type"),
     "scenario_supplier": ("Érintett szállító", "Supplier to change"),
@@ -301,8 +292,8 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     ),
     "draft_title": ("Feltételezések", "Assumptions"),
     "draft_note": (
-        "A megvalósíthatóságot az optimalizálás dönti el. Az alapügy nem változik.",
-        "The optimisation decides feasibility. The base case does not change.",
+        "Hogy van-e megvalósítható terv, azt a számítás dönti el.",
+        "The calculation decides whether a feasible plan exists.",
     ),
     "run_scenario": ("Forgatókönyv futtatása és mentése", "Run and save scenario"),
     "saved_scenario": ("Mentett forgatókönyv", "Saved scenario"),
@@ -330,39 +321,39 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     # Decision
     "record_decision": ("Döntés rögzítése", "Record the decision"),
     "record_decision_body": (
-        "Válasszon tervet, vagy rögzítse, hogy nem ítéli oda a beszerzést. A döntés egyszeri "
-        "és nem írható felül. Alternatívához és „Nincs odaítélés” döntéshez indoklás kell.",
+        "Válasszon tervet, vagy rögzítse, hogy most nem rendel. A döntés végleges, és minden "
+        "döntéshez rövid indoklás kell.",
         "Choose a plan or record no award. The decision is one-time and cannot be replaced. "
-        "An alternative or no award needs a reason.",
+        "Every decision needs a brief reason.",
     ),
     "plan_for_approval": ("Jóváhagyandó terv", "Plan to approve"),
     "choose_plan": ("Válasszon tervet…", "Choose a plan…"),
-    "record_no_award": ("Nincs odaítélés rögzítése", "Record no award"),
-    "choose_plan_instead": ("Inkább tervet választok", "Choose a plan instead"),
+    "record_no_award": ("Most nem rendelünk", "Record no award"),
+    "choose_plan_instead": ("Mégis tervet választok", "Choose a plan instead"),
     "no_award_effect": (
-        "Nincs odaítélés: egyetlen megosztás sem kerül jóváhagyásra, és nem készül PDF.",
+        "Ha nem rendelünk, egyik terv sem kerül jóváhagyásra, és PDF sem készül.",
         "No award: no allocation is approved and no PDF is produced.",
     ),
     "decision_actor": ("Döntéshozó", "Decided by"),
     "actor_placeholder": ("Név vagy azonosító", "Name or reference"),
     "decision_reason": ("Indoklás", "Reason"),
     "reason_placeholder": (
-        "Miért ezt a tervet vagy miért nincs odaítélés?",
+        "Miért ezt a tervet választja, vagy miért nem rendel?",
         "Why this plan, or why no award?",
     ),
     "ack_label": (
-        "Tudomásul veszem, hogy bemutató adatokkal dolgozom: a szállítói előzmények "
-        "teszt-adatbázisból származnak, és a döntés nem hoz létre Odoo-rendelést.",
+        "Tudomásul veszem, hogy a szállítói előzmények tesztadatbázisból származnak, és a "
+        "döntés nem hoz létre rendelést az Odoo-ban.",
         "I acknowledge this is demonstration data: supplier history comes from a test "
         "database and the decision creates no Odoo order.",
     ),
     "review_approval": ("Jóváhagyás áttekintése", "Review approval"),
     "review_no_award": ("Döntés áttekintése", "Review decision"),
     "confirm_approval": ("Jóváhagyás megerősítése", "Confirm approval"),
-    "confirm_no_award": ("Nincs odaítélés megerősítése", "Confirm no award"),
+    "confirm_no_award": ("Megerősítem: nem rendelünk", "Confirm no award"),
     "confirm_body": (
-        "A megerősítés egyszer rögzíti a döntést, és nem írható felül. A Mégse mentés nélkül "
-        "visszavisz. Odoo-rendelés nem jön létre.",
+        "A megerősítéssel a döntés végleges lesz. A Mégse gombbal mentés nélkül visszaléphet. "
+        "Az Odoo-ban nem jön létre rendelés.",
         "Confirming records the decision once; it cannot be replaced. Cancel returns without "
         "saving. No Odoo order is created.",
     ),
@@ -375,7 +366,7 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "A PDF a felület nyelvén készül.",
         "The PDF follows the interface language.",
     ),
-    "no_award_no_pdf": ("„Nincs odaítélés” döntéshez nem tartozik PDF.", "No award has no PDF."),
+    "no_award_no_pdf": ("Ha nem rendelünk, PDF sem készül.", "No award has no PDF."),
     "no_odoo_order": (
         "A döntés nem hoz létre beszerzési rendelést az Odoo-ban.",
         "The decision does not create a purchase order in Odoo.",
@@ -413,10 +404,8 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     # Audit
     "audit_title": ("Audit", "Audit"),
     "audit_intro": (
-        "A mentett rekord pontos értékei. A megnyitás nem olvas az Odoo-ból, nem tanít "
-        "modellt és nem számol újra.",
-        "Exact values of the saved record. Opening it does not read Odoo, train a model or "
-        "recalculate.",
+        "A mentett ügy pontos értékei ellenőrzéshez és hibakereséshez.",
+        "Exact values of the saved case, for checking and troubleshooting.",
     ),
     "audit_case_id": ("Ügyazonosító", "Case ID"),
     "audit_base_id": ("Alapügy", "Base case"),
@@ -463,3 +452,5 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "The labels above do not replace this record.",
     ),
 }
+
+UI_TEXT.update(REVAMP_TEXT)

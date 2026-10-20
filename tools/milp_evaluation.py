@@ -135,7 +135,9 @@ def _vectors(request):
 
 def reference_plans(request) -> dict:
     """Minimum cost, then per ε: minimum exposure within (1+ε)·C*, then cost, then the
-    lexicographically largest quantities in supplier-id order (the documented tie-break)."""
+    lexicographically largest quantities in supplier-id order (the documented tie-break).
+    The balanced reference minimises the largest quantity within its allowance without
+    exceeding the minimum plan's exposure, then exposure, cost and the same tie-break."""
     suppliers = sorted(request.suppliers, key=lambda s: s.supplier_id)
     prices, _ = _scale([s.unit_price for s in suppliers])
     scores = {c.supplier_id: c.value for c in request.risk_coefficients or ()}
@@ -156,12 +158,20 @@ def reference_plans(request) -> dict:
         str(e): Fraction(cost(minimum)) * (1 + Fraction(e)) for e in set(request.policy.epsilons)
     }
     best = {name: None for name in bounds}
+    diversification = request.policy.diversification_epsilon
+    if diversification is not None:
+        best["diversified"] = None
+        balanced_bound = Fraction(cost(minimum)) * (1 + Fraction(diversification))
     for v in _vectors(request):
         c = cost(v)
         key = (risk(v), c, tuple(-x for x in v))
         for name, bound in bounds.items():
             if c <= bound and (best[name] is None or key < best[name][0]):
                 best[name] = (key, v)
+        if diversification is not None and c <= balanced_bound and key[0] <= risk(minimum):
+            balanced = (max(v), *key)
+            if best["diversified"] is None or balanced < best["diversified"][0]:
+                best["diversified"] = (balanced, v)
     plans |= {name: value[1] for name, value in best.items()}
     return plans
 
@@ -201,8 +211,9 @@ def check_result(request, result, expected) -> list[str]:
         failures.append("minimum-cost plan differs from the reference optimum")
     for run in result.runs:
         plan = plans[run.plan_index] if run.plan_index is not None else None
-        if plan is None or quantities(plan) != expected[str(run.epsilon)]:
-            failures.append(f"ε={run.epsilon}: alternative differs from the reference optimum")
+        name = "diversified" if run.kind == "diversified" else str(run.epsilon)
+        if plan is None or quantities(plan) != expected[name]:
+            failures.append(f"{name} ε={run.epsilon}: alternative differs from the reference")
     return failures
 
 
@@ -245,6 +256,9 @@ def solver_check(name, request, repetitions, warmups, seed=0) -> dict:
         "approved_quantity": request.requirement.approved_quantity,
         "max_suppliers": request.policy.max_suppliers,
         "epsilons": [str(e) for e in request.policy.epsilons],
+        "diversification_epsilon": None
+        if request.policy.diversification_epsilon is None
+        else str(request.policy.diversification_epsilon),
         "status": first.status.value,
         "explanations": sorted({e.code for e in first.explanations}),
         "minimum_cost_quantities": None

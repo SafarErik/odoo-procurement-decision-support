@@ -27,6 +27,12 @@ python -m tools.dev check        # lint + fast tests, no services needed
 
 Running the UI, database and Odoo: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
+The buyer workspace starts at Home. Choose **New procurement decision**, select
+Odoo quotations, then check Demand → Terms → Review before calculating and saving.
+Saved cases expose plan comparison, optional what-if analysis and a separate,
+confirmed decision. See the [guided workspace handoff](docs/handoffs/GUIDED_WORKSPACE.md)
+for implementation and verification evidence.
+
 ## Repository layout
 
 | Path | Content |

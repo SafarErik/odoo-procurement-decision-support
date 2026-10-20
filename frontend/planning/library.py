@@ -188,6 +188,7 @@ def _table_row(row):
         rx.table.row(
             rx.table.row_header_cell(
                 rx.text(row["product"], font_weight="650"),
+                rx.text(row["short_id"], " · ", row["saved"], size="1", color=MUTED),
                 rx.flex(_origin_badge(row), gap="0.35rem", margin_top="0.25rem"),
             ),
             rx.table.cell(row["quantity"], white_space="nowrap"),
@@ -235,6 +236,7 @@ def _mobile_card(row):
             rx.box(
                 rx.text(row["product"], font_weight="650"),
                 rx.text(row["quantity"], " · ", row["required"], size="2", color=MUTED),
+                rx.text(row["short_id"], " · ", row["saved"], size="1", color=MUTED),
                 min_width="0",
             ),
             decision_badge(row["status"]),
@@ -300,7 +302,6 @@ def _context_panel():
             gap="0.5rem",
             margin_top="1.25rem",
         ),
-        rx.callout(t("cases_note"), icon="info", size="1", margin_top="1.25rem"),
         position="sticky",
         top="1.5rem",
     )

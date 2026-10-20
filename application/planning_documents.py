@@ -35,7 +35,9 @@ class PlanningDocument:
 
     @property
     def filename(self):
-        name = "megrendelesi-javaslat" if self.language == "hu" else "purchase-order-proposal"
+        name = (
+            "jovahagyott-beszerzesi-terv" if self.language == "hu" else "approved-procurement-plan"
+        )
         return f"{name}-{self.case_id}-{self.content_hash[:12]}-{self.language}.pdf"
 
 

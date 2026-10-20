@@ -67,7 +67,7 @@ def validate_risk(request: PlanningRequest) -> bool:
     scores = {c.supplier_id: c for c in request.risk_coefficients or ()}
     usable = [b for b in bounds(request) if b.upper > 0]
     complete = all(b.supplier_id in scores for b in usable)
-    if request.policy.epsilons:
+    if request.policy.epsilons or request.policy.diversification_epsilon is not None:
         require(
             complete and request.risk_coefficients is not None,
             "risk_unavailable",

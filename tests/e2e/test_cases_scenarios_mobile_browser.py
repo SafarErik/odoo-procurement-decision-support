@@ -45,7 +45,7 @@ def test_cases_scenario_and_states_at_375_px(smoke_stack, smoke_page):
     expect(page.get_by_role("heading", level=1)).to_have_text("T6 Comparison Product")
     assert _no_horizontal_scroll(page)
 
-    page.get_by_role("tab", name="Forgatókönyvek").click()
+    page.get_by_role("tab", name="Mi lenne, ha…?").click()
     page.locator("#stress-kind").select_option("price_change")
     page.locator("#stress-supplier").select_option(index=1)
     page.locator("#stress-price").fill("abc")

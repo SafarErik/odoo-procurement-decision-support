@@ -1,5 +1,6 @@
 """Saved-case library: bounded pages, filters and on-demand scenarios."""
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -11,6 +12,13 @@ from frontend.planning_library_client import fetch_library, library_row
 
 
 class LibraryMixin(rx.State, mixin=True):
+    home_pending: list[dict[str, str]] = []
+    home_recent: list[dict[str, str]] = []
+    home_pending_error: str = ""
+    home_recent_error: str = ""
+    home_loading: bool = False
+    _home_pending_raw: list = []
+    _home_recent_raw: list = []
     library_rows: list[dict[str, str]] = []
     library_children: list[dict[str, str]] = []
     library_origin: str = "all"
@@ -39,11 +47,46 @@ class LibraryMixin(rx.State, mixin=True):
 
     def _relabel_library(self):
         try:
+            self.home_pending = [library_row(i, self._lang()) for i in self._home_pending_raw]
+            self.home_recent = [library_row(i, self._lang()) for i in self._home_recent_raw]
             self.library_rows = [library_row(i, self._lang()) for i in self._library_raw]
             self.library_children = [library_row(i, self._lang()) for i in self._children_raw]
             self.base_scenarios = [library_row(i, self._lang()) for i in self._base_scenarios_raw]
         except (ValueError, TypeError, KeyError, ArithmeticError):
             self.library_rows = self.library_children = self.base_scenarios = []
+            self.home_pending = self.home_recent = []
+
+    @rx.event
+    async def home_on_load(self):
+        if self.has_pending or self.is_loading:
+            yield rx.redirect(self._pending_route)
+            return
+        if self.home_loading:
+            return
+        self.home_loading = True
+        yield
+        try:
+            results = await asyncio.gather(
+                *[
+                    fetch_library(
+                        settings.planning_cases_url,
+                        settings.api_service_token.get_secret_value(),
+                        {"origin": "all", "status": status, "limit": 5},
+                        lang=self._lang(),
+                    )
+                    for status in ("draft", "all")
+                ]
+            )
+            for name, (page, error) in zip(("pending", "recent"), results, strict=True):
+                setattr(self, f"home_{name}_error", error)
+                setattr(self, f"_home_{name}_raw", page["raw"] if page else [])
+                setattr(
+                    self,
+                    f"home_{name}",
+                    [library_row(i, self._lang()) for i in page["raw"]] if page else [],
+                )
+        finally:
+            self.home_loading = False
 
     @rx.var
     def library_selection(self) -> dict[str, str]:

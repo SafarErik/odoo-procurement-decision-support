@@ -100,11 +100,20 @@ share penalty is not a substitute: it can reward concentration and, when minimis
 not representable as a MILP without extra binary variables. Compare plans on simulated
 delivery outcomes.
 
+**Partly addressed (2026-10-20, ADR-035 proposal).** A separate balanced alternative
+minimises the largest single-supplier quantity `m ≥ xᵢ` within (1+ε_d)·C* without
+exceeding the minimum-cost plan's exposure (option (b) reduced to its worst single
+outage, without binary scenario indicators). On the demonstration above it gives
+100 + 100 units (largest share 50 % instead of 60 %) at 295,800 HUF (+2.5 %). The exposure
+measure itself is unchanged, supplier correlation (e.g. a shared region) is not modelled,
+and with K = 2 the most even split is 50/50.
+
 ## L6 Buyer terms are defaults, not Odoo facts
 
 **Observed.** Odoo quotations carry price, quantity and dates but no supplier capacity or
 MOQ. The preview proposes source-attributed defaults (`buyer_default_terms`): capacity
-⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε = 0.2. The preview also proposes price and delivery
+⌈0.6·Q⌉ per supplier, no MOQ, K = 2, concentration 0.8, ε ∈ {0.05, 0.1, 0.2} (cases saved before 2026-10-20 used
+ε = 0.2 only). The preview also proposes price and delivery
 quantity validity ranges of 1–1000 per supplier. The demonstration and the evaluation use
 these defaults. Before saving, the buyer can edit the demand, the required date and, per
 supplier, capacity, MOQ, promised date and both quantity ranges; K, the concentration limit

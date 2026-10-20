@@ -6,6 +6,7 @@ config = rx.Config(
     app_name="app",
     app_module_import="app",
     backend_port=8001,
+    show_built_with_reflex=False,
     plugins=[
         rx.plugins.RadixThemesPlugin(
             theme=rx.theme(

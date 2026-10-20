@@ -161,6 +161,7 @@ def _workspace() -> rx.Component:
                 ],
                 size="2",
                 color_scheme="iris",
+                id="case-tablist",
             ),
             *[
                 rx.tabs.content(view(), value=value, padding_top="1.25rem")

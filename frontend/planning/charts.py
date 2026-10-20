@@ -17,9 +17,11 @@ _TOOLTIP = {
 }
 
 
-def _point_labels():
+def _point_labels(position="top"):
     """Direct labels: a plan's name next to its point (identity is never colour alone)."""
-    return rx.recharts.label_list(data_key="name", position="top", fill=MUTED, font_size=12)
+    return rx.recharts.label_list(
+        data_key="name", position=position, offset=8, fill=MUTED, font_size=12
+    )
 
 
 def cost_exposure_chart() -> rx.Component:
@@ -32,6 +34,7 @@ def cost_exposure_chart() -> rx.Component:
                 type_="number",
                 name=t("chart_cost"),
                 domain=["auto", "auto"],
+                padding={"left": 32, "right": 64},
                 tick=_TICK,
                 tick_formatter=_GROUPED,
                 unit=" " + PlanningState.details["currency"],
@@ -41,7 +44,8 @@ def cost_exposure_chart() -> rx.Component:
                 data_key="exposure",
                 type_="number",
                 name=t("chart_exposure"),
-                domain=[0, 100],
+                domain=PlanningState.chart_exposure_domain,
+                allow_decimals=False,
                 tick=_TICK,
                 stroke=GRID,
                 width=40,
@@ -49,7 +53,7 @@ def cost_exposure_chart() -> rx.Component:
             rx.recharts.graphing_tooltip(**_TOOLTIP),
             rx.recharts.legend(icon_type="circle", vertical_align="bottom"),
             rx.recharts.scatter(
-                _point_labels(),
+                _point_labels("right"),
                 data=PlanningState.chart_minimum,
                 name=t("plan_minimum"),
                 fill=SERIES_1,
@@ -62,6 +66,24 @@ def cost_exposure_chart() -> rx.Component:
                 name=t("chart_alternatives"),
                 fill=SERIES_2,
                 shape="diamond",
+                is_animation_active=False,
+            ),
+            rx.recharts.scatter(
+                _point_labels("left"),
+                data=PlanningState.chart_balanced,
+                name=t("plan_balanced"),
+                fill=SERIES_2,
+                shape="square",
+                is_animation_active=False,
+            ),
+            rx.recharts.scatter(
+                data=PlanningState.chart_selected,
+                name=t("selected_for_review"),
+                fill="transparent",
+                stroke="#173e3d",
+                stroke_width=3,
+                shape="circle",
+                legend_type="none",
                 is_animation_active=False,
             ),
             width="100%",
@@ -85,13 +107,18 @@ def scenario_chart() -> rx.Component:
             rx.recharts.graphing_tooltip(**_TOOLTIP),
             rx.recharts.legend(icon_type="square", vertical_align="bottom"),
             rx.recharts.bar(
-                data_key="base", name=t("chart_base"), fill=SERIES_1, radius=[4, 4, 0, 0]
+                data_key="base",
+                name=t("chart_base"),
+                fill=SERIES_1,
+                radius=[4, 4, 0, 0],
+                is_animation_active=False,
             ),
             rx.recharts.bar(
                 data_key="scenario",
                 name=t("chart_scenario"),
                 fill=SERIES_2,
                 radius=[4, 4, 0, 0],
+                is_animation_active=False,
             ),
             data=PlanningState.scenario_chart,
             width="100%",
@@ -124,6 +151,7 @@ def kpi_chart(feature: str, title: str, unit: str) -> rx.Component:
                 radius=[0, 4, 4, 0],
                 bar_size=14,
                 unit=unit,
+                is_animation_active=False,
             ),
             data=PlanningState.supplier_charts[feature],
             layout="vertical",

@@ -315,6 +315,25 @@ def _data_origin(snapshot: dict) -> str:
     return origin if origin in ("generated", "observed") else "generated"
 
 
+def _balanced_only(result: dict) -> set[int]:
+    """Alternatives proved only by the balanced (min–max share) stage, never by a risk stage."""
+    runs = result.get("runs", [])
+    risk = {r["plan_index"] for r in runs if r.get("kind", "risk") == "risk"}
+    return {
+        r["plan_index"]
+        for r in runs
+        if r.get("kind") == "diversified" and r["plan_index"] and r["plan_index"] not in risk
+    }
+
+
+def _plan_title(result: dict, index: int, lang: str) -> str:
+    if index == 0:
+        return tr("plan_minimum", lang)
+    if index in _balanced_only(result):
+        return tr("plan_balanced", lang)
+    return tr("plan_alternative", lang, n=index)
+
+
 def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisplay:
     if _required_string(payload, "case_id") != expected_id:
         raise ValueError("Response identity mismatch")
@@ -450,6 +469,15 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
             else percent(_decimal(concentration), lang, 0),
             allowance=", ".join(percent(_decimal(e), lang, 0) for e in policy["epsilons"])
             or tr("none", lang),
+        )
+        + (
+            ""
+            if policy.get("diversification_epsilon") is None
+            else tr(
+                "policy_balanced",
+                lang,
+                allowance=percent(_decimal(policy["diversification_epsilon"]), lang, 0),
+            )
         ),
         "alternative_notice": "",
         "product_label": _product_label(requirement["product_id"], lang, names),
@@ -561,6 +589,15 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
     lowest = min(
         range(len(recorded)), key=lambda i: _ratio(recorded[i]["risk_exposure"]), default=0
     )
+    # Keep the tightest allowance that proves each plan, independent of run order.
+    budgets = {}
+    for run in result.get("runs", []):
+        if run.get("plan_index"):
+            epsilon = _decimal(run["epsilon"])
+            budgets[run["plan_index"]] = min(epsilon, budgets.get(run["plan_index"], epsilon))
+    balanced = {
+        r["plan_index"] for r in result.get("runs", []) if r.get("kind") == "diversified"
+    } - {0}
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
         by_supplier = {}
@@ -582,10 +619,16 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
         plans.append(
             {
                 "label": label,
-                "title": tr("plan_minimum", lang)
-                if index == 0
-                else tr("plan_alternative", lang, n=index),
+                "title": _plan_title(result, index, lang),
+                "stage": "balanced" if index in _balanced_only(result) else "",
                 "hint": tr("plan_lower_risk", lang) if index == lowest and index else "",
+                "balanced": tr("plan_balanced_hint", lang)
+                if index in balanced - _balanced_only(result)
+                else "",
+                "largest_share": percent(_ratio(plan["largest_share"]), lang, 0),
+                "budget": tr("plan_budget", lang, allowance=percent(budgets[index], lang, 0))
+                if index in budgets
+                else "",
                 "number": str(index + 1),
                 "index": str(index),
                 "cost": amount(_decimal(plan["total_cost"])),
@@ -790,9 +833,7 @@ def _final_decision_details(payload, plans, lang="en"):
         ):
             raise ValueError("Invalid approved content")
         details["final_plan"] = "Minimum cost" if index == 0 else f"Alternative {index}"
-        details["final_plan_title"] = (
-            tr("plan_minimum", lang) if index == 0 else tr("plan_alternative", lang, n=index)
-        )
+        details["final_plan_title"] = _plan_title(payload["snapshot"]["result"], index, lang)
     elif index is not None or content is not None or decision["approved_content_hash"] is not None:
         raise ValueError("Invalid no-award content")
     else:

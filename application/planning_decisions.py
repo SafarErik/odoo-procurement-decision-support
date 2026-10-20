@@ -224,11 +224,13 @@ def _saved_evidence(case: PlanningCase) -> dict:
         if plans:
             if checked_plan(request, plans[0].allocations) != plans[0]:
                 raise ValueError("Invalid saved reference metrics or constraints.")
-            epsilons = tuple(sorted(set(request.policy.epsilons)))
-            if tuple(r.epsilon for r in result.runs) != epsilons[: len(result.runs)]:
+            stages = tuple((e, "risk") for e in sorted(set(request.policy.epsilons)))
+            if request.policy.diversification_epsilon is not None:
+                stages += ((request.policy.diversification_epsilon, "diversified"),)
+            if tuple((r.epsilon, r.kind) for r in result.runs) != stages[: len(result.runs)]:
                 raise ValueError("Invalid saved stage order.")
             if result.status is PlanningStatus.OPTIMAL:
-                if len(result.runs) != len(epsilons):
+                if len(result.runs) != len(stages):
                     raise ValueError("Missing saved stage proof.")
             elif (
                 not result.runs
@@ -245,9 +247,13 @@ def _saved_evidence(case: PlanningCase) -> dict:
                 checked = checked_plan(
                     request, plan.allocations, Fraction(plans[0].total_cost), run.epsilon
                 )
-                if (run.plan_index != 0 and checked != plan) or checked.risk_exposure > plans[
-                    0
-                ].risk_exposure:
+                if (
+                    (run.plan_index != 0 and checked != plan)
+                    or checked.risk_exposure > plans[0].risk_exposure
+                    or (
+                        run.kind == "diversified" and checked.largest_share > plans[0].largest_share
+                    )
+                ):
                     raise ValueError("Invalid saved alternative proof or metrics.")
                 proved.add(run.plan_index)
             if proved != set(range(len(plans))) or len({p.allocations for p in plans}) != len(

@@ -51,7 +51,10 @@ def test_hungarian_is_the_default_and_mapping_uses_it(stored_cases):
     assert state.lang == "hu"
     base = stored_cases[1]
     display = _map_case(base, base["case_id"], "hu")
-    assert display.plans[0]["title"] == "Legkisebb költség"
+    assert display.plans[0]["title"] == "Legolcsóbb terv"
+    # An alternative names the tightest cost allowance that produced it; the cheapest plan none.
+    assert display.plans[0]["budget"] == ""
+    assert display.plans[1]["budget"].startswith("legfeljebb +")
     assert display.plans[0]["cost"] == "102,00 €"
     assert display.details["status_label"] == "Tervek elkészültek"
     assert display.details["origin_badge"] == "Bemutató adat"  # pre-P2 synthetic demo case
@@ -70,7 +73,7 @@ def test_language_switch_relabels_without_any_http(stored_cases, monkeypatch):
     for name in ("fetch_planning_case", "submit_planning_request", "fetch_planning_pdf"):
         patch_client(monkeypatch, name, forbidden)
     events = PlanningState.set_language.fn(state, ["en"])  # segmented control sends a list
-    assert state.lang == "en" and state.plans[0]["title"] == "Minimum cost"
+    assert state.lang == "en" and state.plans[0]["title"] == "Cheapest plan"
     assert state.plans[0]["cost"] == "€102.00"
     assert state.final_choice == "Alternative 1" and state.selected_plan["label"] == "Alternative 1"
     # Only the stored supplier overview is re-read (a GET of the saved snapshot).
@@ -129,7 +132,8 @@ def test_starting_an_already_loaded_group_keeps_the_draft_and_focuses_the_terms(
     state.selected_group, state.odoo_ready = "1", True
     state._odoo_payload = {"draft": True}
     event = PlanningState.prepare_odoo_history.fn(state, "1")
-    assert "creation-terms-heading" in str(event) and state._odoo_payload == {"draft": True}
+    assert "creation-step-heading" in str(event) and state._odoo_payload == {"draft": True}
+    assert state.creation_step == 1
 
 
 def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_cases):
@@ -295,3 +299,14 @@ def test_library_filters_stay_usable_while_a_loaded_list_reloads():
     start = rendered.index('id:"library-search"')
     search = rendered[rendered.rindex("jsx(", 0, start) : start]
     assert "library_loaded" in search and "library_loading" not in search
+
+
+def test_plan_proved_only_by_the_balanced_stage_is_named_and_shows_largest_share(stored_cases):
+    payload = deepcopy(stored_cases[1])
+    for run in payload["snapshot"]["result"]["runs"]:
+        if run["plan_index"] == 1:
+            run["kind"] = "diversified"
+    display = _map_case(payload, payload["case_id"], "hu")
+    assert display.plans[1]["title"] == "Kiegyensúlyozott terv"
+    assert display.plans[1]["balanced"] == ""  # the title already says it
+    assert display.plans[0]["largest_share"].endswith("%")

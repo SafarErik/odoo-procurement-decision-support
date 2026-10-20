@@ -27,13 +27,23 @@ def test_rfq_to_approved_pdf_in_hungarian_then_english(smoke_stack, smoke_page):
     errors = _console_errors(page)
 
     page.goto(stack.frontend_url + "/rfqs")
-    expect(page.get_by_role("heading", name="Nyitott ajánlatkérések")).to_be_visible()
+    expect(page.get_by_role("heading", name="Odoo-ajánlatok kiválasztása")).to_be_visible()
     expect(page.get_by_text("T6 Comparison Product").first).to_be_visible()
     page.locator("#start-501").click()
-    expect(page.get_by_role("heading", name="Igény és szállítói feltételek")).to_be_visible()
-    expect(page.get_by_role("region", name="Szállítói előzmények az Odoo-ból")).to_contain_text(
-        "Supplier 1"
-    )
+    expect(page.locator("#creation-step-heading")).to_contain_text("igény")
+    page.get_by_role("button", name="Tovább a beszállítói feltételekhez").click()
+    expect(page.locator("#creation-step-heading")).to_contain_text("feltételek")
+    supplier = page.get_by_role("button", name=re.compile(r"Supplier 1.*"))
+    supplier.click()
+    capacity = page.locator('input[name$="_capacity"]').first
+    capacity.fill("121")
+    page.get_by_role("radio", name="EN").click()
+    expect(capacity).to_have_value("121")
+    page.get_by_role("radio", name="HU").click()
+    expect(capacity).to_have_value("121")
+    page.get_by_role("button", name="Vissza az igényhez").click()
+    page.get_by_role("button", name="Tovább a beszállítói feltételekhez").click()
+    expect(capacity).to_have_value("121")
     page.get_by_role("button", name="Feltételek áttekintése").click()
     expect(page.get_by_role("heading", name="Áttekintés mentés előtt")).to_be_visible()
     page.locator("#calculate-save").click()
@@ -58,10 +68,19 @@ def test_rfq_to_approved_pdf_in_hungarian_then_english(smoke_stack, smoke_page):
     page.get_by_role("tab", name="Tervek").click()
     expect(page.get_by_role("region", name="Tervek összehasonlítása")).to_be_visible()
     expect(page.get_by_role("img", name=re.compile("Pontdiagram"))).to_be_visible()
+    expect(
+        page.get_by_role("row", name=re.compile("Legnagyobb függés egy szállítótól"))
+    ).to_be_visible()
+    runs = saved["snapshot"]["result"]["runs"]
+    risk_plans = {r["plan_index"] for r in runs if r.get("kind", "risk") == "risk"}
+    if runs[-1].get("kind") == "diversified" and runs[-1]["plan_index"] not in risk_plans | {0}:
+        expect(page.get_by_role("heading", name="Kiegyensúlyozott terv")).to_be_visible()
+    page.screenshot(path=str(stack.root / "plans-1440.png"), full_page=True)
 
     page.get_by_role("tab", name="Döntés és PDF").click()
     page.locator("#final-choice").select_option("Minimum cost")
     page.locator("#final-actor").fill("e2e buyer")
+    page.locator("#final-reason").fill("The minimum-cost split meets the checked requirements.")
     page.locator("input[name=demonstration]").check()
     page.locator("#decision-review-button").click()
     dialog = page.get_by_role("alertdialog")
@@ -81,6 +100,10 @@ def test_rfq_to_approved_pdf_in_hungarian_then_english(smoke_stack, smoke_page):
     page.get_by_role("radio", name="EN").click()
     expect(page.get_by_role("tab", name="Decision & PDF")).to_be_visible()
     expect(page.locator("#saved-decision-heading")).to_have_text("Approved")
+    page.get_by_role("button", name="View approved PDF").click()
+    expect(page.get_by_role("link", name="Download approved PDF")).to_have_attribute(
+        "download", re.compile(r".+-en\.pdf")
+    )
     page.get_by_role("tab", name="Overview").click()
     expect(page.get_by_role("heading", name="Next step")).to_be_visible()
     page.get_by_role("button", name="Audit").click()

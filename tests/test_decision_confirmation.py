@@ -134,6 +134,15 @@ def test_no_award_requires_reason_has_no_plan_and_child_cannot_review(prepared):
     assert not state.decision_open and len(posts) == 1
 
 
+def test_minimum_cost_also_requires_deliberate_buyer_rationale(prepared):
+    state, _, _, _, posts = prepared
+    state.review_final_decision(form("Minimum cost", reason=" "))
+    assert not state.decision_open and not posts
+    assert state.error_message == tr("err_reason", "en")
+    state.review_final_decision(form("Minimum cost", reason="The cost saving fits our needs."))
+    assert state.decision_open and not posts
+
+
 @pytest.mark.parametrize("recovering", [False, True])
 def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
     prepared, configured, monkeypatch, recovering

@@ -1,0 +1,327 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T18:50:08.119216+00:00",
+  "title": "Design System: Odoo Procurement Decision Support",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "primary",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00826 157.09)",
+          "oklch(26.43% 0.00826 157.09)",
+          "oklch(37.86% 0.00826 157.09)",
+          "oklch(49.29% 0.00826 157.09)",
+          "oklch(60.71% 0.00826 157.09)",
+          "oklch(72.14% 0.00826 157.09)",
+          "oklch(83.57% 0.00826 157.09)",
+          "oklch(95.00% 0.00826 157.09)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.04383 192.98)",
+          "oklch(26.43% 0.04383 192.98)",
+          "oklch(37.86% 0.04383 192.98)",
+          "oklch(49.29% 0.04383 192.98)",
+          "oklch(60.71% 0.04383 192.98)",
+          "oklch(72.14% 0.04383 192.98)",
+          "oklch(83.57% 0.04383 192.98)",
+          "oklch(95.00% 0.04383 192.98)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.02745 179.73)",
+          "oklch(26.43% 0.02745 179.73)",
+          "oklch(37.86% 0.02745 179.73)",
+          "oklch(49.29% 0.02745 179.73)",
+          "oklch(60.71% 0.02745 179.73)",
+          "oklch(72.14% 0.02745 179.73)",
+          "oklch(83.57% 0.02745 179.73)",
+          "oklch(95.00% 0.02745 179.73)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15.00% 0.09741 285.57)",
+          "oklch(26.43% 0.09741 285.57)",
+          "oklch(37.86% 0.09741 285.57)",
+          "oklch(49.29% 0.09741 285.57)",
+          "oklch(60.71% 0.09741 285.57)",
+          "oklch(72.14% 0.09741 285.57)",
+          "oklch(83.57% 0.09741 285.57)",
+          "oklch(95.00% 0.09741 285.57)"
+        ]
+      },
+      "accent-hover": {
+        "role": "secondary",
+        "displayName": "Accent Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.08663 286.34)",
+          "oklch(26.43% 0.08663 286.34)",
+          "oklch(37.86% 0.08663 286.34)",
+          "oklch(49.29% 0.08663 286.34)",
+          "oklch(60.71% 0.08663 286.34)",
+          "oklch(72.14% 0.08663 286.34)",
+          "oklch(83.57% 0.08663 286.34)",
+          "oklch(95.00% 0.08663 286.34)"
+        ]
+      },
+      "rail": {
+        "role": "primary",
+        "displayName": "Rail",
+        "tonalRamp": [
+          "oklch(15.00% 0.04598 197.39)",
+          "oklch(26.43% 0.04598 197.39)",
+          "oklch(37.86% 0.04598 197.39)",
+          "oklch(49.29% 0.04598 197.39)",
+          "oklch(60.71% 0.04598 197.39)",
+          "oklch(72.14% 0.04598 197.39)",
+          "oklch(83.57% 0.04598 197.39)",
+          "oklch(95.00% 0.04598 197.39)"
+        ]
+      },
+      "connected": {
+        "role": "neutral",
+        "displayName": "Connected",
+        "tonalRamp": [
+          "oklch(15.00% 0.08541 179.89)",
+          "oklch(26.43% 0.08541 179.89)",
+          "oklch(37.86% 0.08541 179.89)",
+          "oklch(49.29% 0.08541 179.89)",
+          "oklch(60.71% 0.08541 179.89)",
+          "oklch(72.14% 0.08541 179.89)",
+          "oklch(83.57% 0.08541 179.89)",
+          "oklch(95.00% 0.08541 179.89)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "tonalRamp": [
+          "oklch(15.00% 0.01765 159.08)",
+          "oklch(26.43% 0.01765 159.08)",
+          "oklch(37.86% 0.01765 159.08)",
+          "oklch(49.29% 0.01765 159.08)",
+          "oklch(60.71% 0.01765 159.08)",
+          "oklch(72.14% 0.01765 159.08)",
+          "oklch(83.57% 0.01765 159.08)",
+          "oklch(95.00% 0.01765 159.08)"
+        ]
+      },
+      "error": {
+        "role": "neutral",
+        "displayName": "Error",
+        "tonalRamp": [
+          "oklch(15.00% 0.13481 18.09)",
+          "oklch(26.43% 0.13481 18.09)",
+          "oklch(37.86% 0.13481 18.09)",
+          "oklch(49.29% 0.13481 18.09)",
+          "oklch(60.71% 0.13481 18.09)",
+          "oklch(72.14% 0.13481 18.09)",
+          "oklch(83.57% 0.13481 18.09)",
+          "oklch(95.00% 0.13481 18.09)"
+        ]
+      },
+      "series-1": {
+        "role": "tertiary",
+        "displayName": "Series 1",
+        "tonalRamp": [
+          "oklch(15.00% 0.17580 282.76)",
+          "oklch(26.43% 0.17580 282.76)",
+          "oklch(37.86% 0.17580 282.76)",
+          "oklch(49.29% 0.17580 282.76)",
+          "oklch(60.71% 0.17580 282.76)",
+          "oklch(72.14% 0.17580 282.76)",
+          "oklch(83.57% 0.17580 282.76)",
+          "oklch(95.00% 0.17580 282.76)"
+        ]
+      },
+      "series-2": {
+        "role": "tertiary",
+        "displayName": "Series 2",
+        "tonalRamp": [
+          "oklch(15.00% 0.11178 173.68)",
+          "oklch(26.43% 0.11178 173.68)",
+          "oklch(37.86% 0.11178 173.68)",
+          "oklch(49.29% 0.11178 173.68)",
+          "oklch(60.71% 0.11178 173.68)",
+          "oklch(72.14% 0.11178 173.68)",
+          "oklch(83.57% 0.11178 173.68)",
+          "oklch(95.00% 0.11178 173.68)"
+        ]
+      },
+      "grid": {
+        "role": "neutral",
+        "displayName": "Grid",
+        "tonalRamp": [
+          "oklch(15.00% 0.01082 158.84)",
+          "oklch(26.43% 0.01082 158.84)",
+          "oklch(37.86% 0.01082 158.84)",
+          "oklch(49.29% 0.01082 158.84)",
+          "oklch(60.71% 0.01082 158.84)",
+          "oklch(72.14% 0.01082 158.84)",
+          "oklch(83.57% 0.01082 158.84)",
+          "oklch(95.00% 0.01082 158.84)"
+        ]
+      },
+      "selected": {
+        "role": "secondary",
+        "displayName": "Selected",
+        "tonalRamp": [
+          "oklch(15.00% 0.01215 296.35)",
+          "oklch(26.43% 0.01215 296.35)",
+          "oklch(37.86% 0.01215 296.35)",
+          "oklch(49.29% 0.01215 296.35)",
+          "oklch(60.71% 0.01215 296.35)",
+          "oklch(72.14% 0.01215 296.35)",
+          "oklch(83.57% 0.01215 296.35)",
+          "oklch(95.00% 0.01215 296.35)"
+        ]
+      },
+      "nav-hover": {
+        "role": "neutral",
+        "displayName": "Nav Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.04866 193.41)",
+          "oklch(26.43% 0.04866 193.41)",
+          "oklch(37.86% 0.04866 193.41)",
+          "oklch(49.29% 0.04866 193.41)",
+          "oklch(60.71% 0.04866 193.41)",
+          "oklch(72.14% 0.04866 193.41)",
+          "oklch(83.57% 0.04866 193.41)",
+          "oklch(95.00% 0.04866 193.41)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Home heading",
+        "purpose": "Radix size 8 at default scaling; workspace h1 line height and Home tracking."
+      },
+      "body": {
+        "displayName": "System body",
+        "purpose": "Installed system stack; no downloaded typeface."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "pointer-feedback",
+        "value": "background-color 140ms ease, border-color 140ms ease",
+        "purpose": "Fine pointer hover transitions."
+      },
+      {
+        "name": "press",
+        "value": "scale(.98)",
+        "purpose": "Enabled button active feedback."
+      },
+      {
+        "name": "reduced-motion",
+        "value": ".01ms",
+        "purpose": "Animation and transition durations under reduced motion, one iteration."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wizard-two-columns",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Rail navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Exact custom rail button geometry and active treatment.",
+      "html": "<nav class=\"ds-rail\"><button class=\"ds-nav\" aria-current=\"page\">Kezdőlap</button><button class=\"ds-nav\">Esetek</button></nav>",
+      "css": ".ds-rail{background:#153f40;padding:1rem;font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;}.ds-nav{display:flex;align-items:center;gap:.65rem;width:100%;color:white;background:transparent;border:0;border-radius:8px;padding:.65rem .75rem;font:inherit;cursor:pointer;text-align:left;min-height:2.75rem}.ds-nav:hover{background:#24504f}.ds-nav[aria-current=page]{background:#eff5f1;color:#153f40;font-weight:650}.ds-nav:focus-visible{outline:3px solid white;outline-offset:3px}.ds-nav:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Shared card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat working surface; compact padding shown.",
+      "html": "<section class=\"ds-card\">Beszerzési döntés</section>",
+      "css": ".ds-card{font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;background:#FFFFFF;border:1px solid #d1ded6;border-radius:14px;padding:1rem;min-width:0;width:100%}"
+    },
+    {
+      "name": "Current workflow step",
+      "kind": "chip",
+      "refersTo": "step-current",
+      "description": "The current numbered step; descriptive label accompanies it in the app.",
+      "html": "<span class=\"ds-step\" aria-label=\"2. lépés\">2</span>",
+      "css": ".ds-step{font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;display:grid;place-items:center;width:1.8rem;height:1.8rem;border-radius:50%;border:1px solid #d1ded6;font-size:.8rem;flex-shrink:0;background:#413b76;color:white}"
+    },
+    {
+      "name": "Input focus treatment",
+      "kind": "input",
+      "description": "Application-owned typography and focus treatment; native field chrome is only a preview fallback, not a replacement for Radix.",
+      "html": "<label class=\"ds-field\">Igényelt mennyiség <span class=\"ds-field-root\"><input class=\"ds-input\" type=\"number\" value=\"100\"></span></label>",
+      "css": ".ds-field{font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;}.ds-field-root{display:inline-block}.ds-field-root:focus-within{outline:2px solid #413b76;outline-offset:2px}.ds-input{font-family:inherit;max-width:100%;min-width:0;font-size:max(16px,1rem);caret-color:#413b76}"
+    },
+    {
+      "name": "Primary action treatment",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Application-owned primary treatment; native padding/radius are preview fallback because production geometry belongs to Radix.",
+      "html": "<button class=\"ds-primary\">Új beszerzés</button>",
+      "css": ".ds-primary{font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;background:#413b76;color:white;min-height:2.75rem;white-space:normal;touch-action:manipulation}.ds-primary:focus-visible{outline:3px solid #413b76;outline-offset:3px;}.ds-primary:not(:disabled):active{transform:scale(.98)}.ds-primary:disabled{cursor:not-allowed}@media(hover:hover) and (pointer:fine){.ds-primary{transition:background-color 140ms ease,border-color 140ms ease}}@media(prefers-reduced-motion:reduce){.ds-primary{transition-duration:.01ms!important}}"
+    },
+    {
+      "name": "Selected plan summary",
+      "kind": "card",
+      "description": "Selection surface and accent border, distinct from approval.",
+      "html": "<section class=\"ds-selected\">Kiválasztott terv</section>",
+      "css": ".ds-selected{font-family:Aptos, \"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif;color:#173e3d;padding:1.25rem;min-width:0;border:1px solid #413b76;background:#f1eff8;border-radius:12px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The procurement workspace",
+    "overview": "A professional, clean operational procurement workspace. Deep green navigation anchors pale green pages, white working surfaces and restrained purple actions. The incumbent identity remains green and purple; it is not a blue rebrand.\n\nHungarian-first bilingual copy, clear sequencing and progressive disclosure help occasional buyers understand the next action. Comparison values and provenance stay legible; subtle state feedback supports work without decorative motion.",
+    "keyCharacteristics": [
+      "Deep green navigation, pale green canvas, purple actions.",
+      "Readable operational density with expandable detail.",
+      "Explicit workflow and honest, sourced values.",
+      "Keyboard, narrow-screen and reduced-motion support."
+    ],
+    "rules": [],
+    "dos": [
+      "Do retain the incumbent green and purple identity.",
+      "Do use the shared card and source-badge helpers before creating new patterns.",
+      "Do keep Hungarian and English labels understandable and allow them to wrap.",
+      "Do label chart series and keep table or text equivalents nearby.",
+      "Do distinguish selection, calculation, approval and PDF creation.",
+      "Do show bounded recent records honestly, including empty, busy and error states."
+    ],
+    "donts": [
+      "Don't invent library-wide totals from the bounded Home queries.",
+      "Don't present supplier exposure as a failure probability.",
+      "Don't hide the selected mobile tab outside the visible tab strip.",
+      "Don't add decorative motion, a new font dependency or invented elevation.",
+      "Don't replace the Python/Reflex/Radix/Recharts implementation with a standalone React application."
+    ]
+  }
+}

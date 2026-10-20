@@ -688,7 +688,7 @@ def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
     minimum = base["snapshot"]["result"]["minimum_cost_plan"]["allocations"]
     allocated = [a for a in minimum if a["quantity"] > 0]
     labels = dict(base["snapshot"]["facts"]["labels"])
-    proposals = [p for p in pages["hu"] if "Megrendelési javaslat" in p]
+    proposals = [p for p in pages["hu"] if "Rendelési tétel" in p]
     assert len(proposals) == len(allocated)
     for page, allocation in zip(proposals, allocated, strict=True):
         assert labels[allocation["supplier_id"]] in page and "T6 Comparison Product" in page

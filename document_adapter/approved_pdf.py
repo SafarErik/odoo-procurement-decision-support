@@ -1,6 +1,6 @@
 """Approved procurement plan PDF v2 from validated immutable approved content only.
 
-Layout: a summary page, one purchase order proposal ("Megrendelési javaslat") page per
+Layout: a summary page, one order-line page ("Rendelési tétel – jóváhagyott terv") per
 supplier with a non-zero approved quantity, and a readable audit appendix at the end.
 Hungarian or English; no raw JSON. The document is not an Odoo Purchase Order.
 """
@@ -35,7 +35,7 @@ from application.supplier_overview import (
 )
 
 FONT = "ProcurementDejaVu"
-LAYOUT_VERSION = "layout-v2"
+LAYOUT_VERSION = "layout-v3"
 _font_lock = Lock()
 
 TEXT = {
@@ -70,6 +70,7 @@ TEXT = {
         "plan": "Kiválasztott terv",
         "minimum_plan": "Minimális költségű terv",
         "alternative_plan": "{n}. alternatív terv (alacsonyabb kockázati kitettség)",
+        "balanced_plan": "Kiegyensúlyozott terv (legkisebb függés egy beszállítótól)",
         "total_cost": "Teljes költség",
         "supplier_count": "Beszállítók száma",
         "largest_share": "Legnagyobb beszállítói részarány",
@@ -96,13 +97,13 @@ TEXT = {
         "rationale": "Indoklás",
         "no_rationale": "Nincs megadva (minimális költségű terv kiválasztása)",
         "proposals_follow": (
-            "A beszállítónkénti megrendelési javaslatok a következő oldalakon, az audit "
+            "A beszállítónkénti rendelési tételek a következő oldalakon, az audit "
             "melléklet a dokumentum végén található."
         ),
-        "proposal": "Megrendelési javaslat",
+        "proposal": "Rendelési tétel – jóváhagyott terv",
         "offer": "Ajánlat",
         "case": "Beszerzési eset",
-        "line": "Rendelési tétel",
+        "line": "Tétel adatai",
         "dates": "Határidők",
         "promised_date": "Vállalt szállítási dátum",
         "terms": "Feltételek",
@@ -112,7 +113,7 @@ TEXT = {
         "price_range": "Ár érvényességi mennyiségi sávja",
         "delivery_range": "Szállítható mennyiségi sáv",
         "proposal_note": (
-            "A javaslat a jóváhagyott tervből készült, nem Odoo beszerzési rendelés. A "
+            "A tétel a jóváhagyott tervből készült, nem Odoo beszerzési rendelés. A "
             "beszállító megnevezése nem helyettesíti a jogi adatokat (cím, adószám)."
         ),
         "appendix": "Audit melléklet",
@@ -194,6 +195,7 @@ TEXT = {
         "plan": "Selected plan",
         "minimum_plan": "Minimum-cost plan",
         "alternative_plan": "Alternative plan {n} (lower risk exposure)",
+        "balanced_plan": "Balanced plan (smallest dependence on one supplier)",
         "total_cost": "Total cost",
         "supplier_count": "Number of suppliers",
         "largest_share": "Largest supplier share",
@@ -220,12 +222,12 @@ TEXT = {
         "rationale": "Rationale",
         "no_rationale": "Not given (minimum-cost plan selected)",
         "proposals_follow": (
-            "One purchase order proposal per supplier follows; the audit appendix is at the end."
+            "One order line per supplier follows; the audit appendix is at the end."
         ),
-        "proposal": "Purchase order proposal",
+        "proposal": "Order line – approved plan",
         "offer": "Quotation",
         "case": "Procurement case",
-        "line": "Order line",
+        "line": "Line details",
         "dates": "Dates",
         "promised_date": "Promised delivery date",
         "terms": "Terms",
@@ -235,7 +237,7 @@ TEXT = {
         "price_range": "Price validity quantity range",
         "delivery_range": "Deliverable quantity range",
         "proposal_note": (
-            "This proposal is derived from the approved plan and is not an Odoo Purchase "
+            "This line is derived from the approved plan and is not an Odoo Purchase "
             "Order. Supplier labels do not establish legal names, addresses or tax details."
         ),
         "appendix": "Audit appendix",
@@ -432,9 +434,13 @@ def render_approved_pdf(content, language="hu"):
 
     story = []
     selected = [a for a in plan["allocations"] if a["quantity"] > 0]
+    runs = content["planning_snapshot"]["result"]["runs"]
+    proved_by = {r.get("kind", "risk") for r in runs if r["plan_index"] == content["plan_index"]}
     plan_name = (
         t["minimum_plan"]
         if content["plan_index"] == 0
+        else t["balanced_plan"]
+        if proved_by == {"diversified"}
         else t["alternative_plan"].format(n=content["plan_index"])
     )
 
