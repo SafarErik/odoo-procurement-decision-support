@@ -1,9 +1,9 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-21T18:55:52+00:00",
+  "generated_at": "2026-10-21T19:06:20+00:00",
   "repository": {
-    "commit": "240f853b11b57d317da2fc392130ef6b59131fa8",
-    "dirty": true
+    "commit": "0ca8d5b888858498db1fd39c214aa80744729569",
+    "dirty": false
   },
   "environment": {
     "python": "3.11.15",
@@ -64,7 +64,7 @@
     }
   ],
   "base_case": {
-    "case_id": "f21e83da-d369-4737-b69d-182b46b94595",
+    "case_id": "11e92a7e-7c2c-4253-b2fb-ddba43943698",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -106,7 +106,7 @@
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.781
+    "seconds": 0.839
   },
   "scenarios": [
     {
@@ -149,7 +149,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.376
+      "seconds": 0.331
     },
     {
       "kind": "capacity_change",
@@ -182,7 +182,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.543
+      "seconds": 0.43
     },
     {
       "kind": "capacity_change",
@@ -224,7 +224,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.523
+      "seconds": 0.478
     },
     {
       "kind": "demand_change",
@@ -233,7 +233,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.088
+      "seconds": 0.073
     },
     {
       "kind": "demand_change",
@@ -270,7 +270,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.492
+      "seconds": 0.458
     },
     {
       "kind": "price_change",
@@ -321,7 +321,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.523
+      "seconds": 0.476
     },
     {
       "kind": "price_change",
@@ -363,7 +363,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.542
+      "seconds": 0.477
     },
     {
       "kind": "combined",
@@ -406,7 +406,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.526
+      "seconds": 0.439
     },
     {
       "kind": "demand_change",
@@ -415,17 +415,17 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.076
+      "seconds": 0.071
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "f21e83da-d369-4737-b69d-182b46b94595",
+      "case_id": "11e92a7e-7c2c-4253-b2fb-ddba43943698",
       "plan_index": 1,
-      "approved_content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+      "approved_content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
     },
     "no_award": {
-      "case_id": "20420756-1d7d-41df-a1c3-3d2de1fc6227",
+      "case_id": "4cbda318-06f9-4676-9557-6d514a3726bc",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
@@ -433,42 +433,42 @@
   "pdf": {
     "hu": {
       "plan": {
-        "sha256": "fcd2156ef822ad762bd8fbe9b787f3d84f9362c751287e3a71f2b51a3252fe36",
-        "bytes": 29459,
+        "sha256": "a8bb6f3c852d37a840ded7e3bf55d4e4afb8b2cf500e02c27c93d31e8fe8fc02",
+        "bytes": 29453,
         "pages": 3,
-        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
         "language": "hu",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:hu:plan:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:hu:plan:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
       },
       "audit": {
-        "sha256": "ac141b0e7951976d6351986c1399e5831c923ca4f10a02118325064246e4a38c",
-        "bytes": 35592,
+        "sha256": "9d9930e99b17e95eefbd5d7b2dc6999722dd9b06f81d08e41143858360a807a6",
+        "bytes": 35587,
         "pages": 7,
-        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
         "language": "hu",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:hu:audit:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:hu:audit:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
       }
     },
     "en": {
       "plan": {
-        "sha256": "5f79b04e99cf5a9f7733b89852d4f955242fff5deffdcce323a5d567bb31564e",
-        "bytes": 28297,
+        "sha256": "643f4c30c9357eef51c24ef9f0c9563f3eae1ff6fde2ddef51c35a6d411df7a5",
+        "bytes": 28287,
         "pages": 3,
-        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
         "language": "en",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:en:plan:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:en:plan:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
       },
       "audit": {
-        "sha256": "100cd96863444c662d138d9a1c3ec115a6246255e1711b090744ff12180c5133",
-        "bytes": 34111,
+        "sha256": "b0822b0f23f79d580a67bdfd32a806594e0e35f7ee9b3d7086c59b5177185ef5",
+        "bytes": 34110,
         "pages": 7,
-        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
         "language": "en",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:en:audit:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:en:audit:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
       }
     }
   },
@@ -488,7 +488,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 6.859,
-  "total_seconds": 20.755,
+  "flow_seconds": 6.258,
+  "total_seconds": 19.867,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }
