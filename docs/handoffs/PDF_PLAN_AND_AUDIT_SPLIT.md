@@ -14,7 +14,7 @@ supplier commitments although the values are buyer-entered or kept-suggested (L6
 ## Decision
 
 Owner specification 2026-10-21, recorded as
-[ADR-036](../adr/ADR-036-plan-and-audit-documents.md) (proposed; amends ADR-033): two
+[ADR-036](../adr/ADR-036-plan-and-audit-documents.md) (accepted 2026-10-21; amends ADR-033): two
 documents from the same approved snapshot and the same approved content hash —
 `plan` for the buyer and `audit` for traceability. Stored artifacts stay immutable;
 combined documents stored earlier become the `plan` of their case unchanged.
@@ -32,12 +32,27 @@ artifacts are never deleted.
 | `persistence/schema.py`, `persistence/planning_documents.py` | mapping and `get(case_id, language, kind)` |
 | `application/planning_documents.py` | `approved_document(..., language="hu", kind="plan")`; `invalid_document_kind`; `DOCUMENT_VERSION = "t17-approved-pdf-v3"`, reference `…:{language}:{kind}:{hash}`; stored v2 (and v1 English) references accepted for `plan` only; filenames `jovahagyott-beszerzesi-terv-…`, `approved-procurement-plan-…`, `audit-melleklet-…`, `audit-appendix-…` |
 | `backend/app/routes/planning_cases.py`, `dependencies.py` | `?kind=plan\|audit` (default `plan`), `X-Document-Kind` header, same error mapping (unknown kind → 422) |
-| `document_adapter/approved_pdf.py` | `layout-v5`; `render_plan_pdf` / `render_audit_pdf` over one builder. Plan: summary + supplier assessment table (supplier, class, risk score) with „A pontszám nem kalibrált meghibásodási valószínűség.”; product by Odoo name only; „Tervezési feltételezések” / "Planning assumptions" with the L6 sentence; „Ellenőrzési azonosítók” / "Verification identifiers" (case ID, approved content hash, data origin, 12-character model ID, decision time, Audit-view pointer) kept together on the last order-line page when it fits. Audit: title „Audit melléklet – jóváhagyott beszerzési terv”, case ID and hash header, then the previous appendix sections unchanged |
+| `document_adapter/approved_pdf.py` | `layout-v5` (follow-up: `layout-v6`, see below); `render_plan_pdf` / `render_audit_pdf` over one builder. Plan: summary + supplier assessment table (supplier, class, risk score) with „A pontszám nem kalibrált meghibásodási valószínűség.”; product by Odoo name only; „Tervezési feltételezések” / "Planning assumptions" with the L6 sentence; „Ellenőrzési azonosítók” / "Verification identifiers" (case ID, approved content hash, data origin, 12-character model ID, decision time, Audit-view pointer) kept together on the last order-line page when it fits. Audit: title „Audit melléklet – jóváhagyott beszerzési terv”, case ID and hash header, then the previous appendix sections unchanged |
 | `frontend/planning_pdf_client.py` | `kind` parameter; accepts v3 references, plus v2/v1 only for `plan`; checks `X-Document-Kind` |
 | `frontend/planning/state_decision.py`, `state_case.py`, `audit.py`, `i18n_ui.py` | Decision & PDF tab unchanged (fetches `plan`); Audit view button „Audit melléklet (PDF)” / "Audit appendix (PDF)" only for approved cases, same loading, retry and error callout as the plan PDF, inline viewer; keys `audit_pdf`, `retry_audit_pdf`, `audit_pdf_note` (HU/EN) |
 | `tools/t17_demo.py`, `tools/demo.py` | demo downloads, records (bytes, pages, SHA-256, reference, content hash) and replays all four artifacts; No-award checked for both kinds |
 | `tests/integration/conftest.py` | the module reset empties the disposable tables before `downgrade base` (the document downgrade now refuses while audit/v3 rows exist) |
 | Docs | ADR-036, ARCHITECTURE (diagram, module and API rows), RUNBOOK (migration note, §5.4), TRACEABILITY rows 6 and 9 |
+
+### Follow-up (owner requests, same day)
+
+| Area | Change |
+| --- | --- |
+| `document_adapter/approved_pdf.py` | `layout-v6`: order-line pages show the supplier and quotation by display name only („[GEN] Kalocsa Profiles”, „P01022”); the raw `(odoo:res.partner:18)` / `(odoo:purchase.order:1022)` references stay in the audit document (provenance). The unused `named()` helper is removed. Raised to v6 because `layout-v5` plan PDFs are already stored in the development database |
+| `frontend/planning/pdf.py`, `audit.py` | `ApprovedPDFViewer` gains a `kind` prop; for `audit` the download link reads „Audit melléklet letöltése” / "Download audit appendix" and the viewer region „Audit melléklet PDF” / "Audit appendix PDF"; the plan viewer is unchanged |
+| `docs/adr/ADR-036-plan-and-audit-documents.md` | status accepted |
+| `tests/test_odoo_purchase_history.py` | the plan contains none of `odoo:product.product:`, `odoo:res.partner:`, `odoo:purchase.order`; the audit contains each |
+
+Evidence practice: the 2026-10-21T19:06:20Z P4 report names `0ca8d5b`, which a squash
+merge would make unreachable; it is replaced by the single demo rerun after this
+follow-up (no tag). Going forward, merge evidence-carrying PRs with a merge commit, or
+tag the evidence commit, instead of squashing, so that the `repository.commit` recorded
+in `docs/evidence/*.json` stays reachable.
 
 ## Evidence (commands actually run)
 
@@ -92,6 +107,17 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
   failure (reverted, file re-checked and tests rerun): amber alert „A PDF most nem érhető
   el…” and label „Audit melléklet újra”, then a successful retry; No-award case: no
   button.
+- Follow-up (working tree on top of `5774eaf`):
+  `pytest tests/test_odoo_purchase_history.py tests/test_t21_documents.py
+  tests/test_t17_demo.py` → 66 passed; `python -m tools.dev check` → 535 passed / 54
+  deselected, format, lint, compile, `uv pip check` passed;
+  `pytest tests/e2e -m e2e --browser chromium` → 3 passed (185 s).
+  Plan text of the stored clean demo case `11e92a7e…` (approved content read via GET,
+  rendered locally, nothing stored), HU and EN: 3 pages, `layout-v6`; page 2 reads
+  „Beszállító [GEN] Kalocsa Profiles”, „Ajánlat P01022”; none of `odoo:res.partner:`,
+  `odoo:purchase.order`, `odoo:product.product:` in the plan, all three in the audit.
+  The P4 demo is rerun once after the owner commits this follow-up (`dirty: false`); the
+  regenerated report and this handoff's numbers are then left for the owner to commit.
 - `tools.dev demo` exit code: the earlier side finding (exit 0 after "Demonstration
   incomplete") was not reproduced — with `run` patched to raise, `tools.dev demo` exits 1.
   The 0 was most likely the exit status of a shell pipeline; no change made.
@@ -103,12 +129,14 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
   tables before resetting the schema.
 - Hosted CI not run (local evidence only). P4 MILP evaluation and ML report check not
   rerun (unaffected).
-- Order-line pages still show supplier and quotation Odoo references in parentheses (only
-  the product reference was removed, as specified). The shared PDF viewer's download link
-  still reads „Jóváhagyott PDF letöltése” / "Download approved PDF" for the audit appendix.
+- The new audit download label was not checked in the built-in browser: the click that
+  loads the audit PDF was refused by the session's permission classifier. Covered only by
+  the frontend compile in the e2e run.
+- Plan PDFs already stored with `layout-v5` (development database, demo cases) keep the
+  supplier and quotation references; immutability, not a defect.
 - Cases approved before the split keep their combined (plan + appendix) document as
   `plan`; that is the immutability rule, not a defect.
-- ADR-036 is proposed in the repository only; Drive updates (03 ADR-036, 06 FR-V2-12
+- ADR-036 is accepted in the repository; Drive updates (03 ADR-036, 06 FR-V2-12
   note, 07, 08 §9, 01 6.7) wait for the owner's request after merge.
 
 ## Thesis chapter

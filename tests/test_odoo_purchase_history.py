@@ -707,8 +707,10 @@ def test_plan_and_audit_pdfs_name_odoo_suppliers_and_state_generated_history(con
     for language in ("hu", "en"):
         plan = " ".join(pages[language])
         assert len(pages[language]) <= len(allocated) + 2
-        assert "odoo:product.product:" not in plan and "odoo:purchase.order.group" not in plan
-        assert "odoo:product.product:" in audits[language]
+        # Display names only on the plan; Odoo references stay in the audit document.
+        for reference in ("odoo:product.product:", "odoo:res.partner:", "odoo:purchase.order"):
+            assert reference not in plan
+            assert reference in audits[language]
     assert "Tervezési feltételezések" in proposals[0]
     assert "nem beszállítói vállalások" in proposals[0]
     assert "Planning assumptions" in pages["en"][1] and "not supplier commitments" in pages["en"][1]

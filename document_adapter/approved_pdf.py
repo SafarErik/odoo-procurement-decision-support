@@ -49,7 +49,7 @@ from application.supplier_overview import (
 )
 
 FONT = "ProcurementDejaVu"
-LAYOUT_VERSION = "layout-v5"
+LAYOUT_VERSION = "layout-v6"
 _font_lock = Lock()
 
 # Fixed English sentences every decision record carries (application/planning_decisions.py
@@ -425,10 +425,6 @@ def _render(content, language, kind):
     origin = metadata.get("data_origin", "generated") if history else "synthetic"
     origin = origin if origin in ("generated", "observed") or not history else "generated"
 
-    def named(identity):
-        name = names.get(identity)
-        return identity if name is None else f"{name} ({identity})"
-
     def short(identity):
         return names.get(identity, identity)
 
@@ -605,8 +601,8 @@ def _render(content, language, kind):
             story.append(paragraph(short(identity), subheading))
             fields(
                 [
-                    (t["supplier"], named(identity)),
-                    (t["offer"], "—" if offer is None else named(offer)),
+                    (t["supplier"], short(identity)),
+                    (t["offer"], "—" if offer is None else short(offer)),
                     (t["product"], short(demand["product_id"])),
                     (t["case"], content["case_id"]),
                     (t["recorded_at"], moment(audit["recorded_at"])),

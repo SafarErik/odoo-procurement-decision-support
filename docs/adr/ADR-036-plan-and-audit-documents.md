@@ -1,8 +1,7 @@
-# ADR-036 (proposed): Approved plan and audit appendix as two documents
+# ADR-036 (accepted): Approved plan and audit appendix as two documents
 
-Status: **proposed** — owner decision 2026-10-21; not yet registered in Drive
-03_ARCHITECTURE_DECISIONS (Drive is the canonical ADR register; registration happens
-after merge on the owner's request). Amends ADR-033 (one stored approved PDF per
+Status: **accepted** — owner decision 2026-10-21. Drive 03_ARCHITECTURE_DECISIONS is the
+canonical ADR register; registration there happens after merge on the owner's request. Amends ADR-033 (one stored approved PDF per
 case and language).
 
 ## Context
@@ -46,7 +45,9 @@ Storage and API:
   the default, so existing callers are unchanged. Response header `X-Document-Kind`.
   No-award, unapproved and scenario cases have no document of either kind (422);
   an unknown kind is 422.
-- Renderer `layout-v5`: `render_plan_pdf` and `render_audit_pdf` share one builder.
+- Renderer `layout-v5`: `render_plan_pdf` and `render_audit_pdf` share one builder;
+  `layout-v6` shows supplier and quotation by display name only on order-line pages
+  (their Odoo references stay in the audit document).
 - UI: the Decision & PDF tab keeps the plan; the Audit view offers "Audit melléklet
   (PDF)" / "Audit appendix (PDF)" for approved cases.
 
