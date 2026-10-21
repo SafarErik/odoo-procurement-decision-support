@@ -1,7 +1,8 @@
 # Approved plan and audit appendix as two PDFs (ADR-036)
 
 Date: 2026-10-21. Increment on `feature/pdf-cleanup` on top of `240f853` (merged PR #53):
-code `0ca8d5b`, clean P4 evidence `5d0a6b2` (owner's commits, not pushed). Task clause: "finalize fixed
+split `0ca8d5b`, follow-up `e8b8d04` (owner's commits); final P4 evidence from a clean
+run at `e8b8d04`. Task clause: "finalize fixed
 orders as PDF" (FR-V2-10/11/12, AC-V2-10/11/12; TRACEABILITY row 9).
 
 ## Problem
@@ -87,13 +88,17 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
 - `python -m tools.dev demo` on the uncommitted tree (applied `20261021_01` to the
   development planning database, then ran the demo) → "Demonstration complete in
   20.755 s", exit 0, `dirty: true`; superseded by the owner's rerun below.
-- Owner's rerun after committing the code (`0ca8d5b`; evidence committed alone as
-  `5d0a6b2`): `P4_DEMO_REPORT.json` (2026-10-21T19:06:20Z, `0ca8d5b`, `dirty: false`,
-  19.867 s): plans unchanged (80 + 120 at 288,608 HUF; 120 + 80 at 293,132; balanced
-  100 + 100 at 295,800); approval of plan 1, separate No-award; four artifacts with the
-  same approved content hash `526fd3ad…`: HU plan 3 pages / 29,453 bytes, HU audit 7 /
-  35,587, EN plan 3 / 28,287, EN audit 7 / 34,110; stored replay without Odoo and model
-  passed (13 operations; all four PDFs byte-identical; No-award 422 for both kinds).
+- Owner's rerun after committing the split (`0ca8d5b`, report committed as `5d0a6b2`,
+  `layout-v5`); superseded by the final run below.
+- Final run after the follow-up commit: `python -m tools.dev demo` on the clean tree at
+  `e8b8d04` → "Demonstration complete in 20.826 s", exit 0. `P4_DEMO_REPORT.json`
+  (2026-10-21T20:30:35Z, `e8b8d04`, `dirty: false`): plans unchanged (80 + 120 at
+  288,608 HUF; 120 + 80 at 293,132; balanced 100 + 100 at 295,800); approval of plan 1,
+  separate No-award; four artifacts with the same approved content hash `97b04ccd…`:
+  HU plan 3 pages / 29,366 bytes, HU audit 7 / 35,604, EN plan 3 / 28,218, EN audit 7 /
+  34,117; stored replay without Odoo and model passed (13 operations; all four PDFs
+  byte-identical; No-award 422 for both kinds). The stored HU plan PDF contains „P01022”
+  and none of `odoo:res.partner:`, `odoo:purchase.order`, `odoo:product.product:`.
   Previously the combined document was 10 pages. `P4_MILP_EVALUATION.json` was not rerun:
   it does not check the PDF.
 - Text of the real Odoo plan (HU) read page by page: product „[PDSS-GEN-P1-PRD-01] [GEN]
@@ -116,8 +121,8 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
   rendered locally, nothing stored), HU and EN: 3 pages, `layout-v6`; page 2 reads
   „Beszállító [GEN] Kalocsa Profiles”, „Ajánlat P01022”; none of `odoo:res.partner:`,
   `odoo:purchase.order`, `odoo:product.product:` in the plan, all three in the audit.
-  The P4 demo is rerun once after the owner commits this follow-up (`dirty: false`); the
-  regenerated report and this handoff's numbers are then left for the owner to commit.
+  After the owner committed this follow-up (`e8b8d04`) the P4 demo was rerun once
+  (`dirty: false`, see the final run above).
 - `tools.dev demo` exit code: the earlier side finding (exit 0 after "Demonstration
   incomplete") was not reproduced — with `run` patched to raise, `tools.dev demo` exits 1.
   The 0 was most likely the exit status of a shell pipeline; no change made.

@@ -1,8 +1,8 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-21T19:06:20+00:00",
+  "generated_at": "2026-10-21T20:30:35+00:00",
   "repository": {
-    "commit": "0ca8d5b888858498db1fd39c214aa80744729569",
+    "commit": "e8b8d045e3b99d711d8c67db6f6107785fb0e549",
     "dirty": false
   },
   "environment": {
@@ -64,7 +64,7 @@
     }
   ],
   "base_case": {
-    "case_id": "11e92a7e-7c2c-4253-b2fb-ddba43943698",
+    "case_id": "6bfc75da-d3f8-4958-b312-f164d422fb1e",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -106,7 +106,7 @@
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.839
+    "seconds": 0.973
   },
   "scenarios": [
     {
@@ -149,7 +149,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.331
+      "seconds": 0.464
     },
     {
       "kind": "capacity_change",
@@ -182,7 +182,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.43
+      "seconds": 0.514
     },
     {
       "kind": "capacity_change",
@@ -224,7 +224,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.478
+      "seconds": 0.457
     },
     {
       "kind": "demand_change",
@@ -233,7 +233,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.073
+      "seconds": 0.072
     },
     {
       "kind": "demand_change",
@@ -270,7 +270,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.458
+      "seconds": 0.462
     },
     {
       "kind": "price_change",
@@ -321,7 +321,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.476
+      "seconds": 0.462
     },
     {
       "kind": "price_change",
@@ -363,7 +363,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.477
+      "seconds": 0.455
     },
     {
       "kind": "combined",
@@ -406,7 +406,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.439
+      "seconds": 0.455
     },
     {
       "kind": "demand_change",
@@ -415,17 +415,17 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.071
+      "seconds": 0.081
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "11e92a7e-7c2c-4253-b2fb-ddba43943698",
+      "case_id": "6bfc75da-d3f8-4958-b312-f164d422fb1e",
       "plan_index": 1,
-      "approved_content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
+      "approved_content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
     },
     "no_award": {
-      "case_id": "4cbda318-06f9-4676-9557-6d514a3726bc",
+      "case_id": "3b00cec3-7a9f-4828-a426-082d2767dd77",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
@@ -433,42 +433,42 @@
   "pdf": {
     "hu": {
       "plan": {
-        "sha256": "a8bb6f3c852d37a840ded7e3bf55d4e4afb8b2cf500e02c27c93d31e8fe8fc02",
-        "bytes": 29453,
+        "sha256": "a498466924db8c11b56b7a210133bbd779a5fc4713e6761fbed8fca909408ff6",
+        "bytes": 29366,
         "pages": 3,
-        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
+        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
         "language": "hu",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:hu:plan:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
+        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:hu:plan:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
       },
       "audit": {
-        "sha256": "9d9930e99b17e95eefbd5d7b2dc6999722dd9b06f81d08e41143858360a807a6",
-        "bytes": 35587,
+        "sha256": "7a0053979ae165611896b47b3aa477f6c7708964e9740c8a7737204167f9e386",
+        "bytes": 35604,
         "pages": 7,
-        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
+        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
         "language": "hu",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:hu:audit:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
+        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:hu:audit:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
       }
     },
     "en": {
       "plan": {
-        "sha256": "643f4c30c9357eef51c24ef9f0c9563f3eae1ff6fde2ddef51c35a6d411df7a5",
-        "bytes": 28287,
+        "sha256": "caa803a9511e9646bdf46e36b2690ad76d7072a8665f952ffca4ceedd8e8fcdb",
+        "bytes": 28218,
         "pages": 3,
-        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
+        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
         "language": "en",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:en:plan:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
+        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:en:plan:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
       },
       "audit": {
-        "sha256": "b0822b0f23f79d580a67bdfd32a806594e0e35f7ee9b3d7086c59b5177185ef5",
-        "bytes": 34110,
+        "sha256": "bb5589a62a68498fe7654a7469dbcf9be27e36720e1ac28c14074203916eaf1d",
+        "bytes": 34117,
         "pages": 7,
-        "content_hash": "526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9",
+        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
         "language": "en",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:11e92a7e-7c2c-4253-b2fb-ddba43943698:en:audit:526fd3ad50e15863d0d08354326987448fb6ad506f80f0f697525650470043e9"
+        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:en:audit:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
       }
     }
   },
@@ -488,7 +488,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 6.258,
-  "total_seconds": 19.867,
+  "flow_seconds": 6.578,
+  "total_seconds": 20.826,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }
