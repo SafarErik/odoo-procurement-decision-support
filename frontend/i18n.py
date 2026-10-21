@@ -518,7 +518,7 @@ TEXT: dict[str, tuple[str, str]] = {
     ),
     "err_actor": ("Adja meg a nevét (1–255 karakter).", "Enter your name (1–255 characters)."),
     "err_reason": (
-        "Alternatíva jóváhagyásához és „Nincs odaítélés” döntéshez indoklás kell (legfeljebb "
+        "Alternatíva jóváhagyásához és „Nem rendelünk” döntéshez indoklás kell (legfeljebb "
         "2000 karakter).",
         "An alternative or No award needs a reason (up to 2,000 characters).",
     ),

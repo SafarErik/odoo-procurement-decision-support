@@ -41,7 +41,7 @@ Objectives (lexicographic, each solved to proven optimality):
 2. **Alternatives**, for every `ε`: `min R(x) = Σ r_i x_i` subject to
    `C(x) ≤ (1+ε)·C*`, then minimum cost among those. Reported risk exposure is
    `R(x)/Q`.
-3. **Balanced alternative** (when `ε_d` is set; ADR-035 proposal): with an extra
+3. **Balanced alternative** (when `ε_d` is set; ADR-035, accepted): with an extra
    integer `m`,
 
    ```text
