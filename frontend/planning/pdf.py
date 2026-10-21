@@ -9,6 +9,7 @@ class ApprovedPDFViewer(rx.Component):
     data: rx.Var[str]
     filename: rx.Var[str]
     lang: rx.Var[str]
+    kind: rx.Var[str]  # "audit": own download and region labels; unset is the plan
 
     def add_imports(self):
         return {
@@ -31,9 +32,14 @@ const PDF_TEXT = {
         failed: "Preview unavailable. The approval is saved; download the PDF.",
         region: "Approved procurement PDF", loadingViewer: "Loading PDF viewer…"},
 };
+const AUDIT_TEXT = {
+    hu: {download: "Audit melléklet letöltése", region: "Audit melléklet PDF"},
+    en: {download: "Download audit appendix", region: "Audit appendix PDF"},
+};
 
-function ApprovedPDFViewer({data, filename, lang}) {
-    const text = PDF_TEXT[lang] || PDF_TEXT.hu;
+function ApprovedPDFViewer({data, filename, lang, kind}) {
+    const base = PDF_TEXT[lang] || PDF_TEXT.hu;
+    const text = kind === "audit" ? {...base, ...(AUDIT_TEXT[lang] || AUDIT_TEXT.hu)} : base;
     const [pdfLibrary, setPdfLibrary] = useState(null);
     const [url, setUrl] = useState("");
     const [pages, setPages] = useState(0);

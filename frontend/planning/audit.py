@@ -92,6 +92,7 @@ def _audit_pdf() -> rx.Component:
                         data=PlanningState.audit_pdf_data_url,
                         filename=PlanningState.audit_pdf_filename,
                         lang=PlanningState.lang,
+                        kind="audit",
                     ),
                     margin_top="1rem",
                 ),
