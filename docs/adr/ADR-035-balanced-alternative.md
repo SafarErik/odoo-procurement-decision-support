@@ -1,7 +1,7 @@
-# ADR-035 (proposal): Balanced alternative by min–max supplier quantity
+# ADR-035 (accepted): Balanced alternative by min–max supplier quantity
 
-Status: **proposal** — repository draft, to be registered in Drive
-03_ARCHITECTURE_DECISIONS by the owner. It extends, and does not replace, the accepted
+Status: **accepted** — registered in Drive 03_ARCHITECTURE_DECISIONS on 2026-10-20.
+Drive is the canonical ADR register; this file is the repository copy. It extends, and does not replace, the accepted
 ε-constraint alternative decision recorded there.
 
 ## Context

@@ -698,6 +698,18 @@ def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
     appendix = " ".join(pages["hu"][len(allocated) + 1 :])
     assert DATABASE in appendix and "odoo:purchase.order.group:501" in appendix
     assert "Határidőre teljesített szállítások aránya" in appendix
+    # Fixed English record sentences: Hungarian first, the stored original quoted verbatim.
+    recorded = approved.json()["final_decision"]["approved_content"]["human_decision"]
+    for original in (recorded["actor_attribution"], recorded["demonstration"]):
+        assert f"(eredeti, rögzített szöveg: „{original}”)" in appendix
+    assert "nem hitelesített beszerzői személyazonosság" in appendix
+    assert "Ellenőrzött bemutató; szintetikus ML-bizonyíték" in appendix
+    assert "optimális (optimal)" in appendix
+    unit = labels.get(base["snapshot"]["request"]["requirement"]["quantity_unit"])
+    assert unit == "Units" and " Units" not in " ".join(pages["hu"]) and " db" in proposals[0]
+    english = " ".join(pages["en"])
+    assert f"{recorded['actor_attribution']} (original recorded text)" in english
+    assert "személyazonosság" not in english and "optimális" not in english
 
 
 @pytest.mark.parametrize(

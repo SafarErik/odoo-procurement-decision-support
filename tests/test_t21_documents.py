@@ -89,6 +89,8 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert len(proposals) == len(allocated)
     for page, allocation in zip(proposals, allocated, strict=True):
         assert allocation["supplier_id"] in page and str(allocation["quantity"]) in page
+    unit = snapshot["request"]["requirement"]["quantity_unit"]
+    assert unit == "piece" and " piece" not in text and " db" in text  # Odoo unit name mapped
     assert pages[0].count("Jóváhagyott beszerzési terv") >= 1 and "Összefoglaló" in pages[0]
     assert "Audit melléklet" in pages[len(allocated) + 1]
     assert "Mezőszintű adatforrások" in text and "Döntési útvonal" in text
@@ -101,6 +103,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert english.status_code == 200 and english.headers["content-language"] == "en"
     english_text = extracted(english.content)
     assert english_text.count("Order line") == len(allocated)
+    assert " piece" not in english_text and " pcs" in english_text
     assert "Audit appendix" in english_text and "Approved procurement plan" in english_text
     assert english.content != response.content and len(uow.documents.rows) == 2
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)

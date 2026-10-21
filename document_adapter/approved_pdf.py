@@ -35,8 +35,33 @@ from application.supplier_overview import (
 )
 
 FONT = "ProcurementDejaVu"
-LAYOUT_VERSION = "layout-v3"
+LAYOUT_VERSION = "layout-v4"
 _font_lock = Lock()
+
+# Fixed English sentences every decision record carries (application/planning_decisions.py
+# ``_audit``). Records stay verbatim; Hungarian PDFs show a translation and quote the original.
+RECORDED_TEXT_HU = {
+    "caller-supplied audit reference; not authenticated buyer identity": (
+        "A hívó által megadott naplóhivatkozás; nem hitelesített beszerzői személyazonosság"
+    ),
+    "Controlled demonstration; synthetic ML evidence; no current operational validity asserted": (
+        "Ellenőrzött bemutató; szintetikus ML-bizonyíték; aktuális üzemi érvényességet nem állít"
+    ),
+}
+SOLVER_OUTCOME_HU = {
+    "optimal": "optimális",
+    "infeasible": "nincs megvalósítható terv",
+    "no_proven_optimum": "nincs igazolt optimum",
+    "solver_error": "megoldói hiba",
+    "invalid_input": "elutasított bemenet",
+}
+# Odoo unit names shown as the buyer reads them; mirrors frontend/i18n.py ``_UNITS``.
+UNITS = {
+    "Units": ("db", "pcs"),
+    "Unit": ("db", "pcs"),
+    "piece": ("db", "pcs"),
+    "kg": ("kg", "kg"),
+}
 
 TEXT = {
     "hu": {
@@ -160,6 +185,7 @@ TEXT = {
         "reference": "Hivatkozás",
         "observed_at": "Időpont",
         "original_text": "(eredeti, rögzített szöveg)",
+        "original_quoted": "(eredeti, rögzített szöveg: „{text}”)",
         "yes": "igen",
         "no": "nem",
         "available": "Elérhető",
@@ -284,6 +310,7 @@ TEXT = {
         "reference": "Reference",
         "observed_at": "Time",
         "original_text": "(original recorded text)",
+        "original_quoted": "(original recorded text: “{text}”)",
         "yes": "yes",
         "no": "no",
         "available": "Available",
@@ -387,11 +414,22 @@ def render_approved_pdf(content, language="hu"):
         stamp = "%Y.%m.%d. %H:%M" if language == "hu" else "%Y-%m-%d %H:%M"
         return parsed.strftime(stamp) + " UTC"
 
+    unit = UNITS.get(short(unit_id), (short(unit_id),) * 2)[language != "hu"]
+
     def quantity(value):
-        return f"{number(value)} {short(unit_id)}"
+        return f"{number(value)} {unit}"
 
     def quantity_range(value):
-        return f"{number(value['minimum'])}–{number(value['maximum'])} {short(unit_id)}"
+        return f"{number(value['minimum'])}–{number(value['maximum'])} {unit}"
+
+    def recorded(value):
+        if language == "hu" and value in RECORDED_TEXT_HU:
+            return f"{RECORDED_TEXT_HU[value]} {t['original_quoted'].format(text=value)}"
+        return f"{value} {t['original_text']}"
+
+    def outcome(value):
+        label = SOLVER_OUTCOME_HU.get(value) if language == "hu" else None
+        return value if label is None else f"{label} ({value})"
 
     def yes_no(value):
         return t["yes"] if value else t["no"]
@@ -449,7 +487,9 @@ def render_approved_pdf(content, language="hu"):
     story.append(paragraph(t["summary"], subheading))
     story.append(paragraph(t[origin], notice))
     if audit["incomplete_comparison"]:
-        story.append(paragraph(t["incomplete"].format(status=audit["solver_outcome"]), notice))
+        story.append(
+            paragraph(t["incomplete"].format(status=outcome(audit["solver_outcome"])), notice)
+        )
     fields(
         [
             (t["product"], named(demand["product_id"])),
@@ -525,7 +565,7 @@ def render_approved_pdf(content, language="hu"):
                 (
                     short(demand["product_id"]),
                     number(allocation["quantity"]),
-                    short(unit_id),
+                    unit,
                     money_text(Decimal(terms["unit_price"]), language),
                     money_text(Decimal(terms["unit_price"]) * allocation["quantity"], language),
                     currency,
@@ -618,7 +658,7 @@ def render_approved_pdf(content, language="hu"):
                 + ")",
             ),
             (t["time_limit"], f"{decimal(solver['time_limit_seconds'])} {t['seconds']}"),
-            (t["solver_outcome"], audit["solver_outcome"]),
+            (t["solver_outcome"], outcome(audit["solver_outcome"])),
             (t["max_suppliers"], str(policy["max_suppliers"])),
             (
                 t["concentration"],
@@ -638,11 +678,11 @@ def render_approved_pdf(content, language="hu"):
             (t["outcome"], t["approved"]),
             (t["plan_index"], str(content["plan_index"])),
             (t["decided_by"], audit["actor_reference"]),
-            (t["attribution"], f"{audit['actor_attribution']} {t['original_text']}"),
+            (t["attribution"], recorded(audit["actor_attribution"])),
             (t["recorded_at"], moment(audit["recorded_at"])),
             (t["reference_time"], moment(audit["planning_reference_time"])),
             (t["rationale"], audit["rationale"] or t["no_rationale"]),
-            (t["demonstration"], f"{audit['demonstration']} {t['original_text']}"),
+            (t["demonstration"], recorded(audit["demonstration"])),
         ]
     )
     story.append(paragraph(t["identity"], heading))

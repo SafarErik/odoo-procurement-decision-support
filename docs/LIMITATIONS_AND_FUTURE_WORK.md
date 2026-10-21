@@ -100,7 +100,7 @@ share penalty is not a substitute: it can reward concentration and, when minimis
 not representable as a MILP without extra binary variables. Compare plans on simulated
 delivery outcomes.
 
-**Partly addressed (2026-10-20, ADR-035 proposal).** A separate balanced alternative
+**Partly addressed (2026-10-20, ADR-035 accepted).** A separate balanced alternative
 minimises the largest single-supplier quantity `m ≥ xᵢ` within (1+ε_d)·C* without
 exceeding the minimum-cost plan's exposure (option (b) reduced to its worst single
 outage, without binary scenario indicators). On the demonstration above it gives
@@ -155,7 +155,8 @@ and a sensitivity view: the score threshold at which the recommended plan change
 **Observed.** The approver is a caller-supplied reference recorded as "not authenticated
 buyer identity"; the frontend and API share one service token; the stored decision record
 of Odoo-history cases still carries the immutable demonstration text "synthetic ML
-evidence" (`t17-final-decision-v1`).
+evidence" (`t17-final-decision-v1`). Since 2026-10-21 the Hungarian PDF shows these fixed
+sentences in Hungarian and quotes the stored English verbatim; the records are unchanged.
 
 **Proposal.** Odoo or OIDC login with per-user roles (buyer, approver), approver identity
 from the token in the decision record, a new decision-record version with data-origin
