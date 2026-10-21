@@ -407,6 +407,12 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "A mentett ügy pontos értékei ellenőrzéshez és hibakereséshez.",
         "Exact values of the saved case, for checking and troubleshooting.",
     ),
+    "audit_pdf": ("Audit melléklet (PDF)", "Audit appendix (PDF)"),
+    "retry_audit_pdf": ("Audit melléklet újra", "Retry audit appendix"),
+    "audit_pdf_note": (
+        "Ugyanabból a jóváhagyott tartalomból (azonos hash) készül, mint a jóváhagyott terv PDF.",
+        "Rendered from the same approved content (same hash) as the approved plan PDF.",
+    ),
     "audit_case_id": ("Ügyazonosító", "Case ID"),
     "audit_base_id": ("Alapügy", "Base case"),
     "audit_snapshot_hash": ("Pillanatkép-hash", "Snapshot hash"),

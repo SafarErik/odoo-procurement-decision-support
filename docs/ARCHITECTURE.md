@@ -31,9 +31,9 @@ Odoo 19 (read-only JSON-2)            buyer-supplied terms (with source)
    explicit input changes,         or No-award, recorded once
    stored as child cases)                     |
                                               v
-                                   approved PDF (HU or EN) from the stored
-                                   snapshot: summary, one purchase order
-                                   proposal per supplier, audit appendix
+                                   two PDFs (HU or EN) from the stored
+                                   snapshot: approved plan (summary, one
+                                   order line per supplier) + audit appendix
                                               (document_adapter/)
 ```
 
@@ -52,7 +52,7 @@ The Reflex web UI drives every step through the HTTP API only.
 | `application/` | Use cases: list open quotation groups, assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, per-supplier overview and HU/EN explanation texts, approved document storage per language | ports only (no Odoo/DB/HTTP) |
 | `odoo_adapter/` | JSON-2 readers for RFQs, open quotation-group summaries, one comparison group (with display names), the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
-| `document_adapter/` | ReportLab rendering of the approved PDF v2 (HU/EN, summary, proposal page per supplier, readable audit appendix) | approved content only |
+| `document_adapter/` | ReportLab rendering of the approved plan PDF (HU/EN, summary with supplier assessment table, order-line page per supplier, verification identifiers) and the separate audit appendix PDF (ADR-036) | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
 | `frontend/` | Reflex UI (Cases, Open RFQs, case tabs, Audit); HTTP clients map API payloads to localized display rows (`i18n.py`, HU default, EN switch); one `PlanningState` composed from feature mixins (`planning/state_*.py`); holds the service token server-side | backend API only |
 | `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
@@ -98,7 +98,7 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 | `GET /{id}` | Stored case, its decision and data origin |
 | `GET /{id}/suppliers?language=hu` (or `en`) | Per-supplier overview from the stored snapshot: history KPIs, assessment, readable tree path, terms, planned quantities |
 | `POST /{id}/final-decision` | Approve a plan or record No-award (once) |
-| `GET /{id}/approved-pdf/{hash}?language=hu` (or `en`) | Approved PDF bytes (Hungarian default), one stored artifact per language |
+| `GET /{id}/approved-pdf/{hash}?language=hu&kind=plan` (`en`; `audit`) | Approved plan (default) or audit appendix PDF bytes, Hungarian default; one stored artifact per language and kind, same approved content hash; `X-Document-Kind` header |
 
 `GET /api/v2/procurement/quotation-groups?limit=1..20` lists the newest open Odoo
 quotation groups of the configured company (`PLANNING_LIBRARY_COMPANY_ID`) with

@@ -6,6 +6,7 @@ from collections.abc import Iterator
 import pytest
 from alembic import command as alembic_command
 from alembic.config import Config
+from sqlalchemy import text
 
 from persistence.session import create_session_factory
 
@@ -18,8 +19,16 @@ def postgres_runtime() -> Iterator[tuple[object, object]]:
 
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+    engine, session_factory = create_session_factory(database_url)
+    # Stored documents are immutable and the document downgrade refuses to drop audit/v3
+    # artifacts; TRUNCATE fires no row triggers, so empty the disposable tables first.
+    with engine.begin() as connection:
+        if connection.execute(text("SELECT to_regclass('planning_documents')")).scalar():
+            connection.execute(
+                text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
+            )
+    engine.dispose()
     alembic_command.downgrade(config, "base")
     alembic_command.upgrade(config, "head")
-    engine, session_factory = create_session_factory(database_url)
     yield engine, session_factory
     engine.dispose()

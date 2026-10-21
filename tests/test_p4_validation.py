@@ -278,6 +278,7 @@ def test_demo_runs_flow_replays_and_writes_summary(configured, monkeypatch, tmp_
         and summary["stored_replay"]["odoo_preview_status"] == 503
     )
     assert set(summary["pdf"]) == {"hu", "en"}
+    assert all(set(documents) == {"plan", "audit"} for documents in summary["pdf"].values())
     assert summary["decisions"]["no_award"]["outcome"] == "no_award"
     kinds = {s["kind"] for s in summary["scenarios"]}
     assert kinds == {

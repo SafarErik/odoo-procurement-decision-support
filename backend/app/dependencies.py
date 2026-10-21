@@ -89,10 +89,10 @@ def planning_solver_factory():
     return solver, evidence
 
 
-def render_approved_document(content, language):
-    from document_adapter.approved_pdf import render_approved_pdf
+def render_approved_document(content, language, kind):
+    from document_adapter.approved_pdf import render_audit_pdf, render_plan_pdf
 
-    return render_approved_pdf(content, language)
+    return (render_audit_pdf if kind == "audit" else render_plan_pdf)(content, language)
 
 
 def get_purchase_history_reader():

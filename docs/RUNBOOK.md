@@ -57,7 +57,8 @@ the same port.
 Before `db-up`, set `APP_POSTGRES_PASSWORD` and the matching `DECISION_DATABASE_URL`,
 plus `API_SERVICE_TOKEN` and `PLANNING_LIBRARY_COMPANY_ID` (the Odoo company, e.g.
 `odoo:res.company:1`; it scopes the case library and the quotation-group list) in `.env`.
-`db-up` also applies new migrations (P2 adds `20261019_01`: one PDF per language). The database
+`db-up` also applies new migrations (P2 adds `20261019_01`: one PDF per language;
+`20261021_01` adds the plan/audit document kind, ADR-036). The database
 keeps its data in a named volume; `python -m tools.dev db-down` stops it.
 
 After a schema change that squashes migrations (as on 2026-10-18), recreate the
@@ -145,7 +146,8 @@ python -m tools.train_history_model report    # re-evaluate the saved model, no 
 
 - `demo` picks the four-supplier group (or `python -m tools.demo --group N`), runs case →
   plans → nine scenarios (both directions, two infeasible) → approval of the
-  lower-exposure alternative and a separate No-award → HU and EN PDF, then restarts the
+  lower-exposure alternative and a separate No-award → HU and EN plan and audit PDF, then
+  restarts the
   API with `ODOO_BASE_URL` pointing to a closed port and no model directory and replays
   every case, retry, PDF and supplier overview from storage. Summary:
   `docs/evidence/P4_DEMO_REPORT.json`; full responses, PDFs and the API log:

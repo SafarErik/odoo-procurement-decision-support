@@ -1,8 +1,14 @@
-"""Approved procurement plan PDF v2 from validated immutable approved content only.
+"""Approved procurement plan and audit appendix PDFs from validated approved content only.
 
-Layout: a summary page, one order-line page ("Rendelési tétel – jóváhagyott terv") per
-supplier with a non-zero approved quantity, and a readable audit appendix at the end.
-Hungarian or English; no raw JSON. The document is not an Odoo Purchase Order.
+Two documents from the same approved content (ADR-036):
+
+- ``plan``: a summary page with a compact supplier assessment table, one order-line page
+  ("Rendelési tétel – jóváhagyott terv") per supplier with a non-zero approved quantity,
+  and short verification identifiers at the end; for the buyer.
+- ``audit``: the readable audit appendix (data source, model, assessments with tree paths,
+  optimization, decision log, content identity, field-level provenance).
+
+Hungarian or English; no raw JSON. Neither document is an Odoo Purchase Order.
 """
 
 import json
@@ -20,7 +26,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from application.planning_cases import fingerprint
 from application.planning_serialization import read_assessments
@@ -35,7 +49,7 @@ from application.supplier_overview import (
 )
 
 FONT = "ProcurementDejaVu"
-LAYOUT_VERSION = "layout-v4"
+LAYOUT_VERSION = "layout-v5"
 _font_lock = Lock()
 
 # Fixed English sentences every decision record carries (application/planning_decisions.py
@@ -77,6 +91,7 @@ TEXT = {
             "A beszállítói értékelés megfigyelt Odoo beszerzési előzményeken tanított döntési "
             "fából származik. A pontszám nem kalibrált meghibásodási valószínűség."
         ),
+        "score_note": "A pontszám nem kalibrált meghibásodási valószínűség.",
         "synthetic": (
             "Bemutató adatok: a beszállítói értékelés szintetikus bemutató modellből származik. "
             "Nem valós beszállítói teljesítmény."
@@ -122,8 +137,7 @@ TEXT = {
         "rationale": "Indoklás",
         "no_rationale": "Nincs megadva (minimális költségű terv kiválasztása)",
         "proposals_follow": (
-            "A beszállítónkénti rendelési tételek a következő oldalakon, az audit "
-            "melléklet a dokumentum végén található."
+            "A beszállítónkénti rendelési tételek a következő oldalakon találhatók."
         ),
         "proposal": "Rendelési tétel – jóváhagyott terv",
         "offer": "Ajánlat",
@@ -131,7 +145,11 @@ TEXT = {
         "line": "Tétel adatai",
         "dates": "Határidők",
         "promised_date": "Vállalt szállítási dátum",
-        "terms": "Feltételek",
+        "terms": "Tervezési feltételezések",
+        "terms_note": (
+            "A beszerző által rögzített vagy javaslaton hagyott tervezési feltételek; nem "
+            "beszállítói vállalások."
+        ),
         "moq": "Minimális rendelési mennyiség",
         "none": "nincs",
         "capacity": "Kapacitás",
@@ -141,7 +159,14 @@ TEXT = {
             "A tétel a jóváhagyott tervből készült, nem Odoo beszerzési rendelés. A "
             "beszállító megnevezése nem helyettesíti a jogi adatokat (cím, adószám)."
         ),
-        "appendix": "Audit melléklet",
+        "audit_title": "Audit melléklet – jóváhagyott beszerzési terv",
+        "audit_footer": "Audit melléklet | {case}",
+        "verification": "Ellenőrzési azonosítók",
+        "decision_time": "Döntés időpontja",
+        "audit_pointer": (
+            "A teljes audit melléklet a rendszer Audit nézetéből tölthető le (azonos "
+            "jóváhagyott tartalom-hash)."
+        ),
         "data_source": "Adatforrás",
         "database": "Odoo adatbázis",
         "data_origin": "Adatok eredete",
@@ -203,6 +228,7 @@ TEXT = {
             "Supplier assessments come from a decision tree trained on observed Odoo purchase "
             "history. The score is not a calibrated failure probability."
         ),
+        "score_note": "The score is not a calibrated failure probability.",
         "synthetic": (
             "Demonstration data: supplier assessments come from a synthetic demonstration "
             "model. Not real supplier performance."
@@ -247,16 +273,17 @@ TEXT = {
         "recorded_at": "Recorded at",
         "rationale": "Rationale",
         "no_rationale": "Not given (minimum-cost plan selected)",
-        "proposals_follow": (
-            "One order line per supplier follows; the audit appendix is at the end."
-        ),
+        "proposals_follow": "One order line per supplier follows.",
         "proposal": "Order line – approved plan",
         "offer": "Quotation",
         "case": "Procurement case",
         "line": "Line details",
         "dates": "Dates",
         "promised_date": "Promised delivery date",
-        "terms": "Terms",
+        "terms": "Planning assumptions",
+        "terms_note": (
+            "Planning terms recorded or kept as suggested by the buyer; not supplier commitments."
+        ),
         "moq": "Minimum order quantity",
         "none": "none",
         "capacity": "Capacity",
@@ -266,7 +293,14 @@ TEXT = {
             "This line is derived from the approved plan and is not an Odoo Purchase "
             "Order. Supplier labels do not establish legal names, addresses or tax details."
         ),
-        "appendix": "Audit appendix",
+        "audit_title": "Audit appendix – approved procurement plan",
+        "audit_footer": "Audit appendix | {case}",
+        "verification": "Verification identifiers",
+        "decision_time": "Decision time",
+        "audit_pointer": (
+            "The full audit appendix can be downloaded from the system's Audit view (same "
+            "approved content hash)."
+        ),
         "data_source": "Data source",
         "database": "Odoo database",
         "data_origin": "Data origin",
@@ -322,7 +356,17 @@ def _fraction(value: dict) -> Fraction:
     return Fraction(value["numerator"], value["denominator"])
 
 
-def render_approved_pdf(content, language="hu"):
+def render_plan_pdf(content, language="hu"):
+    """The approved procurement plan for the buyer: summary and one page per supplier."""
+    return _render(content, language, "plan")
+
+
+def render_audit_pdf(content, language="hu"):
+    """The audit appendix of the same approved content, for traceability."""
+    return _render(content, language, "audit")
+
+
+def _render(content, language, kind):
     if language not in TEXT:
         raise ValueError("Unsupported document language.")
     t = TEXT[language]
@@ -434,7 +478,7 @@ def render_approved_pdf(content, language="hu"):
     def yes_no(value):
         return t["yes"] if value else t["no"]
 
-    def fields(rows):
+    def fields(rows, into=None):
         table = Table(
             [[paragraph(label, cell), paragraph(value, cell)] for label, value in rows],
             colWidths=[175, 318],
@@ -450,7 +494,7 @@ def render_approved_pdf(content, language="hu"):
                 ]
             )
         )
-        story.append(table)
+        (story if into is None else into).append(table)
 
     def grid(header, rows, widths, total=None):
         data = [[paragraph(v, head) for v in header]]
@@ -481,245 +525,285 @@ def render_approved_pdf(content, language="hu"):
         if proved_by == {"diversified"}
         else t["alternative_plan"].format(n=content["plan_index"])
     )
+    assessments = read_assessments(snapshot["assessments"])
+    content_hash = fingerprint(content)
 
-    # --- Summary page ---
-    story.append(paragraph(t["doc_title"], title))
-    story.append(paragraph(t["summary"], subheading))
-    story.append(paragraph(t[origin], notice))
-    if audit["incomplete_comparison"]:
-        story.append(
-            paragraph(t["incomplete"].format(status=outcome(audit["solver_outcome"])), notice)
-        )
-    fields(
-        [
-            (t["product"], named(demand["product_id"])),
-            (t["demand"], quantity(demand["approved_quantity"])),
-            (t["required_date"], day(demand["required_date"])),
-            (t["plan"], plan_name),
-            (t["total_cost"], money(plan["total_cost"])),
-            (t["supplier_count"], str(plan["supplier_count"])),
-            (t["largest_share"], percent(_fraction(plan["largest_share"]))),
-            (t["exposure"], ratio(_fraction(plan["risk_exposure"]))),
-            (t["premium"], percent(_fraction(plan["cost_premium"]))),
-        ]
-    )
-    story.append(paragraph(t["exposure_note"], small))
-    story.append(paragraph(t["allocation"], heading))
-    approved_quantity = demand["approved_quantity"]
-    grid(
-        (t["supplier"], t["quantity"], t["unit_price"], t["line_total"], t["share"]),
-        [
-            (
-                short(a["supplier_id"]),
-                quantity(a["quantity"]),
-                money(suppliers[a["supplier_id"]]["unit_price"]),
-                money(Decimal(suppliers[a["supplier_id"]]["unit_price"]) * a["quantity"]),
-                percent(Fraction(a["quantity"], approved_quantity)),
+    def plan_document():
+        # --- Summary page ---
+        story.append(paragraph(t["doc_title"], title))
+        story.append(paragraph(t["summary"], subheading))
+        story.append(paragraph(t[origin], notice))
+        if audit["incomplete_comparison"]:
+            story.append(
+                paragraph(t["incomplete"].format(status=outcome(audit["solver_outcome"])), notice)
             )
-            for a in selected
-        ],
-        [140, 85, 85, 95, 68],
-        total=(t["total"], quantity(approved_quantity), "", money(plan["total_cost"]), ""),
-    )
-    story.append(paragraph(t["decision"], heading))
-    fields(
-        [
-            (t["outcome"], t["approved"]),
-            (t["decided_by"], audit["actor_reference"]),
-            (t["recorded_at"], moment(audit["recorded_at"])),
-            (t["rationale"], audit["rationale"] or t["no_rationale"]),
-        ]
-    )
-    story.append(Spacer(1, 8))
-    story.append(paragraph(t["scope"], small))
-    story.append(paragraph(t["proposals_follow"], small))
-
-    # --- One purchase order proposal per supplier with a non-zero allocation ---
-    for allocation in selected:
-        identity = allocation["supplier_id"]
-        terms = suppliers[identity]
-        offer = offers.get(identity)
-        story.append(PageBreak())
-        story.append(paragraph(t["proposal"], title))
-        story.append(paragraph(short(identity), subheading))
         fields(
             [
-                (t["supplier"], named(identity)),
-                (t["offer"], "—" if offer is None else named(offer)),
-                (t["product"], named(demand["product_id"])),
-                (t["case"], content["case_id"]),
-                (t["recorded_at"], moment(audit["recorded_at"])),
-            ]
-        )
-        story.append(paragraph(t["line"], heading))
-        grid(
-            (
-                t["product"],
-                t["quantity"],
-                t["unit"],
-                t["unit_price"],
-                t["line_total"],
-                t["currency"],
-            ),
-            [
-                (
-                    short(demand["product_id"]),
-                    number(allocation["quantity"]),
-                    unit,
-                    money_text(Decimal(terms["unit_price"]), language),
-                    money_text(Decimal(terms["unit_price"]) * allocation["quantity"], language),
-                    currency,
-                )
-            ],
-            [128, 62, 78, 66, 82, 60],
-        )
-        story.append(paragraph(t["dates"], heading))
-        fields(
-            [
+                (t["product"], short(demand["product_id"])),
+                (t["demand"], quantity(demand["approved_quantity"])),
                 (t["required_date"], day(demand["required_date"])),
-                (t["promised_date"], day(terms["promised_date"])),
+                (t["plan"], plan_name),
+                (t["total_cost"], money(plan["total_cost"])),
+                (t["supplier_count"], str(plan["supplier_count"])),
+                (t["largest_share"], percent(_fraction(plan["largest_share"]))),
+                (t["exposure"], ratio(_fraction(plan["risk_exposure"]))),
+                (t["premium"], percent(_fraction(plan["cost_premium"]))),
             ]
         )
-        story.append(paragraph(t["terms"], heading))
-        moq = terms["minimum_order"]["quantity"]
+        story.append(paragraph(t["exposure_note"], small))
+        story.append(paragraph(t["allocation"], heading))
+        approved_quantity = demand["approved_quantity"]
+        grid(
+            (t["supplier"], t["quantity"], t["unit_price"], t["line_total"], t["share"]),
+            [
+                (
+                    short(a["supplier_id"]),
+                    quantity(a["quantity"]),
+                    money(suppliers[a["supplier_id"]]["unit_price"]),
+                    money(Decimal(suppliers[a["supplier_id"]]["unit_price"]) * a["quantity"]),
+                    percent(Fraction(a["quantity"], approved_quantity)),
+                )
+                for a in selected
+            ],
+            [140, 85, 85, 95, 68],
+            total=(t["total"], quantity(approved_quantity), "", money(plan["total_cost"]), ""),
+        )
+        story.append(paragraph(t["assessments"], heading))
+        grid(
+            (t["supplier"], t["class"], t["score"]),
+            [
+                (
+                    short(a.snapshot.context.supplier_id),
+                    class_label(a, language),
+                    decimal(a.score),
+                )
+                for a in assessments
+            ],
+            [253, 140, 100],
+        )
+        story.append(paragraph(t["score_note"], small))
+        story.append(paragraph(t["decision"], heading))
         fields(
             [
-                (t["moq"], t["none"] if moq is None else quantity(moq)),
-                (t["capacity"], quantity(terms["capacity"])),
-                (t["available"], yes_no(terms["available"])),
-                (t["price_range"], quantity_range(terms["price_quantities"])),
-                (t["delivery_range"], quantity_range(terms["delivery_quantities"])),
+                (t["outcome"], t["approved"]),
+                (t["decided_by"], audit["actor_reference"]),
+                (t["recorded_at"], moment(audit["recorded_at"])),
+                (t["rationale"], audit["rationale"] or t["no_rationale"]),
             ]
         )
-        story.append(Spacer(1, 10))
-        story.append(paragraph(t["proposal_note"], small))
+        story.append(Spacer(1, 8))
+        story.append(paragraph(t["scope"], small))
+        story.append(paragraph(t["proposals_follow"], small))
 
-    # --- Readable audit appendix ---
-    story.append(PageBreak())
-    story.append(paragraph(t["appendix"], title))
-    story.append(paragraph(t["data_source"], heading))
-    rows = [(t["data_origin"], t["origin_" + origin])]
-    if history:
-        capture = json.loads(facts["history"])
-        rows += [
-            (t["database"], capture["evidence"]["database"]),
-            (t["quotation_group"], facts.get("comparison_case_id", "—")),
-            (t["history_cutoff"], moment(capture["evidence"]["cutoff"])),
-            (t["capture_hash"], capture["capture_hash"]),
-        ]
-    fields(rows)
-    story.append(paragraph(t["model"], heading))
-    fields(
-        [
-            (t["model_id"], metadata["model_id"]),
-            (t["training_id"], metadata["training_id"]),
-            (t["trained_through"], moment(metadata["trained_through"])),
-            (t["artifact_hash"], snapshot["model_manifest"]["artifact_sha256"]),
-        ]
-    )
-    story.append(paragraph(t["assessments"], heading))
-    for assessment in read_assessments(snapshot["assessments"]):
-        features = assessment.snapshot
-        identity = features.context.supplier_id
-        story.append(paragraph(short(identity), subheading))
+        # --- One purchase order proposal per supplier with a non-zero allocation ---
+        for allocation in selected:
+            identity = allocation["supplier_id"]
+            terms = suppliers[identity]
+            offer = offers.get(identity)
+            story.append(PageBreak())
+            story.append(paragraph(t["proposal"], title))
+            story.append(paragraph(short(identity), subheading))
+            fields(
+                [
+                    (t["supplier"], named(identity)),
+                    (t["offer"], "—" if offer is None else named(offer)),
+                    (t["product"], short(demand["product_id"])),
+                    (t["case"], content["case_id"]),
+                    (t["recorded_at"], moment(audit["recorded_at"])),
+                ]
+            )
+            story.append(paragraph(t["line"], heading))
+            grid(
+                (
+                    t["product"],
+                    t["quantity"],
+                    t["unit"],
+                    t["unit_price"],
+                    t["line_total"],
+                    t["currency"],
+                ),
+                [
+                    (
+                        short(demand["product_id"]),
+                        number(allocation["quantity"]),
+                        unit,
+                        money_text(Decimal(terms["unit_price"]), language),
+                        money_text(Decimal(terms["unit_price"]) * allocation["quantity"], language),
+                        currency,
+                    )
+                ],
+                [128, 62, 78, 66, 82, 60],
+            )
+            story.append(paragraph(t["dates"], heading))
+            fields(
+                [
+                    (t["required_date"], day(demand["required_date"])),
+                    (t["promised_date"], day(terms["promised_date"])),
+                ]
+            )
+            story.append(paragraph(t["terms"], heading))
+            story.append(paragraph(t["terms_note"], small))
+            moq = terms["minimum_order"]["quantity"]
+            fields(
+                [
+                    (t["moq"], t["none"] if moq is None else quantity(moq)),
+                    (t["capacity"], quantity(terms["capacity"])),
+                    (t["available"], yes_no(terms["available"])),
+                    (t["price_range"], quantity_range(terms["price_quantities"])),
+                    (t["delivery_range"], quantity_range(terms["delivery_quantities"])),
+                ]
+            )
+            story.append(Spacer(1, 10))
+            story.append(paragraph(t["proposal_note"], small))
+
+        # --- Verification identifiers: on the last order-line page when they fit ---
+        block = [Spacer(1, 6), paragraph(t["verification"], heading)]
         fields(
             [
-                (t["class"], class_label(assessment, language)),
-                (t["score"], decimal(assessment.score)),
-                (
-                    t["window"],
-                    f"{moment(features.history_start.isoformat())} – "
-                    f"{moment(features.history_end.isoformat())}",
-                ),
-                (
-                    t["metrics"],
-                    "\n".join(
-                        f"{feature_label(name, language)}: {metric_display(name, value, language)}"
-                        for name, value in zip(features.feature_names, features.values, strict=True)
-                    ),
-                ),
-                (
-                    t["path"],
-                    "\n".join(
-                        [s["text"] for s in path_steps(assessment, language)]
-                        + [leaf_text(assessment, language)]
-                    ),
-                ),
-            ]
+                (t["case"], content["case_id"]),
+                (t["content_hash"], content_hash),
+                (t["data_origin"], t["origin_" + origin]),
+                (t["model_id"], metadata["model_id"][:12]),
+                (t["decision_time"], moment(audit["recorded_at"])),
+            ],
+            block,
         )
-    story.append(paragraph(t["optimization"], heading))
-    solver = snapshot["solver"]
-    fields(
-        [
-            (
-                t["solver"],
-                f"{solver['adapter']} ("
-                + ", ".join(f"{k} {v}" for k, v in sorted(solver["runtime"].items()))
-                + ")",
-            ),
-            (t["time_limit"], f"{decimal(solver['time_limit_seconds'])} {t['seconds']}"),
-            (t["solver_outcome"], outcome(audit["solver_outcome"])),
-            (t["max_suppliers"], str(policy["max_suppliers"])),
-            (
-                t["concentration"],
-                t["none"]
-                if policy["concentration_limit"] is None
-                else percent(Fraction(Decimal(policy["concentration_limit"]))),
-            ),
-            (
-                t["epsilons"],
-                ", ".join(percent(Fraction(Decimal(e))) for e in policy["epsilons"]),
-            ),
-        ]
-    )
-    story.append(paragraph(t["decision_audit"], heading))
-    fields(
-        [
-            (t["outcome"], t["approved"]),
-            (t["plan_index"], str(content["plan_index"])),
-            (t["decided_by"], audit["actor_reference"]),
-            (t["attribution"], recorded(audit["actor_attribution"])),
-            (t["recorded_at"], moment(audit["recorded_at"])),
-            (t["reference_time"], moment(audit["planning_reference_time"])),
-            (t["rationale"], audit["rationale"] or t["no_rationale"]),
-            (t["demonstration"], recorded(audit["demonstration"])),
-        ]
-    )
-    story.append(paragraph(t["identity"], heading))
-    fields(
-        [
-            (t["content_version"], content["content_version"]),
-            (t["case"], content["case_id"]),
-            (t["snapshot_hash"], content["snapshot_hash"]),
-            (t["content_hash"], fingerprint(content)),
-        ]
-    )
-    story.append(paragraph(t["provenance"], heading))
-    entries = snapshot["provenance"]["entries"]
-    data = [
-        [paragraph(v, small) for v in (t["field"], t["source"], t["reference"], t["observed_at"])]
-    ]
-    data += [
-        [
-            paragraph(e["canonical_path"], small),
-            paragraph(e["source_type"], small),
-            paragraph(e["source_reference"], small),
-            paragraph(moment(e["observed_at"]), small),
-        ]
-        for e in entries
-    ]
-    table = Table(data, colWidths=[160, 85, 168, 80], repeatRows=1, hAlign="LEFT", splitInRow=1)
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e7f0f4")),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#ccd6dc")),
-            ]
-        )
-    )
-    story.append(table)
+        block.append(paragraph(t["audit_pointer"], small))
+        story.append(KeepTogether(block))
 
+    def audit_document():
+        story.append(paragraph(t["audit_title"], title))
+        fields([(t["case"], content["case_id"]), (t["content_hash"], content_hash)])
+        story.append(paragraph(t["data_source"], heading))
+        rows = [(t["data_origin"], t["origin_" + origin])]
+        if history:
+            capture = json.loads(facts["history"])
+            rows += [
+                (t["database"], capture["evidence"]["database"]),
+                (t["quotation_group"], facts.get("comparison_case_id", "—")),
+                (t["history_cutoff"], moment(capture["evidence"]["cutoff"])),
+                (t["capture_hash"], capture["capture_hash"]),
+            ]
+        fields(rows)
+        story.append(paragraph(t["model"], heading))
+        fields(
+            [
+                (t["model_id"], metadata["model_id"]),
+                (t["training_id"], metadata["training_id"]),
+                (t["trained_through"], moment(metadata["trained_through"])),
+                (t["artifact_hash"], snapshot["model_manifest"]["artifact_sha256"]),
+            ]
+        )
+        story.append(paragraph(t["assessments"], heading))
+        for assessment in assessments:
+            features = assessment.snapshot
+            identity = features.context.supplier_id
+            story.append(paragraph(short(identity), subheading))
+            fields(
+                [
+                    (t["class"], class_label(assessment, language)),
+                    (t["score"], decimal(assessment.score)),
+                    (
+                        t["window"],
+                        f"{moment(features.history_start.isoformat())} – "
+                        f"{moment(features.history_end.isoformat())}",
+                    ),
+                    (
+                        t["metrics"],
+                        "\n".join(
+                            f"{feature_label(name, language)}: "
+                            f"{metric_display(name, value, language)}"
+                            for name, value in zip(
+                                features.feature_names, features.values, strict=True
+                            )
+                        ),
+                    ),
+                    (
+                        t["path"],
+                        "\n".join(
+                            [s["text"] for s in path_steps(assessment, language)]
+                            + [leaf_text(assessment, language)]
+                        ),
+                    ),
+                ]
+            )
+        story.append(paragraph(t["optimization"], heading))
+        solver = snapshot["solver"]
+        fields(
+            [
+                (
+                    t["solver"],
+                    f"{solver['adapter']} ("
+                    + ", ".join(f"{k} {v}" for k, v in sorted(solver["runtime"].items()))
+                    + ")",
+                ),
+                (t["time_limit"], f"{decimal(solver['time_limit_seconds'])} {t['seconds']}"),
+                (t["solver_outcome"], outcome(audit["solver_outcome"])),
+                (t["max_suppliers"], str(policy["max_suppliers"])),
+                (
+                    t["concentration"],
+                    t["none"]
+                    if policy["concentration_limit"] is None
+                    else percent(Fraction(Decimal(policy["concentration_limit"]))),
+                ),
+                (
+                    t["epsilons"],
+                    ", ".join(percent(Fraction(Decimal(e))) for e in policy["epsilons"]),
+                ),
+            ]
+        )
+        story.append(paragraph(t["decision_audit"], heading))
+        fields(
+            [
+                (t["outcome"], t["approved"]),
+                (t["plan_index"], str(content["plan_index"])),
+                (t["decided_by"], audit["actor_reference"]),
+                (t["attribution"], recorded(audit["actor_attribution"])),
+                (t["recorded_at"], moment(audit["recorded_at"])),
+                (t["reference_time"], moment(audit["planning_reference_time"])),
+                (t["rationale"], audit["rationale"] or t["no_rationale"]),
+                (t["demonstration"], recorded(audit["demonstration"])),
+            ]
+        )
+        story.append(paragraph(t["identity"], heading))
+        fields(
+            [
+                (t["content_version"], content["content_version"]),
+                (t["case"], content["case_id"]),
+                (t["snapshot_hash"], content["snapshot_hash"]),
+                (t["content_hash"], content_hash),
+            ]
+        )
+        story.append(paragraph(t["provenance"], heading))
+        entries = snapshot["provenance"]["entries"]
+        data = [
+            [
+                paragraph(v, small)
+                for v in (t["field"], t["source"], t["reference"], t["observed_at"])
+            ]
+        ]
+        data += [
+            [
+                paragraph(e["canonical_path"], small),
+                paragraph(e["source_type"], small),
+                paragraph(e["source_reference"], small),
+                paragraph(moment(e["observed_at"]), small),
+            ]
+            for e in entries
+        ]
+        table = Table(data, colWidths=[160, 85, 168, 80], repeatRows=1, hAlign="LEFT", splitInRow=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e7f0f4")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#ccd6dc")),
+                ]
+            )
+        )
+        story.append(table)
+
+    (audit_document if kind == "audit" else plan_document)()
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -728,11 +812,11 @@ def render_approved_pdf(content, language="hu"):
         rightMargin=51,
         topMargin=45,
         bottomMargin=45,
-        title=t["doc_title"],
+        title=t["audit_title" if kind == "audit" else "doc_title"],
         author="Procurement Decision Support",
         lang=language,
     )
-    footer_text = t["footer"].format(case=content["case_id"])
+    footer_text = t["audit_footer" if kind == "audit" else "footer"].format(case=content["case_id"])
     for c in footer_text:
         if ord(c) not in font.face.charWidths:
             raise ValueError("Text contains glyphs outside the bundled font.")

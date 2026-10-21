@@ -659,7 +659,7 @@ def test_supplier_overview_reads_only_the_stored_case(configured, monkeypatch):
         assert len(calls) == before
 
 
-def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
+def test_plan_and_audit_pdfs_name_odoo_suppliers_and_state_generated_history(configured):
     from io import BytesIO
 
     from pypdf import PdfReader
@@ -679,12 +679,20 @@ def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
         )
         content_hash = approved.json()["final_decision"]["approved_content_hash"]
         url = BASE + f"/{base['case_id']}/approved-pdf/{content_hash}"
-        pages = {}
+        pages, audits = {}, {}
         for language in ("hu", "en"):
             pdf = client.get(url, params={"language": language}, headers=headers())
             pages[language] = [
                 " ".join(p.extract_text().split()) for p in PdfReader(BytesIO(pdf.content)).pages
             ]
+            audit = client.get(
+                url, params={"language": language, "kind": "audit"}, headers=headers()
+            )
+            assert audit.headers["x-document-kind"] == "audit"
+            assert audit.headers["x-approved-content-hash"] == content_hash
+            audits[language] = " ".join(
+                " ".join(p.extract_text().split()) for p in PdfReader(BytesIO(audit.content)).pages
+            )
     minimum = base["snapshot"]["result"]["minimum_cost_plan"]["allocations"]
     allocated = [a for a in minimum if a["quantity"] > 0]
     labels = dict(base["snapshot"]["facts"]["labels"])
@@ -695,7 +703,20 @@ def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
         assert "T6-RFQ-" in page and "USD" in page
     assert "generált (szimulált) Odoo beszerzési" in pages["hu"][0]
     assert "generated (simulated) Odoo purchase history" in pages["en"][0]
-    appendix = " ".join(pages["hu"][len(allocated) + 1 :])
+    # The plan names the Odoo product without its reference; the audit document keeps it.
+    for language in ("hu", "en"):
+        plan = " ".join(pages[language])
+        assert len(pages[language]) <= len(allocated) + 2
+        assert "odoo:product.product:" not in plan and "odoo:purchase.order.group" not in plan
+        assert "odoo:product.product:" in audits[language]
+    assert "Tervezési feltételezések" in proposals[0]
+    assert "nem beszállítói vállalások" in proposals[0]
+    assert "Planning assumptions" in pages["en"][1] and "not supplier commitments" in pages["en"][1]
+    last = pages["hu"][-1]
+    assert "Ellenőrzési azonosítók" in last, last
+    assert content_hash in "".join(last.split())
+    assert "Audit nézetéből" in pages["hu"][-1] and "Döntési útvonal" not in " ".join(pages["hu"])
+    appendix = audits["hu"]
     assert DATABASE in appendix and "odoo:purchase.order.group:501" in appendix
     assert "Határidőre teljesített szállítások aránya" in appendix
     # Fixed English record sentences: Hungarian first, the stored original quoted verbatim.
@@ -707,7 +728,7 @@ def test_pdf_v2_names_odoo_suppliers_and_states_generated_history(configured):
     assert "optimális (optimal)" in appendix
     unit = labels.get(base["snapshot"]["request"]["requirement"]["quantity_unit"])
     assert unit == "Units" and " Units" not in " ".join(pages["hu"]) and " db" in proposals[0]
-    english = " ".join(pages["en"])
+    english = audits["en"]
     assert f"{recorded['actor_attribution']} (original recorded text)" in english
     assert "személyazonosság" not in english and "optimális" not in english
 

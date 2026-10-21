@@ -1,7 +1,9 @@
 """Approved-content PDF retrieval and atomic artifact storage, without acquisition.
 
-One immutable artifact per (case, language). English artifacts stored before P2 keep
-their v1 reference and bytes; Hungarian and new English artifacts use layout v2.
+One immutable artifact per (case, language, kind): the approved procurement plan
+(``plan``) and its audit appendix (``audit``), both rendered from the same approved content
+(ADR-036). Combined plan + appendix documents stored before the split (v1 English, v2)
+are served unchanged as ``plan``.
 """
 
 import hashlib
@@ -13,9 +15,17 @@ from application.errors import RepositoryError
 from application.planning_cases import PlanningCaseError, canonical_uuid
 from application.planning_decisions import CONTENT_VERSION, validate_final_decision
 
-DOCUMENT_VERSION = "t17-approved-pdf-v2"
+DOCUMENT_VERSION = "t17-approved-pdf-v3"
+COMBINED_DOCUMENT_VERSION = "t17-approved-pdf-v2"  # plan + audit appendix in one PDF
 LEGACY_DOCUMENT_VERSION = "t17-approved-pdf-v1"  # English only, no language in reference
 DOCUMENT_LANGUAGES = ("hu", "en")
+DOCUMENT_KINDS = ("plan", "audit")
+FILENAMES = {
+    ("plan", "hu"): "jovahagyott-beszerzesi-terv",
+    ("plan", "en"): "approved-procurement-plan",
+    ("audit", "hu"): "audit-melleklet",
+    ("audit", "en"): "audit-appendix",
+}
 MAX_PDF_BYTES = 2 * 1024 * 1024
 
 
@@ -28,6 +38,7 @@ class PlanningDocument:
     renderer_version: str
     pdf: bytes
     language: str = "en"
+    kind: str = "plan"
 
     @property
     def pdf_hash(self):
@@ -35,22 +46,30 @@ class PlanningDocument:
 
     @property
     def filename(self):
-        name = (
-            "jovahagyott-beszerzesi-terv" if self.language == "hu" else "approved-procurement-plan"
-        )
+        name = FILENAMES[(self.kind, self.language)]
         return f"{name}-{self.case_id}-{self.content_hash[:12]}-{self.language}.pdf"
 
 
 class PlanningDocumentRepository(Protocol):
     def lock(self, case_id: str) -> None: ...
-    def get(self, case_id: str, language: str) -> PlanningDocument | None: ...
+    def get(self, case_id: str, language: str, kind: str) -> PlanningDocument | None: ...
     def add(self, document: PlanningDocument) -> None: ...
 
 
-def approved_document(uow, case_id, content_hash, render, language="hu"):
+def legacy_references(case_id, language, content_hash):
+    """Combined documents stored before the split; valid only as ``plan``."""
+    references = {f"{COMBINED_DOCUMENT_VERSION}:{case_id}:{language}:{content_hash}"}
+    if language == "en":  # pre-P2 English artifact
+        references.add(f"{LEGACY_DOCUMENT_VERSION}:{case_id}:{content_hash}")
+    return references
+
+
+def approved_document(uow, case_id, content_hash, render, language="hu", kind="plan"):
     canonical_uuid(case_id)
     if language not in DOCUMENT_LANGUAGES:
         raise PlanningCaseError("invalid_document_language", "Use hu or en.")
+    if kind not in DOCUMENT_KINDS:
+        raise PlanningCaseError("invalid_document_kind", "Use plan or audit.")
     if not isinstance(content_hash, str) or re.fullmatch(r"[0-9a-f]{64}", content_hash) is None:
         raise PlanningCaseError("invalid_document_identity", "Use the saved approved content hash.")
     with uow:
@@ -69,12 +88,12 @@ def approved_document(uow, case_id, content_hash, render, language="hu"):
             raise PlanningCaseError("approved_pdf_ineligible", "No-award has no approved PDF.")
         if value["approved_content_hash"] != content_hash:
             raise PlanningCaseError("approved_content_hash_mismatch", "Reload the saved approval.")
-        reference = f"{DOCUMENT_VERSION}:{case_id}:{language}:{content_hash}"
-        document = uow.documents.get(case_id, language)
+        reference = f"{DOCUMENT_VERSION}:{case_id}:{language}:{kind}:{content_hash}"
+        document = uow.documents.get(case_id, language, kind)
         stored = document is not None
         if document is None:
             try:
-                pdf, renderer_version = render(content, language)
+                pdf, renderer_version = render(content, language, kind)
             except Exception as error:
                 raise RepositoryError(
                     "approved_pdf_unavailable", "The approved PDF could not be rendered."
@@ -87,14 +106,16 @@ def approved_document(uow, case_id, content_hash, render, language="hu"):
                 renderer_version,
                 pdf,
                 language,
+                kind,
             )
-        elif language == "en" and document.reference == (
-            f"{LEGACY_DOCUMENT_VERSION}:{case_id}:{content_hash}"
+        elif kind == "plan" and document.reference in legacy_references(
+            case_id, language, content_hash
         ):
-            reference = document.reference  # immutable pre-P2 English artifact
+            reference = document.reference  # immutable combined document stored before v3
         if (
             document.case_id != case_id
             or document.language != language
+            or document.kind != kind
             or document.content_version != CONTENT_VERSION
             or document.content_hash != content_hash
             or document.reference != reference

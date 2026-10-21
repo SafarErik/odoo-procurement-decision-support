@@ -10,7 +10,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from application.errors import RepositoryError
-from document_adapter.approved_pdf import render_approved_pdf
+from backend.app.dependencies import render_approved_document
+from document_adapter.approved_pdf import render_plan_pdf
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
 from tests.integration.test_t17_decisions_postgres import configured as _configured
 from tests.integration.test_t17_decisions_postgres import stored_cases as _stored_cases
@@ -30,9 +31,9 @@ def test_contending_pdf_downloads_store_one_artifact_without_changing_approval(
     decision, url = approve(client, base)
     calls = []
 
-    def render(content, language):
+    def render(content, language, kind):
         calls.append(content)
-        return render_approved_pdf(content, language)
+        return render_plan_pdf(content, language)
 
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", render)
     with engine.connect() as holder, ThreadPoolExecutor(max_workers=2) as pool:
@@ -104,7 +105,7 @@ def test_pdf_insert_requires_exact_approved_content(configured):
             text(
                 "INSERT INTO planning_documents "
                 "SELECT case_id, content_version, repeat('0',64), reference || '-bad', "
-                "renderer_version, pdf_hash, pdf, 'en' FROM planning_documents"
+                "renderer_version, pdf_hash, pdf, 'en', kind FROM planning_documents"
             )
         )
 
@@ -119,7 +120,7 @@ def test_render_failure_and_post_flush_rollback_leave_approval_intact(configured
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", fail)
     assert client.get(url, headers=headers()).status_code == 503
     monkeypatch.setattr(
-        "backend.app.routes.planning_cases.render_approved_document", render_approved_pdf
+        "backend.app.routes.planning_cases.render_approved_document", render_approved_document
     )
     commit = SqlAlchemyPlanningUnitOfWork.commit
     monkeypatch.setattr(SqlAlchemyPlanningUnitOfWork, "commit", fail)
@@ -134,26 +135,49 @@ def test_render_failure_and_post_flush_rollback_leave_approval_intact(configured
     assert client.get(url, headers=headers()).status_code == 200
 
 
-def test_one_immutable_artifact_per_language(configured):
+def test_one_immutable_artifact_per_language_and_kind(configured, monkeypatch):
     engine, _, client, base, _ = configured
-    _, url = approve(client, base)
-    hungarian = client.get(url, headers=headers())
-    english = client.get(url, params={"language": "en"}, headers=headers())
-    assert hungarian.status_code == english.status_code == 200
-    assert hungarian.content != english.content
+    decision, url = approve(client, base)
+    responses = {
+        (language, kind): client.get(
+            url, params={"language": language, "kind": kind}, headers=headers()
+        )
+        for language in ("hu", "en")
+        for kind in ("plan", "audit")
+    }
+    assert {r.status_code for r in responses.values()} == {200}
+    assert len({r.content for r in responses.values()}) == 4
+    assert {r.headers["x-approved-content-hash"] for r in responses.values()} == {
+        decision["approved_content_hash"]
+    }
     with engine.connect() as connection:
         rows = connection.execute(
-            text("SELECT language, reference FROM planning_documents ORDER BY language")
+            text(
+                "SELECT language, kind, reference, content_hash FROM planning_documents "
+                "ORDER BY language, kind"
+            )
         ).all()
-    assert [r.language for r in rows] == ["en", "hu"]
-    assert all(f":{r.language}:" in r.reference for r in rows)
+    assert [(r.language, r.kind) for r in rows] == [
+        ("en", "audit"),
+        ("en", "plan"),
+        ("hu", "audit"),
+        ("hu", "plan"),
+    ]
+    assert all(f":{r.language}:{r.kind}:" in r.reference for r in rows)
+    assert {r.content_hash for r in rows} == {decision["approved_content_hash"]}
+    monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)
+    for (language, kind), response in responses.items():
+        again = client.get(url, params={"language": language, "kind": kind}, headers=headers())
+        assert again.status_code == 200 and again.content == response.content
     with pytest.raises(DBAPIError), engine.begin() as connection:
         connection.execute(
             text(
                 "INSERT INTO planning_documents SELECT case_id, content_version, content_hash, "
-                "reference || '-copy', renderer_version, pdf_hash, pdf, language "
-                "FROM planning_documents WHERE language = 'hu'"
+                "reference || '-copy', renderer_version, pdf_hash, pdf, language, kind "
+                "FROM planning_documents WHERE language = 'hu' AND kind = 'audit'"
             )
         )
     with pytest.raises(DBAPIError), engine.begin() as connection:
         connection.execute(text("UPDATE planning_documents SET language = 'de'"))
+    with pytest.raises(DBAPIError), engine.begin() as connection:
+        connection.execute(text("UPDATE planning_documents SET kind = 'summary'"))
