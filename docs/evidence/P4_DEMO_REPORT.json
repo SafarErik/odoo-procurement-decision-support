@@ -1,8 +1,8 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-20T08:24:38+00:00",
+  "generated_at": "2026-10-21T16:41:30+00:00",
   "repository": {
-    "commit": "2d0f15414a3ee72f9f56271d63f540cb577787f3",
+    "commit": "12f383c3ce38510ab9dbd113e3d95a5d9d10d5d3",
     "dirty": false
   },
   "environment": {
@@ -64,11 +64,14 @@
     }
   ],
   "base_case": {
-    "case_id": "18d1eef1-2a85-4a47-b086-eee56b707ca5",
+    "case_id": "a2335db3-1c10-42ed-8695-c003f17296f2",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
+      "diversification_epsilon": "0.2",
       "epsilons": [
+        "0.05",
+        "0.1",
         "0.2"
       ],
       "max_suppliers": 2
@@ -92,9 +95,18 @@
         },
         "total_cost": "293132",
         "risk_exposure": 0.3333
+      },
+      {
+        "label": "alternative_2",
+        "allocations": {
+          "odoo:res.partner:18": 100,
+          "odoo:res.partner:8": 100
+        },
+        "total_cost": "295800",
+        "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.529
+    "seconds": 0.97
   },
   "scenarios": [
     {
@@ -126,9 +138,18 @@
           },
           "total_cost": "306240",
           "risk_exposure": 0.3454
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:8": 100
+          },
+          "total_cost": "305515",
+          "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.156
+      "seconds": 0.458
     },
     {
       "kind": "capacity_change",
@@ -161,7 +182,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.189
+      "seconds": 0.524
     },
     {
       "kind": "capacity_change",
@@ -192,9 +213,18 @@
           },
           "total_cost": "287796",
           "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:18": 100,
+            "odoo:res.partner:8": 100
+          },
+          "total_cost": "295800",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.244
+      "seconds": 0.543
     },
     {
       "kind": "demand_change",
@@ -203,7 +233,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.057
+      "seconds": 0.084
     },
     {
       "kind": "demand_change",
@@ -229,9 +259,18 @@
           },
           "total_cost": "215847",
           "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:18": 75,
+            "odoo:res.partner:8": 75
+          },
+          "total_cost": "221850",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.239
+      "seconds": 0.522
     },
     {
       "kind": "price_change",
@@ -257,14 +296,32 @@
         {
           "label": "alternative_1",
           "allocations": {
+            "odoo:res.partner:11": 80,
+            "odoo:res.partner:8": 120
+          },
+          "total_cost": "306240",
+          "risk_exposure": 0.3454
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
             "odoo:res.partner:18": 80,
             "odoo:res.partner:8": 120
           },
           "total_cost": "332364",
           "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_3",
+          "allocations": {
+            "odoo:res.partner:18": 100,
+            "odoo:res.partner:8": 100
+          },
+          "total_cost": "338170",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.193
+      "seconds": 0.509
     },
     {
       "kind": "price_change",
@@ -295,9 +352,18 @@
           },
           "total_cost": "259232",
           "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:18": 100,
+            "odoo:res.partner:8": 100
+          },
+          "total_cost": "267550",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.21
+      "seconds": 0.473
     },
     {
       "kind": "combined",
@@ -329,9 +395,18 @@
           },
           "total_cost": "326814",
           "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:11": 110,
+            "odoo:res.partner:8": 110
+          },
+          "total_cost": "336066.5",
+          "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.181
+      "seconds": 0.473
     },
     {
       "kind": "demand_change",
@@ -340,32 +415,32 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.059
+      "seconds": 0.076
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "18d1eef1-2a85-4a47-b086-eee56b707ca5",
+      "case_id": "a2335db3-1c10-42ed-8695-c003f17296f2",
       "plan_index": 1,
-      "approved_content_hash": "b945b67dfd213b623c0047fb344567588f4067bce300728ce43ce24a643795af"
+      "approved_content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae"
     },
     "no_award": {
-      "case_id": "10549da5-e937-4b1b-90c6-b4a88a2bb1d6",
+      "case_id": "23ec6058-814e-495b-9dcd-d4d8bcbf48cd",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
   },
   "pdf": {
     "hu": {
-      "sha256": "43038c6c1d55b48d7f0e701abccbc00e423ac83d4ae2d5217e03a943ef289f9e",
-      "bytes": 41211,
-      "content_hash": "b945b67dfd213b623c0047fb344567588f4067bce300728ce43ce24a643795af",
+      "sha256": "5d47fa87b7d1b37f8eb4ff4f3ad8e423fd0276942ee9d35f7d04a5524040b503",
+      "bytes": 41291,
+      "content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae",
       "language": "hu"
     },
     "en": {
-      "sha256": "3d74cba0e319ef5f9003ed67622d486d10052056408c35143b1a5e3f0359a513",
-      "bytes": 39461,
-      "content_hash": "b945b67dfd213b623c0047fb344567588f4067bce300728ce43ce24a643795af",
+      "sha256": "2893f0200c6c85b40d0d2f836582d55edf5dc16254c4cd635f7039f4d19c63a7",
+      "bytes": 39524,
+      "content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae",
       "language": "en"
     }
   },
@@ -385,7 +460,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 3.289,
-  "total_seconds": 16.028,
+  "flow_seconds": 6.82,
+  "total_seconds": 20.574,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }
