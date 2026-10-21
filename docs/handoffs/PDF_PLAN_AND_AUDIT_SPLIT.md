@@ -1,7 +1,7 @@
 # Approved plan and audit appendix as two PDFs (ADR-036)
 
-Date: 2026-10-21. Working-tree increment on `feature/pdf-cleanup` on top of `240f853`
-(merged PR #53). Nothing is committed; the owner commits. Task clause: "finalize fixed
+Date: 2026-10-21. Increment on `feature/pdf-cleanup` on top of `240f853` (merged PR #53):
+code `0ca8d5b`, clean P4 evidence `5d0a6b2` (owner's commits, not pushed). Task clause: "finalize fixed
 orders as PDF" (FR-V2-10/11/12, AC-V2-10/11/12; TRACEABILITY row 9).
 
 ## Problem
@@ -69,16 +69,18 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
   rejected (immutability trigger and PK). The first run failed with 503 on every store:
   the 130-character v3 audit reference exceeded `VARCHAR(128)`; fixed by widening to 160.
 - `pytest tests/e2e -m e2e --browser chromium` → 3 passed (216 s).
-- `python -m tools.dev demo` (applied `20261021_01` to the development planning database,
-  then ran the demo) → "Demonstration complete in 20.755 s", exit 0.
-  `P4_DEMO_REPORT.json` (2026-10-21T18:55:52Z, `240f853`, `dirty: true` — uncommitted
-  tree): plans unchanged (80 + 120 at 288,608 HUF; 120 + 80 at 293,132; balanced 100 + 100
-  at 295,800); approval of plan 1, separate No-award; four artifacts with the same
-  approved content hash `7ae5f698…`: HU plan 3 pages / 29,459 bytes, HU audit 7 / 35,592,
-  EN plan 3 / 28,297, EN audit 7 / 34,111; stored replay without Odoo and model passed
-  (13 operations; all four PDFs byte-identical; No-award 422 for both kinds). Previously
-  the combined document was 10 pages. `P4_MILP_EVALUATION.json` was not rerun: it does
-  not check the PDF.
+- `python -m tools.dev demo` on the uncommitted tree (applied `20261021_01` to the
+  development planning database, then ran the demo) → "Demonstration complete in
+  20.755 s", exit 0, `dirty: true`; superseded by the owner's rerun below.
+- Owner's rerun after committing the code (`0ca8d5b`; evidence committed alone as
+  `5d0a6b2`): `P4_DEMO_REPORT.json` (2026-10-21T19:06:20Z, `0ca8d5b`, `dirty: false`,
+  19.867 s): plans unchanged (80 + 120 at 288,608 HUF; 120 + 80 at 293,132; balanced
+  100 + 100 at 295,800); approval of plan 1, separate No-award; four artifacts with the
+  same approved content hash `526fd3ad…`: HU plan 3 pages / 29,453 bytes, HU audit 7 /
+  35,587, EN plan 3 / 28,287, EN audit 7 / 34,110; stored replay without Odoo and model
+  passed (13 operations; all four PDFs byte-identical; No-award 422 for both kinds).
+  Previously the combined document was 10 pages. `P4_MILP_EVALUATION.json` was not rerun:
+  it does not check the PDF.
 - Text of the real Odoo plan (HU) read page by page: product „[PDSS-GEN-P1-PRD-01] [GEN]
   Steel bracket M8” without reference, supplier table with all four suppliers,
   „Tervezési feltételezések” + L6 sentence on each order-line page, verification block on
@@ -96,8 +98,6 @@ All on `feature/pdf-cleanup` at `240f853` with this working tree (Python 3.11.15
 
 ## Limitations and unrun gates
 
-- `P4_DEMO_REPORT.json` records `dirty: true`; for a commit-exact record rerun
-  `python -m tools.dev demo` after the owner's commit (as for the 2026-10-21 P4 rerun).
 - The development planning database is now at `20261021_01` and holds audit rows, so its
   downgrade is refused by design; the integration fixture empties the disposable test
   tables before resetting the schema.
