@@ -1,9 +1,9 @@
 {
   "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-21T16:41:30+00:00",
+  "generated_at": "2026-10-21T18:55:52+00:00",
   "repository": {
-    "commit": "12f383c3ce38510ab9dbd113e3d95a5d9d10d5d3",
-    "dirty": false
+    "commit": "240f853b11b57d317da2fc392130ef6b59131fa8",
+    "dirty": true
   },
   "environment": {
     "python": "3.11.15",
@@ -64,7 +64,7 @@
     }
   ],
   "base_case": {
-    "case_id": "a2335db3-1c10-42ed-8695-c003f17296f2",
+    "case_id": "f21e83da-d369-4737-b69d-182b46b94595",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -106,7 +106,7 @@
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.97
+    "seconds": 0.781
   },
   "scenarios": [
     {
@@ -149,7 +149,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.458
+      "seconds": 0.376
     },
     {
       "kind": "capacity_change",
@@ -182,7 +182,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.524
+      "seconds": 0.543
     },
     {
       "kind": "capacity_change",
@@ -224,7 +224,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.543
+      "seconds": 0.523
     },
     {
       "kind": "demand_change",
@@ -233,7 +233,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.084
+      "seconds": 0.088
     },
     {
       "kind": "demand_change",
@@ -270,7 +270,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.522
+      "seconds": 0.492
     },
     {
       "kind": "price_change",
@@ -321,7 +321,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.509
+      "seconds": 0.523
     },
     {
       "kind": "price_change",
@@ -363,7 +363,7 @@
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.473
+      "seconds": 0.542
     },
     {
       "kind": "combined",
@@ -406,7 +406,7 @@
           "risk_exposure": 0.3484
         }
       ],
-      "seconds": 0.473
+      "seconds": 0.526
     },
     {
       "kind": "demand_change",
@@ -420,28 +420,56 @@
   ],
   "decisions": {
     "approved": {
-      "case_id": "a2335db3-1c10-42ed-8695-c003f17296f2",
+      "case_id": "f21e83da-d369-4737-b69d-182b46b94595",
       "plan_index": 1,
-      "approved_content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae"
+      "approved_content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
     },
     "no_award": {
-      "case_id": "23ec6058-814e-495b-9dcd-d4d8bcbf48cd",
+      "case_id": "20420756-1d7d-41df-a1c3-3d2de1fc6227",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
   },
   "pdf": {
     "hu": {
-      "sha256": "5d47fa87b7d1b37f8eb4ff4f3ad8e423fd0276942ee9d35f7d04a5524040b503",
-      "bytes": 41291,
-      "content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae",
-      "language": "hu"
+      "plan": {
+        "sha256": "fcd2156ef822ad762bd8fbe9b787f3d84f9362c751287e3a71f2b51a3252fe36",
+        "bytes": 29459,
+        "pages": 3,
+        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "language": "hu",
+        "kind": "plan",
+        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:hu:plan:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+      },
+      "audit": {
+        "sha256": "ac141b0e7951976d6351986c1399e5831c923ca4f10a02118325064246e4a38c",
+        "bytes": 35592,
+        "pages": 7,
+        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "language": "hu",
+        "kind": "audit",
+        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:hu:audit:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+      }
     },
     "en": {
-      "sha256": "2893f0200c6c85b40d0d2f836582d55edf5dc16254c4cd635f7039f4d19c63a7",
-      "bytes": 39524,
-      "content_hash": "585e79c5966b1225876d770b5b2258c64d9a6a7d9c561b86daec21edf7ca9aae",
-      "language": "en"
+      "plan": {
+        "sha256": "5f79b04e99cf5a9f7733b89852d4f955242fff5deffdcce323a5d567bb31564e",
+        "bytes": 28297,
+        "pages": 3,
+        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "language": "en",
+        "kind": "plan",
+        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:en:plan:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+      },
+      "audit": {
+        "sha256": "100cd96863444c662d138d9a1c3ec115a6246255e1711b090744ff12180c5133",
+        "bytes": 34111,
+        "pages": 7,
+        "content_hash": "7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed",
+        "language": "en",
+        "kind": "audit",
+        "reference": "t17-approved-pdf-v3:f21e83da-d369-4737-b69d-182b46b94595:en:audit:7ae5f698dc8d409929ee619c7247e40f2a1689743e69a11e95dbf2e7f97b23ed"
+      }
     }
   },
   "stored_replay": {
@@ -453,14 +481,14 @@
     "checks": [
       "GET of every saved case equals the created snapshot, hash and decision",
       "exact retry of every POST is an idempotent stored replay (HTTP 200)",
-      "HU and EN approved PDFs byte-identical to the first download",
+      "HU and EN plan and audit PDFs (four artifacts) byte-identical to the first download",
       "supplier overview (HU, EN) identical",
-      "No-award case has no approved PDF (HTTP 422)"
+      "No-award case has no plan or audit PDF (HTTP 422)"
     ],
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 6.82,
-  "total_seconds": 20.574,
+  "flow_seconds": 6.859,
+  "total_seconds": 20.755,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }

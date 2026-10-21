@@ -253,11 +253,17 @@ def get_approved_pdf(
     content_hash: str,
     download: bool = False,
     language: Annotated[Literal["hu", "en"], Query()] = "hu",
+    kind: Annotated[Literal["plan", "audit"], Query()] = "plan",
 ):
-    """Approved snapshot as a document in the UI language; one stored artifact per language."""
+    """Approved plan or its audit appendix in the UI language; one stored artifact each."""
     try:
         document = approved_document(
-            get_planning_unit_of_work(), case_id, content_hash, render_approved_document, language
+            get_planning_unit_of_work(),
+            case_id,
+            content_hash,
+            render_approved_document,
+            language,
+            kind,
         )
         disposition = "attachment" if download else "inline"
         return Response(
@@ -272,6 +278,7 @@ def get_approved_pdf(
                 "X-PDF-Reference": document.reference,
                 "X-PDF-SHA256": document.pdf_hash,
                 "Content-Language": document.language,
+                "X-Document-Kind": document.kind,
             },
         )
     except RepositoryError as error:

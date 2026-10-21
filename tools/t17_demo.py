@@ -5,11 +5,13 @@ import hashlib
 import json
 import os
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 
 import httpx
+from pypdf import PdfReader
 
 BASE = "/api/v2/procurement/planning-cases"
 
@@ -76,11 +78,11 @@ def checked(response, status):
     return response.json()
 
 
-def download_pdf(client, case, path, language="hu"):
+def download_pdf(client, case, path, language="hu", kind="plan"):
     decision = case["final_decision"]
     content_hash = decision["approved_content_hash"]
     url = f"{BASE}/{case['case_id']}/approved-pdf/{content_hash}"
-    response = client.get(url, params={"download": "true", "language": language})
+    response = client.get(url, params={"download": "true", "language": language, "kind": kind})
     digest = hashlib.sha256(response.content).hexdigest()
     if (
         response.status_code != 200
@@ -88,6 +90,7 @@ def download_pdf(client, case, path, language="hu"):
         or response.headers.get("x-approved-content-hash") != content_hash
         or response.headers.get("x-pdf-sha256") != digest
         or response.headers.get("content-language") != language
+        or response.headers.get("x-document-kind") != kind
         or not response.content.startswith(b"%PDF-")
     ):
         raise ValueError("PDF retrieval/content identity failed.")
@@ -97,17 +100,27 @@ def download_pdf(client, case, path, language="hu"):
     return {
         "sha256": digest,
         "bytes": len(response.content),
+        "pages": len(PdfReader(BytesIO(response.content)).pages),
         "content_hash": content_hash,
         "language": language,
+        "kind": kind,
+        "reference": response.headers["x-pdf-reference"],
     }
 
 
 def download_pdfs(client, case, report_path):
-    """The approved plan as one stored PDF per language (Hungarian default, English)."""
+    """The approved plan and its audit appendix, one stored PDF per language and kind."""
     return {
-        language: download_pdf(
-            client, case, report_path.with_name(f"{report_path.stem}-{language}.pdf"), language
-        )
+        language: {
+            kind: download_pdf(
+                client,
+                case,
+                report_path.with_name(f"{report_path.stem}-{language}-{kind}.pdf"),
+                language,
+                kind,
+            )
+            for kind in ("plan", "audit")
+        }
         for language in ("hu", "en")
     }
 
@@ -210,10 +223,14 @@ def verify_stored(report_path, client):
             raise ValueError("Exact retry changed the saved case or decision.")
     if download_pdfs(client, report["approved"], report_path) != report["pdf"]:
         raise ValueError("Approved PDF identity changed.")
-    denied = client.get(f"{BASE}/{report['no_award']['case_id']}/approved-pdf/" + "0" * 64)
-    if denied.status_code != 422:
-        raise ValueError("No-award unexpectedly permits an approved PDF.")
-    print("Stored cases, exact retries and identical PDF verified; No-award PDF denied.")
+    for kind in ("plan", "audit"):
+        denied = client.get(
+            f"{BASE}/{report['no_award']['case_id']}/approved-pdf/" + "0" * 64,
+            params={"kind": kind},
+        )
+        if denied.status_code != 422:
+            raise ValueError("No-award unexpectedly permits an approved PDF.")
+    print("Stored cases, exact retries and identical PDFs verified; No-award PDFs denied.")
 
 
 def main():

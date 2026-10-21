@@ -48,9 +48,13 @@ def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monk
         }
         assert report["scenarios"][-1]["snapshot"]["result"]["status"] == "infeasible"
         assert len(uow.rows) == 11 and len(uow.decisions.rows) == 2
-        assert len(uow.documents.rows) == 2  # one stored artifact per language
-        assert {pdf["language"] for pdf in report["pdf"].values()} == {"hu", "en"}
-        assert report["pdf"]["hu"]["sha256"] != report["pdf"]["en"]["sha256"]
+        assert len(uow.documents.rows) == 4  # one stored artifact per language and kind
+        pdfs = [pdf for language in report["pdf"].values() for pdf in language.values()]
+        assert {(pdf["language"], pdf["kind"]) for pdf in pdfs} == {
+            (language, kind) for language in ("hu", "en") for kind in ("plan", "audit")
+        }
+        assert len({pdf["sha256"] for pdf in pdfs}) == 4
+        assert len({pdf["content_hash"] for pdf in pdfs}) == 1
         before = (
             uow.rows.copy(),
             uow.decisions.rows.copy(),
@@ -67,7 +71,7 @@ def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monk
         verify_stored(path, client)
         assert (uow.rows, uow.decisions.rows, uow.documents.rows, calls) == before
         assert "history-test-token" not in path.read_text()
-        path.with_name(f"{path.stem}-en.pdf").write_bytes(b"different local bytes")
+        path.with_name(f"{path.stem}-en-audit.pdf").write_bytes(b"different local bytes")
         with pytest.raises(ValueError, match="differs from the saved"):
             verify_stored(path, client)
         original_post = client.post

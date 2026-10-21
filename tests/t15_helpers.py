@@ -85,10 +85,10 @@ class MemoryPlanningDocuments:
     def lock(self, case_id):
         pass
 
-    def get(self, case_id, language):
-        return self.rows.get((case_id, language))
+    def get(self, case_id, language, kind):
+        return self.rows.get((case_id, language, kind))
 
     def add(self, document):
-        key = (document.case_id, document.language)
+        key = (document.case_id, document.language, document.kind)
         assert key not in self.rows
         self.rows[key] = document

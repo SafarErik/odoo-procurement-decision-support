@@ -268,9 +268,9 @@ def run(args) -> Path:
         "checks": [
             "GET of every saved case equals the created snapshot, hash and decision",
             "exact retry of every POST is an idempotent stored replay (HTTP 200)",
-            "HU and EN approved PDFs byte-identical to the first download",
+            "HU and EN plan and audit PDFs (four artifacts) byte-identical to the first download",
             "supplier overview (HU, EN) identical",
-            "No-award case has no approved PDF (HTTP 422)",
+            "No-award case has no plan or audit PDF (HTTP 422)",
         ],
         "operations_replayed": len(raw["operations"]),
         "passed": True,

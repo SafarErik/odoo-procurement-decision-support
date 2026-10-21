@@ -101,6 +101,8 @@ class CaseMixin(rx.State, mixin=True):
         self.final_choice = ""
         self.pdf_data_url = self.pdf_error = self.pdf_reference = ""
         self.pdf_filename = ""
+        self.audit_pdf_data_url = self.audit_pdf_error = self.audit_pdf_reference = ""
+        self.audit_pdf_filename = ""
         self.stress_capacity = self.stress_quantity = self.stress_price = ""
         self.original_error = ""
         self.supplier_cards, self.supplier_charts, self.suppliers_error = [], {}, ""
@@ -129,6 +131,8 @@ class CaseMixin(rx.State, mixin=True):
         except (ValueError, KeyError, TypeError, ArithmeticError):
             return None
         self.pdf_data_url = self.pdf_error = self.pdf_reference = self.pdf_filename = ""
+        self.audit_pdf_data_url = self.audit_pdf_error = ""
+        self.audit_pdf_reference = self.audit_pdf_filename = ""
         return type(self).load_supplier_overview
 
     def _set_original(self, result):

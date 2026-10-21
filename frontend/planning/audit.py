@@ -2,8 +2,9 @@
 
 import reflex as rx
 
+from frontend.planning.pdf import ApprovedPDFViewer
 from frontend.planning.state import PlanningState
-from frontend.theme import HAIRLINE, MUTED
+from frontend.theme import ACCENT, HAIRLINE, MUTED
 from frontend.ui import BUSY, card, muted, t
 
 
@@ -47,6 +48,56 @@ def _section(title: str, *children):
         rx.flex(*children, direction="column", gap="0.75rem", margin_top="0.75rem"),
         border_top=f"1px solid {HAIRLINE}",
         padding_y="0.5rem",
+    )
+
+
+def _audit_pdf() -> rx.Component:
+    """Audit appendix PDF of the approved content; only for an approved base case."""
+    return rx.cond(
+        PlanningState.details["final_outcome"] == "Approved",
+        rx.box(
+            rx.flex(
+                rx.button(
+                    rx.cond(
+                        PlanningState.is_loading,
+                        rx.spinner(size="2"),
+                        rx.icon("file-search", size=16),
+                    ),
+                    rx.cond(
+                        PlanningState.audit_pdf_error != "", t("retry_audit_pdf"), t("audit_pdf")
+                    ),
+                    on_click=PlanningState.request_audit_pdf,
+                    disabled=BUSY,
+                    background=ACCENT,
+                    color="white",
+                ),
+                rx.text(t("audit_pdf_note"), size="2", color=MUTED),
+                gap="0.75rem",
+                align="center",
+                wrap="wrap",
+            ),
+            rx.cond(
+                PlanningState.audit_pdf_error != "",
+                rx.callout(
+                    PlanningState.audit_pdf_error,
+                    color_scheme="amber",
+                    role="alert",
+                    margin_top="1rem",
+                ),
+            ),
+            rx.cond(
+                PlanningState.audit_pdf_data_url != "",
+                rx.box(
+                    ApprovedPDFViewer.create(
+                        data=PlanningState.audit_pdf_data_url,
+                        filename=PlanningState.audit_pdf_filename,
+                        lang=PlanningState.lang,
+                    ),
+                    margin_top="1rem",
+                ),
+            ),
+            margin_bottom="1rem",
+        ),
     )
 
 
@@ -95,6 +146,7 @@ def audit_view() -> rx.Component:
             ),
             margin_bottom="1rem",
         ),
+        _audit_pdf(),
         _section(
             "audit_inputs",
             rx.text(PlanningState.details["policy"], size="2"),

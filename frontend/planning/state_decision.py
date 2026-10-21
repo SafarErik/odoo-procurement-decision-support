@@ -22,6 +22,10 @@ class DecisionMixin(rx.State, mixin=True):
     pdf_error: str = ""
     pdf_reference: str = ""
     pdf_filename: str = ""
+    audit_pdf_data_url: str = ""
+    audit_pdf_error: str = ""
+    audit_pdf_reference: str = ""
+    audit_pdf_filename: str = ""
 
     @rx.event
     def choose_final_plan(self, value: str):
@@ -189,6 +193,7 @@ class DecisionMixin(rx.State, mixin=True):
 
     @rx.event
     async def request_pdf(self):
+        """Approved procurement plan PDF on the Decision & PDF tab."""
         if self.is_loading or self.has_pending:
             return
         if not self.has_case or self.details.get("final_outcome") != "Approved":
@@ -199,18 +204,45 @@ class DecisionMixin(rx.State, mixin=True):
         self.pdf_data_url = ""
         yield
         try:
-            document, self.pdf_error = await fetch_planning_pdf(
-                settings.planning_cases_url,
-                self.details["case_id"],
-                self.details["final_content_hash"],
-                settings.api_service_token.get_secret_value(),
-                language=self._lang(),
-            )
+            document, self.pdf_error = await self._fetch_pdf("plan")
             if document is not None:
                 self.pdf_reference = document.reference
                 self.pdf_filename = document.filename
-                self.pdf_data_url = "data:application/pdf;base64," + b64encode(
-                    document.data
-                ).decode("ascii")
+                self.pdf_data_url = _data_url(document)
         finally:
             self.is_loading = False
+
+    @rx.event
+    async def request_audit_pdf(self):
+        """Audit appendix PDF of the same approved content, from the Audit view."""
+        if self.is_loading or self.has_pending:
+            return
+        if not self.has_case or self.details.get("final_outcome") != "Approved":
+            self.audit_pdf_error = self._tr("err_pdf_not_approved")
+            return
+        self.is_loading = True
+        self.audit_pdf_error = ""
+        self.audit_pdf_data_url = ""
+        yield
+        try:
+            document, self.audit_pdf_error = await self._fetch_pdf("audit")
+            if document is not None:
+                self.audit_pdf_reference = document.reference
+                self.audit_pdf_filename = document.filename
+                self.audit_pdf_data_url = _data_url(document)
+        finally:
+            self.is_loading = False
+
+    async def _fetch_pdf(self, kind):
+        return await fetch_planning_pdf(
+            settings.planning_cases_url,
+            self.details["case_id"],
+            self.details["final_content_hash"],
+            settings.api_service_token.get_secret_value(),
+            language=self._lang(),
+            kind=kind,
+        )
+
+
+def _data_url(document):
+    return "data:application/pdf;base64," + b64encode(document.data).decode("ascii")
