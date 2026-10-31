@@ -34,6 +34,8 @@ MONTHS = 18
 CLOCK = datetime(2026, 10, 17, tzinfo=UTC)
 # The feature window reads expected arrivals in [cutoff - 134 d, cutoff - 14 d) (settlement 14 d,
 # lookback 120 d). The last seeded arrival is about CLOCK, so later live cutoffs find no lines.
+# This is an upper bound: a supplier needs three lines in the window and can run out earlier
+# (the four-supplier demo group about 2027-01-10; tools.demo checks the preview for that).
 REPRODUCTION_LAST_CUTOFF = CLOCK + timedelta(days=134)
 ROOT = Path(__file__).resolve().parents[1]
 ODOO_FORMAT = "%Y-%m-%d %H:%M:%S"

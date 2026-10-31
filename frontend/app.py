@@ -15,7 +15,7 @@ app.add_page(
 app.add_page(
     library_page, route="/cases", title="Procurement cases", on_load=PlanningState.library_on_load
 )
-app.add_page(rfqs_page, route="/rfqs", title="Open RFQs", on_load=PlanningState.rfqs_on_load)
+app.add_page(rfqs_page, route="/rfqs", title="New procurement", on_load=PlanningState.rfqs_on_load)
 app.add_page(
     planning_page, route="/planning", title="Procurement case", on_load=PlanningState.load_bookmark
 )

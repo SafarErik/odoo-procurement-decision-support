@@ -64,13 +64,6 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "Change the filters or the search.",
     ),
     # Open RFQs
-    "rfqs_title": ("Nyitott ajánlatkérések", "Open RFQs"),
-    "rfqs_subtitle": (
-        "Válasszon egy Odoo-ajánlatkérést, és hasonlítsa össze a beérkezett ajánlatokat. "
-        "Az Odoo-adatokat csak olvassuk, semmit nem írunk vissza.",
-        "Pick an Odoo RFQ and compare the quotations received. Odoo data is only read; "
-        "nothing is written back.",
-    ),
     "loading_rfqs": ("Ajánlatkérések betöltése az Odoo-ból…", "Loading RFQs from Odoo…"),
     "empty_rfqs_title": ("Nincs nyitott ajánlatkérés", "No open RFQs"),
     "empty_rfqs_body": (
@@ -82,7 +75,6 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "Only the most recent open quotations were scanned; older ones are not listed.",
     ),
     "not_usable": ("Nem használható", "Not usable"),
-    "start_comparison": ("Összehasonlítás indítása", "Start comparison"),
     "terms_below": ("Feltételek lent", "Terms below"),
     "terms_title": ("Igény és szállítói feltételek", "Demand and supplier terms"),
     "history_title": ("Szállítói előzmények az Odoo-ból", "Supplier history from Odoo"),
@@ -116,12 +108,7 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     "range_max": ("Legnagyobb", "Maximum"),
     "suggested_value": ("javasolt, nem módosította", "suggested, not changed"),
     "policy_label": ("Szabályok", "Rules"),
-    "review_terms": ("Feltételek áttekintése", "Review terms"),
     "review_title": ("Áttekintés mentés előtt", "Review before saving"),
-    "review_body": (
-        "Ellenőrizze az igényt, a beszállítói feltételeket és az adatok forrását.",
-        "Check the demand, the supplier terms and where each value comes from.",
-    ),
     "review_note": (
         "A tervek elkészítése elmenti az összehasonlítást, de még nem hagy jóvá semmit.",
         "Calculating saves the comparison; it does not approve anything.",
@@ -131,12 +118,10 @@ UI_TEXT: dict[str, tuple[str, str]] = {
         "The save awaits confirmation. Retry the same request.",
     ),
     "edit_terms": ("Feltételek módosítása", "Edit terms"),
-    "calculate_save": ("Számítás és mentés", "Calculate and save"),
     # Case page
     "tab_overview": ("Áttekintés", "Overview"),
     "tab_suppliers": ("Szállítók", "Suppliers"),
     "tab_plans": ("Tervek", "Plans"),
-    "tab_scenarios": ("Mi lenne, ha…?", "Scenarios"),
     "tab_decision": ("Döntés és PDF", "Decision & PDF"),
     "loading_case": ("Ügy betöltése…", "Loading case…"),
     "case_error_title": ("Az ügy nem nyitható meg", "The case cannot be opened"),
@@ -283,7 +268,7 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     ),
     "new_price": ("Új egységár", "New unit price"),
     "price_hint": (
-        "Lehet magasabb vagy alacsonyabb. Feltételezés, nem új Odoo-ajánlat (pl. 12.50).",
+        "Lehet magasabb vagy alacsonyabb. Feltételezés, nem új Odoo-ajánlat (pl. 12,50).",
         "Higher or lower. An assumption, not a new Odoo quotation (e.g. 12.50).",
     ),
     "combined_hint": (
@@ -382,10 +367,11 @@ UI_TEXT: dict[str, tuple[str, str]] = {
     # Recovery
     "recovery_title": ("Fejezze be ugyanazt a mentést", "Finish the same save"),
     "recovery_body": (
-        "Nem érkezett válasz; lehet, hogy a mentés már megtörtént. Az Újra gomb ugyanazt a "
-        "kérést küldi el ugyanazzal az azonosítóval, ezért nem jön létre másodpéldány.",
-        "No response arrived; the save may already be stored. Retry sends the same request "
-        "with the same key, so no duplicate is created.",
+        "Nem érkezett válasz; lehet, hogy a mentés már megtörtént. Az „Ugyanazon kérés "
+        "ismétlése” gomb ugyanazt a kérést küldi el ugyanazzal az azonosítóval, ezért nem jön "
+        "létre másodpéldány.",
+        "No response arrived; the save may already be stored. “Retry the same request” sends "
+        "the same request with the same key, so no duplicate is created.",
     ),
     "recovery_conflict_title": ("Nyissa meg a rögzített döntést", "Reopen the recorded decision"),
     "recovery_conflict_body": (

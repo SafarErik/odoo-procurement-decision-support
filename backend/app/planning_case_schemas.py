@@ -201,7 +201,8 @@ class PlanningCaseResponse(StrictModel):
 class PlanningFinalDecisionRequest(StrictModel):
     snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$", min_length=64, max_length=64)
     outcome: Literal["approve", "no_award"]
-    plan_index: int | None = Field(default=None, strict=True, ge=0, le=3)
+    # At most five stored plans: minimum cost, three epsilon alternatives, the balanced plan.
+    plan_index: int | None = Field(default=None, strict=True, ge=0, le=4)
     actor_reference: str = Field(min_length=1, max_length=255)
     rationale: str | None = Field(default=None, max_length=2000)
     demonstration_acknowledged: bool = Field(strict=True)

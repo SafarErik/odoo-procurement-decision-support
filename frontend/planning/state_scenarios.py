@@ -267,6 +267,8 @@ class ScenarioMixin(rx.State, mixin=True):
                         changes += 1
                 if kind in {"price_change", "combined"}:
                     value = form_data.get("price", "")
+                    if isinstance(value, str):  # a Hungarian keypad types a decimal comma
+                        value = value.replace(",", ".")
                     if kind == "price_change" or value != "":
                         if (
                             not isinstance(value, str)

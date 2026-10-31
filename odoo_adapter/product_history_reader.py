@@ -98,9 +98,14 @@ class OdooProductHistoryReader:
             f"|product={query.product_id}|window=[{query.window_start.isoformat()},"
             f"{query.window_end.isoformat()})"
         )
-        return PurchaseHistorySnapshot(
-            query, lines, datetime.now(UTC).replace(microsecond=0), SOURCE_TYPE, reference
-        )
+        try:
+            return PurchaseHistorySnapshot(
+                query, lines, datetime.now(UTC).replace(microsecond=0), SOURCE_TYPE, reference
+            )
+        except ValueError as error:  # e.g. duplicate or out-of-window lines from Odoo
+            raise ProcurementDataResponseError(
+                "Odoo purchase history returned an invalid response"
+            ) from error
 
 
 def _map_response(result: Any, query: PurchaseHistoryQuery, payload: dict):

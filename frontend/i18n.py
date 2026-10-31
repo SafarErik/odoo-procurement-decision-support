@@ -116,7 +116,6 @@ TEXT: dict[str, tuple[str, str]] = {
     # Shell and navigation
     "app_name": ("Beszerzési döntéstámogatás", "Procurement decision support"),
     "nav_cases": ("Ügyek", "Cases"),
-    "nav_rfqs": ("Nyitott ajánlatkérések", "Open RFQs"),
     "nav_label": ("Fő navigáció", "Main navigation"),
     "menu": ("Menü", "Menu"),
     "close_menu": ("Menü bezárása", "Close menu"),
@@ -517,11 +516,6 @@ TEXT: dict[str, tuple[str, str]] = {
         "Choose a plan or No award.",
     ),
     "err_actor": ("Adja meg a nevét (1–255 karakter).", "Enter your name (1–255 characters)."),
-    "err_reason": (
-        "Alternatíva jóváhagyásához és „Nem rendelünk” döntéshez indoklás kell (legfeljebb "
-        "2000 karakter).",
-        "An alternative or No award needs a reason (up to 2,000 characters).",
-    ),
     "err_ack": (
         "Erősítse meg, hogy bemutató adatokkal dolgozik.",
         "Confirm that you are working with demonstration data.",
@@ -542,7 +536,7 @@ TEXT: dict[str, tuple[str, str]] = {
         "{name}: capacity must differ from its original {capacity} {unit}. Zero removes it.",
     ),
     "err_scenario_price": (
-        "{name}: adjon meg pozitív, az eredeti {price} egységártól eltérő árat (pl. 12.50).",
+        "{name}: adjon meg pozitív, az eredeti {price} egységártól eltérő árat (pl. 12,50).",
         "{name}: enter a positive price different from the original {price} per unit "
         "(for example 12.50).",
     ),

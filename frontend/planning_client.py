@@ -68,7 +68,9 @@ async def submit_planning_request(
             413: "err_too_large",
         }
         if url.endswith("/from-odoo-history") and response.status_code in (409, 422, 503):
-            code = response.json().get("detail", {}).get("code")
+            # FastAPI's own request validation answers 422 with a list-shaped detail.
+            detail = response.json().get("detail")
+            code = detail.get("code") if isinstance(detail, dict) else None
             history_errors = {
                 "odoo_history_insufficient": "err_history_insufficient",
                 "odoo_history_unavailable": "err_history_unavailable",
@@ -88,6 +90,8 @@ async def submit_planning_request(
             if response.status_code == 422 and url.endswith("/from-odoo-history"):
                 return None, tr("err_odoo_changed", lang), False
             return None, tr(errors[response.status_code], lang), False
+        if 400 <= response.status_code < 500:  # any other client error is a definite rejection
+            return None, tr("err_rejected_inputs", lang), False
         if response.status_code not in (200, 201):
             raise ValueError("Uncertain response")
         data = response.json()

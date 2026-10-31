@@ -124,9 +124,9 @@ backend only uses a model whose origin equals `ODOO_HISTORY_DATA_ORIGIN`, and th
 origin is frozen in every case's history capture.
 
 Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/model`.
-In the UI's **Odoo** tab, **Load open quotation groups** lists the company's open
-groups (`GET /api/v2/procurement/quotation-groups`); choose one and **Use history from
-Odoo** previews and saves a case from live Odoo history. Full HTTP flow:
+In the UI, **New procurement** (Hungarian: **Új beszerzés**) lists the company's open
+groups (`GET /api/v2/procurement/quotation-groups`); choose one, then Demand → Supplier
+terms → Review previews and saves a case from live Odoo history. Full HTTP flow:
 `python -m tools.t17_demo run --odoo-history <group> --actor … --reason … --no-award-reason …`
 (base case, nine scenarios in both directions, approval, No-award, HU PDF, stored replay).
 Opt-in live check: `RUN_ODOO_HISTORY_LIVE=true pytest tests/integration/test_live_purchase_history.py -m integration`.

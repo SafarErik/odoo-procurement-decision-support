@@ -40,8 +40,21 @@ def check_reproduction_window(now: datetime | None = None) -> None:
     if (now or datetime.now(UTC)) > REPRODUCTION_LAST_CUTOFF:
         raise RuntimeError(
             f"The seeded history supports live cutoffs up to "
-            f"{REPRODUCTION_LAST_CUTOFF:%Y-%m-%d}; later live runs find no settled lines. "
+            f"{REPRODUCTION_LAST_CUTOFF:%Y-%m-%d} at most; later live runs find no settled lines. "
             f"Use the stored evidence instead: {STORED_EVIDENCE}."
+        )
+
+
+def check_live_history(client: httpx.Client, group_id: int) -> None:
+    """A supplier can run out of settled lines before the window ends (demo group: ~2027-01-10)."""
+    response = client.get(f"{BASE}/odoo-history/preview", params={"purchase_group_id": group_id})
+    if response.status_code == 422 and (
+        response.json().get("detail", {}).get("code") == "odoo_history_insufficient"
+    ):
+        raise RuntimeError(
+            "A quoted supplier no longer has three settled purchase lines in the feature "
+            f"window, so the live run cannot score it. Use the stored evidence instead: "
+            f"{STORED_EVIDENCE}."
         )
 
 
@@ -238,6 +251,7 @@ def run(args) -> Path:
         )
         if group is None:
             raise RuntimeError(f"Quotation group {args.group} is not open and selectable.")
+        check_live_history(client, group["purchase_group_id"])
         report_path = run_flow(
             args.directory,
             client,

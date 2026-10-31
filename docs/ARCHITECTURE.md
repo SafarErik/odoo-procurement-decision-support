@@ -20,8 +20,8 @@ Odoo 19 (read-only JSON-2)            buyer-supplied terms (with source)
           history; class, exposure score in [0,1], tree path  (supplier_evaluation/)
                          |
                          v
-        MILP planning: minimum cost + epsilon alternatives (decision_core/planning,
-                         |                                  optimization_adapter/)
+        MILP planning: minimum cost + epsilon alternatives + balanced plan
+                         |          (decision_core/planning, optimization_adapter/)
                          v
         immutable snapshot in PostgreSQL           (persistence/)
                          |
@@ -54,11 +54,11 @@ The Reflex web UI drives every step through the HTTP API only.
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
 | `document_adapter/` | ReportLab rendering of the approved plan PDF (HU/EN, summary with supplier assessment table, order-line page per supplier, verification identifiers) and the separate audit appendix PDF (ADR-036) | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
-| `frontend/` | Reflex UI (Cases, Open RFQs, case tabs, Audit); HTTP clients map API payloads to localized display rows (`i18n.py`, HU default, EN switch); one `PlanningState` composed from feature mixins (`planning/state_*.py`); holds the service token server-side | backend API only |
+| `frontend/` | Reflex UI (Home `/`, Cases `/cases`, the four-step New procurement wizard `/rfqs`, case tabs and Audit `/planning`); HTTP clients map API payloads to localized display rows (`i18n.py`, HU default, EN switch); one `PlanningState` composed from feature mixins (`planning/state_*.py`); holds the service token server-side | backend API only |
 | `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
 | `infra/odoo/addons/pdss_quotation_reader/` | Read-only group for the quotation integration user (no write rights, no Purchase role) | Odoo |
 | `migrations/` | Alembic schema for the planning database | `persistence.schema` |
-| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code) and the HTTP acceptance demo (`t17_demo`) | everything |
+| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code), the HTTP acceptance demo (`t17_demo`), the one-command demonstration (`demo`) and the MILP/API evaluation (`milp_evaluation`) | everything |
 
 Boundaries enforced by `tests/test_architecture.py`: the planning core imports no
 application/adapter code and carries no provenance; the application layer imports
@@ -104,20 +104,21 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 quotation groups of the configured company (`PLANNING_LIBRARY_COMPANY_ID`) with
 product, quantity, currency, suppliers and whether the group can become a case
 (`selectable`, `issue`); it is bounded (at most 200 scanned orders, 20 groups) and
-read-only. `GET /api/v1/procurement/rfqs` lists open Odoo RFQs; `GET /api/v1/health`
-is a liveness probe. The synthetic demo routes `POST /` and `POST /from-odoo` were
+read-only. `GET /api/v1/procurement/rfqs` lists open Odoo RFQs (not used by the UI).
+Every data route requires the bearer service token; only `GET /api/v1/health`, a
+liveness probe, is open. The synthetic demo routes `POST /` and `POST /from-odoo` were
 removed in P2; cases they created stay readable, approvable and printable.
 
 ## 5. Persistence
 
 One PostgreSQL database owned by this service (`migrations/versions/20261018_01`,
-`20261019_01` for per-language PDFs):
+`20261019_01` for per-language PDFs, `20261021_01` for the plan/audit document kind):
 
 | Table | Content |
 | --- | --- |
 | `planning_cases` | Snapshot JSONB (facts, request, assessments, model manifest, solver evidence, result, scenario delta, provenance), parent link, idempotency key and fingerprint |
 | `planning_final_decisions` | One immutable decision per original base case |
-| `planning_documents` | Approved PDF bytes per `(case_id, language)` with content hash, reference and renderer version; English artifacts stored before P2 keep their v1 reference and bytes |
+| `planning_documents` | Approved PDF bytes per `(case_id, language, kind)` (`plan` or `audit`) with content hash, reference and renderer version; English artifacts stored before P2 keep their v1 reference and bytes |
 
 The data origin shown in the UI (`demo` or `odoo`) is derived from the stored
 snapshot, not stored separately.

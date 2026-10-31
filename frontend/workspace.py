@@ -1,4 +1,4 @@
-"""Shared shell: green sidebar (Cases, Open RFQs), language switch, mobile drawer."""
+"""Shared shell: green sidebar (Home, Cases, New procurement), language switch, mobile drawer."""
 
 import reflex as rx
 

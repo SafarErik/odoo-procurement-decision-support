@@ -232,6 +232,7 @@ class BaseMixin(rx.State, mixin=True):
             yield rx.redirect(f"/planning?case_id={self.details['case_id']}&view=scenarios")
             yield focus("scenario-result-heading")
         elif saved is not None and decision:
+            self.view = "decision"  # _show reset it to the overview, as on the normal path
             yield focus("saved-decision-heading")
 
     @rx.event

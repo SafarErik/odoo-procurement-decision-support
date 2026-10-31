@@ -146,6 +146,25 @@ def test_reproduction_window_ends_where_the_seeded_feature_window_ends():
         demo.check_reproduction_window(datetime(2027, 3, 1, tzinfo=UTC))
 
 
+@pytest.mark.parametrize(
+    "status,code,fails",
+    [(200, None, False), (422, "odoo_history_insufficient", True), (503, "x", False)],
+)
+def test_live_demo_points_to_stored_evidence_when_a_supplier_ran_out_of_history(
+    status, code, fails
+):
+    import httpx
+
+    body = {"terms": {}} if status == 200 else {"detail": {"code": code, "message": "m"}}
+    transport = httpx.MockTransport(lambda request: httpx.Response(status, json=body))
+    with httpx.Client(transport=transport, base_url="http://test") as client:
+        if fails:
+            with pytest.raises(RuntimeError, match="P4_DEMO_REPORT.json"):
+                demo.check_live_history(client, 1)
+        else:
+            demo.check_live_history(client, 1)  # other failures surface later in run_flow
+
+
 def test_test_database_must_not_be_the_development_database():
     local = database_identity("postgresql+psycopg://a:secret@localhost:55432/planning_test")
     assert local == database_identity("postgresql+psycopg://b:other@127.0.0.1:55432/planning_test")
@@ -291,3 +310,19 @@ def test_demo_runs_flow_replays_and_writes_summary(configured, monkeypatch, tmp_
     assert summary["scenarios"][-1]["status"] == "infeasible"
     assert summary["base_case"]["plans"][0]["label"] == "minimum_cost"
     assert len(summary["supplier_assessment"]) == 3
+
+
+@pytest.mark.parametrize(
+    "database,origin",
+    [("pdss_history_gen", "observed"), ("company_live", "generated")],
+)
+def test_history_extraction_refuses_a_data_origin_that_contradicts_the_database(
+    monkeypatch, database, origin
+):
+    import asyncio
+
+    from tools import train_history_model
+
+    monkeypatch.setattr(train_history_model, "_settings", lambda: {"ODOO_DATABASE": database})
+    with pytest.raises(ValueError, match="does not match ODOO_DATABASE"):
+        asyncio.run(train_history_model.extract([1], 1, origin))

@@ -11,10 +11,15 @@ from application.rfqs import (
     RfqReader,
     list_open_rfqs,
 )
+from backend.app.api_common import require_trusted_caller
 from backend.app.dependencies import get_rfq_reader
 from backend.app.schemas import MoneyResponse, RfqListResponse, RfqSummaryResponse
 
-router = APIRouter(prefix="/api/v1/procurement", tags=["procurement"])
+router = APIRouter(
+    prefix="/api/v1/procurement",
+    tags=["procurement"],
+    dependencies=[Depends(require_trusted_caller)],
+)
 
 
 @router.get("/rfqs", response_model=RfqListResponse)

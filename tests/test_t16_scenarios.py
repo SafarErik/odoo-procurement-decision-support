@@ -59,6 +59,7 @@ async def event(state, handler, *args):
         {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "4"},
         {"kind": "demand_change", "quantity": "12"},
         {"kind": "price_change", "supplier": "synthetic-S226", "price": "12.00"},
+        {"kind": "price_change", "supplier": "synthetic-S226", "price": "12,00"},  # HU keypad
         {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"},
         {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "price": "12.00"},
     ],
