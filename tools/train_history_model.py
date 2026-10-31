@@ -43,6 +43,7 @@ from supplier_evaluation.purchase_history import (
     semi_monthly_cutoffs,
     split_rows,
 )
+from tools.seed_odoo_history import ALLOWED_DATABASE
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / ".artifacts" / "ml"
@@ -83,6 +84,13 @@ async def extract(products: list[int], company: int, data_origin: str) -> dict:
         raise ValueError(f"Unsupported history data origin: {data_origin!r}.")
     settings = _settings()
     database = settings.get("ODOO_DATABASE", "")
+    # Generated history exists only in the seeder's dedicated database; never label it observed,
+    # and never label real business history as generated.
+    if (data_origin == "generated") != (database == ALLOWED_DATABASE):
+        raise ValueError(
+            f"--data-origin {data_origin} does not match ODOO_DATABASE={database!r}; generated "
+            f"history lives only in {ALLOWED_DATABASE!r}."
+        )
     reader = OdooProductHistoryReader(
         base_url=settings.get("ODOO_BASE_URL", "http://127.0.0.1:8069"),
         database=database,

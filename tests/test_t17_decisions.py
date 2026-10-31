@@ -168,6 +168,17 @@ def test_invalid_intent_leaves_no_decision(configured, changes):
     assert not uow.decisions.rows
 
 
+def test_every_storable_plan_index_passes_the_request_schema():
+    # Three epsilon alternatives and the balanced plan can all differ from the minimum-cost
+    # plan, so a case can store five plans; the fifth (index 4) must stay approvable.
+    from backend.app.planning_case_schemas import PlanningFinalDecisionRequest
+
+    request = intent({"snapshot_hash": "a" * 64}, 4)
+    assert PlanningFinalDecisionRequest(**request).plan_index == 4
+    with pytest.raises(ValueError):
+        PlanningFinalDecisionRequest(**(request | {"plan_index": 5}))
+
+
 def test_scenario_denial_authentication_missing_case_and_key_namespace(configured):
     client, uow, base, child, _ = configured
     url = f"{BASE}/{child['case_id']}/final-decision"

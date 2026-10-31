@@ -316,7 +316,7 @@ def test_reader_maps_export_to_neutral_lines(history):
     assert all(x.product_id == "odoo:product.product:42" for x in snapshot.lines)
 
 
-@pytest.mark.parametrize("mutation", ["echo", "schema", "truncated", "count"])
+@pytest.mark.parametrize("mutation", ["echo", "schema", "truncated", "count", "duplicate"])
 def test_reader_rejects_inconsistent_or_truncated_exports(history, mutation):
     now = history["now"]
     query = PurchaseHistoryQuery(
@@ -331,6 +331,9 @@ def test_reader_rejects_inconsistent_or_truncated_exports(history, mutation):
             data["schema_version"] = "other"
         elif mutation == "count":
             data["result_count"] += 1
+        elif mutation == "duplicate":  # well-formed lines, but one is repeated
+            data["lines"] = data["lines"][:2] + data["lines"][:1]
+            data["result_count"] = 3
         else:
             data["lines"] = data["lines"][:5]
             data["result_count"] = 5

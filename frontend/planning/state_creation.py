@@ -1,4 +1,4 @@
-"""Open RFQs: list Odoo quotation groups, preview history, review terms, save a case."""
+"""New procurement wizard: list Odoo quotation groups, preview history, review terms, save."""
 
 import json
 from copy import deepcopy
@@ -201,17 +201,11 @@ class CreationMixin(rx.State, mixin=True):
         return None
 
     @rx.event
-    def mark_creation_dirty(self, value: str):
-        if not self.has_pending and not self.is_loading:
-            self.creation_dirty = True
-            self._clear_review()
-            self.creation_errors = {}
-
-    @rx.event
     async def rfqs_on_load(self):
         if self.has_pending or self.is_loading:
             yield rx.redirect(self._pending_route)
             return
+        self.error_message = ""  # a banner from an earlier page or attempt is no longer current
         if not self.groups_loaded:
             async for event in self.load_quotation_groups():
                 yield event
@@ -554,21 +548,6 @@ class CreationMixin(rx.State, mixin=True):
             self._clear_review()
             self.error_message = self._tr("err_preview_incomplete")
             return None
-
-    @rx.event
-    async def create_odoo(self, form_data: dict[str, Any]):
-        if self.is_loading or self.has_pending:
-            return
-        self.error_target = ""
-        payload = self._odoo_request(form_data)
-        if payload is None:
-            return
-        self._prepare_request(settings.planning_cases_url + "/from-odoo-history", payload)
-        yield
-        try:
-            await self._send_pending()
-        finally:
-            self.is_loading = False
 
     @rx.event
     def review_odoo(self, form_data: dict[str, Any]):

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from application.rfqs import (
     Money,
@@ -12,8 +13,17 @@ from application.rfqs import (
     ProcurementDataUnavailable,
     RfqSummary,
 )
+from backend.app.config import settings
 from backend.app.dependencies import get_rfq_reader
 from backend.app.main import app
+
+TOKEN = "rfq-route-test-token"
+AUTH = {"Authorization": f"Bearer {TOKEN}"}
+
+
+@pytest.fixture(autouse=True)
+def service_token(monkeypatch):
+    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
 
 
 class FakeRfqReader:
@@ -45,7 +55,7 @@ def test_rfq_route_returns_neutral_contract() -> None:
     reader = FakeRfqReader()
     app.dependency_overrides[get_rfq_reader] = lambda: reader
     try:
-        response = TestClient(app).get("/api/v1/procurement/rfqs?limit=10")
+        response = TestClient(app).get("/api/v1/procurement/rfqs?limit=10", headers=AUTH)
     finally:
         app.dependency_overrides.clear()
 
@@ -82,7 +92,7 @@ def test_rfq_route_translates_source_errors(
 
     app.dependency_overrides[get_rfq_reader] = lambda: FakeRfqReader(error=error)
     try:
-        response = TestClient(app).get("/api/v1/procurement/rfqs")
+        response = TestClient(app).get("/api/v1/procurement/rfqs", headers=AUTH)
     finally:
         app.dependency_overrides.clear()
 
@@ -97,8 +107,22 @@ def test_rfq_route_rejects_out_of_range_limit() -> None:
 
     app.dependency_overrides[get_rfq_reader] = lambda: FakeRfqReader()
     try:
-        response = TestClient(app).get("/api/v1/procurement/rfqs?limit=51")
+        response = TestClient(app).get("/api/v1/procurement/rfqs?limit=51", headers=AUTH)
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 422
+
+
+def test_rfq_route_requires_the_service_token() -> None:
+    """Like every other data route, the RFQ list needs the trusted-caller bearer token."""
+
+    reader = FakeRfqReader()
+    app.dependency_overrides[get_rfq_reader] = lambda: reader
+    try:
+        response = TestClient(app).get("/api/v1/procurement/rfqs")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert reader.requested_limit is None

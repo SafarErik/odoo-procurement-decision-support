@@ -169,8 +169,8 @@ its capture's origin; captures saved before the origin was recorded read as
 raw lines, features, assessments and model manifest; reopening re-derives and
 checks the features from the stored lines but never reads Odoo or re-scores.
 
-Each assessment carries its tree path. The UI and `history_model.path_text` render it
-as sentences, e.g. *"Lateness spread (5.0 days) is above 4.5 days. Share of partial
+Each assessment carries its tree path. The UI, the API supplier overview and the audit
+PDF render it as sentences (`application/supplier_overview.py: path_steps`), e.g. *"Lateness spread (5.0 days) is above 4.5 days. Share of partial
 deliveries (14.3%) is above 6.2%. … Result: Problematic."*
 
 ## 9. Reproduce
@@ -182,6 +182,15 @@ python -m tools.train_history_model all           # extract (read-only) + train 
 ```
 
 Output: `.artifacts/ml/{history_export,dataset,report}.json` and `.artifacts/ml/model/`.
+
+`extract` reads the window that ends at the current time, while the generated history
+stops at the seeder's fixed clock (2026-10-17). A later `all` therefore reads a shifted
+window, adds cutoffs and moves the split boundary, so its numbers differ from the
+evidence. To reproduce the reported metrics, keep the stored export (its hash is in the
+evidence) and run `train` or `report` on it; `report` re-evaluates the saved model without
+training (`docs/evidence/P4_ML_REPORT_CHECK.json`). `extract` refuses a `--data-origin`
+that contradicts the database: `generated` only for `pdss_history_gen`, `observed` never
+for it.
 
 ## 10. Limitations
 

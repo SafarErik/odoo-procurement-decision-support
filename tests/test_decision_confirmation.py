@@ -206,3 +206,18 @@ def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
     assert state.details["final_plan"] == "Minimum cost"
     assert state.details["snapshot_hash"] == base["snapshot_hash"]
     assert len(posts) == len(uow.decisions.rows) == 1
+
+
+def test_recovered_decision_opens_the_decision_tab(prepared):
+    # An uncertain decision that the same-key retry completes must land where the normal
+    # confirmation lands; _show() alone would leave the buyer on the overview.
+    state, uow, base, _, posts = prepared
+    state._prepare_request(
+        "http://test/api/v2/procurement/planning-cases/" + base["case_id"] + "/final-decision",
+        intent(base, index=1),
+    )
+    state.is_loading = False
+    state.view = "plans"
+    events = consume(state, PlanningState.recover_request)
+    assert len(posts) == len(uow.decisions.rows) == 1 and not state.has_pending
+    assert state.view == "decision" and "saved-decision-heading" in str(events[-1])

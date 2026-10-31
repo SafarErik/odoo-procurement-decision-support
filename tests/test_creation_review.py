@@ -286,3 +286,34 @@ def test_unavailable_group_listing_is_actionable(monkeypatch):
     consume(state, PlanningState.load_quotation_groups)
     assert state.quotation_groups == [] and state.selected_group == ""
     assert "unavailable" in state.error_message and not state.is_loading
+
+
+@pytest.mark.parametrize(
+    "status,body",
+    [
+        (422, {"detail": [{"loc": ["header", "idempotency-key"], "msg": "Field required"}]}),
+        (400, {"detail": "Bad request"}),
+        (429, {"detail": "Too many requests"}),
+    ],
+)
+def test_a_definite_client_error_on_creation_is_not_reported_as_uncertain(status, body):
+    # A 4xx means the backend rejected the request; offering a same-key retry would trap
+    # the buyer in recovery for a request that can never succeed.
+    display, error, uncertain = asyncio.run(
+        submit_planning_request(
+            "http://api.test/api/v2/procurement/planning-cases/from-odoo-history",
+            {"purchase_group_id": 1},
+            "8f14e45f-ceea-467f-a8f2-8c1c9e1a2b3c",
+            TOKEN,
+            transport=httpx.MockTransport(lambda request: httpx.Response(status, json=body)),
+        )
+    )
+    assert display is None and error and not uncertain
+
+
+def test_returning_to_new_procurement_drops_a_stale_error_banner():
+    state = PlanningState(_reflex_internal_init=True)
+    state.groups_loaded = True  # the listed groups are kept; no request is needed
+    state.error_message = "The Odoo history is unavailable."
+    consume(state, PlanningState.rfqs_on_load)
+    assert state.error_message == ""

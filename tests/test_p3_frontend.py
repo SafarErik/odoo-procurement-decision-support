@@ -24,6 +24,28 @@ def test_every_text_has_hungarian_and_english_and_screen_texts_are_merged():
         assert hu.strip() and en.strip(), key
 
 
+def test_each_text_key_is_defined_in_exactly_one_module():
+    # The modules are merged with dict.update, so a second definition silently hides the
+    # first one; every key must have a single source of truth.
+    import ast
+    from pathlib import Path
+
+    keys = []
+    for module, variable in (
+        ("i18n.py", "TEXT"),
+        ("i18n_ui.py", "UI_TEXT"),
+        ("i18n_revamp.py", "REVAMP_TEXT"),
+    ):
+        tree = ast.parse((Path("frontend") / module).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign | ast.AnnAssign) and isinstance(node.value, ast.Dict):
+                target = node.targets[0] if isinstance(node, ast.Assign) else node.target
+                if getattr(target, "id", None) == variable:
+                    keys += [key.value for key in node.value.keys]
+    assert len(keys) == len(TEXT)
+    assert sorted(key for key in set(keys) if keys.count(key) > 1) == []
+
+
 @pytest.mark.parametrize(
     "value,currency,lang,expected",
     [

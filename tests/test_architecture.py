@@ -106,6 +106,39 @@ def test_runtime_history_path_has_no_admin_secret_or_write_call() -> None:
     )
 
 
+def test_odoo_adapter_calls_only_read_methods() -> None:
+    """Every JSON-2 call the runtime adapter can make resolves to a known read method."""
+    read_methods = {"search_read", "search_count", "read_product_history", "read_bounded_history"}
+    called = set()
+    for path in sorted((PROJECT_ROOT / "odoo_adapter").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        constants = {
+            target.id: node.value.value
+            for node in tree.body
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+            for target in node.targets
+            if isinstance(target, ast.Name)
+        }
+        for node in ast.walk(tree):
+            if isinstance(node, ast.JoinedStr):
+                url = "".join(
+                    part.value
+                    if isinstance(part, ast.Constant)
+                    else "{" + ast.unparse(part.value) + "}"
+                    for part in node.values
+                )
+                if "/json/2/" not in url:
+                    continue
+                method = url.rsplit("/", 1)[1]
+                if method == "{method}":  # the generic helper; its callers are checked below
+                    continue
+                called.add(constants[method.strip("{}")] if method.startswith("{") else method)
+            elif isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "_post":
+                assert isinstance(node.args[2], ast.Constant), (path, node.lineno)
+                called.add(node.args[2].value)
+    assert called and called <= read_methods, called - read_methods
+
+
 def test_planning_core_stays_erp_neutral_and_provenance_free() -> None:
     for path in (PROJECT_ROOT / "decision_core").rglob("*.py"):
         source = path.read_text(encoding="utf-8")

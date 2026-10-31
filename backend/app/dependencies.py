@@ -115,7 +115,10 @@ def capture_odoo_history(group_id):
             raise ValueError("A one-line quotation group is required.")
         code, observed = await reader.read_currency_code(case.offers[0].currency_id)
         line, company = case.offers[0].lines[0], case.offers[0].company_id
-        query = history_query(company, line.product_id, datetime.now(UTC).replace(microsecond=0))
+        # Odoo rejects an export end in its future; a lagging container clock (e.g. after the
+        # host slept) must not turn every read into "unavailable", hence the small margin.
+        read_end = datetime.now(UTC).replace(microsecond=0) - timedelta(seconds=60)
+        query = history_query(company, line.product_id, read_end)
         snapshot = await get_purchase_history_reader().read_purchase_history(query)
         contexts = tuple(
             Context(o.supplier_id, company, line.product_id, line.uom_id) for o in case.offers
