@@ -50,10 +50,10 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
     reject_original[0] = False
     consume(state, PlanningState.retry_original)
     assert reads[-1] == base["case_id"] and not posts
-    assert state.original_plan["cost"] == "€102.00" and not state.original_error
+    assert state.original_plan["cost"] == "$94.00" and not state.original_error
     assert state.scenario_metrics[2] == {
         "metric": "Minimum total cost",
-        "base": "€102.00",
+        "base": "$94.00",
         "scenario": "Unavailable",
         "change": "Unavailable",
     }
@@ -63,9 +63,7 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
     assert {key: row.snapshot for key, row in uow.rows.items()} == before
 
 
-@pytest.mark.parametrize(
-    "key", ["case_id", "company", "product", "unit", "currency", "quantity", "origin"]
-)
+@pytest.mark.parametrize("key", ["case_id", "company", "product", "unit", "currency", "quantity"])
 def test_unrelated_original_cannot_replace_retained_evidence(stored_cases, key):
     base, child = stored_cases[1:3]
     state = PlanningState(_reflex_internal_init=True)
@@ -98,8 +96,8 @@ def test_saved_comparison_has_exact_differences_and_cache_survives_child(stored_
         points, "en", 1
     )
     assert state.original_plan["exposure_exact"] == f"{left['numerator']}/{left['denominator']}"
-    assert state.original_plan["cost"] == "€102.00"
-    assert state.scenario_metrics[2]["change"] == "+€4.00"
+    assert state.original_plan["cost"] == "$94.00"
+    assert state.scenario_metrics[2]["change"] == "+$10.00"
     assert state.scenario_metrics[2]["scenario"] == state.plans[0]["cost"]
     state.has_case = False
     assert state.scenario_metrics == [] and state.scenario_allocation_rows == []

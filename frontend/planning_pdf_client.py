@@ -38,11 +38,7 @@ async def fetch_planning_pdf(
             raise ValueError("Unsupported document kind")
         if not token or not token.isascii() or any(c.isspace() for c in token):
             raise ValueError("Service access not configured")
-        references = {f"t17-approved-pdf-v3:{case_id}:{language}:{kind}:{content_hash}"}
-        if kind == "plan":  # combined plan + appendix PDFs stored before the split
-            references.add(f"t17-approved-pdf-v2:{case_id}:{language}:{content_hash}")
-            if language == "en":  # English PDFs stored before P2 keep their v1 reference
-                references.add(f"t17-approved-pdf-v1:{case_id}:{content_hash}")
+        reference = f"t17-approved-pdf-v3:{case_id}:{language}:{kind}:{content_hash}"
         async with httpx.AsyncClient(
             timeout=45, transport=transport, follow_redirects=False
         ) as client:
@@ -58,7 +54,7 @@ async def fetch_planning_pdf(
                     or response.headers.get("content-type") != "application/pdf"
                     or response.headers.get("x-approved-content-hash") != content_hash
                     or response.headers.get("x-content-version") != "t17-approved-planning-v1"
-                    or response.headers.get("x-pdf-reference") not in references
+                    or response.headers.get("x-pdf-reference") != reference
                     or response.headers.get("content-language") != language
                     or response.headers.get("x-document-kind") != kind
                 ):

@@ -142,18 +142,12 @@ TEXT: dict[str, tuple[str, str]] = {
     "pieces": ("{quantity} {unit}", "{quantity} {unit}"),
     "supplier_n": ("{n}. szállító", "Supplier {n}"),
     "product_n": ("{n}. termék", "Product {n}"),
-    "demo_supplier": ("Bemutató szállító {n}", "Demo supplier {n}"),
     "group_n": ("{n}. csoport", "Group {n}"),
     "badge_generated": ("Generált adat", "Generated data"),
-    "badge_synthetic": ("Bemutató adat", "Demo data"),
     "badge_scenario": ("Forgatókönyv", "Scenario"),
     "generated_note": (
         "A szállítói előzmények ebben a tesztadatbázisban generáltak, nem valós teljesítmény.",
         "Supplier history in this test database is generated, not real performance.",
-    ),
-    "synthetic_note": (
-        "Bemutató eset: a szállítói értékelés szintetikus modellből származik.",
-        "Demo case: supplier assessments come from a synthetic model.",
     ),
     # Statuses
     "status_optimal": ("Tervek elkészültek", "Plans ready"),
@@ -267,8 +261,6 @@ TEXT: dict[str, tuple[str, str]] = {
     # Supplier assessment
     "class_regular": ("rendben", "regular"),
     "class_problematic": ("problémás", "problematic"),
-    "class_schedule_regular": ("rendben", "regular"),
-    "class_schedule_watch": ("figyelendő", "watch"),
     "history_summary": (
         "{on_time} határidőre · átlagos késés {late} · teljesítési arány {fill} · "
         "{lines} lezárt sor",
@@ -281,10 +273,6 @@ TEXT: dict[str, tuple[str, str]] = {
         "“Problematic”: in the next 60 days the average delay exceeds 3 days or the fill "
         "rate is below 85%.",
     ),
-    "class_meaning_synthetic": (
-        "Szintetikus tanítócímke: az öt jövőbeli átvételből legalább kettő késik.",
-        "Synthetic training label: at least two of five future receipts are late.",
-    ),
     "path_root": (
         "A döntési fa a gyökérben dönt; nincs elágazási feltétel.",
         "The tree decides at its root; there are no branch conditions.",
@@ -295,9 +283,6 @@ TEXT: dict[str, tuple[str, str]] = {
     "kind_demand_change": ("Igényváltozás", "Demand change"),
     "kind_price_change": ("Árváltozás", "Price change"),
     "kind_combined": ("Kombinált változás", "Combined changes"),
-    "kind_capacity_reduction": ("Kapacitáscsökkenés", "Capacity reduction"),
-    "kind_demand_increase": ("Igénynövekedés", "Demand increase"),
-    "kind_price_increase": ("Áremelkedés", "Price increase"),
     "assume_demand": ("Igény: {quantity}", "Demand: {quantity}"),
     "assume_outage": ("{name}: kiesik", "{name}: unavailable"),
     "assume_capacity": ("{name}: kapacitás {quantity}", "{name}: capacity {quantity}"),
@@ -313,10 +298,6 @@ TEXT: dict[str, tuple[str, str]] = {
     "scenario_demand_changed": (
         "Az igény megváltozott, ezért az összegek nem közvetlen megtakarítások.",
         "Demand changed, so the totals are not a like-for-like saving.",
-    ),
-    "history_summary_synthetic": (
-        "{on_time} határidőre, {receipts} teljesített átvétel alapján",
-        "{on_time} on time across {receipts} completed receipts",
     ),
     "state_conflict": (
         "Döntési ütközés – nyissa meg a rögzített döntést",

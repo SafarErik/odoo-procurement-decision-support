@@ -9,7 +9,7 @@ multi-product case can reuse the shape.
 from decimal import Decimal
 
 from application.planning_serialization import read_assessments, read_request, read_result
-from supplier_evaluation.contracts import HISTORY_SOURCE, SYNTHETIC, Assessment
+from supplier_evaluation.contracts import Assessment
 
 LANGUAGES = ("hu", "en")
 
@@ -26,21 +26,13 @@ FEATURE_TEXT = {
         "Days since last receipt",
         "int",
     ),
-    # Synthetic demo model (cases stored before P2).
-    "delivery_schedule_adherence": ("Ütemezés betartása", "Schedule adherence", "percent100"),
-    "historical_completed_count": ("Teljesített szállítások száma", "Completed deliveries", "int"),
 }
 
+# The history model's class names, indexed by the predicted class.
+CLASSES = ("regular", "problematic")
 CLASS_TEXT = {
     "regular": ("rendben", "regular"),
     "problematic": ("problémás", "problematic"),
-    "schedule_regular": ("rendben", "regular"),
-    "schedule_watch": ("figyelendő", "watch"),
-}
-# Class names per assessment source; `Assessment.class_name` knows only the V1 names.
-SOURCE_CLASSES = {
-    SYNTHETIC: ("schedule_regular", "schedule_watch"),
-    HISTORY_SOURCE: ("regular", "problematic"),
 }
 
 
@@ -55,7 +47,6 @@ def format_number(value, kind: str, language: str, digits: int = 1) -> str:
     days = ("nap", "days")[_language(language)]
     text = {
         "pct": lambda v: f"{v * 100:.{digits}f}%",
-        "percent100": lambda v: f"{v:.{digits}f}%",
         "days": lambda v: f"{v:.{digits}f} {days}",
         "int": lambda v: f"{v:.{digits - 1}f}",
     }[kind](float(value))
@@ -71,7 +62,7 @@ def feature_label(feature: str, language: str) -> str:
 
 
 def class_name(assessment: Assessment) -> str:
-    return SOURCE_CLASSES[assessment.snapshot.source_type][assessment.predicted_class]
+    return CLASSES[assessment.predicted_class]
 
 
 def class_label(assessment: Assessment, language: str) -> str:
@@ -123,16 +114,6 @@ def leaf_text(assessment: Assessment, language: str) -> str:
     regular, flagged = assessment.leaf_counts
     total = regular + flagged
     score = str(assessment.score).replace(".", ",") if language == "hu" else str(assessment.score)
-    if assessment.snapshot.source_type == SYNTHETIC:  # pre-P2 demo model, generated rows
-        if language == "hu":
-            return (
-                f"Hasonló generált tanítópéldák: {total} példából {flagged} kapott "
-                f"figyelendő (schedule_watch) címkét; kockázati pontszám: {score}."
-            )
-        return (
-            f"Similar generated training examples: {flagged} of {total} were labelled "
-            f"schedule_watch; risk score {score}."
-        )
     if language == "hu":
         return (
             f"Hasonló múltbeli esetek: {total} esetből {flagged} lett problémás "

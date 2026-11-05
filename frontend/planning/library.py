@@ -63,22 +63,6 @@ def _filters():
                 disabled=disabled,
                 **_SELECT,
             ),
-            rx.el.select(
-                *[
-                    rx.el.option(t(label), value=value)
-                    for value, label in (
-                        ("all", "filter_all_sources"),
-                        ("odoo", "filter_odoo"),
-                        ("demo", "badge_synthetic"),
-                    )
-                ],
-                id="library-origin",
-                aria_label=t("filter_origin"),
-                value=PlanningState.library_origin,
-                on_change=lambda v: PlanningState.set_library_filter("origin", v),
-                disabled=disabled,
-                **_SELECT,
-            ),
             rx.button(
                 rx.icon("refresh-cw", size=16),
                 t("refresh"),
@@ -87,7 +71,7 @@ def _filters():
                 variant="outline",
                 size="3",
             ),
-            columns=rx.breakpoints(initial="1", sm="2", md="minmax(0,2fr) 1fr 1fr auto"),
+            columns=rx.breakpoints(initial="1", sm="2", md="minmax(0,2fr) 1fr auto"),
             gap="0.75rem",
             align_items="center",
         ),
@@ -317,9 +301,7 @@ def _list():
             rx.cond(
                 PlanningState.library_rows.length() == 0,
                 rx.cond(
-                    (PlanningState.library_search != "")
-                    | (PlanningState.library_status != "all")
-                    | (PlanningState.library_origin != "all"),
+                    (PlanningState.library_search != "") | (PlanningState.library_status != "all"),
                     empty_state("empty_filtered_title", "empty_filtered_body"),
                     empty_state(
                         "empty_cases_title",

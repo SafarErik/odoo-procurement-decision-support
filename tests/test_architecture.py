@@ -37,7 +37,7 @@ def test_odoo_infrastructure_does_not_call_decision_core() -> None:
 
 
 def test_historical_models_and_port_are_erp_neutral() -> None:
-    path = PROJECT_ROOT / "application" / "historical_performance.py"
+    path = PROJECT_ROOT / "application" / "purchase_history.py"
     imports = _imports(path)
     source = path.read_text(encoding="utf-8")
 
@@ -58,10 +58,8 @@ def test_application_history_flow_depends_on_port_not_concrete_odoo_reader() -> 
         application_imports.update(_imports(path))
 
     assert all(not name.startswith("odoo_adapter") for name in application_imports)
-    source = (PROJECT_ROOT / "application" / "historical_performance.py").read_text(
-        encoding="utf-8"
-    )
-    assert "class HistoricalPerformancePort(Protocol)" in source
+    source = (PROJECT_ROOT / "application" / "purchase_history.py").read_text(encoding="utf-8")
+    assert "class PurchaseHistoryPort(Protocol)" in source
 
 
 def test_t7s_addon_is_projection_only() -> None:
@@ -78,11 +76,10 @@ def test_t7s_addon_is_projection_only() -> None:
 
 
 def test_bounded_projection_is_the_only_inventory_history_transport_route() -> None:
-    path = PROJECT_ROOT / "odoo_adapter" / "historical_performance_reader.py"
+    path = PROJECT_ROOT / "odoo_adapter" / "product_history_reader.py"
     source = path.read_text(encoding="utf-8")
 
-    assert '"procurement.inventory.history.projection"' in source
-    assert '"read_bounded_history"' in source
+    assert 'METHOD = "read_product_history"' in source
     for forbidden_model in ('"stock.move"', '"stock.move.line"', '"stock.picking"'):
         assert forbidden_model not in source
     for forbidden_method in ('"create"', '"write"', '"unlink"'):
@@ -97,18 +94,16 @@ def test_runtime_history_path_has_no_admin_secret_or_write_call() -> None:
     )
 
     assert "ODOO_MASTER_PASSWORD" not in runtime_sources
-    history_source = (PROJECT_ROOT / "odoo_adapter" / "historical_performance_reader.py").read_text(
+    history_source = (PROJECT_ROOT / "odoo_adapter" / "product_history_reader.py").read_text(
         encoding="utf-8"
     )
-    assert all(
-        f"/json/2/{{_MODEL}}/{method}" not in history_source
-        for method in ("create", "write", "unlink")
-    )
+    assert "/json/2/{MODEL}/{METHOD}" in history_source
+    assert all(f'"{method}"' not in history_source for method in ("create", "write", "unlink"))
 
 
 def test_odoo_adapter_calls_only_read_methods() -> None:
     """Every JSON-2 call the runtime adapter can make resolves to a known read method."""
-    read_methods = {"search_read", "search_count", "read_product_history", "read_bounded_history"}
+    read_methods = {"search_read", "search_count", "read_product_history"}
     called = set()
     for path in sorted((PROJECT_ROOT / "odoo_adapter").glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))

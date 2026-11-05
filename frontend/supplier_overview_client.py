@@ -37,8 +37,6 @@ def _name(row, lang):
     identity = row["supplier_id"]
     if identity.startswith("odoo:res.partner:"):
         return tr("supplier_n", lang, n=identity.removeprefix("odoo:res.partner:"))
-    if identity.startswith("synthetic-"):
-        return tr("demo_supplier", lang, n=identity.removeprefix("synthetic-"))
     return identity
 
 

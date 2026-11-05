@@ -1,7 +1,8 @@
 """Document migrations: per-language (20261019) and plan/audit kinds (20261021, ADR-036).
 
-Since the split the API only stores v3 documents, so the combined v1/v2 artifacts these
-migrations must preserve are written with SQL at the older schema.
+The API stores and serves only v3 documents, so the combined v1/v2 artifacts these
+migrations must preserve are written with SQL at the older schema. After R1 the API no
+longer serves them: a stored v1/v2 artifact fails closed instead of being re-rendered.
 """
 
 import hashlib
@@ -15,11 +16,8 @@ from sqlalchemy.exc import DBAPIError
 
 from backend.app.dependencies import render_approved_document
 from document_adapter.approved_pdf import render_plan_pdf
-from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
 from tests.integration.test_t17_decisions_postgres import configured as _configured
 from tests.integration.test_t17_decisions_postgres import stored_cases as _stored_cases
-from tests.legacy_cases import create_legacy_case
-from tests.t15_helpers import controlled_assets
 from tests.test_t15_planning_api import forbidden
 from tests.test_t17_decisions import headers
 from tests.test_t21_documents import approve
@@ -65,13 +63,9 @@ def _insert_combined(engine, decision, case_id, language, reference, renderer):
     return pdf
 
 
-def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured, tmp_path):
-    engine, factory, client, base, _ = configured
+def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured):
+    engine, _, client, base, _ = configured
     decision, url = approve(client, base)
-    other = create_legacy_case(
-        SqlAlchemyPlanningUnitOfWork(factory), controlled_assets(tmp_path / "m"), tmp_path / "m"
-    )
-    other_decision, other_url = approve(client, other)
     content_hash = decision["approved_content_hash"]
     _migrate(engine, "downgrade", "20261019_01")
     _insert_combined(
@@ -83,16 +77,7 @@ def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured, tmp_
         "legacy/layout-v3",
     )
     v1 = f"t17-approved-pdf-v1:{base['case_id']}:{content_hash}"
-    legacy = _insert_combined(engine, decision, base["case_id"], "en", v1, "legacy/layout-v1")
-    other_hash = other_decision["approved_content_hash"]
-    _insert_combined(
-        engine,
-        other_decision,
-        other["case_id"],
-        "en",
-        f"t17-approved-pdf-v2:{other['case_id']}:en:{other_hash}",
-        "legacy/layout-v4",
-    )
+    _insert_combined(engine, decision, base["case_id"], "en", v1, "legacy/layout-v1")
 
     _migrate(engine, "downgrade", "20261018_01")
     with engine.connect() as connection:
@@ -108,13 +93,7 @@ def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured, tmp_
     _migrate(engine, "upgrade", "head")
 
     again = client.get(url, params={"language": "en"}, headers=headers())
-    assert again.status_code == 200 and again.content == legacy
-    assert again.headers["x-pdf-reference"] == v1 and again.headers["x-document-kind"] == "plan"
-    rerendered = client.get(other_url, params={"language": "en"}, headers=headers())
-    assert rerendered.status_code == 200
-    assert rerendered.headers["x-pdf-reference"] == (
-        f"t17-approved-pdf-v3:{other['case_id']}:en:plan:{other_hash}"
-    )
+    assert again.status_code == 503  # the kept v1 artifact is no longer served
 
 
 @pytest.mark.parametrize("renderer", ["layout-v3", "layout-v4"])
@@ -149,10 +128,7 @@ def test_combined_documents_become_plan_and_downgrade_refuses_audit(
     )
     route_renderer = "backend.app.routes.planning_cases.render_approved_document"
     monkeypatch.setattr(route_renderer, forbidden)
-    plan = client.get(url, headers=headers())
-    assert plan.status_code == 200 and plan.content == combined
-    assert plan.headers["x-pdf-reference"] == reference
-    assert plan.headers["x-document-kind"] == "plan"
+    assert client.get(url, headers=headers()).status_code == 503  # kept, not served
     monkeypatch.setattr(route_renderer, render_approved_document)
     audit = client.get(url, params={"kind": "audit"}, headers=headers())
     assert audit.status_code == 200 and audit.headers["x-document-kind"] == "audit"

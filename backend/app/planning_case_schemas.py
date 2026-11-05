@@ -195,7 +195,6 @@ class PlanningCaseResponse(StrictModel):
     snapshot: dict
     idempotent_replay: bool
     final_decision: dict | None = None
-    origin: Literal["demo", "odoo"]
 
 
 class PlanningFinalDecisionRequest(StrictModel):

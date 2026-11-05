@@ -1,4 +1,4 @@
-"""Exact JSON snapshot encoding and explicit T13/T14 stored-value reconstruction."""
+"""Exact JSON snapshot encoding and explicit stored-value reconstruction."""
 
 import json
 from dataclasses import fields, is_dataclass
@@ -40,7 +40,7 @@ def decimal_text(value: Decimal) -> str:
 
 def json_value(value):
     if is_dataclass(value):
-        # Fields marked omit_default are left out at their default, keeping older records exact.
+        # Fields marked omit_default are left out at their default; stored JSON must re-encode.
         return {
             f.name: json_value(getattr(value, f.name))
             for f in fields(value)

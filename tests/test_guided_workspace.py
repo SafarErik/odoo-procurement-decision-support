@@ -114,8 +114,8 @@ def test_home_queries_are_bounded_independent_and_do_not_change_library_filters(
 
     asyncio.run(run())
     assert calls == [
-        {"origin": "all", "status": "draft", "limit": 5},
-        {"origin": "all", "status": "all", "limit": 5},
+        {"status": "draft", "limit": 5},
+        {"status": "all", "limit": 5},
     ]
     assert state.home_pending_error == "Unavailable" and state.home_recent_error == ""
     assert not state.home_loading

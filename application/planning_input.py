@@ -1,4 +1,4 @@
-"""Controlled V2 facts and field attribution; no live ERP access or ML loading."""
+"""V2 planning facts and field attribution; no live ERP access or ML loading."""
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -13,14 +13,12 @@ from decision_core.planning.models import (
 )
 from supplier_evaluation.contracts import (
     HISTORY_SOURCE,
-    SYNTHETIC,
     Context,
     LineEvidence,
     QuantityValidity,
     text_identity,
     utc,
 )
-from supplier_evaluation.history import prepare_history
 
 
 def validate_source(source: SourceAttribution, field: str, as_of: datetime) -> None:
@@ -38,7 +36,7 @@ class SupplierFacts:
     offer_id: str
     terms: SupplierTerms
     source: SourceAttribution
-    receipts: tuple[LineEvidence, ...]
+    receipts: tuple[LineEvidence, ...]  # always empty: history comes from the capture
     history_reference: str
     score_quantities: QuantityValidity
 
@@ -53,7 +51,7 @@ class PlanningFacts:
     policy: PlanningPolicy
     policy_source: SourceAttribution
     suppliers: tuple[SupplierFacts, ...]
-    source_type: str = SYNTHETIC
+    source_type: str = HISTORY_SOURCE
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,16 +62,12 @@ class OdooHistoryPlanningFacts(PlanningFacts):
 
 
 def assemble_planning_input(facts: PlanningFacts):
-    """Derive T14 features from bounded receipts, retaining separate T6 attribution."""
-    if not isinstance(facts, PlanningFacts) or facts.source_type not in {SYNTHETIC, HISTORY_SOURCE}:
-        raise ValueError("This increment accepts explicitly synthetic evidence only.")
-    captured = {}
-    if facts.source_type == HISTORY_SOURCE:
-        if not isinstance(facts, OdooHistoryPlanningFacts):
-            raise ValueError("Typed backend-acquired history required.")
-        captured = {f.context.supplier_id: f for f in capture_features(facts.history)}
-        if set(captured) != {s.terms.supplier_id for s in facts.suppliers}:
-            raise ValueError("Complete acquired supplier history required.")
+    """Pair captured Odoo history features with the buyer terms and their attribution."""
+    if not isinstance(facts, OdooHistoryPlanningFacts) or facts.source_type != HISTORY_SOURCE:
+        raise ValueError("Typed backend-acquired Odoo history required.")
+    captured = {f.context.supplier_id: f for f in capture_features(facts.history)}
+    if set(captured) != {s.terms.supplier_id for s in facts.suppliers}:
+        raise ValueError("Complete acquired supplier history required.")
     text_identity(facts.company_id)
     text_identity(facts.approval_reference)
     utc(facts.as_of)
@@ -83,7 +77,7 @@ def assemble_planning_input(facts: PlanningFacts):
         raise ValueError("Supply 1-10 controlled suppliers.")
     if not 1 <= len(facts.policy.epsilons) <= 3:
         raise ValueError("Supply 1-3 explicit epsilon values.")
-    offers, lines, features = set(), set(), []
+    offers, features = set(), []
     for item in sorted(facts.suppliers, key=lambda s: s.terms.supplier_id):
         text_identity(item.offer_id)
         text_identity(item.history_reference)
@@ -97,24 +91,10 @@ def assemble_planning_input(facts: PlanningFacts):
             facts.requirement.product_id,
             facts.requirement.quantity_unit,
         )
-        if any(line.line_id in lines for line in item.receipts):
-            raise ValueError("Receipt identities must be unique across suppliers.")
-        lines.update(line.line_id for line in item.receipts)
-        feature = captured.get(item.terms.supplier_id)
-        if feature is not None and (
-            feature.context != context or item.receipts or feature.cutoff > facts.as_of
-        ):
+        feature = captured[item.terms.supplier_id]
+        if feature.context != context or item.receipts or feature.cutoff > facts.as_of:
             raise ValueError("Captured history context/cutoff mismatch.")
-        features.append(
-            (
-                feature
-                if feature is not None
-                else prepare_history(
-                    context, facts.as_of, item.receipts, facts.source_type, item.history_reference
-                ),
-                item.score_quantities,
-            )
-        )
+        features.append((feature, item.score_quantities))
     request = PlanningRequest(
         facts.requirement,
         tuple(s.terms for s in sorted(facts.suppliers, key=lambda s: s.terms.supplier_id)),

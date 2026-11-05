@@ -205,5 +205,5 @@ for it.
 - Scores are leaf frequencies, not calibrated probabilities.
 - P2 removed the demo creation path (`POST /`, `POST /from-odoo`) and with it the
   runtime use of the earlier synthetic two-feature tree
-  ([history/T14_ML_DESIGN.md](history/T14_ML_DESIGN.md)); cases it created stay
-  readable, and its offline code remains only to rebuild such cases in tests.
+  ([history/T14_ML_DESIGN.md](history/T14_ML_DESIGN.md)); R1 deleted its code, so cases
+  it created are no longer readable.

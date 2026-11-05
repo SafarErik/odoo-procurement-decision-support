@@ -1,14 +1,57 @@
-"""Transactional fast-test repository and shared payload helpers."""
+"""Transactional fast-test repository and shared Odoo-history case helpers."""
 
 import json
+from contextlib import contextmanager
+from uuid import uuid4
 
-from tests.legacy_cases import prepare_assets as controlled_assets
+from fastapi.testclient import TestClient
 
-__all__ = ["MemoryPlanningUnitOfWork", "controlled_assets", "copy_payload"]
+BASE = "/api/v2/procurement/planning-cases"
+# Controlled workload over the fake Odoo quotation group 501 (prices 9 / 12 / 10 come from
+# Odoo): demand 10, at most two suppliers, 80 % concentration, one 10 % risk allowance.
+# Supplier 306 is the cheapest and (with 304) the riskiest, so cost and risk disagree.
+CAPACITIES = {"odoo:res.partner:306": 6, "odoo:res.partner:304": 8, "odoo:res.partner:301": 10}
 
 
 def copy_payload(payload):
     return json.loads(json.dumps(payload))
+
+
+@contextmanager
+def odoo_case_api(history, uow, monkeypatch):
+    """HTTP client over a fake read-only Odoo, the trained history model and ``uow``."""
+    from backend.app.main import app
+    from tests.test_odoo_purchase_history import install_fake_odoo
+
+    install_fake_odoo(history, monkeypatch)
+    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
+    with TestClient(app, headers={"Authorization": "Bearer history-test-token"}) as client:
+        yield client
+
+
+def controlled_terms(client):
+    """The preview's buyer terms for group 501, reshaped into the controlled workload."""
+    preview = client.get(f"{BASE}/odoo-history/preview?purchase_group_id=501")
+    assert preview.status_code == 200, preview.text
+    terms = preview.json()["terms"]
+    terms["requirement"]["approved_quantity"] = 10
+    terms["policy"] = {"max_suppliers": 2, "concentration_limit": "0.8", "epsilons": ["0.1"]}
+    suppliers = {s["supplier_id"]: s for s in terms["suppliers"]}
+    terms["suppliers"] = [
+        suppliers[identity] | {"capacity": capacity} for identity, capacity in CAPACITIES.items()
+    ]
+    return terms
+
+
+def create_case(client, terms, key=None):
+    """Save one Odoo-history base case through the HTTP route; returns the response body."""
+    response = client.post(
+        f"{BASE}/from-odoo-history",
+        json={"purchase_group_id": 501, "terms": terms},
+        headers={"Idempotency-Key": key or str(uuid4())},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
 class MemoryPlanningUnitOfWork:

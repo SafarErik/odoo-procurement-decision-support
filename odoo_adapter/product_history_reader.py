@@ -7,13 +7,13 @@ from typing import Any
 
 import httpx
 
+from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 from application.purchase_history import (
     PurchaseHistoryQuery,
     PurchaseHistorySnapshot,
     PurchaseLineHistory,
     ReceiptEvent,
 )
-from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
 
 MODEL = "procurement.product.history.export"
 METHOD = "read_product_history"

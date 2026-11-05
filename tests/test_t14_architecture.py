@@ -22,7 +22,7 @@ def imports(path):
 def test_ml_is_external_to_existing_runtime_boundaries():
     for folder in ("decision_core", "optimization_adapter", "backend", "frontend", "persistence"):
         for path in (ROOT / folder).rglob("*.py"):
-            # T15 composes T14 at the existing backend root; routes/storage/core stay external.
+            # The backend root composes the ML package; routes/storage/core stay external.
             if path in {
                 ROOT / "backend/app/dependencies.py",
                 ROOT / "backend/app/planning_case_schemas.py",
@@ -30,7 +30,7 @@ def test_ml_is_external_to_existing_runtime_boundaries():
                 assert imports(path).isdisjoint({"sklearn", "joblib"}), path
             else:
                 assert imports(path).isdisjoint({"supplier_evaluation", "sklearn", "joblib"}), path
-    for filename in ("contracts.py", "history.py", "dataset.py", "model.py", "artifacts.py"):
+    for filename in ("contracts.py", "purchase_history.py", "history_model.py"):
         assert imports(ROOT / "supplier_evaluation" / filename).isdisjoint(
             {
                 "optimization_adapter",
@@ -57,11 +57,19 @@ def test_required_ml_dependency_and_python311_ci_cannot_silently_skip():
     assert 'python-version: "3.11"' in quality
     assert 'run: pytest -m "not integration and not e2e" -v' in quality
     assert "supplier_evaluation" in quality
-    runtime = ast.parse((ROOT / "tests/test_t14_runtime.py").read_text())
+    from supplier_evaluation.history_model import runtime
+
+    assert runtime()["sklearn"] == "1.8.0"
+    assert runtime()["numpy"] == "2.3.5"
+    assert runtime()["scipy"] == "1.16.3"
+    # Actual training runs in the fast gate, unmarked and never skipped.
+    training = ROOT / "tests/test_odoo_purchase_history.py"
     assert not {"integration", "e2e"} & {
-        node.attr for node in ast.walk(runtime) if isinstance(node, ast.Attribute)
+        node.attr
+        for node in ast.walk(ast.parse(training.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Attribute)
     }
-    for path in (ROOT / "tests").glob("test_t14*.py"):
+    for path in (*(ROOT / "tests").glob("test_t14*.py"), training):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):

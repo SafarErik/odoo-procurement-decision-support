@@ -20,7 +20,6 @@ from supplier_evaluation.contracts import (
     HISTORY_LOOKBACK,
     HISTORY_SETTLEMENT,
     HISTORY_SOURCE,
-    LEGACY_HISTORY_DATA_ORIGIN,
     Context,
     FeatureSnapshot,
     canonical,
@@ -122,8 +121,8 @@ def _snapshot(raw: dict) -> PurchaseHistorySnapshot:
 
 
 def capture_origin(encoded: str) -> str:
-    """Declared origin of a stored capture; older captures predate the field."""
-    origin = json.loads(encoded)["evidence"].get("data_origin", LEGACY_HISTORY_DATA_ORIGIN)
+    """Declared origin of a stored capture."""
+    origin = json.loads(encoded)["evidence"]["data_origin"]
     if origin not in HISTORY_DATA_ORIGINS:
         raise ValueError("Unsupported history capture data origin.")
     return origin

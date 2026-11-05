@@ -1,56 +1,26 @@
 # Odoo adapter
 
-This directory owns the Odoo-specific integration boundary. The first implemented
-adapter is a bounded, read-only JSON-2 query for recent open requests for quotation.
-It calls `purchase.order/search_read`, validates the response, and maps these
-locally verified Odoo fields into ERP-neutral application DTOs:
+This directory owns the Odoo-specific integration boundary. Every reader is a bounded,
+read-only Odoo JSON-2 client that validates the response and maps it into ERP-neutral
+application DTOs:
 
-- `id` to `source_id`;
-- `name` to `reference`;
-- `partner_id` display value to `vendor_name`;
-- `date_order` to a timezone-aware `order_date`;
-- `state` to the neutral draft/sent/awaiting-approval status set;
-- `amount_total` and `currency_id` display value to currency-aware `total`.
+- `comparison_case_reader.py` lists the open quotation groups of one company and reads
+  one quotation group (orders, lines, partners, currency) as comparison-case facts
+  (`application/odoo_quotations.py`).
+- `product_history_reader.py` reads one product's bounded purchase history through the
+  `procurement.product.history.export.read_product_history` method of the
+  `t7s_inventory_history_projection` addon (`application/purchase_history.py`).
 
-The adapter must remain read-only until a write use case is explicitly designed and
-approved. It must never access Odoo's PostgreSQL database directly. Credentials are
+The adapters must remain read-only until a write use case is explicitly designed and
+approved. They must never access Odoo's PostgreSQL database directly. Credentials are
 loaded from the ignored root `.env` through backend configuration and must not be
 logged, returned in errors, or committed.
 
-The current field contract is evidence for the local Odoo 19 Community PoC database,
-not a universal Odoo schema guarantee. Revalidate `/doc`, permissions, record rules,
-and field behaviour for every materially different target environment.
+The field contract is evidence for the local Odoo 19 Community database, not a
+universal Odoo schema guarantee. Revalidate `/doc`, permissions, record rules, and
+field behaviour for every materially different target environment.
 
-## T8 bounded historical-performance adapter
-
-`OdooHistoricalPerformanceReader` implements the ERP-neutral
-`HistoricalPerformancePort` exclusively through
-`procurement.inventory.history.projection.read_bounded_history`. It accepts exact
-stable company and purchase-line identities, an exact 365-day half-open window, and
-a bounded result limit. It validates the projection version, complete envelope,
-fixed record schema, echoed company/window, result count, stable supplier identity,
-requested line set, event window, quantities, states, and directions before mapping
-anything into neutral receipt observations.
-
-The adapter never reads `stock.move`, `stock.move.line`, or `stock.picking`
-directly. It exposes no create, write, unlink, fixture, administrator, or database
-path. Its source reference contains only the projection method and bounded
-observation context; it never contains the base URL, database name, API key, or a
-claim that the observed value is objectively true. Metric eligibility, calculation,
-warnings, sample withholding, and stable supplier attachment remain application
-responsibilities.
-
-## T4 decision-input gate
-
-T4 did not extend this adapter. On 2026-09-17, the renewed key authenticated as the
-existing dedicated non-admin user. Live probes verified read-only access to orders,
-products, product templates, supplier information, partners, currencies, and UoMs.
-However, `purchase.order.line` read is denied, candidate alternative-grouping fields
-were absent, and `purchase_requisition` was not installed. Product, quantity, UoM,
-quoted price, multi-line, lead-time, and MOQ transformations therefore remain
-unresolved.
-
-Do not map the RFQ summary to `SupplierOffer`, treat unrelated RFQs as one case, use
-order total as unit price, use line quantity as MOQ, or default missing decision
-data. The exact evidence, rejected mappings, and recovery sequence are in
-`docs/spikes/odoo-decision-input-mapping-spike.md`.
+R1 (2026-11-05) removed the open-RFQ summary reader (`GET /api/v1/procurement/rfqs`)
+and the T8 historical-performance reader; their design notes stay in `docs/history/`.
+The addon's older `read_bounded_history` projection method is still deployed and
+covered by `tests/test_t7s_projection_policy.py`, but no runtime code calls it.

@@ -9,7 +9,6 @@ from fastapi.routing import APIRoute
 from application.errors import RepositoryError
 from application.planning_cases import (
     PlanningCaseError,
-    case_origin,
     create_planning_case,
     get_planning_case,
     normalize_planning_facts,
@@ -20,7 +19,6 @@ from application.planning_decisions import (
     retrieve_planning_case,
 )
 from application.planning_documents import approved_document
-from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_library import library_query, list_planning_cases
 from application.supplier_overview import supplier_overview
 from backend.app.api_common import require_trusted_caller
@@ -97,7 +95,7 @@ def _error(error):
 
 
 def _library(request, parent_id=None):
-    allowed = {"origin", "status", "q", "limit", "cursor"}
+    allowed = {"status", "q", "limit", "cursor"}
     try:
         if any(
             key not in allowed or len(request.query_params.getlist(key)) != 1
@@ -144,7 +142,6 @@ def _response(case, replay=False, decision=None):
         snapshot=json.loads(case.snapshot),
         idempotent_replay=replay,
         final_decision=decision,
-        origin=case_origin(json.loads(case.snapshot)["facts"]),
     )
 
 
@@ -197,7 +194,6 @@ def post_odoo_history_case(
             get_planning_unit_of_work(),
             idempotency_key,
             base_intent=intent,
-            base_kind=HISTORY_INPUT_KIND,
             load_base=lambda: resolve_odoo_history_input(request.purchase_group_id, facts),
             infer=infer_odoo_history_features,
             solver_factory=planning_solver_factory,

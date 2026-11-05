@@ -77,9 +77,9 @@ def test_hungarian_is_the_default_and_mapping_uses_it(stored_cases):
     # An alternative names the tightest cost allowance that produced it; the cheapest plan none.
     assert display.plans[0]["budget"] == ""
     assert display.plans[1]["budget"].startswith("legfeljebb +")
-    assert display.plans[0]["cost"] == "102,00 €"
+    assert display.plans[0]["cost"] == "94,00 $"
     assert display.details["status_label"] == "Tervek elkészültek"
-    assert display.details["origin_badge"] == "Bemutató adat"  # pre-P2 synthetic demo case
+    assert display.details["origin_badge"] == "Generált adat"  # generated Odoo history
     # Keys stay English so selection and decisions do not depend on the language.
     assert display.plans[0]["label"] == "Minimum cost"
 
@@ -96,7 +96,7 @@ def test_language_switch_relabels_without_any_http(stored_cases, monkeypatch):
         patch_client(monkeypatch, name, forbidden)
     events = PlanningState.set_language.fn(state, ["en"])  # segmented control sends a list
     assert state.lang == "en" and state.plans[0]["title"] == "Cheapest plan"
-    assert state.plans[0]["cost"] == "€102.00"
+    assert state.plans[0]["cost"] == "$94.00"
     assert state.final_choice == "Alternative 1" and state.selected_plan["label"] == "Alternative 1"
     # Only the stored supplier overview is re-read (a GET of the saved snapshot).
     assert events and "load_supplier_overview" in str(events)
@@ -121,7 +121,6 @@ def test_library_rows_accept_invalid_input_status_and_show_the_odoo_name(stored_
         "planning_status": "invalid_input",
         "decision_status": "draft",
         "source_kind": "odoo_quotations_odoo_history",
-        "origin": "odoo",
         "data_origin": "generated",
         "minimum_cost": None,
         "scenario_kind": None,
@@ -164,8 +163,8 @@ def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_case
     mapped = map_overview(overview, "hu")
     assert len(mapped["cards"]) == len(base["snapshot"]["assessments"])
     card = mapped["cards"][0]
-    assert card["name"].startswith("Bemutató szállító") and card["class_label"]
-    assert card["metrics"] and card["path"] is not None and card["price"].endswith("€")
+    assert card["name"].startswith("Supplier ") and card["class_label"]  # Odoo display name
+    assert card["metrics"] and card["path"] is not None and card["price"].endswith("$")
     with pytest.raises(ValueError):
         map_overview(overview, "en")  # the API answered in another language
 
@@ -176,7 +175,7 @@ def test_scenario_validation_reads_naturally_in_hungarian(stored_cases):
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
     state._show(_map_case(base, base["case_id"], "hu"))
-    form = {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "6"}
+    form = {"kind": "capacity_change", "supplier": "odoo:res.partner:306", "capacity": "6"}
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.error_message.endswith("azonos az eredetivel (6 db). A 0 megszünteti.")
 
@@ -196,9 +195,8 @@ def _scenario_item(base_id, kind="supplier_outage", quantity=10):
         "required_date": "2026-10-25",
         "planning_status": "optimal",
         "decision_status": "draft",
-        "source_kind": "controlled_synthetic",
-        "origin": "demo",
-        "data_origin": "synthetic",
+        "source_kind": "odoo_quotations_odoo_history",
+        "data_origin": "generated",
         "minimum_cost": "102.00",
         "scenario_kind": kind,
         "changed_assumptions": None,

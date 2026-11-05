@@ -4,12 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 from application.odoo_quotations import (
     MAX_LISTED_GROUPS,
     list_open_quotation_groups,
     selection_issue,
 )
-from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
 from backend.app import dependencies
 from backend.app.api_common import require_trusted_caller
 from backend.app.config import settings

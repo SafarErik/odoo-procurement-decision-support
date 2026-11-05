@@ -36,8 +36,8 @@ check. Run it before every handoff.
 ## 3. Supplier model
 
 Since P2 every new case is created from an Odoo quotation group with the
-Odoo-history model (§5.3); the synthetic demo model and its `prepare` command were
-removed. Cases saved earlier with that model remain readable without it.
+Odoo-history model (§5.3); the synthetic demo model and its code were removed (P2, R1).
+Cases saved with it before P2 are not readable: reset the planning database (§4).
 
 ## 4. Planning database, API and UI
 
@@ -62,7 +62,9 @@ plus `API_SERVICE_TOKEN` and `PLANNING_LIBRARY_COMPANY_ID` (the Odoo company, e.
 keeps its data in a named volume; `python -m tools.dev db-down` stops it.
 
 After a schema change that squashes migrations (as on 2026-10-18), recreate the
-volume: `podman compose -f infra/app/compose.yaml down -v`, then `db-up`.
+volume: `podman compose -f infra/app/compose.yaml down -v`, then `db-up`. Do the same
+once after R1 (2026-11-05): cases, decisions and PDFs stored before P2 no longer load,
+and a library that still contains one answers 503 (`invalid_library_data`).
 
 ## 5. Odoo
 

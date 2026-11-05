@@ -1,6 +1,7 @@
 """Optional live contract verification for an initialized local Odoo database."""
 
 import asyncio
+import os
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -8,25 +9,12 @@ from typing import Any
 import httpx
 import pytest
 
-from application.historical_performance import (
-    HistoricalPerformanceQuery,
-    HistoricalWarningCode,
-    calculate_delivery_schedule_adherence,
-)
 from backend.app.config import settings
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
-from odoo_adapter.historical_performance_reader import OdooHistoricalPerformanceReader
-from odoo_adapter.rfq_reader import OdooRfqReader
 
 pytestmark = pytest.mark.integration
 
 _T6_ORIGINS = ("T6-COMP-001-A", "T6-COMP-001-B", "T6-COMP-001-C")
-_T7_ORIGINS = (
-    "T7-HIST-001-ONTIME",
-    "T7-HIST-002-LATE",
-    "T7-HIST-003-BACKORDER",
-    "T7-HIST-004-RETURN",
-)
 _T7S_RECORD_FIELDS = {
     "company_id",
     "commercial_partner_id",
@@ -47,6 +35,11 @@ _T7S_RECORD_FIELDS = {
     "return_of_move_id",
     "return_of_picking_id",
 }
+
+
+def _enabled(name: str) -> bool:
+    """Opt-in switch for a live fixture, read from the environment like TEST_DATABASE_URL."""
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes"}
 
 
 def _live_credentials() -> tuple[str, str, str] | None:
@@ -112,7 +105,7 @@ def _post_t7s_json2(model: str, method: str, payload: dict[str, Any]) -> Any:
 
 
 def _t6_fixture_records() -> list[dict[str, Any]]:
-    if not settings.run_t6_live_contracts:
+    if not _enabled("RUN_T6_LIVE_CONTRACTS"):
         pytest.skip("Set RUN_T6_LIVE_CONTRACTS=true after creating the controlled T6 fixture")
     orders = _post_json2(
         "purchase.order",
@@ -139,15 +132,8 @@ def _t6_group_id() -> int:
     return group_ids.pop()
 
 
-def _require_t7_live_contracts() -> None:
-    if not settings.run_t7_live_contracts:
-        pytest.skip(
-            "Set RUN_T7_LIVE_CONTRACTS=true only after completing docs/history/T7_FIXTURE_SETUP.md"
-        )
-
-
 def _require_t7s_live_contracts() -> None:
-    if not settings.run_t7s_live_contracts:
+    if not _enabled("RUN_T7S_LIVE_CONTRACTS"):
         pytest.skip("Set RUN_T7S_LIVE_CONTRACTS=true only after docs/history/T7S_MANUAL_SETUP.md")
 
 
@@ -161,52 +147,6 @@ def _t7s_window_payload(*, company_id: int, line_ids: list[int], limit: int = 40
         "purchase_order_line_ids": line_ids,
         "limit": limit,
     }
-
-
-def _t7_fixture_orders() -> list[dict[str, Any]]:
-    _require_t7_live_contracts()
-    orders = _post_json2(
-        "purchase.order",
-        "search_read",
-        {
-            "domain": [["origin", "in", list(_T7_ORIGINS)]],
-            "fields": ["id", "origin", "partner_id", "company_id", "order_line"],
-            "limit": len(_T7_ORIGINS) + 1,
-            "order": "origin asc",
-        },
-    )
-    assert [order["origin"] for order in orders] == list(_T7_ORIGINS)
-    return orders
-
-
-def _odoo_datetime(value: str) -> datetime:
-    parsed = datetime.fromisoformat(value.replace(" ", "T").replace("Z", "+00:00"))
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
-
-
-def test_live_odoo_lists_open_rfqs_when_credentials_are_available() -> None:
-    """The validated local database satisfies the adapter contract."""
-
-    credentials = _live_credentials()
-    if credentials is None:
-        pytest.skip("Live Odoo credentials are not configured")
-    base_url, database, api_key = credentials
-
-    reader = OdooRfqReader(
-        base_url=base_url,
-        database=database,
-        api_key=api_key,
-        timeout_seconds=settings.odoo_request_timeout_seconds,
-    )
-
-    items = asyncio.run(reader.list_open_rfqs(5))
-
-    assert items
-    assert all(item.reference for item in items)
-    assert all(item.vendor_name for item in items)
-    assert all(item.total.currency for item in items)
 
 
 def test_live_odoo_identity_has_read_only_purchase_order_access() -> None:
@@ -782,110 +722,3 @@ def test_live_odoo_t7s_projection_is_bounded_and_direct_models_stay_denied() -> 
             invalid_payload,
         )
         assert response.status_code == 422
-
-
-def test_live_odoo_t8_historical_performance_vertical_slice() -> None:
-    """Prove the controlled history flows through the production T8 contracts."""
-
-    _require_t7s_live_contracts()
-    orders = _t7_fixture_orders()
-    assert len({order["company_id"][0] for order in orders}) == 1
-    assert all(len(order["order_line"]) == 1 for order in orders)
-    line_ids = [order["order_line"][0] for order in orders]
-    company_id = orders[0]["company_id"][0]
-    partner_ids = {order["partner_id"][0] for order in orders}
-    assert len(partner_ids) == 1
-    partner = _post_json2(
-        "res.partner",
-        "read",
-        {"ids": list(partner_ids), "fields": ["commercial_partner_id"]},
-    )[0]
-    supplier_id = f"odoo:res.partner:{partner['commercial_partner_id'][0]}"
-    payload = _t7s_window_payload(company_id=company_id, line_ids=line_ids, limit=40)
-    query = HistoricalPerformanceQuery(
-        supplier_id=supplier_id,
-        company_id=f"odoo:res.company:{company_id}",
-        purchase_line_ids=tuple(f"odoo:purchase.order.line:{line_id}" for line_id in line_ids),
-        observation_window_start=_odoo_datetime(payload["date_from"]),
-        observation_window_end=_odoo_datetime(payload["date_to"]),
-        result_limit=40,
-    )
-    credentials = _t7s_credentials()
-    assert credentials is not None
-    base_url, database, api_key = credentials
-    reader = OdooHistoricalPerformanceReader(
-        base_url=base_url,
-        database=database,
-        api_key=api_key,
-        timeout_seconds=settings.odoo_request_timeout_seconds,
-    )
-    snapshot = asyncio.run(reader.read_inventory_history(query))
-    performance = calculate_delivery_schedule_adherence(snapshot)
-    records = snapshot.observations
-    assert records
-    assert {record.company_id for record in records} == {query.company_id}
-    assert {record.supplier_id for record in records} == {query.supplier_id}
-    assert len({record.product_id for record in records}) == 1
-    assert len({record.uom_id for record in records}) == 1
-
-    marker_by_order_id = {order["id"]: order["origin"] for order in orders}
-    records_by_marker = {
-        marker: [
-            record
-            for record in records
-            if marker_by_order_id[int(record.purchase_document_id.rsplit(":", 1)[1])] == marker
-        ]
-        for marker in _T7_ORIGINS
-    }
-    inbound_by_marker = {
-        marker: [
-            record
-            for record in marker_records
-            if record.direction.value == "supplier_to_internal"
-            and record.return_of_event_id is None
-        ]
-        for marker, marker_records in records_by_marker.items()
-    }
-    for inbound_records in inbound_by_marker.values():
-        assert inbound_records
-        assert sum(record.completed_quantity for record in inbound_records) >= (
-            inbound_records[0].ordered_quantity
-        )
-
-    def completion(marker: str) -> datetime:
-        return max(record.completed_at for record in inbound_by_marker[marker])
-
-    def expected(marker: str) -> datetime:
-        expected_arrival = inbound_by_marker[marker][0].scheduled_arrival_at
-        assert expected_arrival is not None
-        return expected_arrival
-
-    assert completion("T7-HIST-001-ONTIME") <= expected("T7-HIST-001-ONTIME")
-    assert completion("T7-HIST-002-LATE") > expected("T7-HIST-002-LATE")
-    assert completion("T7-HIST-003-BACKORDER") > expected("T7-HIST-003-BACKORDER")
-    backorder_pickings = {
-        record.transfer_id for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
-    }
-    assert len(backorder_pickings) == 2
-    assert (
-        sum(
-            bool(record.backorder_of_transfer_id)
-            for record in inbound_by_marker["T7-HIST-003-BACKORDER"]
-        )
-        == 1
-    )
-
-    return_records = [
-        record
-        for record in records_by_marker["T7-HIST-004-RETURN"]
-        if record.return_of_event_id
-        and record.return_of_transfer_id
-        and record.direction.value == "internal_to_supplier"
-    ]
-    assert return_records
-
-    assert performance.value == Decimal("33.33")
-    assert performance.sample_size == 3
-    assert [warning.code for warning in performance.warnings] == [
-        HistoricalWarningCode.SUPPLIER_RETURN_OBSERVED
-    ]

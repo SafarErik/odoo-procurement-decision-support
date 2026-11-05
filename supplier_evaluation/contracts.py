@@ -8,22 +8,11 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from fractions import Fraction
 
-DATASET_VERSION = "t14-controlled-supplier-contexts-v1"
-FEATURE_VERSION = "t14-history-features-v1"
-LABEL_VERSION = "t14-next-window-schedule-watch-v1"
-MAPPING_VERSION = "t14-leaf-exposure-v1"
-ARTIFACT_VERSION = "t14-trusted-tree-v1"
-FEATURES = ("delivery_schedule_adherence", "historical_completed_count")
-CLASSES = ("schedule_regular", "schedule_watch")
-SEED = 17
-SYNTHETIC = "t14_synthetic"
-
 # V2: features computed from the bounded Odoo purchase-history export (docs/MODEL_ML.md).
 HISTORY_SOURCE = "odoo_purchase_history"
 # Who produced the Odoo records: the seeding tool ("generated") or real business ("observed").
 # Declared by the operator for the export and the runtime database, never guessed from data.
 HISTORY_DATA_ORIGINS = ("generated", "observed")
-LEGACY_HISTORY_DATA_ORIGIN = "generated"  # captures stored before the origin was recorded
 HISTORY_FEATURE_VERSION = "odoo-purchase-history-features-v2"
 HISTORY_FEATURES = (
     "on_time_rate",
@@ -39,16 +28,6 @@ HISTORY_LABEL_VERSION = "next-60d-problematic-v2"
 HISTORY_MAPPING_VERSION = "leaf-exposure-odoo-history-v2"
 HISTORY_LOOKBACK = timedelta(days=120)
 HISTORY_SETTLEMENT = timedelta(days=14)
-FEATURE_SETS = {FEATURE_VERSION: FEATURES, HISTORY_FEATURE_VERSION: HISTORY_FEATURES}
-# (source_type, mapping_version) -> (dataset_version, label_version, feature_version)
-ASSESSMENT_VERSIONS = {
-    (SYNTHETIC, MAPPING_VERSION): (DATASET_VERSION, LABEL_VERSION, FEATURE_VERSION),
-    (HISTORY_SOURCE, HISTORY_MAPPING_VERSION): (
-        HISTORY_DATASET_VERSION,
-        HISTORY_LABEL_VERSION,
-        HISTORY_FEATURE_VERSION,
-    ),
-}
 
 
 def canonical(value: object) -> str:
@@ -75,28 +54,19 @@ def utc(value: datetime) -> None:
 
 
 def feature_vector(names: tuple[str, ...], values: tuple[float, ...]) -> tuple[float, ...]:
-    if (
-        names not in FEATURE_SETS.values()
-        or not isinstance(values, tuple)
-        or len(values) != len(names)
-    ):
+    if names != HISTORY_FEATURES or not isinstance(values, tuple) or len(values) != len(names):
         raise ValueError("Exact ordered feature schema required.")
     if any(type(x) not in (int, float) or not math.isfinite(x) for x in values):
         raise ValueError("Missing or nonfinite feature.")
-    if names == HISTORY_FEATURES:
-        on_time, lateness, spread, fill, partial, count, recency = values
-        if (
-            not all(0 <= x <= 1 for x in (on_time, fill, partial))
-            or not -30 <= lateness <= 400
-            or not 0 <= spread <= 400
-            or not 3 <= count <= 500
-            or int(count) != count
-            or not 0 <= recency <= 400
-        ):
-            raise ValueError("Invalid feature range or insufficient history support.")
-        return tuple(float(x) for x in values)
-    adherence, count = values
-    if not 0 <= adherence <= 100 or not 3 <= count <= 50 or int(count) != count:
+    on_time, lateness, spread, fill, partial, count, recency = values
+    if (
+        not all(0 <= x <= 1 for x in (on_time, fill, partial))
+        or not -30 <= lateness <= 400
+        or not 0 <= spread <= 400
+        or not 3 <= count <= 500
+        or int(count) != count
+        or not 0 <= recency <= 400
+    ):
         raise ValueError("Invalid feature range or insufficient history support.")
     return tuple(float(x) for x in values)
 
@@ -145,8 +115,8 @@ class FeatureSnapshot:
     values: tuple[float, ...]
     source_type: str
     source_reference: str
-    feature_version: str = FEATURE_VERSION
-    feature_names: tuple[str, ...] = FEATURES
+    feature_version: str = HISTORY_FEATURE_VERSION
+    feature_names: tuple[str, ...] = HISTORY_FEATURES
 
     def __post_init__(self):
         if not isinstance(self.context, Context):
@@ -158,17 +128,15 @@ class FeatureSnapshot:
             self.evidence_available_at,
         ):
             utc(value)
-        if FEATURE_SETS.get(self.feature_version) != self.feature_names:
+        if (self.feature_version, self.feature_names) != (
+            HISTORY_FEATURE_VERSION,
+            HISTORY_FEATURES,
+        ):
             raise ValueError("Incompatible feature version.")
-        if self.feature_version == HISTORY_FEATURE_VERSION:
-            window_ok = (
-                self.history_end - self.history_start == HISTORY_LOOKBACK
-                and self.cutoff - self.history_end == HISTORY_SETTLEMENT
-            )
-        else:
-            window_ok = self.history_end - self.history_start == timedelta(days=365) and timedelta(
-                0
-            ) <= self.cutoff - self.history_end <= timedelta(days=7)
+        window_ok = (
+            self.history_end - self.history_start == HISTORY_LOOKBACK
+            and self.cutoff - self.history_end == HISTORY_SETTLEMENT
+        )
         if not window_ok or not self.history_end <= self.evidence_available_at <= self.cutoff:
             raise ValueError("Future, stale or incompatible history cutoff.")
         feature_vector(self.feature_names, self.values)
@@ -202,7 +170,7 @@ class PathStep:
         if (
             type(self.node_id) is not int
             or self.node_id < 0
-            or self.feature not in FEATURES + HISTORY_FEATURES
+            or self.feature not in HISTORY_FEATURES
             or type(self.value_float32) is not float
             or not math.isfinite(self.value_float32)
             or type(self.threshold) is not float
@@ -224,9 +192,9 @@ class Assessment:
     leaf_id: int
     leaf_counts: tuple[int, int]
     path: tuple[PathStep, ...]
-    mapping_version: str = MAPPING_VERSION
-    dataset_version: str = DATASET_VERSION
-    label_version: str = LABEL_VERSION
+    mapping_version: str = HISTORY_MAPPING_VERSION
+    dataset_version: str = HISTORY_DATASET_VERSION
+    label_version: str = HISTORY_LABEL_VERSION
 
     def __post_init__(self):
         if not isinstance(self.snapshot, FeatureSnapshot) or not isinstance(
@@ -236,11 +204,16 @@ class Assessment:
         utc(self.valid_until)
         if self.valid_until != self.snapshot.cutoff + timedelta(days=30):
             raise ValueError("Invalid assessment time validity.")
-        versions = ASSESSMENT_VERSIONS.get((self.snapshot.source_type, self.mapping_version))
-        if versions != (
+        if (
+            self.snapshot.source_type,
+            self.mapping_version,
             self.dataset_version,
             self.label_version,
-            self.snapshot.feature_version,
+        ) != (
+            HISTORY_SOURCE,
+            HISTORY_MAPPING_VERSION,
+            HISTORY_DATASET_VERSION,
+            HISTORY_LABEL_VERSION,
         ) or any(
             getattr(step, "feature", None) not in self.snapshot.feature_names for step in self.path
         ):
@@ -277,10 +250,6 @@ class Assessment:
     @property
     def reference(self) -> str:
         return digest(asdict(self))
-
-    @property
-    def class_name(self) -> str:
-        return CLASSES[self.predicted_class]
 
     @property
     def raw_class1_fraction(self) -> Fraction:

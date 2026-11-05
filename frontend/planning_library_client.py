@@ -32,8 +32,6 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
     parent = item["parent_id"]
     if parent is not None and str(UUID(parent)) != parent:
         raise ValueError("Invalid lineage.")
-    if item["origin"] not in {"demo", "odoo"}:
-        raise ValueError("Invalid origin.")
     if item["planning_status"] not in _OUTCOMES:
         raise ValueError("Invalid planning status.")
     quantity = item["approved_quantity"]
@@ -44,11 +42,7 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
     unit_name = unit(item.get("unit_label") or "Units", lang)
     minimum = item.get("minimum_cost")
     source = item["source_kind"]
-    if source not in {
-        "controlled_synthetic",
-        "odoo_quotations_odoo_history",
-        "odoo_quotations_synthetic_history",
-    }:
+    if source != "odoo_quotations_odoo_history":
         raise ValueError("Invalid source.")
     required_string(item, "quantity_unit")
     return {
@@ -72,10 +66,7 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
         "minimum_cost": ""
         if minimum is None
         else money(Decimal(required_string(item, "minimum_cost")), currency, lang),
-        "origin": item["origin"],
-        "badge": {"observed": "", "synthetic": tr("badge_synthetic", lang)}.get(
-            item.get("data_origin", "generated"), tr("badge_generated", lang)
-        ),
+        "badge": "" if item["data_origin"] == "observed" else tr("badge_generated", lang),
         "scenario": ""
         if item["scenario_kind"] is None
         else tr("kind_" + item["scenario_kind"], lang),

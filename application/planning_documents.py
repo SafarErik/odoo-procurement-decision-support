@@ -2,8 +2,7 @@
 
 One immutable artifact per (case, language, kind): the approved procurement plan
 (``plan``) and its audit appendix (``audit``), both rendered from the same approved content
-(ADR-036). Combined plan + appendix documents stored before the split (v1 English, v2)
-are served unchanged as ``plan``.
+(ADR-036).
 """
 
 import hashlib
@@ -16,8 +15,6 @@ from application.planning_cases import PlanningCaseError, canonical_uuid
 from application.planning_decisions import CONTENT_VERSION, validate_final_decision
 
 DOCUMENT_VERSION = "t17-approved-pdf-v3"
-COMBINED_DOCUMENT_VERSION = "t17-approved-pdf-v2"  # plan + audit appendix in one PDF
-LEGACY_DOCUMENT_VERSION = "t17-approved-pdf-v1"  # English only, no language in reference
 DOCUMENT_LANGUAGES = ("hu", "en")
 DOCUMENT_KINDS = ("plan", "audit")
 FILENAMES = {
@@ -54,14 +51,6 @@ class PlanningDocumentRepository(Protocol):
     def lock(self, case_id: str) -> None: ...
     def get(self, case_id: str, language: str, kind: str) -> PlanningDocument | None: ...
     def add(self, document: PlanningDocument) -> None: ...
-
-
-def legacy_references(case_id, language, content_hash):
-    """Combined documents stored before the split; valid only as ``plan``."""
-    references = {f"{COMBINED_DOCUMENT_VERSION}:{case_id}:{language}:{content_hash}"}
-    if language == "en":  # pre-P2 English artifact
-        references.add(f"{LEGACY_DOCUMENT_VERSION}:{case_id}:{content_hash}")
-    return references
 
 
 def approved_document(uow, case_id, content_hash, render, language="hu", kind="plan"):
@@ -108,10 +97,6 @@ def approved_document(uow, case_id, content_hash, render, language="hu", kind="p
                 language,
                 kind,
             )
-        elif kind == "plan" and document.reference in legacy_references(
-            case_id, language, content_hash
-        ):
-            reference = document.reference  # immutable combined document stored before v3
         if (
             document.case_id != case_id
             or document.language != language

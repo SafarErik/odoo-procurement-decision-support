@@ -8,7 +8,6 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from application.errors import RepositoryError
 from application.planning_cases import (
-    DEMO_INPUT_KIND,
     SNAPSHOT_VERSION,
     PlanningCase,
     validate_snapshot,
@@ -122,13 +121,6 @@ def library_statement(query):
             else case.parent_id == query.parent_id
         )
     )
-    if query.origin != "all":
-        input_kind = func.coalesce(case.snapshot["facts"]["input_kind"].astext, DEMO_INPUT_KIND)
-        statement = statement.where(
-            input_kind == DEMO_INPUT_KIND
-            if query.origin == "demo"
-            else input_kind != DEMO_INPUT_KIND
-        )
     if query.status == "draft":
         statement = statement.where(decision.case_id.is_(None))
     elif query.status != "all":
