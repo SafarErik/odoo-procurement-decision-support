@@ -5,9 +5,7 @@ from copy import deepcopy
 
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case, _supplier_label
-from tests.test_t16_scenarios import configured as configured
-from tests.test_t16_scenarios import event
-from tests.test_t16_stored_planning import stored_cases as stored_cases
+from tests.helpers.frontend_patching import event
 
 
 def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
@@ -34,8 +32,8 @@ def test_labels_are_readable_without_inventing_odoo_business_names():
     assert _supplier_label("other-id") == "other-id"
 
 
-def test_unified_composer_outage_saves_against_original_base(configured):
-    state, uow, base, calls, _ = configured
+def test_unified_composer_outage_saves_against_original_base(scenario_state):
+    state, uow, base, calls, _ = scenario_state
     original = uow.rows[base["case_id"]].snapshot
     asyncio.run(
         event(
@@ -53,8 +51,8 @@ def test_unified_composer_outage_saves_against_original_base(configured):
     assert uow.rows[base["case_id"]].snapshot == original
 
 
-def test_unchanged_capacity_error_names_actual_original_without_post(configured):
-    state, _, _, calls, _ = configured
+def test_unchanged_capacity_error_names_actual_original_without_post(scenario_state):
+    state, _, _, calls, _ = scenario_state
     asyncio.run(
         event(
             state,
@@ -70,8 +68,8 @@ def test_unchanged_capacity_error_names_actual_original_without_post(configured)
     assert state.error_target == "scenario"
 
 
-def test_draft_changes_clear_on_kind_and_supplier_switch_and_freeze_when_pending(configured):
-    state, _, _, _, _ = configured
+def test_draft_changes_clear_on_kind_and_supplier_switch_and_freeze_when_pending(scenario_state):
+    state, _, _, _, _ = scenario_state
     PlanningState.select_stress_supplier.fn(state, "odoo:res.partner:306")
     PlanningState.update_stress.fn(state, "capacity", "4")
     assert "6 → 4" in state.scenario_draft

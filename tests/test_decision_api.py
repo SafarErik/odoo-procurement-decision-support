@@ -7,60 +7,16 @@ from io import BytesIO
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
-from pydantic import SecretStr
 from pypdf import PdfReader
 
 from application.errors import RepositoryError
 from application.planning_serialization import snapshot_json
-from backend.app.config import settings
-from backend.app.main import app
-from tests.t15_helpers import MemoryPlanningUnitOfWork
-from tests.test_t15_planning_api import forbidden
-from tests.test_t16_stored_planning import TOKEN
-from tests.test_t16_stored_planning import stored_cases as _stored_cases
-
-stored_cases = _stored_cases
-BASE = "/api/v2/procurement/planning-cases"
-
-
-def headers(key=None):
-    return {"Authorization": f"Bearer {TOKEN}", "Idempotency-Key": key or str(uuid4())}
-
-
-def intent(case, index=0, outcome="approve"):
-    return {
-        "snapshot_hash": case["snapshot_hash"],
-        "outcome": outcome,
-        "plan_index": index,
-        "actor_reference": "  buyer audit reference  ",
-        "rationale": "  prefer lower exposure  " if index != 0 else None,
-        "demonstration_acknowledged": True,
-    }
-
-
-@pytest.fixture
-def configured(stored_cases, monkeypatch):
-    original, base, child, infeasible = stored_cases
-    uow = MemoryPlanningUnitOfWork()
-    uow.rows = original.rows.copy()
-    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
-    for name in (
-        "infer_odoo_history_features",
-        "planning_solver_factory",
-        "resolve_odoo_history_input",
-    ):
-        monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
-    for name in ("assemble_planning_input", "create_procurement_plans"):
-        monkeypatch.setattr(f"application.planning_cases.{name}", forbidden)
-    with TestClient(app) as client:
-        yield client, uow, base, child, infeasible
+from tests.helpers.planning_api import BASE, headers, intent
 
 
 @pytest.mark.parametrize("index", [0, 1])
-def test_approval_atomic_content_stored_reload_and_semantic_replay(configured, index):
-    client, uow, base, *_ = configured
+def test_approval_atomic_content_stored_reload_and_semantic_replay(decision_api, index):
+    client, uow, base, *_ = decision_api
     before = uow.rows.copy()
     key = str(uuid4())
     command = intent(base, index)
@@ -99,8 +55,8 @@ def test_approval_atomic_content_stored_reload_and_semantic_replay(configured, i
 
 
 @pytest.mark.parametrize("has_plans", [True, False])
-def test_no_award_with_or_without_valid_plans(configured, has_plans):
-    client, uow, base, _, infeasible = configured
+def test_no_award_with_or_without_valid_plans(decision_api, has_plans):
+    client, uow, base, _, infeasible = decision_api
     if not has_plans:
         # Reuse the saved infeasible computation as a separate original base fixture.
         row = uow.rows[infeasible["case_id"]]
@@ -159,8 +115,8 @@ def test_no_award_with_or_without_valid_plans(configured, has_plans):
         {"recorded_at": "2020-01-01T00:00:00Z"},
     ],
 )
-def test_invalid_intent_leaves_no_decision(configured, changes):
-    client, uow, base, *_ = configured
+def test_invalid_intent_leaves_no_decision(decision_api, changes):
+    client, uow, base, *_ = decision_api
     response = client.post(
         f"{BASE}/{base['case_id']}/final-decision", json=intent(base) | changes, headers=headers()
     )
@@ -179,8 +135,8 @@ def test_every_storable_plan_index_passes_the_request_schema():
         PlanningFinalDecisionRequest(**(request | {"plan_index": 5}))
 
 
-def test_scenario_denial_authentication_missing_case_and_key_namespace(configured):
-    client, uow, base, child, _ = configured
+def test_scenario_denial_authentication_missing_case_and_key_namespace(decision_api):
+    client, uow, base, child, _ = decision_api
     url = f"{BASE}/{child['case_id']}/final-decision"
     assert client.post(url, json=intent(child), headers=headers()).status_code == 422
     assert client.post(url, json=intent(child)).status_code == 401
@@ -223,8 +179,8 @@ def test_scenario_denial_authentication_missing_case_and_key_namespace(configure
         "model_version",
     ],
 )
-def test_corrupt_evidence_fails_closed(configured, corruption):
-    client, uow, base, *_ = configured
+def test_corrupt_evidence_fails_closed(decision_api, corruption):
+    client, uow, base, *_ = decision_api
     row = uow.rows[base["case_id"]]
     value = json.loads(row.snapshot)
     if corruption == "cost":
@@ -257,8 +213,8 @@ def test_corrupt_evidence_fails_closed(configured, corruption):
 
 
 @pytest.mark.parametrize("index", [0, 1])
-def test_retained_proven_plan_after_later_failure_is_approvable(configured, index):
-    client, uow, base, *_ = configured
+def test_retained_proven_plan_after_later_failure_is_approvable(decision_api, index):
+    client, uow, base, *_ = decision_api
     row = uow.rows[base["case_id"]]
     snapshot = json.loads(row.snapshot)
     earlier_runs = snapshot["result"]["runs"] if index == 1 else []
@@ -297,8 +253,8 @@ def test_retained_proven_plan_after_later_failure_is_approvable(configured, inde
         assert warning in PdfReader(BytesIO(pdf.content)).pages[0].extract_text()
 
 
-def test_transaction_failure_leaves_no_partial_approval(configured, monkeypatch):
-    client, uow, base, *_ = configured
+def test_transaction_failure_leaves_no_partial_approval(decision_api, monkeypatch):
+    client, uow, base, *_ = decision_api
 
     def fail():
         raise RepositoryError("repository_failure", "commit failure")
@@ -310,8 +266,8 @@ def test_transaction_failure_leaves_no_partial_approval(configured, monkeypatch)
     assert response.status_code == 503 and not uow.decisions.rows
 
 
-def test_corrupt_approved_content_is_rejected_on_reload_and_retry(configured):
-    client, uow, base, *_ = configured
+def test_corrupt_approved_content_is_rejected_on_reload_and_retry(decision_api):
+    client, uow, base, *_ = decision_api
     key = str(uuid4())
     url = f"{BASE}/{base['case_id']}/final-decision"
     assert client.post(url, json=intent(base), headers=headers(key)).status_code == 201

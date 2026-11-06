@@ -1,4 +1,4 @@
-"""P4 validation tools: evaluation groups seeding, reference optimum, latency and demo report."""
+"""Validation tools: evaluation-group seeding, reference optimum, latency and demo report."""
 
 import json
 from contextlib import contextmanager
@@ -10,9 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from tests.test_odoo_purchase_history import configured as _configured
-from tests.test_odoo_purchase_history import history as _history
-from tests.test_t13_planning import request, scored, supplier
+from tests.helpers.milp_requests import request, scored, supplier
 from tools import demo
 from tools.milp_evaluation import (
     database_identity,
@@ -33,7 +31,6 @@ from tools.seed_odoo_history import (
     evaluation_groups,
 )
 
-configured, history = _configured, _history
 TOKEN = {"Authorization": "Bearer history-test-token"}
 BASE = "/api/v2/procurement/planning-cases"
 CLOCK = datetime(2026, 10, 17, tzinfo=UTC)
@@ -230,8 +227,8 @@ def test_reference_detects_a_wrong_plan():
 # --- HTTP latency and demo report on the fake Odoo ------------------------------------
 
 
-def test_measure_workload_times_create_scenario_retry_and_get(configured):
-    _, uow = configured
+def test_measure_workload_times_create_scenario_retry_and_get(fake_odoo):
+    _, uow = fake_odoo
     with TestClient(app, headers=TOKEN) as client:
         terms = client.get(f"{BASE}/odoo-history/preview?purchase_group_id=501").json()["terms"]
         measured = measure_workload(client, 501, terms, ("0.05", "0.1", "0.2"), 2, 1)
@@ -243,7 +240,7 @@ def test_measure_workload_times_create_scenario_retry_and_get(configured):
     assert len(uow.rows) == 3 * 2 + 1  # (base + scenario) per run, one infeasible scenario
 
 
-def test_demo_runs_flow_replays_and_writes_summary(configured, monkeypatch, tmp_path):
+def test_demo_runs_flow_replays_and_writes_summary(fake_odoo, monkeypatch, tmp_path):
     with TestClient(app, headers=TOKEN) as client:
 
         @contextmanager

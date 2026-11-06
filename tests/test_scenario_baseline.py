@@ -1,6 +1,5 @@
 """Original saved evidence stays available when a child has no proven plan."""
 
-import asyncio
 from copy import deepcopy
 from decimal import Decimal
 from fractions import Fraction
@@ -10,22 +9,13 @@ import pytest
 from frontend.i18n import number
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case, fetch_planning_case
-from tests.frontend_patching import patch_client
-from tests.test_t16_scenarios import configured as configured
-from tests.test_t16_stored_planning import stored_cases as stored_cases
-
-
-def consume(state, handler, *args):
-    async def run():
-        return [event async for event in handler.fn(state, *args)]
-
-    return asyncio.run(run())
+from tests.helpers.frontend_patching import consume, patch_client
 
 
 def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_draft(
-    configured, stored_cases, monkeypatch
+    scenario_state, stored_cases, monkeypatch
 ):
-    _, uow, base, posts, transport = configured
+    _, uow, base, posts, transport = scenario_state
     child = stored_cases[3]
     reads = []
     reject_original = [True]
@@ -104,9 +94,9 @@ def test_saved_comparison_has_exact_differences_and_cache_survives_child(stored_
 
 
 def test_definitive_scenario_failure_keeps_original_without_success_navigation(
-    configured, monkeypatch
+    scenario_state, monkeypatch
 ):
-    state, _, _, _, _ = configured
+    state, _, _, _, _ = scenario_state
     before = deepcopy(state.original_plan)
 
     async def reject(*args, **kwargs):

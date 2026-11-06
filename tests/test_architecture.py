@@ -1,6 +1,7 @@
 """Executable architecture-boundary checks."""
 
 import ast
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,11 @@ def _imports(path: Path) -> set[str]:
         elif isinstance(node, ast.ImportFrom) and node.module:
             imports.add(node.module)
     return imports
+
+
+def _import_roots(path: Path) -> set[str]:
+    """Top-level package names a module imports."""
+    return {name.split(".", 1)[0] for name in _imports(path)}
 
 
 def test_decision_core_remains_erp_and_provenance_independent() -> None:
@@ -62,7 +68,7 @@ def test_application_history_flow_depends_on_port_not_concrete_odoo_reader() -> 
     assert "class PurchaseHistoryPort(Protocol)" in source
 
 
-def test_t7s_addon_is_projection_only() -> None:
+def test_inventory_projection_addon_is_projection_only() -> None:
     addon = PROJECT_ROOT / "infra" / "odoo" / "addons" / "t7s_inventory_history_projection"
     for path in addon.rglob("*.py"):
         source = path.read_text(encoding="utf-8")
@@ -205,3 +211,123 @@ def test_seeding_tool_is_never_reachable_from_runtime_code() -> None:
                 continue
             assert "seed_odoo_history" not in path.read_text(encoding="utf-8"), path
             assert all(not name.startswith("tools") for name in _imports(path)), path
+
+
+def test_domain_and_orchestration_do_not_import_infrastructure_or_spikes():
+    forbidden = {
+        "pulp",
+        "optimization_adapter",
+        "application",
+        "backend",
+        "odoo_adapter",
+        "persistence",
+        "sqlalchemy",
+        "psycopg",
+        "reflex",
+        "sklearn",
+        "tools",
+        "httpx",
+    }
+    for path in (PROJECT_ROOT / "decision_core/planning").glob("*.py"):
+        assert _import_roots(path).isdisjoint(forbidden), path
+    assert _import_roots(PROJECT_ROOT / "application/procurement_planning.py").isdisjoint(
+        forbidden - {"application"}
+    )
+
+
+def test_solver_adapter_is_not_an_erp_or_application_client():
+    for path in (PROJECT_ROOT / "optimization_adapter").glob("*.py"):
+        assert _import_roots(path).isdisjoint(
+            {
+                "application",
+                "backend",
+                "odoo_adapter",
+                "persistence",
+                "sklearn",
+                "tools",
+                "reflex",
+                "httpx",
+            }
+        ), path
+
+
+def test_solver_is_required_in_python_311_quality_not_an_optional_skip():
+    project = (PROJECT_ROOT / "pyproject.toml").read_text()
+    required = project.split("[project.optional-dependencies]")[0]
+    assert '"pulp==3.3.0"' in required
+    quality = (PROJECT_ROOT / ".github/workflows/quality.yml").read_text()
+    assert 'python-version: "3.11"' in quality
+    assert 'run: pytest -m "not integration and not e2e" -v' in quality
+    runtime = ast.parse((PROJECT_ROOT / "tests/test_solver_runtime.py").read_text())
+    assert not {"integration", "e2e"} & {
+        node.attr for node in ast.walk(runtime) if isinstance(node, ast.Attribute)
+    }
+    for name in ("test_milp_planning.py", "test_solver_runtime.py", "test_architecture.py"):
+        path = PROJECT_ROOT / "tests" / name
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                assert node.func.attr not in {"importorskip", "skip"}, path
+
+
+def test_ml_is_external_to_existing_runtime_boundaries():
+    for folder in ("decision_core", "optimization_adapter", "backend", "frontend", "persistence"):
+        for path in (PROJECT_ROOT / folder).rglob("*.py"):
+            # The backend root composes the ML package; routes/storage/core stay external.
+            if path in {
+                PROJECT_ROOT / "backend/app/dependencies.py",
+                PROJECT_ROOT / "backend/app/planning_case_schemas.py",
+            }:
+                assert _import_roots(path).isdisjoint({"sklearn", "joblib"}), path
+            else:
+                assert _import_roots(path).isdisjoint(
+                    {"supplier_evaluation", "sklearn", "joblib"}
+                ), path
+    for filename in ("contracts.py", "purchase_history.py", "history_model.py"):
+        assert _import_roots(PROJECT_ROOT / "supplier_evaluation" / filename).isdisjoint(
+            {
+                "optimization_adapter",
+                "decision_core",
+                "backend",
+                "odoo_adapter",
+                "persistence",
+                "reflex",
+                "httpx",
+                "pulp",
+                "tools",
+            }
+        ), filename
+    assert _import_roots(PROJECT_ROOT / "supplier_evaluation/planning_bridge.py").isdisjoint(
+        {"sklearn", "joblib"}
+    )
+
+
+def test_required_ml_dependency_and_python311_ci_cannot_silently_skip():
+    project = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text())
+    assert "scikit-learn==1.8.0" in project["project"]["dependencies"]
+    assert "supplier_evaluation*" in project["tool"]["setuptools"]["packages"]["find"]["include"]
+    quality = (PROJECT_ROOT / ".github/workflows/quality.yml").read_text()
+    assert 'python-version: "3.11"' in quality
+    assert 'run: pytest -m "not integration and not e2e" -v' in quality
+    assert "supplier_evaluation" in quality
+    from supplier_evaluation.history_model import runtime
+
+    assert runtime()["sklearn"] == "1.8.0"
+    assert runtime()["numpy"] == "2.3.5"
+    assert runtime()["scipy"] == "1.16.3"
+    # Actual training runs in the fast gate, unmarked and never skipped.
+    training = PROJECT_ROOT / "tests/test_odoo_purchase_history.py"
+    assert not {"integration", "e2e"} & {
+        node.attr
+        for node in ast.walk(ast.parse(training.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Attribute)
+    }
+    for path in (
+        PROJECT_ROOT / "tests/test_risk_bridge.py",
+        PROJECT_ROOT / "tests/test_architecture.py",
+        training,
+    ):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                assert node.func.attr not in {"importorskip", "skip"}, path

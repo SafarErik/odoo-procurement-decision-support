@@ -18,7 +18,7 @@ from decision_core.planning.models import (
 from supplier_evaluation.contracts import Context, QuantityValidity
 from supplier_evaluation.planning_bridge import risk_inputs
 from supplier_evaluation.purchase_history import feature_snapshot
-from tests.test_odoo_purchase_history import COMPANY, DATABASE
+from tests.helpers.odoo_fakes import COMPANY, DATABASE
 
 
 @pytest.fixture(scope="module")

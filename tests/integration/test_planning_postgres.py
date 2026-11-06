@@ -15,49 +15,18 @@ from sqlalchemy.exc import DBAPIError
 from application.errors import RepositoryError
 from backend.app.main import app
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.test_odoo_purchase_history import headers, install_fake_odoo
-from tests.test_odoo_purchase_history import history as history
+from tests.helpers.planning_api import BASE, create_case, forbidden, headers
 
 pytestmark = pytest.mark.integration
-BASE = "/api/v2/procurement/planning-cases"
 
 
-@pytest.fixture
-def configured(postgres_runtime, history, monkeypatch):
-    engine, factory = postgres_runtime
-    with engine.begin() as connection:
-        connection.execute(
-            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
-        )
-    calls = install_fake_odoo(history, monkeypatch)
-    monkeypatch.setattr(
-        "backend.app.routes.planning_cases.get_planning_unit_of_work",
-        lambda: SqlAlchemyPlanningUnitOfWork(factory),
-    )
-    with TestClient(app) as client:
-        preview = client.get(
-            f"{BASE}/odoo-history/preview?purchase_group_id=501", headers=headers()
-        )
-        assert preview.status_code == 200, preview.text
-    payload = {"purchase_group_id": 501, "terms": preview.json()["terms"]}
-    return engine, factory, payload, calls
-
-
-def forbidden(*args, **kwargs):
-    raise AssertionError("Stored retrieval/replay touched Odoo, model or solver")
-
-
-def create(client, payload, key=None):
-    response = client.post(f"{BASE}/from-odoo-history", json=payload, headers=headers(key))
-    assert response.status_code == 201, response.text
-    return response.json()
-
-
-def test_http_database_roundtrip_bidirectional_scenarios_and_stored_replay(configured, monkeypatch):
-    engine, _, payload, calls = configured
+def test_http_database_roundtrip_bidirectional_scenarios_and_stored_replay(
+    postgres_history_api, monkeypatch
+):
+    engine, _, payload, calls = postgres_history_api
     key = str(uuid4())
     with TestClient(app) as client:
-        base = create(client, payload, key)
+        base = create_case(client, payload["terms"], key)
         case_id = base["case_id"]
         supplier = payload["terms"]["suppliers"][0]
         source = payload["terms"]["requirement_source"]
@@ -137,10 +106,10 @@ def test_http_database_roundtrip_bidirectional_scenarios_and_stored_replay(confi
         "DELETE FROM planning_cases WHERE case_id=:id",
     ],
 )
-def test_database_rejects_snapshot_mapping_and_delete_mutation(configured, statement):
-    engine, _, payload, _ = configured
+def test_database_rejects_snapshot_mapping_and_delete_mutation(postgres_history_api, statement):
+    engine, _, payload, _ = postgres_history_api
     with TestClient(app) as client:
-        base = create(client, payload)
+        base = create_case(client, payload["terms"])
         with pytest.raises(DBAPIError, match="immutable"):
             with engine.begin() as connection:
                 connection.execute(text(statement), {"id": base["case_id"], "key": str(uuid4())})
@@ -150,8 +119,8 @@ def test_database_rejects_snapshot_mapping_and_delete_mutation(configured, state
         )
 
 
-def test_same_key_concurrent_creation_computes_once(configured, monkeypatch):
-    engine, _, payload, _ = configured
+def test_same_key_concurrent_creation_computes_once(postgres_history_api, monkeypatch):
+    engine, _, payload, _ = postgres_history_api
     from backend.app.routes import planning_cases as routes
 
     actual_infer, calls = routes.infer_odoo_history_features, []
@@ -178,8 +147,10 @@ def test_same_key_concurrent_creation_computes_once(configured, monkeypatch):
         assert connection.execute(text("SELECT count(*) FROM planning_cases")).scalar_one() == 1
 
 
-def test_failed_commit_rolls_back_case_and_key_then_allows_fresh_attempt(configured, monkeypatch):
-    engine, _, payload, _ = configured
+def test_failed_commit_rolls_back_case_and_key_then_allows_fresh_attempt(
+    postgres_history_api, monkeypatch
+):
+    engine, _, payload, _ = postgres_history_api
     key = str(uuid4())
     with monkeypatch.context() as patch:
 
@@ -193,4 +164,4 @@ def test_failed_commit_rolls_back_case_and_key_then_allows_fresh_attempt(configu
     with engine.connect() as connection:
         assert connection.execute(text("SELECT count(*) FROM planning_cases")).scalar_one() == 0
     with TestClient(app) as client:
-        create(client, payload, key)
+        create_case(client, payload["terms"], key)

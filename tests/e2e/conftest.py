@@ -160,7 +160,7 @@ class SmokeStack:
             return False
 
     def start_api(self):
-        """Real API and PostgreSQL; Odoo and the history model come from the P1 fixtures."""
+        """Real API and PostgreSQL; Odoo and the history model come from the fast-test fakes."""
         self.api = self.start(
             [
                 sys.executable,

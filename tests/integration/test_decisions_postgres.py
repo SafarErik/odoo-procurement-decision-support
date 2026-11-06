@@ -5,46 +5,19 @@ from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
-from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from application.errors import RepositoryError
-from backend.app.config import settings
-from backend.app.main import app
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.test_t17_decisions import BASE, TOKEN, headers, intent
-from tests.test_t17_decisions import stored_cases as _stored_cases
+from tests.helpers.planning_api import BASE, headers, intent
 
 pytestmark = pytest.mark.integration
-stored_cases = _stored_cases
-
-
-@pytest.fixture
-def configured(postgres_runtime, stored_cases, monkeypatch):
-    engine, factory = postgres_runtime
-    memory, base, child, _ = stored_cases
-    with engine.begin() as connection:
-        connection.execute(
-            text("TRUNCATE planning_documents, planning_final_decisions, planning_cases")
-        )
-    with SqlAlchemyPlanningUnitOfWork(factory) as uow:
-        for row in memory.rows.values():
-            uow.cases.add(row)
-        uow.commit()
-    monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
-    monkeypatch.setattr(
-        "backend.app.routes.planning_cases.get_planning_unit_of_work",
-        lambda: SqlAlchemyPlanningUnitOfWork(factory),
-    )
-    with TestClient(app) as client:
-        yield engine, factory, client, base, child
 
 
 @pytest.mark.parametrize("same_intent", [True, False])
-def test_genuinely_contending_finalization_transactions(configured, same_intent):
-    engine, _, client, base, _ = configured
+def test_genuinely_contending_finalization_transactions(postgres_decision_api, same_intent):
+    engine, _, client, base, _ = postgres_decision_api
     key = str(uuid4())
     commands = [intent(base), intent(base) if same_intent else intent(base, 1)]
     keys = [key, key if same_intent else str(uuid4())]
@@ -102,8 +75,8 @@ def test_genuinely_contending_finalization_transactions(configured, same_intent)
         "DELETE FROM planning_cases WHERE case_id=:id",
     ],
 )
-def test_database_rejects_final_decision_and_snapshot_mutation(configured, statement):
-    engine, _, client, base, _ = configured
+def test_database_rejects_final_decision_and_snapshot_mutation(postgres_decision_api, statement):
+    engine, _, client, base, _ = postgres_decision_api
     response = client.post(
         f"{BASE}/{base['case_id']}/final-decision", json=intent(base), headers=headers()
     )
@@ -117,8 +90,8 @@ def test_database_rejects_final_decision_and_snapshot_mutation(configured, state
     )
 
 
-def test_database_rollback_after_insert_and_before_commit(configured, monkeypatch):
-    engine, factory, client, base, _ = configured
+def test_database_rollback_after_insert_and_before_commit(postgres_decision_api, monkeypatch):
+    engine, factory, client, base, _ = postgres_decision_api
 
     class FailedCommit(SqlAlchemyPlanningUnitOfWork):
         def commit(self):
@@ -142,8 +115,8 @@ def test_database_rollback_after_insert_and_before_commit(configured, monkeypatc
     assert client.post(url, json=intent(base), headers=headers(key)).status_code == 201
 
 
-def test_database_base_only_and_global_key_uniqueness(configured):
-    engine, _, client, base, child = configured
+def test_database_base_only_and_global_key_uniqueness(postgres_decision_api):
+    engine, _, client, base, child = postgres_decision_api
     key = str(uuid4())
     assert (
         client.post(

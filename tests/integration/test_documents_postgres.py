@@ -13,21 +13,15 @@ from application.errors import RepositoryError
 from backend.app.dependencies import render_approved_document
 from document_adapter.approved_pdf import render_plan_pdf
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.integration.test_t17_decisions_postgres import configured as _configured
-from tests.integration.test_t17_decisions_postgres import stored_cases as _stored_cases
-from tests.test_t15_planning_api import forbidden
-from tests.test_t17_decisions import BASE, headers
-from tests.test_t21_documents import approve
+from tests.helpers.planning_api import BASE, approve, forbidden, headers
 
 pytestmark = pytest.mark.integration
-configured = _configured
-stored_cases = _stored_cases
 
 
 def test_contending_pdf_downloads_store_one_artifact_without_changing_approval(
-    configured, monkeypatch
+    postgres_decision_api, monkeypatch
 ):
-    engine, _, client, base, _ = configured
+    engine, _, client, base, _ = postgres_decision_api
     decision, url = approve(client, base)
     calls = []
 
@@ -88,16 +82,16 @@ def test_contending_pdf_downloads_store_one_artifact_without_changing_approval(
 @pytest.mark.parametrize(
     "mutation", ["UPDATE planning_documents SET pdf = pdf", "DELETE FROM planning_documents"]
 )
-def test_direct_pdf_mutation_rejected(configured, mutation):
-    engine, _, client, base, _ = configured
+def test_direct_pdf_mutation_rejected(postgres_decision_api, mutation):
+    engine, _, client, base, _ = postgres_decision_api
     _, url = approve(client, base)
     assert client.get(url, headers=headers()).status_code == 200
     with pytest.raises(DBAPIError), engine.begin() as connection:
         connection.execute(text(mutation))
 
 
-def test_pdf_insert_requires_exact_approved_content(configured):
-    engine, _, client, base, _ = configured
+def test_pdf_insert_requires_exact_approved_content(postgres_decision_api):
+    engine, _, client, base, _ = postgres_decision_api
     _, url = approve(client, base)
     assert client.get(url, headers=headers()).status_code == 200
     with pytest.raises(DBAPIError, match="PDF artifacts require"), engine.begin() as connection:
@@ -110,8 +104,10 @@ def test_pdf_insert_requires_exact_approved_content(configured):
         )
 
 
-def test_render_failure_and_post_flush_rollback_leave_approval_intact(configured, monkeypatch):
-    engine, _, client, base, _ = configured
+def test_render_failure_and_post_flush_rollback_leave_approval_intact(
+    postgres_decision_api, monkeypatch
+):
+    engine, _, client, base, _ = postgres_decision_api
     decision, url = approve(client, base)
 
     def fail(*args):
@@ -135,8 +131,8 @@ def test_render_failure_and_post_flush_rollback_leave_approval_intact(configured
     assert client.get(url, headers=headers()).status_code == 200
 
 
-def test_one_immutable_artifact_per_language_and_kind(configured, monkeypatch):
-    engine, _, client, base, _ = configured
+def test_one_immutable_artifact_per_language_and_kind(postgres_decision_api, monkeypatch):
+    engine, _, client, base, _ = postgres_decision_api
     decision, url = approve(client, base)
     responses = {
         (language, kind): client.get(

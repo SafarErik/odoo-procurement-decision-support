@@ -14,41 +14,8 @@ from frontend.app import PlanningState, planning_page
 from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
 from frontend.planning_client import fetch_planning_case, submit_planning_request
-from tests.frontend_patching import patch_client
-from tests.t15_helpers import (
-    MemoryPlanningUnitOfWork,
-    controlled_terms,
-    create_case,
-    odoo_case_api,
-)
-from tests.test_t15_planning_api import forbidden
-
-TOKEN = "t16-test-secret"
-
-
-@pytest.fixture(scope="module")
-def stored_cases(odoo_history):
-    """A stored Odoo-history base with two outage scenarios (one infeasible), via HTTP."""
-    uow = MemoryPlanningUnitOfWork()
-    with pytest.MonkeyPatch.context() as patch, odoo_case_api(odoo_history, uow, patch) as client:
-        terms = controlled_terms(client)
-        base = create_case(client, terms)
-        children = []
-        for selected in (terms["suppliers"][:1], terms["suppliers"]):
-            child = client.post(
-                f"/api/v2/procurement/planning-cases/{base['case_id']}/scenarios",
-                json={
-                    "kind": "supplier_outage",
-                    "source": terms["requirement_source"],
-                    "suppliers": [
-                        {"supplier_id": s["supplier_id"], "available": False} for s in selected
-                    ],
-                },
-                headers={"Idempotency-Key": str(uuid4())},
-            )
-            assert child.status_code == 201, child.text
-            children.append(child.json())
-    return uow, base, *children
+from tests.helpers.frontend_patching import patch_client
+from tests.helpers.planning_api import TOKEN, forbidden
 
 
 def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, monkeypatch):

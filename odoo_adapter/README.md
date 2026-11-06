@@ -23,4 +23,4 @@ field behaviour for every materially different target environment.
 R1 (2026-11-05) removed the open-RFQ summary reader (`GET /api/v1/procurement/rfqs`)
 and the T8 historical-performance reader; their design notes stay in `docs/history/`.
 The addon's older `read_bounded_history` projection method is still deployed and
-covered by `tests/test_t7s_projection_policy.py`, but no runtime code calls it.
+covered by `tests/test_odoo_inventory_projection_policy.py`, but no runtime code calls it.

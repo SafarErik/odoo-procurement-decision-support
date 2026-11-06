@@ -6,74 +6,14 @@ from copy import deepcopy
 
 import httpx
 import pytest
-from pydantic import SecretStr
 
-from backend.app.config import settings as backend_settings
 from backend.app.main import app
-from frontend.config import settings as frontend_settings
 from frontend.i18n import tr
-from frontend.odoo_history_client import fetch_odoo_history, fetch_quotation_groups
+from frontend.odoo_history_client import fetch_quotation_groups
 from frontend.planning.state import PlanningState
 from frontend.planning_client import submit_planning_request
-from tests.frontend_patching import patch_client
-from tests.test_odoo_purchase_history import configured as configured
-from tests.test_odoo_purchase_history import history as history
-
-TOKEN = "history-test-token"
-
-
-def consume(state, handler, *args):
-    async def run():
-        return [event async for event in handler.fn(state, *args)]
-
-    return asyncio.run(run())
-
-
-@pytest.fixture
-def prepared_state(configured, monkeypatch):
-    """A cockpit that listed the open groups, chose group 501 and read its history preview."""
-    asgi = httpx.ASGITransport(app=app)
-    monkeypatch.setattr(frontend_settings, "backend_base_url", "http://api.test")
-    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
-    monkeypatch.setattr(backend_settings, "planning_library_company_id", "odoo:res.company:1")
-    for name, function in (
-        ("fetch_quotation_groups", fetch_quotation_groups),
-        ("fetch_odoo_history", fetch_odoo_history),
-    ):
-
-        async def through_api(*args, function=function, **kwargs):
-            return await function(*args, **kwargs, transport=asgi)
-
-        patch_client(monkeypatch, name, through_api)
-    state = PlanningState(_reflex_internal_init=True)
-    state.lang = "en"  # the assertions below read English texts
-    consume(state, PlanningState.load_quotation_groups)
-    assert [g["value"] for g in state.quotation_groups] == ["501"], state.error_message
-    assert (
-        state.selected_group == "501"
-        and "T6 Comparison Product" in (state.quotation_groups[0]["label"])
-    )
-    consume(state, PlanningState.load_odoo_history)
-    assert state.odoo_ready and state.odoo_history_mode, state.error_message
-    terms = state._odoo_payload["controlled_input"]
-    form = {
-        "odoo_quantity": str(terms["requirement"]["approved_quantity"]),
-        "odoo_required_date": terms["requirement"]["required_date"],
-    }
-    for s in terms["suppliers"]:
-        form.update(
-            {
-                s["supplier_id"] + "_capacity": str(s["capacity"]),
-                s["supplier_id"] + "_moq": "5",
-                s["supplier_id"] + "_promised_date": s["promised_date"],
-                **{
-                    f"{s['supplier_id']}_{name}_{end}": str(s[f"{name}_quantities"][bound])
-                    for name in ("price", "delivery")
-                    for end, bound in (("min", "minimum"), ("max", "maximum"))
-                },
-            }
-        )
-    return state, form
+from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.planning_api import TOKEN
 
 
 def test_group_choice_is_limited_to_listed_selectable_groups(prepared_state):
@@ -104,9 +44,9 @@ def test_switching_group_drops_the_loaded_preview(prepared_state):
 
 
 def test_review_has_no_io_and_save_replays_identical_classified_intent(
-    configured, prepared_state, monkeypatch
+    fake_odoo, prepared_state, monkeypatch
 ):
-    upstream, uow = configured
+    upstream, uow = fake_odoo
     state, form = prepared_state
     original = deepcopy(state._odoo_payload)
     supplier = original["controlled_input"]["suppliers"][0]["supplier_id"]

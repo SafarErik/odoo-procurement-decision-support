@@ -8,37 +8,48 @@ drives a real browser against Reflex + FastAPI + PostgreSQL. Unknown markers fai
 | --- | --- |
 | `python -m tools.dev check` | Format, lint, compile, all fast tests, dependency consistency |
 | `pytest -m "integration and not e2e"` | Real PostgreSQL migrations, immutability triggers, idempotency races, live Odoo contracts (opt-in) |
-| `pytest -m e2e --browser chromium` | Browser flows on the Odoo-history path: real FastAPI, PostgreSQL (disposable Compose project) and Reflex; Odoo and the supplier model come from the P1 fixtures (`tests/e2e/odoo_fixture_api.py`), so no live Odoo is needed. Needs Podman and `pip install -e ".[e2e]"` plus `playwright install chromium` |
+| `pytest -m e2e --browser chromium` | Browser flows on the Odoo-history path: real FastAPI, PostgreSQL (disposable Compose project) and Reflex; Odoo and the supplier model come from the fast-test fakes (`tests/e2e/odoo_fixture_api.py` over `tests/helpers/odoo_fakes.py`), so no live Odoo is needed. Needs Podman and `pip install -e ".[e2e]"` plus `playwright install chromium` |
 
 CI: `.github/workflows/quality.yml` (required) runs the fast gate on Python 3.11;
 `integration.yml` (path-filtered, optional) runs the container/API tests with
 Docker Compose on Ubuntu.
 
+## Where tests live
+
+| Path | Contents |
+| --- | --- |
+| `tests/test_*.py` | Fast tests (unmarked), one module per capability; each module's docstring names it |
+| `tests/integration/` | `integration` marker: disposable PostgreSQL (`TEST_DATABASE_URL`) and opt-in live Odoo checks |
+| `tests/e2e/` | `integration` + `e2e` markers: browser harness (`conftest.py`) and the fixture API it starts (`odoo_fixture_api.py`) |
+| `tests/conftest.py` | Shared fixtures: `odoo_history` (fixed `REFERENCE_NOW`, exact values), `history` (current hour, real clock), `fake_odoo`, `stored_cases`, `decision_api`, `scenario_state`, `prepared_state` |
+| `tests/integration/conftest.py` | `postgres_runtime` (migrated test database), `postgres_history_api`, `postgres_decision_api` |
+| `tests/helpers/` | Non-fixture code: `odoo_fakes` (fake read-only Odoo, generated history, trained tree), `planning_api` (token, headers, case creation, decision intents), `in_memory_uow` (transactional in-memory store), `milp_requests` (small requests, exhaustive reference optimum), `frontend_patching` (`patch_client`, `consume`, `event`), `browser` |
+
+Test modules import shared code only from `tests.helpers`, never from another test module.
+Frontend state tests patch HTTP clients with `tests.helpers.frontend_patching.patch_client`,
+which targets the feature module that resolves each name (`state_base`, `state_case`,
+`state_decision`, `state_creation`, …).
+
 ## What the fast suite covers
 
 | Area | Main test files |
 | --- | --- |
-| MILP model: bounds, optimum vs. brute-force reference, alternatives, tie-break, infeasible / time-limit / solver-error states | `test_t13_planning.py`, `test_t13_solver_runtime.py` |
+| MILP model: bounds, optimum vs. brute-force reference, alternatives, tie-break, infeasible / time-limit / solver-error states | `test_milp_planning.py`, `test_solver_runtime.py`, `test_balanced_alternative.py` |
 | ML on Odoo purchase history: export policy, adapter, as-of features, next-window label, supplier/time split, depth selection, baselines, artifact, inference, readable path, seeding guards, full case lifecycle, strict terms, supplier overview, PDF v2 names | `test_odoo_purchase_history.py`, `test_supplier_overview.py` |
-| ML → MILP risk bridge and score validity | `test_t14_planning_bridge.py` |
-| Odoo addon's bounded inventory projection policy (still deployed, unused by the runtime) | `test_t7s_projection_policy.py` |
+| ML → MILP risk bridge and score validity | `test_risk_bridge.py` |
+| Odoo addon's bounded inventory projection policy (still deployed, unused by the runtime) | `test_odoo_inventory_projection_policy.py` |
 | Odoo readers (open quotation groups, comparison groups, purchase history) with mocked transport | `test_quotation_groups.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
-| Planning API: Odoo-history creation, fail-closed terms, idempotent replay, stored-only GET | `test_odoo_purchase_history.py`, `test_t15_planning_api.py` |
-| Stress scenarios against the original base, both directions | `test_t15_planning_api.py`, `test_t16_scenarios.py`, `test_scenario_baseline.py` |
-| Human decision, No-award, conflicts, approved plan and audit PDF v3 (HU/EN, per-language and per-kind storage; stored v1/v2 artifacts fail closed) | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
+| Planning API: Odoo-history creation, fail-closed terms, idempotent replay, stored-only GET | `test_odoo_purchase_history.py`, `test_scenario_api.py` |
+| Stress scenarios against the original base, both directions | `test_scenario_api.py`, `test_frontend_scenarios.py`, `test_scenario_baseline.py` |
+| Human decision, No-award, conflicts, approved plan and audit PDF v3 (HU/EN, per-language and per-kind storage; stored v1/v2 artifacts fail closed) | `test_decision_api.py`, `test_decision_confirmation.py`, `test_approved_documents.py` |
 | Saved-case library | `test_planning_library.py` |
-| Frontend state and HTTP clients (no browser) | `test_t16_*`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
-| UI language and formatting: Hungarian default, HU/EN texts, locale money/date/number, relabel on switch without HTTP, supplier cards and KPI chart data | `test_p3_frontend.py` |
+| Frontend state and HTTP clients (no browser) | `test_frontend_stored_case.py`, `test_frontend_scenarios.py`, `test_frontend_explanations.py`, `test_frontend_decision.py`, `test_saved_result_presentation.py`, `test_supplier_evidence.py`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
+| UI language and formatting: Hungarian default, HU/EN texts, locale money/date/number, relabel on switch without HTTP, supplier cards and KPI chart data | `test_frontend_presentation.py` |
 | Guided preparation: draft preservation, field validation, group-change guard, bounded home requests, explicit chart selection | `test_guided_workspace.py`, `test_creation_review.py` |
 | Browser: quotation → demand → terms → review → saved case → approval → HU/EN PDF; step/language preservation; 375 px scenario and error states; home and case views at 1440/1280/768/390 px, confirmation cancellation and No-award reopening without PDF | `tests/e2e/test_odoo_flow_browser.py`, `test_cases_scenarios_mobile_browser.py`, `test_guided_workspace_browser.py` |
-| Full HTTP acceptance flow on Odoo history (HU and EN PDF) | `test_t17_demo.py` |
-| P4 validation tools: evaluation-group seeding guards, exhaustive reference optimum and invariants (K, ties, infeasible variants), nearest-rank p95, latency workload, one-command demo with isolated replay | `test_p4_validation.py` |
-| Architecture boundaries | `test_architecture.py`, `test_t13_architecture.py`, `test_t14_architecture.py` |
-
-Test file names still carry historical increment numbers; they are renamed by
-capability when they are next changed. Frontend state tests patch HTTP clients with
-`tests/frontend_patching.patch_client`, which targets the feature module that resolves
-each name (`state_base`, `state_case`, `state_decision`, `state_creation`, …).
+| Full HTTP acceptance flow on Odoo history (HU and EN PDF) | `test_full_http_flow.py` |
+| P4 validation tools: evaluation-group seeding guards, exhaustive reference optimum and invariants (K, ties, infeasible variants), nearest-rank p95, latency workload, one-command demo with isolated replay | `test_validation_tools.py` |
+| Architecture boundaries, including the solver and ML runtimes being required in the fast gate | `test_architecture.py` |
 
 ## Validation runs with live services (P4)
 

@@ -8,7 +8,7 @@ import pytest
 
 from decision_core.planning.models import PlanningStatus
 from optimization_adapter.pulp_cbc import PulpCbcSolver
-from tests.test_t13_planning import request
+from tests.helpers.milp_requests import request
 
 
 def test_required_pulp_and_actual_cbc_runtime():

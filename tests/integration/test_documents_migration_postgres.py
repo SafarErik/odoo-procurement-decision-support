@@ -16,15 +16,9 @@ from sqlalchemy.exc import DBAPIError
 
 from backend.app.dependencies import render_approved_document
 from document_adapter.approved_pdf import render_plan_pdf
-from tests.integration.test_t17_decisions_postgres import configured as _configured
-from tests.integration.test_t17_decisions_postgres import stored_cases as _stored_cases
-from tests.test_t15_planning_api import forbidden
-from tests.test_t17_decisions import headers
-from tests.test_t21_documents import approve
+from tests.helpers.planning_api import approve, forbidden, headers
 
 pytestmark = pytest.mark.integration
-configured = _configured
-stored_cases = _stored_cases
 
 
 def _config():
@@ -63,8 +57,8 @@ def _insert_combined(engine, decision, case_id, language, reference, renderer):
     return pdf
 
 
-def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured):
-    engine, _, client, base, _ = configured
+def test_per_language_downgrade_keeps_v1_english_and_removes_v2(postgres_decision_api):
+    engine, _, client, base, _ = postgres_decision_api
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
     _migrate(engine, "downgrade", "20261019_01")
@@ -98,9 +92,9 @@ def test_per_language_downgrade_keeps_v1_english_and_removes_v2(configured):
 
 @pytest.mark.parametrize("renderer", ["layout-v3", "layout-v4"])
 def test_combined_documents_become_plan_and_downgrade_refuses_audit(
-    configured, monkeypatch, renderer
+    postgres_decision_api, monkeypatch, renderer
 ):
-    engine, _, client, base, _ = configured
+    engine, _, client, base, _ = postgres_decision_api
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
     reference = f"t17-approved-pdf-v2:{base['case_id']}:hu:{content_hash}"

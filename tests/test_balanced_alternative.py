@@ -10,7 +10,7 @@ from application.planning_serialization import json_value, read_request, read_re
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.planner import plan_procurement
 from optimization_adapter.pulp_cbc import PulpCbcSolver
-from tests.test_t13_planning import request, scored, supplier
+from tests.helpers.milp_requests import request, scored, supplier
 from tools.milp_evaluation import check_result, reference_plans
 
 

@@ -1,4 +1,4 @@
-"""Fast contract tests for the read-only T6 Odoo comparison-case reader."""
+"""Read-only Odoo comparison-case (quotation group) reader with mocked transport."""
 
 import asyncio
 from decimal import Decimal
@@ -8,65 +8,11 @@ import pytest
 
 from application.errors import ProcurementDataResponseError
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
-
-
-def _payloads() -> dict[str, object]:
-    orders = [
-        {
-            "id": 101,
-            "name": "T6-RFQ-A",
-            "partner_id": [301, "T6 Supplier A"],
-            "state": "draft",
-            "currency_id": [2, "USD"],
-            "company_id": [1, "My Company"],
-            "purchase_group_id": [501, "T6-COMP-001"],
-            "order_line": [201],
-        },
-        {
-            "id": 102,
-            "name": "T6-RFQ-B",
-            "partner_id": [302, "T6 Supplier B"],
-            "state": "sent",
-            "currency_id": [2, "USD"],
-            "company_id": [1, "My Company"],
-            "purchase_group_id": [501, "T6-COMP-001"],
-            "order_line": [202],
-        },
-        {
-            "id": 103,
-            "name": "T6-RFQ-C",
-            "partner_id": [303, "T6 Supplier C"],
-            "state": "to approve",
-            "currency_id": [2, "USD"],
-            "company_id": [1, "My Company"],
-            "purchase_group_id": [501, "T6-COMP-001"],
-            "order_line": [203],
-        },
-    ]
-    lines = [
-        {
-            "id": 201 + index,
-            "order_id": [101 + index, f"T6-RFQ-{letter}"],
-            "product_id": [42, "T6 Comparison Product"],
-            "product_uom_id": [1, "Units"],
-            "product_qty": 100.0,
-            "price_unit": price,
-            "discount": 0.0,
-            "tax_ids": [],
-            "currency_id": [2, "USD"],
-            "company_id": [1, "My Company"],
-        }
-        for index, (letter, price) in enumerate((("A", 10.0), ("B", 12.0), ("C", 9.0)))
-    ]
-    partners = [
-        {"id": 301 + index, "commercial_partner_id": [301 + index, f"T6 Supplier {letter}"]}
-        for index, letter in enumerate(("A", "B", "C"))
-    ]
-    return {"orders": orders, "lines": lines, "partners": partners}
+from tests.helpers.odoo_fakes import quotation_payloads
 
 
 def test_reader_requests_explicit_group_and_maps_only_validated_facts() -> None:
-    payloads = _payloads()
+    payloads = quotation_payloads()
     calls: list[tuple[str, dict[str, object]]] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -110,7 +56,7 @@ def test_reader_requests_explicit_group_and_maps_only_validated_facts() -> None:
 
 
 def test_reader_preserves_unsupported_values_for_fail_closed_application_validation() -> None:
-    payloads = _payloads()
+    payloads = quotation_payloads()
     payloads["orders"][0]["state"] = "purchase"  # type: ignore[index]
     payloads["lines"][0]["discount"] = 5.0  # type: ignore[index]
     payloads["lines"][0]["tax_ids"] = [7]  # type: ignore[index]
@@ -150,7 +96,7 @@ def test_reader_rejects_unbounded_or_invalid_upstream_payloads() -> None:
 
 
 def test_reader_rejects_unbounded_grouped_line_set() -> None:
-    payloads = _payloads()
+    payloads = quotation_payloads()
     payloads["orders"][0]["order_line"] = list(range(1, 42))  # type: ignore[index]
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -170,7 +116,7 @@ def test_reader_rejects_unbounded_grouped_line_set() -> None:
 
 
 def test_reader_rejects_incomplete_grouped_line_response() -> None:
-    payloads = _payloads()
+    payloads = quotation_payloads()
 
     def respond(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/purchase.order/search_count"):

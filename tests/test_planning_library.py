@@ -21,14 +21,8 @@ from backend.app.main import app
 from frontend.planning.library import library_page
 from frontend.planning.state import PlanningState
 from frontend.planning_library_client import fetch_library
-from tests.frontend_patching import patch_client
-from tests.test_t17_decisions import configured as _configured
-from tests.test_t17_decisions import headers, intent
-from tests.test_t17_decisions import stored_cases as _stored_cases
-
-configured = _configured
-stored_cases = _stored_cases
-BASE = "/api/v2/procurement/planning-cases"
+from tests.helpers.frontend_patching import patch_client
+from tests.helpers.planning_api import BASE, headers, intent
 
 
 @pytest.mark.parametrize(
@@ -85,8 +79,8 @@ def test_cursor_binds_every_filter_and_scope():
         library_query("")
 
 
-def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
-    client, uow, base, *_ = configured
+def test_http_validation_and_fail_closed_scope(decision_api, monkeypatch):
+    client, uow, base, *_ = decision_api
     monkeypatch.setattr(settings, "planning_library_company_id", "")
     assert client.get(BASE, headers=headers()).status_code == 503
     assert client.get(BASE).status_code == 401
@@ -129,8 +123,8 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
     )
 
 
-def test_summaries_preserve_source_lineage_and_decision(configured):
-    client, uow, base, child, _ = configured
+def test_summaries_preserve_source_lineage_and_decision(decision_api):
+    client, uow, base, child, _ = decision_api
     company = base["snapshot"]["facts"]["company_id"]
     row = case_summary(uow.rows[child["case_id"]], None, company)
     assert row["parent_id"] == base["case_id"] and row["scenario_kind"]
@@ -180,11 +174,11 @@ def test_library_http_client_unavailable_and_invalid_data():
     asyncio.run(flow())
 
 
-def test_bookmark_clear_invalid_previous_and_pending_guard(configured, monkeypatch):
+def test_bookmark_clear_invalid_previous_and_pending_guard(decision_api, monkeypatch):
     from frontend.config import settings as frontend_settings
     from frontend.planning_client import fetch_planning_case
 
-    _, _, base, *_ = configured
+    _, _, base, *_ = decision_api
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
 
     async def fetch(url, case_id, token, lang="en"):

@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from tests.e2e.test_cases_scenarios_mobile_browser import _create_case, _no_horizontal_scroll
+from tests.helpers.browser import create_base_case, no_horizontal_scroll
 
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
@@ -25,13 +25,13 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
     page.goto(stack.frontend_url)
     expect(page.get_by_role("heading", name="Döntésre váró ügyek")).to_be_visible()
     expect(page.get_by_text(re.compile("Még nincs mentett ügy"))).to_be_visible()
-    base = _create_case(stack.client)
+    base = create_base_case(stack.client)
     page.reload()
     expect(page.get_by_role("button", name=re.compile("Ügy folytatása")).first).to_be_visible()
 
     for width in (1440, 1280, 768, 390):
         page.set_viewport_size({"width": width, "height": 900})
-        assert _no_horizontal_scroll(page), f"Home overflow at {width}"
+        assert no_horizontal_scroll(page), f"Home overflow at {width}"
         page.screenshot(path=str(stack.root / f"home-{width}.png"), full_page=True)
 
     page.get_by_role("button", name=re.compile("Ügy folytatása")).first.click()
@@ -52,7 +52,7 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
                 expect(page.get_by_role("region", name="Supplier 1", exact=True)).to_be_visible()
             if tab == "scenarios":
                 expect(page.get_by_text("Forgatókönyvek betöltése…")).not_to_be_visible()
-            assert _no_horizontal_scroll(page), f"{tab} overflow at {width}"
+            assert no_horizontal_scroll(page), f"{tab} overflow at {width}"
             page.evaluate("window.scrollTo(0, 0)")
             page.screenshot(path=str(stack.root / f"{tab}-{width}.png"), full_page=True)
 
@@ -81,7 +81,7 @@ def test_home_responsive_saved_case_and_no_award(smoke_stack, smoke_page):
     expect(page.locator("#saved-decision-heading")).to_have_text("Nem rendelünk")
     page.wait_for_function(ACTIVE_TAB_VISIBLE)
     assert page.url == closed_url
-    assert _no_horizontal_scroll(page)
+    assert no_horizontal_scroll(page)
     page.screenshot(path=str(stack.root / "no-award-390.png"), full_page=True)
     stack.evidence["checks"].append(
         "Empty/populated home; 1440/1280/768/390 px case views; reduced motion; "
