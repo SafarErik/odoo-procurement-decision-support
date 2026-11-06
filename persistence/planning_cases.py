@@ -7,15 +7,13 @@ from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from application.errors import RepositoryError
-from application.planning_cases import (
-    SNAPSHOT_VERSION,
-    PlanningCase,
-    validate_snapshot,
-)
+from application.planning_cases import PlanningCase, validate_snapshot
 from application.planning_serialization import snapshot_json
+from application.stored_contracts import SNAPSHOT_VERSION
 from persistence.planning_decisions import SqlAlchemyPlanningDecisionRepository, read_decision_row
 from persistence.planning_documents import SqlAlchemyPlanningDocumentRepository
 from persistence.schema import (
+    CASE_LOCK_PREFIX,
     PlanningCaseRecord,
     PlanningFinalDecisionRecord,
 )
@@ -28,7 +26,8 @@ class SqlAlchemyPlanningRepository:
     def lock(self, key: str) -> None:
         try:
             self._session.execute(
-                text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": "t15:" + key}
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+                {"key": CASE_LOCK_PREFIX + key},
             )
         except SQLAlchemyError as error:
             raise RepositoryError(

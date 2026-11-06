@@ -1,36 +1,35 @@
-"""One-time human decisions over stored V2 evidence; no acquisition or computation."""
+"""One-time human decisions over stored planning evidence; no Odoo read, scoring or solving."""
 
 import json
-import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from fractions import Fraction
-from typing import Protocol
 
-from application.errors import RepositoryError
+from application.errors import PlanningCaseError, RepositoryError
 from application.planning_cases import (
     PlanningCase,
-    PlanningCaseError,
     canonical_uuid,
     fingerprint,
     validate_snapshot,
 )
-from application.planning_history import HISTORY_INPUT_KIND
 from application.planning_serialization import (
+    is_sha256_hex,
     json_value,
     read_assessments,
     read_request,
     read_result,
     snapshot_json,
 )
+from application.procurement_planning import risk_inputs
+from application.stored_contracts import CONTENT_VERSION, DECISION_VERSION, HISTORY_INPUT_KIND
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import checked_plan
 from supplier_evaluation.contracts import HISTORY_SOURCE, text_identity, utc
-from supplier_evaluation.planning_bridge import risk_inputs
 
-DECISION_VERSION = "t17-final-decision-v1"
-CONTENT_VERSION = "t17-approved-planning-v1"
+DECISION_OUTCOMES = ("approve", "no_award")
+MAX_ACTOR_LENGTH = 255
+MAX_RATIONALE_LENGTH = 2000
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,13 +43,12 @@ class FinalizePlanningCommand:
 
     def normalized(self):
         if (
-            not isinstance(self.snapshot_hash, str)
-            or re.fullmatch(r"[0-9a-f]{64}", self.snapshot_hash) is None
-            or self.outcome not in {"approve", "no_award"}
+            not is_sha256_hex(self.snapshot_hash)
+            or self.outcome not in DECISION_OUTCOMES
             or not isinstance(self.actor_reference, str)
-            or not 1 <= len(self.actor_reference.strip()) <= 255
+            or not 1 <= len(self.actor_reference.strip()) <= MAX_ACTOR_LENGTH
             or (self.rationale is not None and not isinstance(self.rationale, str))
-            or (self.rationale is not None and len(self.rationale) > 2000)
+            or (self.rationale is not None and len(self.rationale) > MAX_RATIONALE_LENGTH)
             or self.demonstration_acknowledged is not True
         ):
             raise PlanningCaseError(
@@ -82,13 +80,6 @@ class PlanningFinalDecision:
     @property
     def record_hash(self):
         return fingerprint(json.loads(self.record))
-
-
-class PlanningDecisionRepository(Protocol):
-    def lock(self, key: str) -> None: ...
-    def get(self, case_id: str) -> PlanningFinalDecision | None: ...
-    def by_key(self, key: str) -> PlanningFinalDecision | None: ...
-    def add(self, decision: PlanningFinalDecision) -> None: ...
 
 
 def _saved_evidence(case: PlanningCase) -> dict:
@@ -238,7 +229,7 @@ def _approved_content(case, snapshot, intent, audit):
 
 
 def validate_final_decision(case, decision):
-    """Stored reopening/replay fails closed on inconsistent human or approved content."""
+    """Recheck a stored decision; inconsistent records raise RepositoryError (HTTP 503)."""
     try:
         snapshot = _saved_evidence(case)
         value = json.loads(decision.record)

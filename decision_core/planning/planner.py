@@ -41,8 +41,15 @@ class AllocationSolver(Protocol):
     ) -> SolveOutcome: ...
 
 
+# Wall-clock budget for one planning run (minimum cost plus all alternatives).
+SOLVER_TIME_LIMIT_SECONDS = 30.0
+
+
 def plan_procurement(
-    request: PlanningRequest, solver: AllocationSolver, *, time_limit_seconds: float = 30.0
+    request: PlanningRequest,
+    solver: AllocationSolver,
+    *,
+    time_limit_seconds: float = SOLVER_TIME_LIMIT_SECONDS,
 ) -> PlanningResult:
     """One shared wall-clock budget; verified reference survives failed alternative work."""
     if (

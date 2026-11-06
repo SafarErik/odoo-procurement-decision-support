@@ -2,10 +2,8 @@
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
-
-import httpx
 
 from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 from application.purchase_history import (
@@ -14,11 +12,19 @@ from application.purchase_history import (
     PurchaseLineHistory,
     ReceiptEvent,
 )
+from odoo_adapter.json2_client import (
+    Json2Reader,
+    format_odoo_datetime,
+    odoo_errors,
+    parse_canonical_datetime,
+    prefixed_id,
+    required_int,
+)
+from supplier_evaluation.contracts import HISTORY_SOURCE
 
 MODEL = "procurement.product.history.export"
 METHOD = "read_product_history"
 SCHEMA_VERSION = "pdss.product_history.v1"
-SOURCE_TYPE = "odoo_purchase_history"
 _ENVELOPE = {"schema_version", "company_id", "product_id", "date_from", "date_to"}
 _ENVELOPE |= {"result_count", "lines"}
 _LINE = {
@@ -34,65 +40,34 @@ _LINE = {
 }
 _RECEIPT = {"stock_move_id", "stock_picking_id", "processed_at", "quantity"}
 _RECEIPT |= {"backorder_of_picking_id"}
-_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-class OdooProductHistoryReader:
+class OdooProductHistoryReader(Json2Reader):
     """Adapter exposing only the approved export method as a neutral port."""
 
-    def __init__(
-        self,
-        *,
-        base_url: str,
-        database: str,
-        api_key: str,
-        timeout_seconds: float = 15.0,
-        transport: httpx.AsyncBaseTransport | None = None,
-    ) -> None:
-        self._base_url = base_url.rstrip("/")
-        self._database = database
-        self._api_key = api_key
-        self._timeout_seconds = timeout_seconds
-        self._transport = transport
+    def __init__(self, *, timeout_seconds: float = 15.0, **settings) -> None:
+        super().__init__(timeout_seconds=timeout_seconds, **settings)
 
     async def read_purchase_history(self, query: PurchaseHistoryQuery) -> PurchaseHistorySnapshot:
-        if not self._base_url or not self._database or not self._api_key:
+        if not self._configured:
             raise ProcurementDataUnavailable("Odoo purchase history is not configured")
-        try:
+        with odoo_errors(
+            "Odoo purchase history", "Odoo purchase history returned an invalid response"
+        ):
             payload = {
-                "company_id": _prefixed_id(query.company_id, "odoo:res.company:"),
-                "product_id": _prefixed_id(query.product_id, "odoo:product.product:"),
-                "date_from": _odoo_datetime(query.window_start),
-                "date_to": _odoo_datetime(query.window_end),
+                "company_id": prefixed_id(query.company_id, "odoo:res.company:"),
+                "product_id": prefixed_id(query.product_id, "odoo:product.product:"),
+                "date_from": format_odoo_datetime(query.window_start),
+                "date_to": format_odoo_datetime(query.window_end),
                 "limit": query.limit,
             }
-            async with httpx.AsyncClient(
-                timeout=self._timeout_seconds,
-                transport=self._transport,
-                headers={
-                    "Authorization": f"Bearer {self._api_key}",
-                    "X-Odoo-Database": self._database,
-                    "User-Agent": "odoo-procurement-decision-support/0.0.1",
-                },
-            ) as client:
+            async with self._client() as client:
                 response = await client.post(
                     f"{self._base_url}/json/2/{MODEL}/{METHOD}", json=payload
                 )
                 response.raise_for_status()
                 result = response.json()
             lines = _map_response(result, query, payload)
-        except httpx.RequestError as error:
-            raise ProcurementDataUnavailable(
-                "Odoo purchase history could not be reached"
-            ) from error
-        except httpx.HTTPStatusError as error:
-            raise ProcurementDataResponseError(
-                f"Odoo purchase history returned HTTP {error.response.status_code}"
-            ) from error
-        except (KeyError, TypeError, ValueError, InvalidOperation) as error:
-            raise ProcurementDataResponseError(
-                "Odoo purchase history returned an invalid response"
-            ) from error
         reference = (
             f"{MODEL}.{METHOD}|database={self._database}|company={query.company_id}"
             f"|product={query.product_id}|window=[{query.window_start.isoformat()},"
@@ -100,7 +75,7 @@ class OdooProductHistoryReader:
         )
         try:
             return PurchaseHistorySnapshot(
-                query, lines, datetime.now(UTC).replace(microsecond=0), SOURCE_TYPE, reference
+                query, lines, datetime.now(UTC).replace(microsecond=0), HISTORY_SOURCE, reference
             )
         except ValueError as error:  # e.g. duplicate or out-of-window lines from Odoo
             raise ProcurementDataResponseError(
@@ -137,48 +112,24 @@ def _map_line(line: Any, query: PurchaseHistoryQuery) -> PurchaseLineHistory:
         backorder = receipt["backorder_of_picking_id"]
         receipts.append(
             ReceiptEvent(
-                f"odoo:stock.move:{_int(receipt['stock_move_id'])}",
-                _parse(receipt["processed_at"]),
+                f"odoo:stock.move:{required_int(receipt, 'stock_move_id')}",
+                parse_canonical_datetime(receipt["processed_at"]),
                 Decimal(str(receipt["quantity"])),
-                None if backorder is None else f"odoo:stock.picking:{_int(backorder)}",
+                None
+                if backorder is None
+                else f"odoo:stock.picking:{required_int(receipt, 'backorder_of_picking_id')}",
             )
         )
     return PurchaseLineHistory(
-        f"odoo:purchase.order.line:{_int(line['purchase_order_line_id'])}",
-        f"odoo:purchase.order:{_int(line['purchase_order_id'])}",
+        f"odoo:purchase.order.line:{required_int(line, 'purchase_order_line_id')}",
+        f"odoo:purchase.order:{required_int(line, 'purchase_order_id')}",
         query.company_id,
-        f"odoo:res.partner:{_int(line['commercial_partner_id'])}",
+        f"odoo:res.partner:{required_int(line, 'commercial_partner_id')}",
         query.product_id,
-        f"odoo:uom.uom:{_int(line['product_uom_id'])}",
+        f"odoo:uom.uom:{required_int(line, 'product_uom_id')}",
         Decimal(str(line["ordered_quantity"])),
-        _parse(line["expected_arrival_at"]),
-        _parse(line["order_confirmed_at"]),
+        parse_canonical_datetime(line["expected_arrival_at"]),
+        parse_canonical_datetime(line["order_confirmed_at"]),
         tuple(receipts),
         Decimal(str(line["returned_quantity"])),
     )
-
-
-def _odoo_datetime(value: datetime) -> str:
-    return value.astimezone(UTC).replace(tzinfo=None).strftime(_FORMAT)
-
-
-def _parse(value: Any) -> datetime:
-    if not isinstance(value, str):
-        raise TypeError("Export datetime must be a string")
-    parsed = datetime.strptime(value, _FORMAT)
-    if parsed.strftime(_FORMAT) != value:
-        raise ValueError("Export datetime is not canonical")
-    return parsed.replace(tzinfo=UTC)
-
-
-def _int(value: Any) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        raise TypeError("Expected a positive integer identity")
-    return value
-
-
-def _prefixed_id(value: str, prefix: str) -> int:
-    suffix = value.removeprefix(prefix) if value.startswith(prefix) else ""
-    if not suffix.isdigit() or str(int(suffix)) != suffix or int(suffix) <= 0:
-        raise ValueError("Identity has an unsupported source prefix")
-    return int(suffix)

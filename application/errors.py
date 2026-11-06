@@ -1,12 +1,20 @@
-"""Stable application error contracts shared by use cases and adapters."""
+"""Application error contracts shared by use cases, adapters and the HTTP layer."""
 
 
-class RepositoryError(RuntimeError):
-    """Stable failure contract implemented by persistence and runtime adapters."""
+class CodedError(Exception):
+    """An error with a stable machine-readable ``code`` that the HTTP layer maps to a status."""
 
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+class PlanningCaseError(CodedError, ValueError):
+    """The caller's planning request cannot be accepted (the HTTP layer answers 4xx/503)."""
+
+
+class RepositoryError(CodedError, RuntimeError):
+    """Storage or a runtime dependency (database, solver, renderer) is unavailable or invalid."""
 
 
 class ProcurementDataUnavailable(RuntimeError):

@@ -6,7 +6,7 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from application.errors import ProcurementDataResponseError
+from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from tests.helpers.odoo_fakes import quotation_payloads
 
@@ -133,6 +133,30 @@ def test_reader_rejects_incomplete_grouped_line_response() -> None:
     )
 
     with pytest.raises(ProcurementDataResponseError, match="invalid comparison-case payload"):
+        asyncio.run(reader.read_comparison_case(501))
+
+
+def _down(request: httpx.Request) -> httpx.Response:
+    raise httpx.ConnectError("refused", request=request)
+
+
+@pytest.mark.parametrize(
+    ("respond", "error", "message"),
+    [
+        (_down, ProcurementDataUnavailable, "could not be reached"),
+        (lambda request: httpx.Response(500), ProcurementDataResponseError, "HTTP 500"),
+    ],
+)
+def test_unreachable_odoo_and_http_errors_map_to_distinct_errors(respond, error, message) -> None:
+    """Unreachable Odoo must become 'unavailable' (503), an HTTP error 'bad response' (502)."""
+    reader = OdooComparisonCaseReader(
+        base_url="http://odoo.example.test",
+        database="db",
+        api_key="key",
+        transport=httpx.MockTransport(respond),
+    )
+
+    with pytest.raises(error, match=message):
         asyncio.run(reader.read_comparison_case(501))
 
 

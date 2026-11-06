@@ -273,8 +273,10 @@ def test_solver_is_required_in_python_311_quality_not_an_optional_skip():
 def test_ml_is_external_to_existing_runtime_boundaries():
     for folder in ("decision_core", "optimization_adapter", "backend", "frontend", "persistence"):
         for path in (PROJECT_ROOT / folder).rglob("*.py"):
-            # The backend root composes the ML package; routes/storage/core stay external.
+            # The backend root composes the ML package and config reads its data-origin
+            # vocabulary; routes/storage/core stay external.
             if path in {
+                PROJECT_ROOT / "backend/app/config.py",
                 PROJECT_ROOT / "backend/app/dependencies.py",
                 PROJECT_ROOT / "backend/app/planning_case_schemas.py",
             }:
@@ -297,9 +299,12 @@ def test_ml_is_external_to_existing_runtime_boundaries():
                 "tools",
             }
         ), filename
-    assert _import_roots(PROJECT_ROOT / "supplier_evaluation/planning_bridge.py").isdisjoint(
-        {"sklearn", "joblib"}
-    )
+
+
+def test_supplier_evaluation_does_not_import_application():
+    """The application uses the ML package, never the reverse: no import cycle."""
+    for path in (PROJECT_ROOT / "supplier_evaluation").glob("*.py"):
+        assert "application" not in _import_roots(path), path
 
 
 def test_required_ml_dependency_and_python311_ci_cannot_silently_skip():

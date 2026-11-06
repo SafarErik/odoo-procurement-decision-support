@@ -1,4 +1,8 @@
-"""Versioned, dependency-free data and assessment contracts."""
+"""Versioned, dependency-free data and assessment contracts and their shared validators.
+
+``text_identity`` and ``utc`` are the one ValueError-raising identity/timestamp check for
+the ML package and the application layer (the planning core keeps its own coded checks).
+"""
 
 import hashlib
 import json
@@ -10,9 +14,11 @@ from fractions import Fraction
 
 # V2: features computed from the bounded Odoo purchase-history export (docs/MODEL_ML.md).
 HISTORY_SOURCE = "odoo_purchase_history"
-# Who produced the Odoo records: the seeding tool ("generated") or real business ("observed").
+# Who produced the Odoo records: the seeding tool (generated) or real business (observed).
 # Declared by the operator for the export and the runtime database, never guessed from data.
-HISTORY_DATA_ORIGINS = ("generated", "observed")
+HISTORY_GENERATED = "generated"
+HISTORY_OBSERVED = "observed"
+HISTORY_DATA_ORIGINS = (HISTORY_GENERATED, HISTORY_OBSERVED)
 HISTORY_FEATURE_VERSION = "odoo-purchase-history-features-v2"
 HISTORY_FEATURES = (
     "on_time_rate",

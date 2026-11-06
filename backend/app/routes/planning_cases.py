@@ -6,9 +6,8 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.routing import APIRoute
 
-from application.errors import RepositoryError
+from application.errors import PlanningCaseError, RepositoryError
 from application.planning_cases import (
-    PlanningCaseError,
     create_planning_case,
     get_planning_case,
     normalize_planning_facts,
@@ -18,9 +17,9 @@ from application.planning_decisions import (
     finalize_planning_case,
     retrieve_planning_case,
 )
-from application.planning_documents import approved_document
+from application.planning_documents import DOCUMENT_KINDS, DOCUMENT_LANGUAGES, approved_document
 from application.planning_library import library_query, list_planning_cases
-from application.supplier_overview import supplier_overview
+from application.supplier_overview import LANGUAGES, supplier_overview
 from backend.app.api_common import require_trusted_caller
 from backend.app.config import settings
 from backend.app.dependencies import (
@@ -95,6 +94,8 @@ def _error(error):
 
 
 def _library(request, parent_id=None):
+    # Parsed by hand, not with FastAPI Query parameters: unknown or repeated parameters must
+    # be rejected, and every rejection must keep this API's {"code", "message"} 422 body.
     allowed = {"status", "q", "limit", "cursor"}
     try:
         if any(
@@ -205,7 +206,7 @@ def post_odoo_history_case(
 
 
 @router.get("/{case_id}/suppliers")
-def get_supplier_overview(case_id: str, language: Annotated[Literal["hu", "en"], Query()] = "hu"):
+def get_supplier_overview(case_id: str, language: Annotated[Literal[LANGUAGES], Query()] = "hu"):
     """Stored-only supplier KPIs, assessment and readable tree path; no Odoo or model."""
     try:
         case = get_planning_case(get_planning_unit_of_work(), case_id)
@@ -248,8 +249,8 @@ def get_approved_pdf(
     case_id: str,
     content_hash: str,
     download: bool = False,
-    language: Annotated[Literal["hu", "en"], Query()] = "hu",
-    kind: Annotated[Literal["plan", "audit"], Query()] = "plan",
+    language: Annotated[Literal[DOCUMENT_LANGUAGES], Query()] = "hu",
+    kind: Annotated[Literal[DOCUMENT_KINDS], Query()] = "plan",
 ):
     """Approved plan or its audit appendix in the UI language; one stored artifact each."""
     try:

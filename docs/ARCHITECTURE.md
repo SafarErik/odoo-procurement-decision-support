@@ -48,9 +48,9 @@ The Reflex web UI drives every step through the HTTP API only.
 | --- | --- | --- |
 | `decision_core/planning/` | ERP-neutral planning model: immutable request/plan types, bound rules, plan verification, explanations, the `plan_procurement` use of a solver port | standard library only |
 | `optimization_adapter/` | PuLP + CBC implementation of the solver port (integer encoding, exact rational scaling, tie-break) | `decision_core`, PuLP |
-| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)) | scikit-learn, `decision_core` |
-| `application/` | Use cases: list open quotation groups, assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, per-supplier overview and HU/EN explanation texts, approved document storage per language | ports only (no Odoo/DB/HTTP) |
-| `odoo_adapter/` | JSON-2 readers for RFQs, open quotation-group summaries, one comparison group (with display names), the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
+| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path; `contracts.py` holds the dependency-free assessment contracts, the history vocabulary and the shared `text_identity`/`utc` validators ([MODEL_ML.md](MODEL_ML.md)) | scikit-learn; never `application` |
+| `application/` | Use cases: list open quotation groups, capture Odoo history and preview suggested buyer terms, assemble inputs and provenance, ML → MILP risk bridge (`procurement_planning.risk_inputs`), create cases and scenarios, finalize decisions, list saved cases, per-supplier overview and HU/EN explanation texts, approved document storage per language; error contracts in `errors.py`, stored contract ids in `stored_contracts.py` | ports, `decision_core`, `supplier_evaluation` (no Odoo/DB/HTTP) |
+| `odoo_adapter/` | JSON-2 readers for open quotation-group summaries, one comparison group (with display names) and the purchase-history export, on a shared private client (`json2_client.py`) | `application` contracts, `supplier_evaluation.contracts` vocabulary, httpx |
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
 | `document_adapter/` | ReportLab rendering of the approved plan PDF (HU/EN, summary with supplier assessment table, order-line page per supplier, verification identifiers) and the separate audit appendix PDF (ADR-036) | approved content only |
 | `backend/app/` | FastAPI composition root, strict request schemas, thin routes, service-token gate | all of the above |
@@ -62,7 +62,8 @@ The Reflex web UI drives every step through the HTTP API only.
 
 Boundaries enforced by `tests/test_architecture.py`: the planning core imports no
 application/adapter code and carries no provenance; the application layer imports
-no Odoo, SQL or HTTP code; adapters point inward.
+no Odoo, SQL or HTTP code; the ML package never imports the application layer;
+adapters point inward.
 
 ## 3. Key design decisions
 

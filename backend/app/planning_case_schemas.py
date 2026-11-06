@@ -1,4 +1,8 @@
-"""Strict V2 HTTP facts. Caller attribution is not authentication."""
+"""Strict HTTP request facts. Caller attribution is not authentication.
+
+Limits the application also enforces are read from the application constants, so the
+schema rejects the same requests (HTTP 422) the use case would.
+"""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -6,9 +10,22 @@ from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints, field_validator
 
-from application.planning_cases import ScenarioDelta, SupplierChange
-from application.planning_input import SupplierFacts
+from application.planning_cases import SCENARIO_KINDS, ScenarioDelta, SupplierChange
+from application.planning_decisions import (
+    DECISION_OUTCOMES,
+    MAX_ACTOR_LENGTH,
+    MAX_RATIONALE_LENGTH,
+)
+from application.planning_input import (
+    MAX_EPSILONS,
+    MAX_SUPPLIERS,
+    SCORE_QUANTITIES,
+    OdooHistoryPlanningFacts,
+    SupplierFacts,
+)
+from application.planning_serialization import SHA256_HEX
 from application.provenance import SourceAttribution
+from application.stored_contracts import PENDING_HISTORY_REFERENCE
 from backend.app.api_common import StrictModel, explicit_utc_text
 from decision_core.planning.models import (
     MinimumOrder,
@@ -17,7 +34,7 @@ from decision_core.planning.models import (
     QuantityRange,
     SupplierTerms,
 )
-from supplier_evaluation.contracts import QuantityValidity
+from supplier_evaluation.contracts import HISTORY_SOURCE
 
 Text = Annotated[
     str, StringConstraints(strict=True, min_length=1, max_length=255, pattern=r"^\S(?:.*\S)?$")
@@ -67,7 +84,7 @@ class RequirementRequest(StrictModel):
 class PolicyRequest(StrictModel):
     max_suppliers: PositiveCount
     concentration_limit: Money | None
-    epsilons: list[Money] = Field(min_length=1, max_length=3)
+    epsilons: list[Money] = Field(min_length=1, max_length=MAX_EPSILONS)
     diversification_epsilon: Money | None = None
 
 
@@ -97,7 +114,7 @@ class OdooHistoryTermsRequest(StrictModel):
     requirement_source: SourceRequest
     policy: PolicyRequest
     policy_source: SourceRequest
-    suppliers: list[CommercialSupplierRequest] = Field(min_length=1, max_length=10)
+    suppliers: list[CommercialSupplierRequest] = Field(min_length=1, max_length=MAX_SUPPLIERS)
 
     @field_validator("as_of", mode="before")
     @classmethod
@@ -105,9 +122,6 @@ class OdooHistoryTermsRequest(StrictModel):
         return explicit_utc_text(value)
 
     def to_facts(self):
-        from application.planning_input import OdooHistoryPlanningFacts
-        from supplier_evaluation.contracts import HISTORY_SOURCE
-
         r, p = self.requirement, self.policy
         suppliers = tuple(
             SupplierFacts(
@@ -127,8 +141,8 @@ class OdooHistoryTermsRequest(StrictModel):
                 ),
                 s.source.attribution("commercial_terms"),
                 (),
-                "backend-owned-odoo-history",
-                QuantityValidity(1, 1000, "controlled-proxy-v1"),
+                PENDING_HISTORY_REFERENCE,
+                SCORE_QUANTITIES,
             )
             for s in self.suppliers
         )
@@ -165,9 +179,9 @@ class ChangeRequest(StrictModel):
 
 
 class ScenarioRequest(StrictModel):
-    kind: Literal["supplier_outage", "capacity_change", "demand_change", "price_change", "combined"]
+    kind: Literal[SCENARIO_KINDS]
     source: SourceRequest
-    suppliers: list[ChangeRequest] = Field(default_factory=list, max_length=10)
+    suppliers: list[ChangeRequest] = Field(default_factory=list, max_length=MAX_SUPPLIERS)
     approved_quantity: PositiveCount | None = None
 
     def to_delta(self) -> ScenarioDelta:
@@ -198,10 +212,10 @@ class PlanningCaseResponse(StrictModel):
 
 
 class PlanningFinalDecisionRequest(StrictModel):
-    snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$", min_length=64, max_length=64)
-    outcome: Literal["approve", "no_award"]
+    snapshot_hash: str = Field(pattern=f"^{SHA256_HEX}$", min_length=64, max_length=64)
+    outcome: Literal[DECISION_OUTCOMES]
     # At most five stored plans: minimum cost, three epsilon alternatives, the balanced plan.
     plan_index: int | None = Field(default=None, strict=True, ge=0, le=4)
-    actor_reference: str = Field(min_length=1, max_length=255)
-    rationale: str | None = Field(default=None, max_length=2000)
+    actor_reference: str = Field(min_length=1, max_length=MAX_ACTOR_LENGTH)
+    rationale: str | None = Field(default=None, max_length=MAX_RATIONALE_LENGTH)
     demonstration_acknowledged: bool = Field(strict=True)

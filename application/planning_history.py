@@ -6,10 +6,18 @@ its feature values without Odoo, a model file, or any new read.
 
 import json
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from application.errors import (
+    PlanningCaseError,
+    ProcurementDataResponseError,
+    ProcurementDataUnavailable,
+)
+from application.odoo_quotations import ComparisonCaseReader
+from application.planning_serialization import json_value
 from application.purchase_history import (
+    PurchaseHistoryPort,
     PurchaseHistoryQuery,
     PurchaseHistorySnapshot,
     PurchaseLineHistory,
@@ -27,7 +35,6 @@ from supplier_evaluation.contracts import (
 )
 from supplier_evaluation.purchase_history import RECENCY_WINDOW, feature_snapshot
 
-HISTORY_INPUT_KIND = "odoo_quotations_odoo_history"
 CAPTURE_VERSION = "odoo-purchase-history-capture-v2"
 CAPTURE_WINDOW = RECENCY_WINDOW  # covers the feature window and the recency window
 MAX_READ_TO_CUTOFF = timedelta(days=1)
@@ -167,3 +174,116 @@ def capture_features(encoded: str) -> tuple[FeatureSnapshot, ...]:
             raise ValueError("Captured feature provenance/value mismatch.")
         features.append(feature)
     return tuple(features)
+
+
+async def capture_odoo_history(
+    quotations: ComparisonCaseReader,
+    history: PurchaseHistoryPort,
+    group_id: int,
+    *,
+    database: str,
+    data_origin: str,
+):
+    """Read one quotation group and its product's bounded history; never called on replay.
+
+    Returns ``(case, currency_code, currency_observed_at, capture)``. Raises
+    PlanningCaseError ``odoo_history_unavailable`` when Odoo cannot be read and
+    ``odoo_history_insufficient`` when a supplier has too little history.
+    """
+    try:
+        case = await quotations.read_comparison_case(group_id)
+        if not case.offers or any(len(o.lines) != 1 for o in case.offers):
+            raise ValueError("A one-line quotation group is required.")
+        code, observed = await quotations.read_currency_code(case.offers[0].currency_id)
+        line, company = case.offers[0].lines[0], case.offers[0].company_id
+        # Odoo rejects an export end in its future; a lagging container clock (e.g. after the
+        # host slept) must not turn every read into "unavailable", hence the small margin.
+        read_end = datetime.now(UTC).replace(microsecond=0) - timedelta(seconds=60)
+        query = history_query(company, line.product_id, read_end)
+        snapshot = await history.read_purchase_history(query)
+        contexts = tuple(
+            Context(o.supplier_id, company, line.product_id, line.uom_id) for o in case.offers
+        )
+        return case, code, observed, build_capture(snapshot, contexts, database, data_origin)
+    except HistoryCaptureError as error:
+        raise PlanningCaseError("odoo_history_insufficient", str(error)) from error
+    except (ProcurementDataUnavailable, ProcurementDataResponseError) as error:
+        raise PlanningCaseError(
+            "odoo_history_unavailable", "The Odoo quotation group or its history is unavailable."
+        ) from error
+
+
+def odoo_history_preview(group_id: int, captured, *, database: str, model_company: str | None):
+    """Read-only preview of a captured group with suggested buyer terms; nothing is stored.
+
+    The terms are suggestions the buyer reviews and may edit before saving: a 7-day
+    deadline, capacity 60 % of the demand per supplier, quantity ranges 1-1000 and a
+    two-supplier policy. ``model_company`` is the company the loaded history model was
+    trained for, or None when no compatible model loads; any other value reports
+    ``model_unavailable``.
+    """
+    case, code, _, capture = captured
+    features = capture_features(capture)
+    company = case.offers[0].company_id
+    readiness = "ready" if model_company == company else "model_unavailable"
+    now = datetime.now(UTC)
+    line = case.offers[0].lines[0]
+    demand = int(line.quantity)
+    deadline = (now + timedelta(days=7)).date().isoformat()
+    source = {
+        "source_type": "buyer_default_terms",
+        "source_reference": "odoo-history-preview-defaults-v2",
+        "observed_at": now.isoformat(),
+    }
+    suppliers = [
+        {
+            "supplier_id": offer.supplier_id,
+            "offer_id": offer.offer_id,
+            "unit_price": str(offer.lines[0].unit_price),
+            "capacity": max(1, -(-demand * 6 // 10)),
+            "available": True,
+            "minimum_order_quantity": None,
+            "price_quantities": {"minimum": 1, "maximum": 1000},
+            "delivery_quantities": {"minimum": 1, "maximum": 1000},
+            "promised_date": deadline,
+            "source": source,
+        }
+        for offer in sorted(case.offers, key=lambda o: o.supplier_id)
+    ]
+    terms = {
+        "company_id": company,
+        "as_of": now.isoformat(),
+        "approval_reference": f"odoo-history-demand-{demand}-v2",
+        "requirement": {
+            "product_id": line.product_id,
+            "approved_quantity": demand,
+            "quantity_unit": line.uom_id,
+            "currency": code,
+            "required_date": deadline,
+        },
+        "requirement_source": source,
+        "policy_source": source,
+        "policy": {
+            "max_suppliers": 2,
+            "concentration_limit": "0.8",
+            "epsilons": ["0.05", "0.1", "0.2"],
+            "diversification_epsilon": "0.2",
+        },
+        "suppliers": suppliers,
+    }
+    parsed = json.loads(capture)
+    return {
+        "purchase_group_id": group_id,
+        "database": database,
+        "data_origin": capture_origin(capture),
+        "model_readiness": readiness,
+        "captured_at": parsed["evidence"]["cutoff"],
+        "capture_hash": parsed["capture_hash"],
+        "features": json_value(features),
+        "history": [
+            {"supplier_id": f.context.supplier_id}
+            | dict(zip(f.feature_names, f.values, strict=True))
+            for f in features
+        ],
+        "terms": terms,
+    }

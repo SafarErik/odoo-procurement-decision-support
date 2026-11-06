@@ -14,6 +14,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from application.stored_contracts import SNAPSHOT_VERSION
+
+# Transaction advisory-lock namespaces (``pg_advisory_xact_lock(hashtext(prefix + key))``).
+# Kept unchanged so concurrent processes of different versions still exclude each other.
+CASE_LOCK_PREFIX = "t15:"
+DECISION_LOCK_PREFIX = "t17:"
+DOCUMENT_LOCK_PREFIX = "t21:pdf:"
+
 
 class Base(DeclarativeBase):
     """Declarative metadata consumed by Alembic only."""
@@ -26,7 +34,7 @@ class PlanningCaseRecord(Base):
     __table_args__ = (
         PrimaryKeyConstraint("case_id", name="pk_planning_cases"),
         CheckConstraint(
-            "snapshot_version = 't15-controlled-planning-v1'", name="ck_planning_cases_version"
+            f"snapshot_version = '{SNAPSHOT_VERSION}'", name="ck_planning_cases_version"
         ),
     )
 
