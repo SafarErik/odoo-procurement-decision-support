@@ -1,13 +1,23 @@
-"""One entry point for local development tasks.
+"""One entry point for local development tasks; run ``python -m tools.dev <command>``.
 
-    python -m tools.dev check     fast quality gate (format, lint, compile, fast tests, pip)
-    python -m tools.dev db-up     start the persistent planning database and migrate it
-    python -m tools.dev db-down   stop it (data stays in the named volume)
-    python -m tools.dev api       run FastAPI on 127.0.0.1:8000 with reload
-    python -m tools.dev ui        run the Reflex frontend (port 3000)
-    python -m tools.dev odoo-up   start Odoo and its own database
-    python -m tools.dev odoo-down stop Odoo
-    python -m tools.dev demo      start Odoo + planning DB, run the reproducible demonstration
+    check     fast quality gate: ruff format/lint, compileall, fast tests, pip check
+              (the same command the Quality CI workflow runs; needs no services)
+    db-up     start the persistent planning database (infra/app) and migrate it
+    db-down   stop it (data stays in the named volume)
+    api       run FastAPI on 127.0.0.1:8000 with reload
+    ui        run the Reflex frontend (port 3000)
+    odoo-up   start Odoo and its own database (infra/odoo)
+    odoo-down stop Odoo
+    demo      odoo-up + db-up, then ``tools.demo`` (reads Odoo, never writes it)
+
+Standalone tools, each documented in its own module docstring and ``--help``:
+
+    python -m tools.http_flow           full HTTP acceptance flow against a running API
+    python -m tools.demo                one-command demonstration with isolated replay
+    python -m tools.milp_evaluation     MILP/API latency and correctness evaluation
+    python -m tools.seed_odoo_history   seed generated history (dedicated Odoo test DB only)
+    python -m tools.train_history_model offline supplier-model extraction and training
+    python -m tools.ui_screenshots      UI evidence screenshots from a running dev stack
 
 Settings come from the ignored .env file (see .env.example).
 """
@@ -124,6 +134,6 @@ COMMANDS = {
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
         print(__doc__)
-        sys.exit(2)
+        sys.exit(0 if sys.argv[1:] in (["-h"], ["--help"]) else 2)
     (ROOT / ".artifacts").mkdir(exist_ok=True)
     COMMANDS[sys.argv[1]]()

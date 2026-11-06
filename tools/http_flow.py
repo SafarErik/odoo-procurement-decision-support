@@ -1,4 +1,17 @@
-"""Repeatable Odoo-history acceptance flow; HTTP only, no Odoo writes or training."""
+"""Full HTTP acceptance flow on the Odoo-history path, plus a check of the stored result.
+
+    python -m tools.http_flow run --odoo-history GROUP --actor A --reason R --no-award-reason N
+    python -m tools.http_flow reopen --report .artifacts/http-flow/http-flow-run-<id>.json
+
+``run`` drives an already running API (default http://127.0.0.1:8000, loopback only;
+needs API_SERVICE_TOKEN): base case -> nine scenarios (the last infeasible) -> approval
+and a separate No-award -> HU and EN plan and audit PDFs, then ``reopen``'s checks.
+``reopen`` verifies that stored cases, exact retries and PDFs did not change.
+Writes the full report and PDFs to ``--directory`` (default ``.artifacts/http-flow``).
+Odoo is read only through the API; it never writes to Odoo and never trains.
+``tools.demo`` and ``tools.milp_evaluation`` reuse ``run_flow``, ``verify_stored``,
+``checked``, ``write_json`` and ``BASE`` from here.
+"""
 
 import argparse
 import hashlib
@@ -137,7 +150,7 @@ def run_flow(directory, client, actor, reason, no_award_reason, *, odoo_history)
     payload = {"purchase_group_id": odoo_history, "terms": preview["terms"]}
     create_path = f"{BASE}/from-odoo-history"
     directory.mkdir(parents=True, exist_ok=True)
-    report_path = directory / f"t17-run-{uuid4()}.json"
+    report_path = directory / f"http-flow-run-{uuid4()}.json"
     report = {"request": payload, "operations": [], "scenarios": []}
 
     def post(path, body):
@@ -234,9 +247,11 @@ def verify_stored(report_path, client):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("command", choices=("run", "reopen"))
-    parser.add_argument("--directory", type=Path, default=Path(".artifacts/t17-demo"))
+    parser.add_argument("--directory", type=Path, default=Path(".artifacts/http-flow"))
     parser.add_argument("--report", type=Path)
     parser.add_argument("--actor")
     parser.add_argument("--reason")
@@ -277,9 +292,7 @@ def main():
             else:
                 verify_stored(args.report, client)
     except (OSError, ValueError, KeyError, httpx.HTTPError) as error:
-        parser.exit(
-            1, f"T17 demonstration incomplete ({type(error).__name__}); inspect saved intents.\n"
-        )
+        parser.exit(1, f"HTTP flow incomplete ({type(error).__name__}); inspect saved intents.\n")
 
 
 if __name__ == "__main__":

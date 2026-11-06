@@ -5,7 +5,7 @@
 
 Needs the seeded ``pdss_history_gen`` database, the trained history model and the
 ``.env`` settings (RUNBOOK §5). The tool starts its own API on 127.0.0.1:8010, runs the
-HTTP flow of ``tools.t17_demo`` (open quotation group → case → plans → scenarios in
+HTTP flow of ``tools.http_flow`` (open quotation group → case → plans → scenarios in
 both directions incl. an infeasible one → approval and a separate No-award → HU and EN
 PDF), then restarts the API with Odoo unreachable and no model configured and replays
 everything from storage. It never writes to Odoo and never trains. The summary goes to
@@ -25,8 +25,8 @@ from pathlib import Path
 import httpx
 
 from tools.dev import ROOT, _env
+from tools.http_flow import BASE, checked, run_flow, verify_stored, write_json
 from tools.seed_odoo_history import REPRODUCTION_LAST_CUTOFF
-from tools.t17_demo import BASE, checked, run_flow, verify_stored, write_json
 
 PORT = 8010
 ORIGIN = f"http://127.0.0.1:{PORT}"
@@ -160,7 +160,7 @@ def summary(raw: dict, group: dict, overview: dict, isolation: dict, seconds: fl
         )
     approved = raw["approved"]["final_decision"]
     return {
-        "report": "P4 one-command demonstration (Odoo-history path)",
+        "report": "One-command demonstration (Odoo-history path)",
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "repository": git_revision(),
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
@@ -297,7 +297,9 @@ def run(args) -> Path:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--group", type=int, help="Odoo purchase group id (default: 4 suppliers)")
     parser.add_argument("--directory", type=Path, default=ROOT / ".artifacts" / "demo")
     parser.add_argument(

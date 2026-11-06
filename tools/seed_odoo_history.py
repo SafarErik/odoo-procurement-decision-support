@@ -3,14 +3,17 @@
     python -m tools.seed_odoo_history plan    print the generated plan, write nothing
     python -m tools.seed_odoo_history apply   write it into ODOO_SEED_DATABASE
     python -m tools.seed_odoo_history apply N write only the first N orders (smoke run)
-    python -m tools.seed_odoo_history groups  add the P4 evaluation quotation groups
+    python -m tools.seed_odoo_history groups  add the MILP/API evaluation quotation groups
                                               (5 and 10 suppliers of the RFQ product)
 
-Owner-approved (2026-10-17) scripted administrator writes for P1. The tool refuses
+Owner-approved (2026-10-17) scripted administrator writes. The tool refuses
 to write unless the target is exactly ``pdss_history_gen``, ``ODOO_SEED_DATABASE``
 names it, and that database carries the system parameter
 ``pdss.seed_target = pdss_history_gen`` set by the owner. It never runs from the
 backend. Everything it creates is tagged ``PDSS-GEN-P1`` and ``[GEN]``.
+Reads ODOO_BASE_URL, ODOO_SEED_DATABASE and ODOO_SEED_ADMIN_API_KEY from .env; writes
+``.artifacts/seed/manifest.json`` (apply) and ``.artifacts/seed/evaluation_groups.json``
+(groups, read by ``tools.milp_evaluation``).
 
 History timestamps (order, confirmation, receipt) are deliberately back-dated on
 these generated records: they follow a simulated clock and are not observations.
@@ -520,7 +523,7 @@ EVALUATION_SIZES = (5, 10)
 
 
 def evaluation_groups(plan: Plan) -> dict[int, tuple[str, ...]]:
-    """P4 quotation groups for the RFQ product: the original four plus the suppliers
+    """Evaluation quotation groups for the RFQ product: the original four plus the suppliers
     with the most settled lines in the recent feature window, so every one is scorable."""
     window = (plan.now - timedelta(days=134), plan.now - timedelta(days=14))
     recent = {
@@ -647,7 +650,7 @@ def main(argv: list[str]) -> int:
     limit = int(argv.pop()) if len(argv) == 2 and argv[1].isdigit() else None
     if len(argv) != 1 or argv[0] not in ("plan", "apply", "groups"):
         print(__doc__)
-        return 2
+        return 0 if argv in (["-h"], ["--help"]) else 2
     import json
 
     plan = build_plan(CLOCK)
