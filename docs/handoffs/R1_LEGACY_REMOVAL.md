@@ -142,6 +142,30 @@ test DB with the owner's model, and Odoo answered **HTTP 401** to the history re
 run. `docs/evidence/P4_DEMO_REPORT.json` was not touched. The e2e browser suite was not run.
 Hosted CI not run.
 
+### Follow-up fix 2026-11-06: date-independent stored-case fixture
+
+The PR's Quality CI failed in 7 tests (`test_t16_scenarios` exposure `44.7 / 100` instead of
+`31.2 / 100`, `test_t16_cockpit` `25.9` instead of `12.0` points). They had passed on
+2026-11-05. Cause: `build_history` generated the history from the real clock, and the
+training boundary snaps to the 1st or 16th of the month, so the trained tree and every
+saved exposure value depended on the calendar day.
+
+Fix (tests only, no runtime change): the session fixture `odoo_history` builds the history
+at a fixed `REFERENCE_NOW` (2026-11-05 18:00 UTC, `tests/conftest.py`;
+`build_history(directory, now=None)`). `t15_helpers.odoo_case_api` pins `datetime.now`
+to the end of that history in the four modules that read the clock during case
+creation: `application.odoo_planning_input`, `backend.app.dependencies` and the two Odoo
+readers. Case creation time and decision time still use the real clock; they
+do not affect plans or scores. The module fixture `history` of
+`test_odoo_purchase_history.py` still uses the real clock; its tests assert no exact
+values.
+
+Evidence: the 88 affected tests pass. They pass again (170 tests including decisions,
+PDFs, library and frontend) when a throwaway pytest plugin moves the remaining real-clock
+reads (`planning_cases`, `planning_decisions`) by +40 and +400 days.
+`python -m tools.dev check` passed after the fix: ruff format/check, compileall,
+458 passed / 51 deselected, `uv pip check` OK. Hosted CI: see PR #58.
+
 ## Limitations
 
 - Any pre-P2 case, decision or document left in a database is now unreadable. Its GET

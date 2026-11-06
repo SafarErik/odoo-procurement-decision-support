@@ -2,6 +2,7 @@
 
 import json
 from contextlib import contextmanager
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -19,10 +20,25 @@ def copy_payload(payload):
 
 @contextmanager
 def odoo_case_api(history, uow, monkeypatch):
-    """HTTP client over a fake read-only Odoo, the trained history model and ``uow``."""
+    """HTTP client over a fake read-only Odoo, the trained history model and ``uow``.
+
+    Case creation reads the clock at ``history["now"]``, the end of the generated history.
+    """
     from backend.app.main import app
     from tests.test_odoo_purchase_history import install_fake_odoo
 
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return history["now"]
+
+    for module in (
+        "application.odoo_planning_input",
+        "backend.app.dependencies",
+        "odoo_adapter.comparison_case_reader",
+        "odoo_adapter.product_history_reader",
+    ):
+        monkeypatch.setattr(f"{module}.datetime", Clock)
     install_fake_odoo(history, monkeypatch)
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     with TestClient(app, headers={"Authorization": "Bearer history-test-token"}) as client:

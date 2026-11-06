@@ -132,9 +132,9 @@ def history(tmp_path_factory):
     return build_history(tmp_path_factory.mktemp("history-model"))
 
 
-def build_history(directory):
-    """Generated Odoo-shaped history and a tree trained on it, saved in ``directory``."""
-    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+def build_history(directory, now=None):
+    """Generated Odoo-shaped history ending at ``now`` and a tree trained on it."""
+    now = now or datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     lines = plan_lines(now)
     rows, coverage = build_rows(lines, extracted_at=now)
     boundary = max(r.cutoff for r in rows) - timedelta(days=92)
