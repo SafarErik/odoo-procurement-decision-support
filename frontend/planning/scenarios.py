@@ -246,8 +246,8 @@ def _comparison() -> rx.Component:
                     rx.table.header(
                         rx.table.row(
                             rx.table.column_header_cell(""),
-                            rx.table.column_header_cell(t("chart_base")),
-                            rx.table.column_header_cell(t("chart_scenario")),
+                            rx.table.column_header_cell(t("base_case")),
+                            rx.table.column_header_cell(t("scenario")),
                             rx.table.column_header_cell(t("change")),
                         )
                     ),
@@ -303,7 +303,7 @@ def _saved_scenario(row) -> rx.Component:
         rx.box(
             rx.text(row["scenario"], font_weight="650", size="2"),
             rx.text(
-                t("col_demand"),
+                t("demand"),
                 ": ",
                 row["quantity"],
                 " · ",
@@ -314,7 +314,7 @@ def _saved_scenario(row) -> rx.Component:
             min_width="0",
         ),
         rx.button(
-            t("open_scenario"),
+            t("open"),
             on_click=PlanningState.open_saved_case(row["case_id"], "scenarios"),
             disabled=BUSY,
             size="2",

@@ -60,13 +60,13 @@ class ScenarioMixin(rx.State, mixin=True):
             quantity_change = f"{change:+d} {self.details.get('unit_label', '')}"
         return [
             {
-                "metric": tr("metric_outcome", lang),
+                "metric": tr("outcome", lang),
                 "base": self.original_details.get("status_label", missing),
                 "scenario": self.details.get("status_label", missing),
                 "change": "",
             },
             {
-                "metric": tr("metric_demand", lang),
+                "metric": tr("demand", lang),
                 "base": self.original_details.get("quantity_display", missing),
                 "scenario": self.details.get("quantity_display", missing),
                 "change": quantity_change,

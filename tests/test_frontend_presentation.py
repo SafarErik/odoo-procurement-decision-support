@@ -9,40 +9,35 @@ import pytest
 
 from application.supplier_overview import supplier_overview
 from frontend.i18n import TEXT, day, money, number, percent, tr
-from frontend.i18n_ui import UI_TEXT
 from frontend.planning.state import PlanningState
+from frontend.planning.state_case import _card
 from frontend.planning_client import _map_case
 from frontend.planning_library_client import library_row
 from frontend.supplier_overview_client import map_overview
 from tests.helpers.frontend_patching import patch_client
 
 
-def test_every_text_has_hungarian_and_english_and_screen_texts_are_merged():
-    assert set(UI_TEXT) <= set(TEXT)
+def test_every_text_has_hungarian_and_english():
     for key, (hu, en) in TEXT.items():
         assert hu.strip() and en.strip(), key
 
 
-def test_each_text_key_is_defined_in_exactly_one_module():
-    # The modules are merged with dict.update, so a second definition silently hides the
-    # first one; every key must have a single source of truth.
+def test_each_text_key_is_defined_once():
+    # A repeated key in the dict literal silently hides the first definition.
     import ast
     from pathlib import Path
 
-    keys = []
-    for module, variable in (
-        ("i18n.py", "TEXT"),
-        ("i18n_ui.py", "UI_TEXT"),
-        ("i18n_revamp.py", "REVAMP_TEXT"),
-    ):
-        tree = ast.parse((Path("frontend") / module).read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign | ast.AnnAssign) and isinstance(node.value, ast.Dict):
-                target = node.targets[0] if isinstance(node, ast.Assign) else node.target
-                if getattr(target, "id", None) == variable:
-                    keys += [key.value for key in node.value.keys]
+    tree = ast.parse(Path("frontend/i18n/texts.py").read_text(encoding="utf-8"))
+    keys = [key.value for node in ast.walk(tree) if isinstance(node, ast.Dict) for key in node.keys]
     assert len(keys) == len(TEXT)
-    assert sorted(key for key in set(keys) if keys.count(key) > 1) == []
+
+
+def test_pdf_viewer_texts_are_generated_from_the_shared_texts():
+    from frontend.planning.pdf import _viewer_texts
+
+    script = _viewer_texts()
+    assert tr("pdf_download", "hu") in script and tr("audit_pdf_region", "en") in script
+    assert "{page}. oldal / {pages}" in script and "Page {page} of {pages}" in script
 
 
 @pytest.mark.parametrize(
@@ -164,6 +159,13 @@ def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_case
     card = mapped["cards"][0]
     assert card["name"].startswith("Supplier ") and card["class_label"]  # Odoo display name
     assert card["metrics"] and card["path"] is not None and card["price"].endswith("$")
+    # The Audit tab numbers the same API-worded tree path; a root-only tree says so.
+    state = PlanningState(_reflex_internal_init=True)
+    cards = [{**c, "path": ["a", "b"] if i else []} for i, c in enumerate(mapped["cards"])]
+    state.supplier_cards = [_card(c) for c in cards]
+    paths = state.supplier_paths
+    assert paths[cards[0]["supplier"]] == tr("path_root", "hu")
+    assert paths[cards[1]["supplier"]] == "1. a\n2. b"
     with pytest.raises(ValueError):
         map_overview(overview, "en")  # the API answered in another language
 
@@ -263,12 +265,12 @@ def test_base_scenarios_show_empty_and_error_and_never_load_for_a_scenario(
     patch_client(monkeypatch, "fetch_library", _scenario_pages(base["case_id"], calls, pages))
 
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
-    assert state.base_scenarios_error == UI_TEXT["err_base_scenarios"][0]
+    assert state.base_scenarios_error == TEXT["err_base_scenarios"][0]
     assert state.base_scenarios == []
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))  # Retry
     assert state.base_scenarios_error == "" and state.base_scenarios == []
     assert state.base_scenarios_case == base["case_id"]
-    assert UI_TEXT["no_scenarios"][0] == "Ehhez az ügyhöz még nincs forgatókönyv."
+    assert TEXT["no_scenarios"][0] == "Ehhez az ügyhöz még nincs forgatókönyv."
 
     # Saving a scenario shows the child: the base list is dropped and reloads on return.
     state._show(_map_case(child, child["case_id"], "hu"))
@@ -329,3 +331,31 @@ def test_plan_proved_only_by_the_balanced_stage_is_named_and_shows_largest_share
     assert display.plans[1]["title"] == "Kiegyensúlyozott terv"
     assert display.plans[1]["balanced"] == ""  # the title already says it
     assert display.plans[0]["largest_share"].endswith("%")
+
+
+@pytest.mark.parametrize(
+    "issue,lang,expected",
+    [
+        ("mixed_context", "hu", "Eltérő termék, egység vagy pénznem"),
+        ("mixed_context", "en", "Different product, unit or currency"),
+        ("new_backend_code", "en", "new_backend_code"),
+        (None, "hu", ""),
+    ],
+)
+def test_quotation_group_issue_is_readable_and_unknown_codes_stay_visible(issue, lang, expected):
+    from frontend.odoo_history_client import group_row
+
+    item = {
+        "purchase_group_id": 7,
+        "name": "RFQ group 7",
+        "currency": "HUF",
+        "uom_name": "Units",
+        "quotations": [],
+        "issue": issue,
+        "product_name": "Bolt",
+        "quantity": None,
+        "supplier_count": 0,
+        "latest_order_date": "2026-11-01",
+        "selectable": issue is None,
+    }
+    assert group_row(item, lang)["issue"] == expected

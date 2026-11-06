@@ -43,9 +43,7 @@ def creation_steps():
                 id=f"creation-step-{index}",
                 class_name="workflow-step",
             )
-            for index, label in enumerate(
-                ("step_source", "step_demand", "step_terms", "step_review")
-            )
+            for index, label in enumerate(("step_source", "demand", "step_terms", "step_review"))
         ],
         aria_label=t("creation_progress"),
         class_name="workflow-steps",

@@ -8,6 +8,7 @@ from typing import Any
 import reflex as rx
 
 from frontend.config import settings
+from frontend.i18n import tr
 from frontend.planning.state_base import VIEWS, focus, reveal_active_case_tab
 from frontend.planning_client import _map_case, fetch_planning_case
 from frontend.supplier_overview_client import fetch_supplier_overview
@@ -298,6 +299,15 @@ class CaseMixin(rx.State, mixin=True):
             self.is_loading = False
 
     # Chart and panel data (numbers stay numbers; text is already localized).
+
+    @rx.var
+    def supplier_paths(self) -> dict[str, str]:
+        """Numbered tree-path sentences per supplier, worded by the API's supplier overview."""
+        return {
+            c.supplier: "\n".join(f"{i}. {step}" for i, step in enumerate(c.path, 1))
+            or tr("path_root", self._lang())
+            for c in self.supplier_cards
+        }
 
     @rx.var
     def chart_exposure_domain(self) -> list[int]:

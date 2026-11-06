@@ -93,7 +93,7 @@ def _navigation(active: str, *, drawer: bool = False):
             for destination, label, icon in (
                 ("home", "nav_home", "house"),
                 ("cases", "nav_cases", "folder-open"),
-                ("rfqs", "nav_rfqs", "file-text"),
+                ("rfqs", "new_procurement", "file-text"),
             )
         ],
         aria_label=t("nav_label"),

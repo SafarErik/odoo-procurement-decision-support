@@ -32,7 +32,7 @@ def cost_exposure_chart() -> rx.Component:
             rx.recharts.x_axis(
                 data_key="cost",
                 type_="number",
-                name=t("chart_cost"),
+                name=t("total_cost"),
                 domain=["auto", "auto"],
                 padding={"left": 32, "right": 64},
                 tick=_TICK,
@@ -108,14 +108,14 @@ def scenario_chart() -> rx.Component:
             rx.recharts.legend(icon_type="square", vertical_align="bottom"),
             rx.recharts.bar(
                 data_key="base",
-                name=t("chart_base"),
+                name=t("base_case"),
                 fill=SERIES_1,
                 radius=[4, 4, 0, 0],
                 is_animation_active=False,
             ),
             rx.recharts.bar(
                 data_key="scenario",
-                name=t("chart_scenario"),
+                name=t("scenario"),
                 fill=SERIES_2,
                 radius=[4, 4, 0, 0],
                 is_animation_active=False,

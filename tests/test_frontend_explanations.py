@@ -14,9 +14,7 @@ def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
     assert "$4.00 more" in mapped.details["decision_summary"]
     assert "12.0 points" in mapped.details["decision_summary"]
     for row, assessment in zip(mapped.assessments, base["snapshot"]["assessments"], strict=True):
-        assert row["readable_path"]
-        # One numbered readable sentence per stored split; the raw path keeps exact values.
-        assert len(row["readable_path"].splitlines()) == max(1, len(assessment["path"]))
+        # The raw path keeps exact values; readable sentences come from the supplier overview API.
         for step in assessment["path"]:
             assert str(step["threshold"]) in row["path"]
     altered = deepcopy(base)

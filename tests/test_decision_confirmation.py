@@ -69,7 +69,7 @@ def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepa
     assert state.details["final_outcome"] == "Approved" and not state.decision_open
     assert "saved-decision-heading" in str(events)
     assert len(uow.decisions.rows) == 1
-    assert state.comparison_state == tr("state_approved", "en")
+    assert state.comparison_state == tr("approved_plan", "en")
     assert consume(state, PlanningState.confirm_final_decision) == [] and len(posts) == 1
 
 

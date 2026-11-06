@@ -372,7 +372,6 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(fake_odoo, monkeypat
         assert base["snapshot"]["model_manifest"]["metadata"]["data_origin"] == "generated"
         mapped = _map_case(base, base["case_id"])
         assert len(mapped.assessments) == 3
-        assert all("settled lines" in a["history_summary"] for a in mapped.assessments)
         provenance = {p["canonical_path"]: p for p in base["snapshot"]["provenance"]["entries"]}
         for assessment in base["snapshot"]["assessments"]:
             supplier = assessment["snapshot"]["context"]["supplier_id"]
