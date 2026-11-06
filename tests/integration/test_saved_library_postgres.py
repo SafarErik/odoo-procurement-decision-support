@@ -5,20 +5,15 @@ from fastapi.testclient import TestClient
 
 from backend.app.config import settings
 from backend.app.main import app
-from tests.integration.test_t15_planning_postgres import configured as _configured
-from tests.integration.test_t15_planning_postgres import create
-from tests.test_odoo_purchase_history import headers
-from tests.test_odoo_purchase_history import history as _history
+from tests.helpers.planning_api import BASE, create_case, headers
 
-configured, history = _configured, _history
 pytestmark = pytest.mark.integration
-BASE = "/api/v2/procurement/planning-cases"
 
 
-def test_library_reads_stored_snapshots_for_bases_and_scenarios(configured, monkeypatch):
-    _, _, payload, _ = configured
+def test_library_reads_stored_snapshots_for_bases_and_scenarios(postgres_history_api, monkeypatch):
+    _, _, payload, _ = postgres_history_api
     with TestClient(app) as client:
-        base = create(client, payload)
+        base = create_case(client, payload["terms"])
         child = client.post(
             f"{BASE}/{base['case_id']}/scenarios",
             headers=headers(),

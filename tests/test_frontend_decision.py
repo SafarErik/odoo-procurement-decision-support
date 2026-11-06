@@ -12,17 +12,12 @@ from frontend.config import settings as frontend_settings
 from frontend.planning.page import planning_page
 from frontend.planning.state import PlanningState
 from frontend.planning_client import fetch_planning_case, submit_planning_request
-from tests.frontend_patching import patch_client
-from tests.test_t17_decisions import BASE, TOKEN, intent
-from tests.test_t17_decisions import configured as _configured
-from tests.test_t17_decisions import stored_cases as _stored_cases
-
-configured = _configured
-stored_cases = _stored_cases
+from tests.helpers.frontend_patching import patch_client
+from tests.helpers.planning_api import BASE, TOKEN, intent
 
 
-def test_explicit_selection_and_lost_success_response_recovery(configured, monkeypatch):
-    _, uow, base, *_ = configured
+def test_explicit_selection_and_lost_success_response_recovery(decision_api, monkeypatch):
+    _, uow, base, *_ = decision_api
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport = httpx.ASGITransport(app=app)
@@ -82,8 +77,8 @@ def test_explicit_selection_and_lost_success_response_recovery(configured, monke
 
 
 @pytest.mark.parametrize("status", [409, 422, 503, 302])
-def test_rejected_and_uncertain_finalization_responses(configured, status):
-    _, _, base, *_ = configured
+def test_rejected_and_uncertain_finalization_responses(decision_api, status):
+    _, _, base, *_ = decision_api
     transport = httpx.MockTransport(
         lambda request: httpx.Response(status, json={"detail": "failure"})
     )
@@ -101,8 +96,8 @@ def test_rejected_and_uncertain_finalization_responses(configured, status):
     assert result is None and error and uncertain == (status in (503, 302))
 
 
-def test_no_award_and_scenario_controls_and_unavailable_load(configured, monkeypatch):
-    _, _, base, child, *_ = configured
+def test_no_award_and_scenario_controls_and_unavailable_load(decision_api, monkeypatch):
+    _, _, base, child, *_ = decision_api
 
     async def unavailable(*args, **kwargs):
         return None, "Backend unavailable"

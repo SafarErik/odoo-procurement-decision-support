@@ -9,8 +9,7 @@ import pytest
 
 from frontend.i18n import day
 from frontend.planning_client import _map_case, fetch_planning_case
-from tests.test_t16_stored_planning import TOKEN
-from tests.test_t16_stored_planning import stored_cases as stored_cases
+from tests.helpers.planning_api import TOKEN
 
 
 def test_exact_evidence_and_reference_time_survive_readable_projection(stored_cases):

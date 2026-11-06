@@ -8,7 +8,6 @@ import pytest
 from frontend.i18n import money
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case
-from tests.test_t16_stored_planning import stored_cases as stored_cases
 
 
 def test_selection_mirrors_saved_values_and_never_preselects_or_creates_intent(stored_cases):

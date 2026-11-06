@@ -7,17 +7,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from tests.test_odoo_purchase_history import configured as _configured
-from tests.test_odoo_purchase_history import forbidden
-from tests.test_odoo_purchase_history import history as _history
+from tests.helpers.planning_api import forbidden
 from tools.t17_demo import run_flow, verify_stored
 
-configured, history = _configured, _history
 TOKEN = {"Authorization": "Bearer history-test-token"}
 
 
-def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monkeypatch, tmp_path):
-    calls, uow = configured
+def test_complete_flow_and_reopen_without_upstream_model_solver(fake_odoo, monkeypatch, tmp_path):
+    calls, uow = fake_odoo
     with TestClient(app, headers=TOKEN) as client:
         path = run_flow(
             tmp_path,
@@ -87,7 +84,7 @@ def test_complete_flow_and_reopen_without_upstream_model_solver(configured, monk
             verify_stored(path, client)
 
 
-def test_uncertain_post_preserves_exact_intent_without_automatic_retry(configured, tmp_path):
+def test_uncertain_post_preserves_exact_intent_without_automatic_retry(fake_odoo, tmp_path):
     with TestClient(app, headers=TOKEN) as api:
         preview = api.get(
             "/api/v2/procurement/planning-cases/odoo-history/preview?purchase_group_id=501"

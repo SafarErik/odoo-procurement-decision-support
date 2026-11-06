@@ -1,4 +1,4 @@
-"""P3 frontend: Hungarian default, locale formatting, relabelling and the supplier view."""
+"""Frontend presentation: HU/EN texts, locale formats, relabelling and the case views."""
 
 import asyncio
 from copy import deepcopy
@@ -14,8 +14,7 @@ from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case
 from frontend.planning_library_client import library_row
 from frontend.supplier_overview_client import map_overview
-from tests.frontend_patching import patch_client
-from tests.test_t16_stored_planning import stored_cases as stored_cases
+from tests.helpers.frontend_patching import patch_client
 
 
 def test_every_text_has_hungarian_and_english_and_screen_texts_are_merged():
@@ -170,7 +169,7 @@ def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_case
 
 
 def test_scenario_validation_reads_naturally_in_hungarian(stored_cases):
-    from tests.test_t16_scenarios import event
+    from tests.helpers.frontend_patching import event
 
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)

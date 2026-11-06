@@ -1,6 +1,6 @@
 """Scenario API over stored bases, actual CBC, strict boundaries and stored-only replay.
 
-Bases are Odoo-history cases over a fake read-only Odoo (``tests.t15_helpers``).
+Bases are Odoo-history cases over a fake read-only Odoo (``tests.helpers.planning_api``).
 """
 
 import json
@@ -15,26 +15,18 @@ from application.errors import RepositoryError
 from application.planning_serialization import read_request
 from backend.app.config import settings
 from backend.app.main import app
-from tests.t15_helpers import MemoryPlanningUnitOfWork, controlled_terms, odoo_case_api
-from tests.test_t13_planning import exhaustive
+from tests.helpers.in_memory_uow import MemoryPlanningUnitOfWork
+from tests.helpers.milp_requests import exhaustive
+from tests.helpers.planning_api import BASE, controlled_terms, forbidden, headers, odoo_case_api
 
-BASE = "/api/v2/procurement/planning-cases"
 client = TestClient(app)
 
 
 @pytest.fixture
-def configured(odoo_history, monkeypatch):
+def controlled_api(odoo_history, monkeypatch):
     uow = MemoryPlanningUnitOfWork()
     with odoo_case_api(odoo_history, uow, monkeypatch) as api:
         yield uow, controlled_terms(api)
-
-
-def headers(key=None):
-    return {"Authorization": "Bearer history-test-token", "Idempotency-Key": key or str(uuid4())}
-
-
-def forbidden(*args, **kwargs):
-    raise AssertionError("Stored or commercial-only flow invoked a prohibited dependency")
 
 
 def create(payload, key=None, solver_factory=None):
@@ -52,8 +44,8 @@ def create(payload, key=None, solver_factory=None):
     return response.json()
 
 
-def test_stored_base_reads_without_model_or_solver(configured, monkeypatch):
-    uow, payload = configured
+def test_stored_base_reads_without_model_or_solver(controlled_api, monkeypatch):
+    uow, payload = controlled_api
     monkeypatch.setattr("sklearn.tree.DecisionTreeClassifier.fit", forbidden)
     created = create(payload)
     snapshot = created["snapshot"]
@@ -81,8 +73,8 @@ def test_stored_base_reads_without_model_or_solver(configured, monkeypatch):
     "kind",
     ["supplier_outage", "capacity_change", "demand_change", "price_change", "combined"],
 )
-def test_five_actual_scenarios_preserve_parent_and_scores(configured, monkeypatch, kind):
-    uow, payload = configured
+def test_five_actual_scenarios_preserve_parent_and_scores(controlled_api, monkeypatch, kind):
+    uow, payload = controlled_api
     base = create(payload)
     monkeypatch.setattr("backend.app.routes.planning_cases.infer_odoo_history_features", forbidden)
     monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
@@ -134,8 +126,8 @@ def test_five_actual_scenarios_preserve_parent_and_scores(configured, monkeypatc
         assert conflict.status_code == 409
 
 
-def test_infeasible_and_beyond_score_range_are_distinct(configured):
-    uow, payload = configured
+def test_infeasible_and_beyond_score_range_are_distinct(controlled_api):
+    uow, payload = controlled_api
     for s in payload["suppliers"]:
         s["capacity"] = 2000
         s["price_quantities"]["maximum"] = s["delivery_quantities"]["maximum"] = 2000
@@ -168,7 +160,7 @@ def test_infeasible_and_beyond_score_range_are_distinct(configured):
     assert child.json()["snapshot"]["comparison"]["minimum_cost"] is None
 
 
-def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, monkeypatch):
+def test_guard_missing_ids_request_limit_and_sanitized_dependencies(controlled_api, monkeypatch):
     from backend.app.config import Settings
 
     assert (
@@ -177,7 +169,7 @@ def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, 
         ).supplier_history_model_directory
         is None
     )
-    _, payload = configured
+    _, payload = controlled_api
     base = create(payload)
     url = f"{BASE}/{base['case_id']}/scenarios"
     delta = {
@@ -210,13 +202,13 @@ def test_guard_missing_ids_request_limit_and_sanitized_dependencies(configured, 
 @pytest.mark.parametrize("phase", ["minimum", "alternative"])
 @pytest.mark.parametrize("status", ["no_proven_optimum", "solver_error"])
 def test_unproven_incumbents_never_become_plans_and_failure_replay_is_stored(
-    configured, monkeypatch, phase, status
+    controlled_api, monkeypatch, phase, status
 ):
     from backend.app.dependencies import planning_solver_factory
     from decision_core.planning.models import Allocation, PlanningStatus
     from decision_core.planning.planner import SolveOutcome
 
-    _, payload = configured
+    _, payload = controlled_api
 
     def solver_factory():
         solver, evidence = planning_solver_factory()
@@ -241,9 +233,9 @@ def test_unproven_incumbents_never_become_plans_and_failure_replay_is_stored(
     assert replay["snapshot"]["result"] == result
 
 
-def test_capacity_demand_and_price_change_in_both_directions(configured):
+def test_capacity_demand_and_price_change_in_both_directions(controlled_api):
     """P2: the task says "change", so increases and decreases both rerun the same MILP."""
-    uow, payload = configured
+    uow, payload = controlled_api
     base = create(payload)
     first = payload["suppliers"][0]
     source = payload["requirement_source"]
@@ -295,8 +287,8 @@ def test_capacity_demand_and_price_change_in_both_directions(configured):
     assert stored["snapshot"] == base["snapshot"] and len(uow.rows) == 1 + len(deltas)
 
 
-def test_invalid_scenarios_and_corrupt_stored_result_fail_closed(configured, monkeypatch):
-    uow, payload = configured
+def test_invalid_scenarios_and_corrupt_stored_result_fail_closed(controlled_api, monkeypatch):
+    uow, payload = controlled_api
     base = create(payload)
     monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
     supplier = payload["suppliers"][0]["supplier_id"]

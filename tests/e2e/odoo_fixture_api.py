@@ -1,8 +1,8 @@
 """FastAPI for the browser suite: real routes and PostgreSQL, fixture Odoo and model.
 
-The P1/P2 fast tests' fake Odoo (open quotation group 501 with three quotations and
-generated purchase history) answers every Odoo read, and a tree trained on that history
-is the supplier model. Nothing here talks to a real Odoo. Run as
+The fast tests' fake Odoo (``tests/helpers/odoo_fakes.py``: open quotation group 501 with
+three quotations and generated purchase history) answers every Odoo read, and a tree
+trained on that history is the supplier model. Nothing here talks to a real Odoo. Run as
 ``python -m tests.e2e.odoo_fixture_api PORT MODEL_DIRECTORY``.
 """
 
@@ -16,7 +16,7 @@ from pydantic import SecretStr
 
 
 def main(port: int, model_directory: Path) -> None:
-    from tests.test_odoo_purchase_history import COMPANY, build_history, install_fake_odoo
+    from tests.helpers.odoo_fakes import COMPANY, build_history, install_fake_odoo
 
     model_directory.mkdir(parents=True, exist_ok=True)
     patch = pytest.MonkeyPatch()

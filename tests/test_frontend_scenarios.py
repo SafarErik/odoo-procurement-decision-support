@@ -7,50 +7,13 @@ from decimal import Decimal
 
 import httpx
 import pytest
-from pydantic import SecretStr
 
-from backend.app.config import settings as backend_settings
-from backend.app.main import app
 from frontend.app import PlanningState, planning_page
 from frontend.config import settings as frontend_settings
 from frontend.i18n import money
 from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
-from tests.frontend_patching import patch_client
-from tests.t15_helpers import MemoryPlanningUnitOfWork
-from tests.test_t15_planning_api import forbidden
-from tests.test_t16_stored_planning import TOKEN
-from tests.test_t16_stored_planning import stored_cases as stored_cases
-
-
-@pytest.fixture
-def configured(stored_cases, monkeypatch):
-    existing, base, _, _ = stored_cases
-    uow = MemoryPlanningUnitOfWork()
-    uow.rows = dict(existing.rows)
-    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    for name in ("infer_odoo_history_features", "resolve_odoo_history_input"):
-        monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
-    monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
-    monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
-    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
-    transport, calls = httpx.ASGITransport(app=app), []
-
-    async def post(url, body, key, token, lang="en"):
-        calls.append((url, deepcopy(body), key))
-        return await submit_planning_request(url, body, key, token, lang=lang, transport=transport)
-
-    patch_client(monkeypatch, "submit_planning_request", post)
-    state = PlanningState(_reflex_internal_init=True)
-    state.lang = "en"  # the assertions below read English texts
-    state._show(_map_case(base, base["case_id"]))
-    return state, uow, base, calls, transport
-
-
-async def event(state, handler, *args):
-    async for update in handler.fn(state, *args):
-        if update is None:
-            assert state.is_loading
-    assert not state.is_loading
+from tests.helpers.frontend_patching import event, patch_client
+from tests.helpers.planning_api import TOKEN, forbidden
 
 
 @pytest.mark.parametrize(
@@ -64,8 +27,8 @@ async def event(state, handler, *args):
         {"kind": "combined", "supplier": "odoo:res.partner:306", "capacity": "4", "price": "12.00"},
     ],
 )
-def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, form):
-    state, uow, base, calls, transport = configured
+def test_all_scenarios_use_base_and_stored_evidence(scenario_state, monkeypatch, form):
+    state, uow, base, calls, transport = scenario_state
     before = uow.rows[base["case_id"]].snapshot
     original_terms = deepcopy(state.scenario_suppliers)
     asyncio.run(event(state, PlanningState.run_scenario, {**form, "token": "ignored"}))
@@ -121,8 +84,8 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
     assert planning_page() is not None
 
 
-def test_infeasibility_is_saved_without_fabricated_comparison(configured):
-    state, uow, base, _, _ = configured
+def test_infeasibility_is_saved_without_fabricated_comparison(scenario_state):
+    state, uow, base, _, _ = scenario_state
     asyncio.run(
         event(state, PlanningState.run_scenario, {"kind": "demand_change", "quantity": "30"})
     )
@@ -164,14 +127,14 @@ def test_infeasibility_is_saved_without_fabricated_comparison(configured):
         {"kind": []},
     ],
 )
-def test_invalid_or_empty_changes_never_post(configured, form):
-    state, _, _, calls, _ = configured
+def test_invalid_or_empty_changes_never_post(scenario_state, form):
+    state, _, _, calls, _ = scenario_state
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.error_message and not state.has_pending and not calls
 
 
-def test_lost_response_recovers_exact_scenario_without_solving_again(configured, monkeypatch):
-    state, uow, base, _, transport = configured
+def test_lost_response_recovers_exact_scenario_without_solving_again(scenario_state, monkeypatch):
+    state, uow, base, _, transport = scenario_state
     count, requests = len(uow.rows), []
 
     async def lose_first(request):

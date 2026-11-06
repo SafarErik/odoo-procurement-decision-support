@@ -1,6 +1,5 @@
 """Review/cancel are read-only; confirmation freezes the original decision intent."""
 
-import asyncio
 from copy import deepcopy
 from uuid import uuid4
 
@@ -13,22 +12,13 @@ from frontend.config import settings
 from frontend.i18n import tr
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
-from tests.frontend_patching import patch_client
-from tests.test_t17_decisions import TOKEN, intent
-from tests.test_t17_decisions import configured as configured
-from tests.test_t17_decisions import stored_cases as stored_cases
-
-
-def consume(state, handler):
-    async def run():
-        return [event async for event in handler.fn(state)]
-
-    return asyncio.run(run())
+from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.planning_api import TOKEN, intent
 
 
 @pytest.fixture
-def prepared(configured, monkeypatch):
-    _, uow, base, child, *_ = configured
+def prepared(decision_api, monkeypatch):
+    _, uow, base, child, *_ = decision_api
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     state._show(_map_case(base, base["case_id"]))
@@ -145,10 +135,10 @@ def test_minimum_cost_also_requires_deliberate_buyer_rationale(prepared):
 
 @pytest.mark.parametrize("recovering", [False, True])
 def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
-    prepared, configured, monkeypatch, recovering
+    prepared, decision_api, monkeypatch, recovering
 ):
     state, uow, base, _, posts = prepared
-    client = configured[0]
+    client = decision_api[0]
     if recovering:
         state._prepare_request(
             "http://test/api/v2/procurement/planning-cases/" + base["case_id"] + "/final-decision",

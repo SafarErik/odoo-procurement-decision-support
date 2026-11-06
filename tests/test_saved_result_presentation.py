@@ -1,4 +1,4 @@
-"""Saved-result presentation gates for the controlled T16 cockpit."""
+"""Saved-result presentation: cost/exposure chart, honest single-plan and infeasible views."""
 
 from copy import deepcopy
 from decimal import Decimal
@@ -7,7 +7,6 @@ import pytest
 
 from frontend.app import PlanningState, planning_page
 from frontend.planning_client import _map_case
-from tests.test_t16_stored_planning import stored_cases as stored_cases
 
 
 def test_chart_uses_saved_exact_costs_and_fixed_exposure_scale(stored_cases):

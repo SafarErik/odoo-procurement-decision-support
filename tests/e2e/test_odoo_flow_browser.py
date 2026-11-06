@@ -1,7 +1,7 @@
 """Buyer flow in the browser: open RFQ → saved case → tabs → one approval → Hungarian PDF.
 
-Real FastAPI, PostgreSQL and Reflex; Odoo and the supplier model come from the P1
-fixtures (tests/e2e/odoo_fixture_api.py).
+Real FastAPI, PostgreSQL and Reflex; Odoo and the supplier model come from the fast-test
+fakes (tests/e2e/odoo_fixture_api.py).
 """
 
 import re

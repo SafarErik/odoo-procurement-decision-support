@@ -20,23 +20,8 @@ from frontend.i18n import tr
 from frontend.planning.state import PlanningState
 from frontend.planning_client import fetch_planning_case
 from frontend.planning_pdf_client import fetch_planning_pdf
-from tests.frontend_patching import patch_client
-from tests.test_t15_planning_api import forbidden
-from tests.test_t17_decisions import BASE, TOKEN, headers, intent
-from tests.test_t17_decisions import configured as _configured
-from tests.test_t17_decisions import stored_cases as _stored_cases
-
-configured = _configured
-stored_cases = _stored_cases
-
-
-def approve(client, base, index=1):
-    response = client.post(
-        f"{BASE}/{base['case_id']}/final-decision", json=intent(base, index), headers=headers()
-    )
-    assert response.status_code == 201, response.text
-    decision = response.json()["final_decision"]
-    return decision, f"{BASE}/{base['case_id']}/approved-pdf/{decision['approved_content_hash']}"
+from tests.helpers.frontend_patching import patch_client
+from tests.helpers.planning_api import BASE, TOKEN, approve, forbidden, headers, intent
 
 
 def extracted(data):
@@ -44,8 +29,8 @@ def extracted(data):
 
 
 @pytest.mark.parametrize("index", [0, 1])
-def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monkeypatch, index):
-    client, uow, base, *_ = configured
+def test_pdf_matches_exact_approved_allocation_audit_and_terms(decision_api, monkeypatch, index):
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base, index)
     original = (uow.rows.copy(), uow.decisions.rows.copy())
     monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
@@ -128,8 +113,8 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert client.get(url + "?language=de", headers=headers()).status_code == 422
 
 
-def test_stored_pre_p2_v1_artifact_fails_closed(configured, monkeypatch):
-    client, uow, base, *_ = configured
+def test_stored_pre_p2_v1_artifact_fails_closed(decision_api, monkeypatch):
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
     legacy = PlanningDocument(
@@ -155,8 +140,8 @@ def test_stored_pre_p2_v1_artifact_fails_closed(configured, monkeypatch):
     assert uow.documents.rows[(base["case_id"], "en", "plan")] is legacy
 
 
-def test_pdf_denial_and_identity_authentication_leave_no_artifact(configured):
-    client, uow, base, child, _ = configured
+def test_pdf_denial_and_identity_authentication_leave_no_artifact(decision_api):
+    client, uow, base, child, _ = decision_api
 
     def path(case):
         return f"{BASE}/{case['case_id']}/approved-pdf/" + "0" * 64
@@ -182,9 +167,9 @@ def test_pdf_denial_and_identity_authentication_leave_no_artifact(configured):
 
 
 def test_render_failure_and_commit_failure_preserve_approval_and_retry_same_content(
-    configured, monkeypatch
+    decision_api, monkeypatch
 ):
-    client, uow, base, *_ = configured
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base)
     original = (uow.rows.copy(), uow.decisions.rows.copy())
     renderer = []
@@ -227,8 +212,8 @@ def test_render_failure_and_commit_failure_preserve_approval_and_retry_same_cont
     assert client.get(url, headers=headers()).status_code == 503
 
 
-def test_long_unicode_names_rationale_provenance_paginate_without_losing_text(configured):
-    client, _, base, *_ = configured
+def test_long_unicode_names_rationale_provenance_paginate_without_losing_text(decision_api):
+    client, _, base, *_ = decision_api
     decision, _ = approve(client, base)
     content = deepcopy(decision["approved_content"])
     identity = content["planning_snapshot"]["request"]["suppliers"][0]["supplier_id"]
@@ -254,8 +239,8 @@ def test_long_unicode_names_rationale_provenance_paginate_without_losing_text(co
 
 
 @pytest.mark.parametrize("failure", ["unsupported_glyph", "invalid_bytes"])
-def test_renderer_limits_fail_without_changing_approval(configured, monkeypatch, failure):
-    client, uow, base, *_ = configured
+def test_renderer_limits_fail_without_changing_approval(decision_api, monkeypatch, failure):
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base)
 
     def render(content, language, kind):
@@ -274,8 +259,8 @@ def test_renderer_limits_fail_without_changing_approval(configured, monkeypatch,
     )
 
 
-def test_pdf_frontend_view_download_failure_and_same_identity_retry(configured, monkeypatch):
-    client, _, base, *_ = configured
+def test_pdf_frontend_view_download_failure_and_same_identity_retry(decision_api, monkeypatch):
+    client, _, base, *_ = decision_api
     decision, _ = approve(client, base)
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
@@ -317,8 +302,8 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(configured, 
     "corruption",
     ["hash", "reference", "mime", "version", "language", "kind", "bytes", "oversize", "redirect"],
 )
-def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption):
-    client, _, base, *_ = configured
+def test_pdf_client_fails_closed_on_unsupported_response(decision_api, corruption):
+    client, _, base, *_ = decision_api
     decision, url = approve(client, base)
     good = client.get(url, headers=headers())
     response_headers = dict(good.headers)
@@ -358,8 +343,8 @@ def test_pdf_client_fails_closed_on_unsupported_response(configured, corruption)
     assert result is None and error == tr("err_pdf", "hu") and TOKEN not in error
 
 
-def test_pdf_names_a_plan_proved_only_by_the_balanced_stage(configured):
-    client, _, base, *_ = configured
+def test_pdf_names_a_plan_proved_only_by_the_balanced_stage(decision_api):
+    client, _, base, *_ = decision_api
     decision, _ = approve(client, base, 1)
     content = deepcopy(decision["approved_content"])
     for run in content["planning_snapshot"]["result"]["runs"]:
@@ -372,8 +357,8 @@ def test_pdf_names_a_plan_proved_only_by_the_balanced_stage(configured):
     assert "Rendelési tétel – jóváhagyott terv" in extracted(hu)
 
 
-def test_plan_and_audit_documents_share_content_and_are_stored_per_kind(configured, monkeypatch):
-    client, uow, base, *_ = configured
+def test_plan_and_audit_documents_share_content_and_are_stored_per_kind(decision_api, monkeypatch):
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
     monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
@@ -432,9 +417,9 @@ def test_plan_and_audit_documents_share_content_and_are_stored_per_kind(configur
 
 @pytest.mark.parametrize("renderer", ["layout-v3", "layout-v4"])
 def test_stored_combined_v2_document_fails_closed_and_audit_is_added(
-    configured, monkeypatch, renderer
+    decision_api, monkeypatch, renderer
 ):
-    client, uow, base, *_ = configured
+    client, uow, base, *_ = decision_api
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
     legacy = PlanningDocument(
@@ -467,8 +452,8 @@ def test_stored_combined_v2_document_fails_closed_and_audit_is_added(
     assert client.get(url, params={"kind": "audit"}, headers=headers()).status_code == 503
 
 
-def test_no_document_of_either_kind_without_approval_and_unknown_kind_rejected(configured):
-    client, uow, base, child, _ = configured
+def test_no_document_of_either_kind_without_approval_and_unknown_kind_rejected(decision_api):
+    client, uow, base, child, _ = decision_api
     for kind in ("plan", "audit"):
         for case in (base, child):  # unapproved base, scenario
             response = client.get(
@@ -482,8 +467,8 @@ def test_no_document_of_either_kind_without_approval_and_unknown_kind_rejected(c
     assert not uow.documents.rows
 
 
-def test_no_award_has_no_document_of_either_kind(configured):
-    client, uow, base, *_ = configured
+def test_no_award_has_no_document_of_either_kind(decision_api):
+    client, uow, base, *_ = decision_api
     client.post(
         f"{BASE}/{base['case_id']}/final-decision",
         json=intent(base, None, "no_award"),
@@ -500,18 +485,18 @@ def test_no_award_has_no_document_of_either_kind(configured):
     assert not uow.documents.rows
 
 
-def test_application_rejects_unknown_document_kind(configured):
+def test_application_rejects_unknown_document_kind(decision_api):
     from application.planning_cases import PlanningCaseError
     from application.planning_documents import approved_document
 
-    _, uow, base, *_ = configured
+    _, uow, base, *_ = decision_api
     with pytest.raises(PlanningCaseError) as error:
         approved_document(uow, base["case_id"], "0" * 64, forbidden, "hu", "summary")
     assert error.value.code == "invalid_document_kind"
 
 
-def test_audit_view_fetches_audit_appendix_with_same_error_handling(configured, monkeypatch):
-    client, _, base, *_ = configured
+def test_audit_view_fetches_audit_appendix_with_same_error_handling(decision_api, monkeypatch):
+    client, _, base, *_ = decision_api
     decision, _ = approve(client, base)
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
@@ -549,8 +534,8 @@ def test_audit_view_fetches_audit_appendix_with_same_error_handling(configured, 
     asyncio.run(run())
 
 
-def test_audit_view_pdf_requires_an_approved_case(configured):
-    _, _, base, *_ = configured
+def test_audit_view_pdf_requires_an_approved_case(decision_api):
+    _, _, base, *_ = decision_api
 
     async def run():
         state = PlanningState(_reflex_internal_init=True)

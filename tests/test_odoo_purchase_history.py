@@ -1,4 +1,4 @@
-"""Odoo purchase history -> features/labels -> trained tree -> saved planning case (P1)."""
+"""Odoo purchase history -> features/labels -> trained tree -> saved planning case."""
 
 import asyncio
 import importlib.util
@@ -13,7 +13,6 @@ from uuid import uuid4
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
 
 from application.errors import ProcurementDataResponseError, RepositoryError
 from application.planning_cases import validate_snapshot
@@ -27,7 +26,6 @@ from application.purchase_history import (
 from backend.app.config import settings
 from backend.app.main import app
 from frontend.planning_client import _map_case
-from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
 from supplier_evaluation.contracts import (
     HISTORY_FEATURES,
@@ -41,18 +39,15 @@ from supplier_evaluation.history_model import (
     evaluate,
     load_model,
     path_text,
-    save_model,
     train,
 )
 from supplier_evaluation.purchase_history import (
-    build_rows,
     feature_snapshot,
     feature_values,
     problematic_label,
-    split_rows,
 )
-from tests.t15_helpers import MemoryPlanningUnitOfWork
-from tests.test_odoo_comparison_case_adapter import _payloads
+from tests.helpers.odoo_fakes import COMPANY, DATABASE, export_response
+from tests.helpers.planning_api import BASE, forbidden, headers
 from tools.seed_odoo_history import (
     ALLOWED_DATABASE,
     OdooWriter,
@@ -61,11 +56,6 @@ from tools.seed_odoo_history import (
     plan_summary,
 )
 
-BASE = "/api/v2/procurement/planning-cases"
-DATABASE = ALLOWED_DATABASE
-COMPANY = "odoo:res.company:1"
-PRODUCTS = {"PRD-01": 42, "PRD-02": 43, "PRD-03": 44}
-QUOTED = (1, 4, 6)  # SUP-01 reliable, SUP-04 steady late, SUP-06 deteriorating; all sell PRD-01
 ADDON = (
     Path(__file__).resolve().parents[1]
     / "infra/odoo/addons/t7s_inventory_history_projection/product_history_policy.py"
@@ -100,56 +90,6 @@ def line(n, expected, receipts, *, confirmed=None, qty="100", supplier="odoo:res
             for i, (at, q) in enumerate(receipts)
         ),
     )
-
-
-def plan_lines(now):
-    """The seeder's generated plan as neutral Odoo-shaped history (no Odoo involved)."""
-    plan = build_plan(now)
-    out = []
-    for n, order in enumerate(plan.orders, 1):
-        out.append(
-            PurchaseLineHistory(
-                f"odoo:purchase.order.line:{n}",
-                f"odoo:purchase.order:{n}",
-                COMPANY,
-                f"odoo:res.partner:{300 + int(order.supplier[4:])}",
-                f"odoo:product.product:{PRODUCTS[order.product]}",
-                "odoo:uom.uom:1",
-                Decimal(order.quantity),
-                order.expected_at,
-                order.ordered_at + timedelta(hours=2),
-                tuple(
-                    ReceiptEvent(f"odoo:stock.move:{n}{i}", r.at, Decimal(r.quantity))
-                    for i, r in enumerate(order.receipts)
-                ),
-            )
-        )
-    return tuple(out)
-
-
-@pytest.fixture(scope="module")
-def history(tmp_path_factory):
-    return build_history(tmp_path_factory.mktemp("history-model"))
-
-
-def build_history(directory, now=None):
-    """Generated Odoo-shaped history ending at ``now`` and a tree trained on it."""
-    now = now or datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
-    lines = plan_lines(now)
-    rows, coverage = build_rows(lines, extracted_at=now)
-    boundary = max(r.cutoff for r in rows) - timedelta(days=92)
-    boundary = boundary.replace(day=1 if boundary.day < 16 else 16)
-    split = split_rows(rows, boundary=boundary)
-    model = train(split, database=DATABASE, data_origin="generated")
-    save_model(model, directory)
-    return {
-        "now": now,
-        "lines": lines,
-        "rows": rows,
-        "split": split,
-        "model": model,
-        "dir": directory,
-    }
 
 
 # --- Odoo addon export policy ---------------------------------------------------------
@@ -244,46 +184,6 @@ def test_export_policy_fails_closed_on_ambiguous_evidence(mutate, message):
 
 
 # --- JSON-2 adapter ------------------------------------------------------------------
-
-
-def export_response(lines, data):
-    start = datetime.strptime(data["date_from"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
-    end = datetime.strptime(data["date_to"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
-    fmt = "%Y-%m-%d %H:%M:%S"
-    chosen = [
-        x
-        for x in lines
-        if x.product_id == f"odoo:product.product:{data['product_id']}"
-        and start <= x.expected_at < end
-    ]
-    records = [
-        {
-            "purchase_order_line_id": int(x.line_id.rsplit(":", 1)[1]),
-            "purchase_order_id": int(x.order_id.rsplit(":", 1)[1]),
-            "commercial_partner_id": int(x.supplier_id.rsplit(":", 1)[1]),
-            "product_uom_id": 1,
-            "ordered_quantity": f"{x.ordered_quantity}.0",
-            "expected_arrival_at": x.expected_at.strftime(fmt),
-            "order_confirmed_at": x.confirmed_at.strftime(fmt),
-            "receipts": [
-                {"stock_move_id": int(r.event_id.rsplit(":", 1)[1]), "stock_picking_id": 1,
-                 "processed_at": r.received_at.strftime(fmt), "quantity": f"{r.quantity}.0",
-                 "backorder_of_picking_id": None}
-                for r in x.receipts
-            ],
-            "returned_quantity": "0",
-        }
-        for x in chosen
-    ]  # fmt: skip
-    return {
-        "schema_version": "pdss.product_history.v1",
-        "company_id": data["company_id"],
-        "product_id": data["product_id"],
-        "date_from": data["date_from"],
-        "date_to": data["date_to"],
-        "result_count": len(records),
-        "lines": records,
-    }
 
 
 def _reader(respond):
@@ -448,79 +348,8 @@ def test_artifact_roundtrip_inference_and_readable_path(history, tmp_path):
 # --- Backend case lifecycle ------------------------------------------------------------
 
 
-def forbidden(*args, **kwargs):
-    raise AssertionError("Stored operation re-read Odoo, scored or solved")
-
-
-def install_fake_odoo(history, monkeypatch):
-    """Fake read-only Odoo (group 501, its history) plus the trained history model."""
-    payloads, calls = _payloads(), []
-    for order, quote_line, partner, n in zip(
-        payloads["orders"], payloads["lines"], payloads["partners"], QUOTED, strict=True
-    ):
-        order["partner_id"] = [300 + n, f"Supplier {n}"]
-        order["date_order"] = "2026-10-15 08:00:00"
-        partner.update(id=300 + n, commercial_partner_id=[300 + n, f"Supplier {n}"])
-        quote_line["product_qty"] = 200.0
-
-    def respond(request):
-        data = json.loads(request.content)
-        calls.append(request.url.path)
-        assert request.headers["X-Odoo-Database"] == DATABASE
-        if request.url.path.endswith("read_product_history"):
-            assert request.headers["Authorization"] == "Bearer history-only"
-            return httpx.Response(200, json=export_response(history["lines"], data))
-        assert request.headers["Authorization"] == "Bearer rfq-only"
-        path = request.url.path
-        if path.endswith("purchase.order/search_count"):
-            return httpx.Response(200, json=3)
-        if path.endswith("purchase.order/search_read"):
-            return httpx.Response(200, json=payloads["orders"])
-        if path.endswith("purchase.order.line/search_read"):
-            return httpx.Response(200, json=payloads["lines"])
-        if path.endswith("res.partner/search_read"):
-            return httpx.Response(200, json=payloads["partners"])
-        if path.endswith("res.currency/search_read"):
-            return httpx.Response(200, json=[{"id": 2, "name": "USD"}])
-        raise AssertionError(path)
-
-    transport = httpx.MockTransport(respond)
-    monkeypatch.setattr(
-        "backend.app.dependencies.get_comparison_case_reader",
-        lambda: OdooComparisonCaseReader(
-            base_url="http://odoo.test", database=DATABASE, api_key="rfq-only", transport=transport
-        ),
-    )
-    monkeypatch.setattr(
-        "backend.app.dependencies.get_purchase_history_reader",
-        lambda: OdooProductHistoryReader(
-            base_url="http://odoo.test",
-            database=DATABASE,
-            api_key="history-only",
-            transport=transport,
-        ),
-    )
-    monkeypatch.setattr(settings, "odoo_database", DATABASE)
-    monkeypatch.setattr(settings, "odoo_history_data_origin", "generated")
-    monkeypatch.setattr(settings, "supplier_history_model_directory", history["dir"])
-    monkeypatch.setattr(settings, "api_service_token", SecretStr("history-test-token"))
-    return calls
-
-
-@pytest.fixture
-def configured(history, monkeypatch):
-    calls = install_fake_odoo(history, monkeypatch)
-    uow = MemoryPlanningUnitOfWork()
-    monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-    return calls, uow
-
-
-def headers(key=None):
-    return {"Authorization": "Bearer history-test-token", "Idempotency-Key": key or str(uuid4())}
-
-
-def test_odoo_history_case_lifecycle_and_stored_only_replay(configured, monkeypatch):
-    calls, uow = configured
+def test_odoo_history_case_lifecycle_and_stored_only_replay(fake_odoo, monkeypatch):
+    calls, uow = fake_odoo
     with TestClient(app) as client:
         preview = client.get(
             BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()
@@ -612,8 +441,8 @@ def create_history_case(client):
     return response.json()
 
 
-def test_supplier_overview_reads_only_the_stored_case(configured, monkeypatch):
-    calls, _ = configured
+def test_supplier_overview_reads_only_the_stored_case(fake_odoo, monkeypatch):
+    calls, _ = fake_odoo
     with TestClient(app) as client:
         base = create_history_case(client)
         before = len(calls)
@@ -663,7 +492,7 @@ def test_supplier_overview_reads_only_the_stored_case(configured, monkeypatch):
         assert len(calls) == before
 
 
-def test_plan_and_audit_pdfs_name_odoo_suppliers_and_state_generated_history(configured):
+def test_plan_and_audit_pdfs_name_odoo_suppliers_and_state_generated_history(fake_odoo):
     from io import BytesIO
 
     from pypdf import PdfReader
@@ -742,8 +571,8 @@ def test_plan_and_audit_pdfs_name_odoo_suppliers_and_state_generated_history(con
 @pytest.mark.parametrize(
     "mutation", ["extra", "bool_quantity", "float_price", "changed_price", "conflict"]
 )
-def test_invalid_terms_and_key_conflict_save_nothing_new(configured, monkeypatch, mutation):
-    _, uow = configured
+def test_invalid_terms_and_key_conflict_save_nothing_new(fake_odoo, monkeypatch, mutation):
+    _, uow = fake_odoo
     with TestClient(app) as client:
         preview = client.get(
             BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()
@@ -769,8 +598,8 @@ def test_invalid_terms_and_key_conflict_save_nothing_new(configured, monkeypatch
     assert len(uow.rows) == saved
 
 
-def test_insufficient_supplier_history_saves_nothing(configured, history, monkeypatch):
-    _, uow = configured
+def test_insufficient_supplier_history_saves_nothing(fake_odoo, history, monkeypatch):
+    _, uow = fake_odoo
     lines = tuple(x for x in history["lines"] if x.supplier_id != "odoo:res.partner:306")
     monkeypatch.setitem(history, "lines", lines)
     with TestClient(app) as client:
@@ -782,8 +611,8 @@ def test_insufficient_supplier_history_saves_nothing(configured, history, monkey
     assert not uow.rows
 
 
-def test_missing_model_blocks_creation_without_a_saved_case(configured, monkeypatch, tmp_path):
-    _, uow = configured
+def test_missing_model_blocks_creation_without_a_saved_case(fake_odoo, monkeypatch, tmp_path):
+    _, uow = fake_odoo
     monkeypatch.setattr(settings, "supplier_history_model_directory", tmp_path)
     with TestClient(app) as client:
         data = client.get(
@@ -810,8 +639,8 @@ def test_model_origin_is_explicit_and_validated(history):
         check_manifest_metadata(history["model"].metadata | {"data_origin": "synthetic"})
 
 
-def test_model_of_another_data_origin_cannot_assess_the_database(configured, monkeypatch):
-    _, uow = configured
+def test_model_of_another_data_origin_cannot_assess_the_database(fake_odoo, monkeypatch):
+    _, uow = fake_odoo
     monkeypatch.setattr(settings, "odoo_history_data_origin", "observed")
     with TestClient(app) as client:
         data = client.get(
@@ -844,8 +673,8 @@ def _without_origin(encoded):
     return canonical(payload)
 
 
-def test_stored_case_requires_model_origin_equal_to_history_origin(configured):
-    _, uow = configured
+def test_stored_case_requires_model_origin_equal_to_history_origin(fake_odoo):
+    _, uow = fake_odoo
     with TestClient(app) as client:
         data = client.get(
             BASE + "/odoo-history/preview?purchase_group_id=501", headers=headers()

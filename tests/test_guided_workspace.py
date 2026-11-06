@@ -9,11 +9,7 @@ from frontend.i18n import tr
 from frontend.odoo_history_client import quotation_rows
 from frontend.planning.state import PlanningState
 from frontend.planning_client import _map_case
-from tests.frontend_patching import patch_client
-from tests.test_creation_review import prepared_state as prepared_state
-from tests.test_odoo_purchase_history import configured as configured
-from tests.test_odoo_purchase_history import history as history
-from tests.test_t16_stored_planning import stored_cases as stored_cases
+from tests.helpers.frontend_patching import patch_client
 
 
 def test_draft_survives_steps_language_and_reopened_supplier(prepared_state):

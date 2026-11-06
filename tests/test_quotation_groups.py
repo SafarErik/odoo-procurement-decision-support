@@ -1,4 +1,4 @@
-"""P2 open quotation-group selection: bounded, company-scoped, read-only listing."""
+"""Open quotation-group listing API: bounded, company-scoped, read-only."""
 
 import json
 
@@ -10,7 +10,7 @@ from pydantic import SecretStr
 from backend.app.config import settings
 from backend.app.main import app
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
-from tests.test_odoo_comparison_case_adapter import _payloads
+from tests.helpers.odoo_fakes import quotation_payloads
 
 URL = "/api/v2/procurement/quotation-groups"
 TOKEN = "groups-test-token"
@@ -20,7 +20,7 @@ def _odoo(groups):
     """Fake JSON-2 Odoo with several groups; records every call for read-only checks."""
     orders, lines, partners = [], [], {}
     for group_id, offers in groups.items():
-        base = _payloads()
+        base = quotation_payloads()
         for index, order in enumerate(base["orders"][: len(offers)]):
             order_id = group_id * 10 + index
             line = dict(base["lines"][index], id=order_id * 10, order_id=[order_id, "x"])

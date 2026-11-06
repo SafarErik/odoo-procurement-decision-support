@@ -1,4 +1,4 @@
-"""Fast tests for the T7-S bounded projection policy and addon boundary."""
+"""Odoo addon's bounded inventory-history projection policy and its access boundary."""
 
 import importlib.util
 import sys
