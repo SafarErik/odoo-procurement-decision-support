@@ -17,24 +17,11 @@ from application.planning_history import (
     history_query,
 )
 from application.planning_serialization import json_value
-from application.rfqs import RfqReader
 from backend.app.config import settings
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
-from odoo_adapter.rfq_reader import OdooRfqReader
 from persistence.session import create_session_factory
 from supplier_evaluation.contracts import Context
-
-
-def get_rfq_reader() -> RfqReader:
-    """Build the configured read-only procurement adapter."""
-
-    return OdooRfqReader(
-        base_url=settings.odoo_base_url,
-        database=settings.odoo_database,
-        api_key=settings.odoo_api_key.get_secret_value(),
-        timeout_seconds=settings.odoo_request_timeout_seconds,
-    )
 
 
 def get_comparison_case_reader() -> ComparisonCaseReader:
@@ -106,7 +93,7 @@ def get_purchase_history_reader():
 
 def capture_odoo_history(group_id):
     """Read one quotation group and its product's bounded history; never on replay."""
-    from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
+    from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 
     async def read():
         reader = get_comparison_case_reader()

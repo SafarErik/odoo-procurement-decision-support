@@ -26,19 +26,7 @@ from application.planning_serialization import (
 )
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import checked_plan
-from supplier_evaluation.contracts import (
-    ARTIFACT_VERSION,
-    CLASSES,
-    DATASET_VERSION,
-    FEATURE_VERSION,
-    FEATURES,
-    HISTORY_SOURCE,
-    LABEL_VERSION,
-    MAPPING_VERSION,
-    SYNTHETIC,
-    text_identity,
-    utc,
-)
+from supplier_evaluation.contracts import HISTORY_SOURCE, text_identity, utc
 from supplier_evaluation.planning_bridge import risk_inputs
 
 DECISION_VERSION = "t17-final-decision-v1"
@@ -111,39 +99,7 @@ def _saved_evidence(case: PlanningCase) -> dict:
         request = read_request(value["request"])
         assessments = read_assessments(value["assessments"])
         result = read_result(value["result"])
-        metadata = value["model_manifest"]["metadata"]
-        history = value["facts"].get("input_kind") == HISTORY_INPUT_KIND
-        source_type = HISTORY_SOURCE if history else SYNTHETIC
-        if history:
-            from supplier_evaluation.history_model import check_manifest_metadata
-
-            check_manifest_metadata(metadata)
-            if metadata["company_id"] != facts["company_id"]:
-                raise ValueError("Unsupported saved model metadata.")
-        for name, expected in (
-            ()
-            if history
-            else (
-                ("artifact_version", ARTIFACT_VERSION),
-                ("feature_version", FEATURE_VERSION),
-                ("feature_names", list(FEATURES)),
-                ("label_version", LABEL_VERSION),
-                ("class_names", list(CLASSES)),
-                ("mapping_version", MAPPING_VERSION),
-                ("dataset_version", DATASET_VERSION),
-                ("source_type", source_type),
-                (
-                    "domain",
-                    [
-                        facts["company_id"],
-                        request.requirement.product_id,
-                        request.requirement.quantity_unit,
-                    ],
-                ),
-            )
-        ):
-            if metadata[name] != expected:
-                raise ValueError("Unsupported saved model metadata.")
+        metadata = value["model_manifest"]["metadata"]  # validate_snapshot checked it
         for name in ("model_id", "training_id"):
             text_identity(metadata[name])
         utc(datetime.fromisoformat(metadata["trained_through"]))
@@ -187,13 +143,8 @@ def _saved_evidence(case: PlanningCase) -> dict:
         if (
             case.parent_id is not None
             or value["comparison"] is not None
-            or facts["source_type"] != source_type
-            or facts.get("input_kind", "controlled_synthetic")
-            not in (
-                {HISTORY_INPUT_KIND}
-                if history
-                else {"controlled_synthetic", "odoo_quotations_synthetic_history"}
-            )
+            or facts["source_type"] != HISTORY_SOURCE
+            or facts["input_kind"] != HISTORY_INPUT_KIND
             or value["risk_context"]["controlled_fixture"] is not True
             or value["request"] != json_value(request)
             or value["assessments"] != json_value(assessments)
@@ -205,7 +156,7 @@ def _saved_evidence(case: PlanningCase) -> dict:
             raise ValueError("Unsupported or inconsistent saved contracts.")
         coefficients, context = risk_inputs(
             replace(request, risk_coefficients=None),
-            # T14 reference digests preserve the score's four-place mapping precision.
+            # Assessment reference digests preserve the score's four-place mapping precision.
             tuple(replace(a, score=a.score.quantize(Decimal("0.0001"))) for a in assessments),
             company_id=facts["company_id"],
             as_of=datetime.fromisoformat(facts["as_of"]),
@@ -213,7 +164,7 @@ def _saved_evidence(case: PlanningCase) -> dict:
         if (
             coefficients != request.risk_coefficients
             or json_value(context) != value["risk_context"]
-            or any(a.snapshot.source_type != source_type for a in assessments)
+            or any(a.snapshot.source_type != HISTORY_SOURCE for a in assessments)
         ):
             raise ValueError("Stored risk evidence does not match its planning context.")
         plans = (

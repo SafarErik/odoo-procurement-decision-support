@@ -65,7 +65,7 @@ def test_review_cancel_confirm_freezes_exact_intent_and_cannot_double_save(prepa
     state.review_final_decision(submitted)
     expected = deepcopy(state._decision_payload)
     assert state.decision_open and state.decision_review["choice"] == "Alternative 1"
-    assert state.decision_review["cost"] == "€109.00"
+    assert state.decision_review["cost"] == "$98.00"
     assert not state.has_pending and not posts and not uow.decisions.rows
     state.change_decision_confirmation(False)
     assert not state.decision_open and not state._decision_payload and not posts

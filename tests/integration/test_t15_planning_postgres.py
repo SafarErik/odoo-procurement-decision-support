@@ -15,8 +15,6 @@ from sqlalchemy.exc import DBAPIError
 from application.errors import RepositoryError
 from backend.app.main import app
 from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
-from tests.legacy_cases import create_legacy_case
-from tests.t15_helpers import controlled_assets
 from tests.test_odoo_purchase_history import headers, install_fake_odoo
 from tests.test_odoo_purchase_history import history as history
 
@@ -128,16 +126,6 @@ def test_http_database_roundtrip_bidirectional_scenarios_and_stored_replay(confi
         )
         assert conflict.status_code == 409
         assert len(calls) == before
-
-
-def test_pre_p2_synthetic_base_stays_readable(configured, tmp_path):
-    engine, factory, *_ = configured
-    payload = controlled_assets(tmp_path / "model")
-    base = create_legacy_case(SqlAlchemyPlanningUnitOfWork(factory), payload, tmp_path / "model")
-    with TestClient(app) as client:
-        stored = client.get(f"{BASE}/{base['case_id']}", headers=headers())
-    assert stored.status_code == 200 and stored.json()["origin"] == "demo"
-    assert stored.json()["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] == "102"
 
 
 @pytest.mark.parametrize(

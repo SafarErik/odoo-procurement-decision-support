@@ -153,7 +153,7 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
     consume(state, PlanningState.recover_request)
     assert requests[0] == requests[1] and len(uow.rows) == 1 and upstream == upstream_before
     assert state.has_case and not state.has_pending and not state._review_payload
-    assert state.details["origin"] == "odoo"
+    assert state.details["data_origin"] == "generated"
     assert state.notice == "Comparison saved. Approval is a separate step."
     assert state.comparison_state == tr("state_awaiting", "en")
     assert not state.final_choice and not state.details["final_outcome"]

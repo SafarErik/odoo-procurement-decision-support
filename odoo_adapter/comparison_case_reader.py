@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
 from application.odoo_quotations import (
     OPEN_QUOTATION_STATES,
     OdooComparisonCaseFacts,
@@ -18,7 +19,7 @@ from application.odoo_quotations import (
     QuotationLineSummary,
     QuotationSummary,
 )
-from application.rfqs import ProcurementDataResponseError, ProcurementDataUnavailable
+from odoo_adapter.product_history_reader import _prefixed_id
 
 _MAX_GROUP_OFFERS = 20
 _MAX_GROUP_LINES = 40
@@ -171,8 +172,6 @@ class OdooComparisonCaseReader:
 
     async def list_quotation_groups(self, company_id: str, limit: int) -> QuotationGroupListing:
         """List the newest open quotation groups of one company with bounded reads."""
-        from odoo_adapter.historical_performance_reader import _prefixed_id
-
         if not self._base_url or not self._database or not self._api_key:
             raise ProcurementDataUnavailable("Odoo integration is not configured")
         company = _prefixed_id(company_id, "odoo:res.company:")
@@ -293,8 +292,6 @@ class OdooComparisonCaseReader:
 
     async def read_currency_code(self, currency_id: str) -> tuple[str, datetime]:
         """Resolve one already selected currency; no conversion or broad discovery."""
-        from odoo_adapter.historical_performance_reader import _prefixed_id
-
         identifier = _prefixed_id(currency_id, "odoo:res.currency:")
         try:
             async with httpx.AsyncClient(

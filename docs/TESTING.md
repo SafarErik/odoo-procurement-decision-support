@@ -20,13 +20,12 @@ Docker Compose on Ubuntu.
 | --- | --- |
 | MILP model: bounds, optimum vs. brute-force reference, alternatives, tie-break, infeasible / time-limit / solver-error states | `test_t13_planning.py`, `test_t13_solver_runtime.py` |
 | ML on Odoo purchase history: export policy, adapter, as-of features, next-window label, supplier/time split, depth selection, baselines, artifact, inference, readable path, seeding guards, full case lifecycle, strict terms, supplier overview, PDF v2 names | `test_odoo_purchase_history.py`, `test_supplier_overview.py` |
-| Pre-P2 synthetic V1 tree (offline library; rebuilds stored demo cases via `tests/legacy_cases.py`) | `test_t14_dataset.py`, `test_t14_model.py`, `test_t14_runtime.py` |
 | ML → MILP risk bridge and score validity | `test_t14_planning_bridge.py` |
-| Historical KPI (delivery schedule adherence) and the bounded Odoo projection | `test_historical_performance.py`, `test_t7s_projection_policy.py`, `test_odoo_historical_performance_adapter.py` |
-| Odoo readers (RFQs, open quotation groups, comparison groups, purchase history) with mocked transport | `test_odoo_adapter.py`, `test_quotation_groups.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
-| Planning API: Odoo-history creation, fail-closed terms, idempotent replay, stored-only GET of new and pre-P2 cases | `test_odoo_purchase_history.py`, `test_t15_planning_api.py` |
+| Odoo addon's bounded inventory projection policy (still deployed, unused by the runtime) | `test_t7s_projection_policy.py` |
+| Odoo readers (open quotation groups, comparison groups, purchase history) with mocked transport | `test_quotation_groups.py`, `test_odoo_comparison_case_adapter.py`, `test_odoo_purchase_history.py` |
+| Planning API: Odoo-history creation, fail-closed terms, idempotent replay, stored-only GET | `test_odoo_purchase_history.py`, `test_t15_planning_api.py` |
 | Stress scenarios against the original base, both directions | `test_t15_planning_api.py`, `test_t16_scenarios.py`, `test_scenario_baseline.py` |
-| Human decision, No-award, conflicts, approved PDF v2 (HU/EN, per-language storage, pre-P2 English artifact) | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
+| Human decision, No-award, conflicts, approved plan and audit PDF v3 (HU/EN, per-language and per-kind storage; stored v1/v2 artifacts fail closed) | `test_t17_decisions.py`, `test_decision_confirmation.py`, `test_t21_documents.py` |
 | Saved-case library | `test_planning_library.py` |
 | Frontend state and HTTP clients (no browser) | `test_t16_*`, `test_creation_review.py`, `test_plan_comparison.py`, `test_workspace_navigation.py` |
 | UI language and formatting: Hungarian default, HU/EN texts, locale money/date/number, relabel on switch without HTTP, supplier cards and KPI chart data | `test_p3_frontend.py` |

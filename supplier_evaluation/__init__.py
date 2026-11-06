@@ -1,1 +1,1 @@
-"""T14 offline controlled supplier evaluation, outside the ERP-neutral planning core."""
+"""Offline Decision Tree supplier evaluation on Odoo purchase history, outside the core."""

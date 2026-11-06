@@ -21,7 +21,7 @@ def test_chart_uses_saved_exact_costs_and_fixed_exposure_scale(stored_cases):
         "102.000000000000000001",
         "102.000000000000000002",
     ]
-    assert display.plans[0]["cost"] == "€102.000000000000000001"
+    assert display.plans[0]["cost"] == "$102.000000000000000001"
     assert Decimal(display.plans[0]["exposure_number"]) > Decimal(
         display.plans[1]["exposure_number"]
     )

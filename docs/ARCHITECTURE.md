@@ -48,7 +48,7 @@ The Reflex web UI drives every step through the HTTP API only.
 | --- | --- | --- |
 | `decision_core/planning/` | ERP-neutral planning model: immutable request/plan types, bound rules, plan verification, explanations, the `plan_procurement` use of a solver port | standard library only |
 | `optimization_adapter/` | PuLP + CBC implementation of the solver port (integer encoding, exact rational scaling, tie-break) | `decision_core`, PuLP |
-| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)); the pre-P2 synthetic tree stays as offline library code only, to rebuild stored demo cases in tests | scikit-learn, `decision_core` |
+| `supplier_evaluation/` | As-of features and next-window labels from purchase history, supplier/time split, depth selection, baselines, trusted artifact loading, inference with tree path, ML → MILP risk bridge ([MODEL_ML.md](MODEL_ML.md)) | scikit-learn, `decision_core` |
 | `application/` | Use cases: list open quotation groups, assemble inputs and provenance, create cases and scenarios, finalize decisions, list saved cases, per-supplier overview and HU/EN explanation texts, approved document storage per language | ports only (no Odoo/DB/HTTP) |
 | `odoo_adapter/` | JSON-2 readers for RFQs, open quotation-group summaries, one comparison group (with display names), the bounded receipt projection and the purchase-history export | `application` contracts, httpx |
 | `persistence/` | SQLAlchemy repositories and unit of work for cases, decisions and PDFs | `application` contracts |
@@ -94,8 +94,8 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 | --- | --- |
 | `GET /odoo-history/preview?purchase_group_id=N`, `POST /from-odoo-history` | The only way to create a base case: an Odoo quotation group, its product's purchase history and the Odoo-history model, plus explicit buyer terms |
 | `POST /{id}/scenarios` | Re-run the same MILP on explicitly changed inputs (child case); capacity, demand and price may go up or down |
-| `GET /`, `GET /{id}/scenarios` | Saved-case library, filters `origin`, `status`, `q`, cursor paging |
-| `GET /{id}` | Stored case, its decision and data origin |
+| `GET /`, `GET /{id}/scenarios` | Saved-case library, filters `status`, `q`, cursor paging |
+| `GET /{id}` | Stored case and its decision |
 | `GET /{id}/suppliers?language=hu` (or `en`) | Per-supplier overview from the stored snapshot: history KPIs, assessment, readable tree path, terms, planned quantities |
 | `POST /{id}/final-decision` | Approve a plan or record No-award (once) |
 | `GET /{id}/approved-pdf/{hash}?language=hu&kind=plan` (`en`; `audit`) | Approved plan (default) or audit appendix PDF bytes, Hungarian default; one stored artifact per language and kind, same approved content hash; `X-Document-Kind` header |
@@ -104,10 +104,10 @@ Prefix `/api/v2/procurement/planning-cases`, bearer service token required.
 quotation groups of the configured company (`PLANNING_LIBRARY_COMPANY_ID`) with
 product, quantity, currency, suppliers and whether the group can become a case
 (`selectable`, `issue`); it is bounded (at most 200 scanned orders, 20 groups) and
-read-only. `GET /api/v1/procurement/rfqs` lists open Odoo RFQs (not used by the UI).
+read-only.
 Every data route requires the bearer service token; only `GET /api/v1/health`, a
 liveness probe, is open. The synthetic demo routes `POST /` and `POST /from-odoo` were
-removed in P2; cases they created stay readable, approvable and printable.
+removed in P2; R1 removed the code that kept their stored cases readable.
 
 ## 5. Persistence
 
@@ -118,10 +118,10 @@ One PostgreSQL database owned by this service (`migrations/versions/20261018_01`
 | --- | --- |
 | `planning_cases` | Snapshot JSONB (facts, request, assessments, model manifest, solver evidence, result, scenario delta, provenance), parent link, idempotency key and fingerprint |
 | `planning_final_decisions` | One immutable decision per original base case |
-| `planning_documents` | Approved PDF bytes per `(case_id, language, kind)` (`plan` or `audit`) with content hash, reference and renderer version; English artifacts stored before P2 keep their v1 reference and bytes |
+| `planning_documents` | Approved PDF bytes per `(case_id, language, kind)` (`plan` or `audit`) with content hash, reference and renderer version; only `t17-approved-pdf-v3` references are served (older v1/v2 rows fail closed) |
 
-The data origin shown in the UI (`demo` or `odoo`) is derived from the stored
-snapshot, not stored separately.
+The data origin shown in the UI (generated or observed Odoo history) is read from the
+stored model manifest, not stored separately.
 
 ## 6. Runtime
 

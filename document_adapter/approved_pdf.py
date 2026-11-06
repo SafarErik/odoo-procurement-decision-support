@@ -92,10 +92,6 @@ TEXT = {
             "fából származik. A pontszám nem kalibrált meghibásodási valószínűség."
         ),
         "score_note": "A pontszám nem kalibrált meghibásodási valószínűség.",
-        "synthetic": (
-            "Bemutató adatok: a beszállítói értékelés szintetikus bemutató modellből származik. "
-            "Nem valós beszállítói teljesítmény."
-        ),
         "scope": (
             "Ez a dokumentum a jóváhagyott eredeti tervet rögzíti. A stresszteszt-forgatókönyvek "
             "külön elemzési esetek maradnak. A dokumentum nem Odoo beszerzési rendelés."
@@ -172,7 +168,6 @@ TEXT = {
         "data_origin": "Adatok eredete",
         "origin_generated": "generált (szimulált) előzmények",
         "origin_observed": "megfigyelt előzmények",
-        "origin_synthetic": "szintetikus bemutató adatok",
         "quotation_group": "Ajánlatcsoport",
         "history_cutoff": "Előzmények lezárási időpontja",
         "capture_hash": "Előzmény-rögzítés SHA-256",
@@ -229,10 +224,6 @@ TEXT = {
             "history. The score is not a calibrated failure probability."
         ),
         "score_note": "The score is not a calibrated failure probability.",
-        "synthetic": (
-            "Demonstration data: supplier assessments come from a synthetic demonstration "
-            "model. Not real supplier performance."
-        ),
         "scope": (
             "This document records the approved original plan. Stress scenarios remain "
             "separate analytical cases. This document is not an Odoo Purchase Order."
@@ -306,7 +297,6 @@ TEXT = {
         "data_origin": "Data origin",
         "origin_generated": "generated (simulated) history",
         "origin_observed": "observed history",
-        "origin_synthetic": "synthetic demonstration data",
         "quotation_group": "Quotation group",
         "history_cutoff": "History cutoff",
         "capture_hash": "History capture SHA-256",
@@ -421,9 +411,7 @@ def _render(content, language, kind):
     offers = {s["terms"]["supplier_id"]: s["offer_id"] for s in facts["suppliers"]}
     names = saved_labels(snapshot)
     metadata = snapshot["model_manifest"]["metadata"]
-    history = facts.get("input_kind") == "odoo_quotations_odoo_history"
-    origin = metadata.get("data_origin", "generated") if history else "synthetic"
-    origin = origin if origin in ("generated", "observed") or not history else "generated"
+    origin = metadata["data_origin"]  # "generated" or "observed", checked at approval
 
     def short(identity):
         return names.get(identity, identity)
@@ -671,16 +659,16 @@ def _render(content, language, kind):
         story.append(paragraph(t["audit_title"], title))
         fields([(t["case"], content["case_id"]), (t["content_hash"], content_hash)])
         story.append(paragraph(t["data_source"], heading))
-        rows = [(t["data_origin"], t["origin_" + origin])]
-        if history:
-            capture = json.loads(facts["history"])
-            rows += [
+        capture = json.loads(facts["history"])
+        fields(
+            [
+                (t["data_origin"], t["origin_" + origin]),
                 (t["database"], capture["evidence"]["database"]),
-                (t["quotation_group"], facts.get("comparison_case_id", "—")),
+                (t["quotation_group"], facts["comparison_case_id"]),
                 (t["history_cutoff"], moment(capture["evidence"]["cutoff"])),
                 (t["capture_hash"], capture["capture_hash"]),
             ]
-        fields(rows)
+        )
         story.append(paragraph(t["model"], heading))
         fields(
             [

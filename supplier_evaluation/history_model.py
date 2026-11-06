@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import platform
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -11,7 +12,10 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-from sklearn.metrics import roc_auc_score
+import scipy
+import sklearn
+import threadpoolctl
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
 from sklearn.tree import DecisionTreeClassifier, export_text
 
 from supplier_evaluation.contracts import (
@@ -31,8 +35,6 @@ from supplier_evaluation.contracts import (
     text_identity,
     utc,
 )
-from supplier_evaluation.evaluation import classification_metrics
-from supplier_evaluation.model import runtime, tree_state
 from supplier_evaluation.purchase_history import HistorySplit, Row, rows_id
 
 ARTIFACT_VERSION = "odoo-history-tree-v2"
@@ -71,6 +73,81 @@ METADATA_FIELDS = {
     "depth_selection",
     "model_id",
 }
+
+
+def runtime() -> dict[str, str]:
+    return {
+        "python": ".".join(platform.python_version_tuple()[:2]),
+        "sklearn": sklearn.__version__,
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "joblib": joblib.__version__,
+        "threadpoolctl": threadpoolctl.__version__,
+    }
+
+
+def tree_state(tree: DecisionTreeClassifier) -> dict:
+    t = tree.tree_
+    return {
+        name: getattr(t, name).tolist()
+        for name in (
+            "children_left",
+            "children_right",
+            "feature",
+            "threshold",
+            "value",
+            "n_node_samples",
+        )
+    }
+
+
+def classification_metrics(labels: list[int], predictions: list[int]) -> dict:
+    if (
+        not labels
+        or len(labels) != len(predictions)
+        or any(type(v) is not int or v not in (0, 1) for v in labels + predictions)
+    ):
+        raise ValueError("Nonempty binary classification results required.")
+    matrix = confusion_matrix(labels, predictions, labels=[0, 1]).tolist()
+    classes, undefined = [], []
+    for k in (0, 1):
+        tp = matrix[k][k]
+        support = sum(matrix[k])
+        predicted = sum(row[k] for row in matrix)
+        precision = tp / predicted if predicted else None
+        recall = tp / support if support else None
+        f1 = 2 * tp / (support + predicted) if support + predicted else None
+        if precision is None:
+            undefined.append(f"class {k} precision undefined: no predicted positives")
+        if recall is None:
+            undefined.append(f"class {k} recall undefined: absent held-out class")
+        if f1 is None:
+            undefined.append(f"class {k} F1 undefined: absent true and predicted class")
+        classes.append(
+            {
+                "class": k,
+                "support": support,
+                "predicted_support": predicted,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+            }
+        )
+    macro = {
+        metric: (
+            sum(c[metric] for c in classes) / 2
+            if all(c[metric] is not None for c in classes)
+            else None
+        )
+        for metric in ("precision", "recall", "f1")
+    }
+    return {
+        "confusion_matrix_labels_0_1": matrix,
+        "accuracy": float(accuracy_score(labels, predictions)),
+        "per_class": classes,
+        "macro": macro,
+        "undefined_metrics": undefined,
+    }
 
 
 def _xy(rows):

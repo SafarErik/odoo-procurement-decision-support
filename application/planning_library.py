@@ -9,22 +9,18 @@ from decimal import Decimal
 
 from application.errors import RepositoryError
 from application.planning_cases import (
-    LEGACY_SCENARIO_KINDS,
     SCENARIO_KINDS,
     PlanningCaseError,
     canonical_uuid,
-    case_origin,
     fingerprint,
     validate_snapshot,
 )
 from application.planning_decisions import validate_final_decision
-from supplier_evaluation.contracts import HISTORY_SOURCE, SYNTHETIC
 
 
 @dataclass(frozen=True, slots=True)
 class LibraryQuery:
     company: str
-    origin: str = "all"
     status: str = "all"
     q: str = ""
     limit: int = 20
@@ -33,17 +29,14 @@ class LibraryQuery:
 
     @property
     def context(self):
-        return fingerprint(
-            [self.company, self.origin, self.status, self.q, self.limit, self.parent_id]
-        )
+        return fingerprint([self.company, self.status, self.q, self.limit, self.parent_id])
 
 
-def library_query(company, origin="all", status="all", q="", limit=20, cursor=None, parent_id=None):
+def library_query(company, status="all", q="", limit=20, cursor=None, parent_id=None):
     if not isinstance(company, str) or not company.strip():
         raise RepositoryError("library_unconfigured", "Configure the library company first.")
     if (
-        origin not in {"all", "demo", "odoo"}
-        or status not in {"all", "draft", "approved", "no_award"}
+        status not in {"all", "draft", "approved", "no_award"}
         or not isinstance(q, str)
         or len(q.strip()) > 80
         or type(limit) is not int
@@ -52,7 +45,7 @@ def library_query(company, origin="all", status="all", q="", limit=20, cursor=No
         raise ValueError("Invalid library filters.")
     if parent_id is not None:
         canonical_uuid(parent_id)
-    query = LibraryQuery(company.strip(), origin, status, q.strip(), limit, parent_id)
+    query = LibraryQuery(company.strip(), status, q.strip(), limit, parent_id)
     if cursor is None:
         return query
     try:
@@ -66,7 +59,6 @@ def library_query(company, origin="all", status="all", q="", limit=20, cursor=No
             raise ValueError("Cursor time must be UTC.")
         return LibraryQuery(
             company.strip(),
-            origin,
             status,
             q.strip(),
             limit,
@@ -83,16 +75,6 @@ def case_summary(case, decision, company):
         facts, requirement = snapshot["facts"], snapshot["request"]["requirement"]
         if facts["company_id"] != company:
             raise ValueError("Case company mismatch.")
-        # Historical synthetic snapshots omit input_kind; source_type is the saved authority.
-        source = facts.get("input_kind", "controlled_synthetic")
-        if facts["source_type"] not in {SYNTHETIC, "odoo_projection", HISTORY_SOURCE}:
-            raise ValueError("Unsupported saved ML evidence source.")
-        if source not in {
-            "controlled_synthetic",
-            "odoo_quotations_synthetic_history",
-            "odoo_quotations_odoo_history",
-        }:
-            raise ValueError("Unknown source kind.")
         for field in ("product_id", "quantity_unit", "currency"):
             if not isinstance(requirement[field], str) or not requirement[field].strip():
                 raise ValueError("Missing saved context.")
@@ -108,7 +90,7 @@ def case_summary(case, decision, company):
         if scenario is not None:
             if set(scenario) != {"kind", "source", "suppliers", "approved_quantity"}:
                 raise ValueError("Invalid scenario shape.")
-            if scenario["kind"] not in SCENARIO_KINDS | LEGACY_SCENARIO_KINDS.keys():
+            if scenario["kind"] not in SCENARIO_KINDS:
                 raise ValueError("Unknown scenario kind.")
             quantity = scenario["approved_quantity"]
             if quantity is not None and (
@@ -149,7 +131,7 @@ def case_summary(case, decision, company):
             "created_at": case.created_at.isoformat(),
             "company_id": company,
             "product_id": requirement["product_id"],
-            # Odoo display name stored with the snapshot (P2); older cases show the identity.
+            # Odoo display name stored with the snapshot; the identity if Odoo gave none.
             "product_label": dict(facts.get("labels", ())).get(
                 requirement["product_id"], requirement["product_id"]
             ),
@@ -163,18 +145,10 @@ def case_summary(case, decision, company):
             "required_date": requirement["required_date"],
             "planning_status": snapshot["result"]["status"],
             "decision_status": outcome,
-            "source_kind": source,
-            "origin": case_origin(facts),
+            "source_kind": facts["input_kind"],
             # Same rule as the PDF notice: the history model records where its data came from.
-            "data_origin": (
-                snapshot.get("model_manifest", {}).get("metadata", {}).get("data_origin")
-                if source == "odoo_quotations_odoo_history"
-                else "synthetic"
-            )
-            or "generated",
-            "scenario_kind": None
-            if scenario is None
-            else LEGACY_SCENARIO_KINDS.get(scenario["kind"], scenario["kind"]),
+            "data_origin": snapshot["model_manifest"]["metadata"]["data_origin"],
+            "scenario_kind": None if scenario is None else scenario["kind"],
             "changed_assumptions": changes,
         }
     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError) as error:

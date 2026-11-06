@@ -208,8 +208,6 @@ def _supplier_label(identity: str, lang: str = "en", names: dict | None = None) 
         return names[identity]
     if identity.startswith("odoo:res.partner:"):
         return tr("supplier_n", lang, n=identity.removeprefix("odoo:res.partner:"))
-    if identity.startswith("synthetic-"):
-        return tr("demo_supplier", lang, n=identity.removeprefix("synthetic-"))
     return identity
 
 
@@ -312,9 +310,7 @@ def _history_step(step, lang: str = "en") -> str:
 
 
 def _data_origin(snapshot: dict) -> str:
-    """Same rule as the PDF: generated/observed Odoo history, or the synthetic demo model."""
-    if snapshot["facts"].get("input_kind") != "odoo_quotations_odoo_history":
-        return "synthetic"
+    """Same rule as the PDF: the history model records where its Odoo data came from."""
     origin = snapshot.get("model_manifest", {}).get("metadata", {}).get("data_origin")
     return origin if origin in ("generated", "observed") else "generated"
 
@@ -360,11 +356,8 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
         "invalid_input",
     ):
         raise ValueError("Unknown planning status")
-    kinds = {
-        "controlled_synthetic": "Controlled synthetic inputs and ML history",
-        "odoo_quotations_synthetic_history": "Captured Odoo quotations; synthetic ML history",
-        "odoo_quotations_odoo_history": "Odoo quotations and Odoo purchase history",
-    }
+    if facts["input_kind"] != "odoo_quotations_odoo_history":
+        raise ValueError("Unsupported input kind")
     currency = _required_string(requirement, "currency")
     unit_name = _unit_label(_required_string(requirement, "quantity_unit"), lang, names)
     parent = payload["parent_id"]
@@ -420,18 +413,12 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
         )
     policy = request["policy"]
     concentration = policy["concentration_limit"]
-    origin = payload["origin"]
     data_origin = _data_origin(snapshot)
     status_label = tr("status_" + status, lang)
     details = {
-        "origin": origin,
         "data_origin": data_origin,
-        "origin_badge": ""
-        if data_origin == "observed"
-        else tr("badge_generated" if data_origin == "generated" else "badge_synthetic", lang),
-        "origin_note": ""
-        if data_origin == "observed"
-        else tr("generated_note" if data_origin == "generated" else "synthetic_note", lang),
+        "origin_badge": "" if data_origin == "observed" else tr("badge_generated", lang),
+        "origin_note": "" if data_origin == "observed" else tr("generated_note", lang),
         "case_id": expected_id,
         "parent_id": parent or "Base case",
         "created_at": _parse_datetime(payload["created_at"]).isoformat(),
@@ -439,7 +426,7 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
         "snapshot_hash": _required_string(payload, "snapshot_hash"),
         "status": status.replace("_", " "),
         "status_code": status,
-        "input_kind": kinds[facts.get("input_kind", "controlled_synthetic")],
+        "input_kind": "Odoo quotations and Odoo purchase history",
         "company": _required_string(facts, "company_id"),
         "product": _required_string(requirement, "product_id"),
         "quantity": _integer(requirement["approved_quantity"]),
@@ -556,10 +543,6 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
                     )
                 )
         details["assumptions"] = "; ".join(assumptions)
-        if facts.get("input_kind") == "odoo_quotations_synthetic_history":
-            details["input_kind"] = (
-                "Saved Odoo quotations with what-if changes; synthetic ML history"
-            )
     plans, allocations = [], []
     minimum = result["minimum_cost_plan"]
     recorded = ([] if minimum is None else [minimum]) + result["alternatives"]
@@ -696,22 +679,18 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
     if comparison is not None and base_quantity != quantity:
         details["comparison_display"] += " " + tr("scenario_demand_changed", lang)
     assessments = []
-    history = facts.get("input_kind") == "odoo_quotations_odoo_history"
     for assessment in snapshot["assessments"]:
         feature = assessment["snapshot"]
-        expected_source = "odoo_purchase_history" if history else "t14_synthetic"
-        if feature["source_type"] != expected_source or facts["source_type"] != expected_source:
+        if feature["source_type"] != "odoo_purchase_history" or facts["source_type"] != (
+            "odoo_purchase_history"
+        ):
             raise ValueError("Unsupported ML source")
         predicted = assessment["predicted_class"]
         score = _decimal(assessment["score"])
         if type(predicted) is not int or predicted not in (0, 1) or not 0 <= score <= 1:
             raise ValueError("Unsupported assessment")
         values = feature["values"]
-        class_key = (
-            ("problematic" if predicted else "regular")
-            if history
-            else ("schedule_watch" if predicted else "schedule_regular")
-        )
+        class_key = "problematic" if predicted else "regular"
         assessments.append(
             {
                 "supplier": _required_string(feature["context"], "supplier_id"),
@@ -719,27 +698,16 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
                 "name": name(feature["context"]["supplier_id"]),
                 "class_key": class_key,
                 "class_label": tr("class_" + class_key, lang),
-                "class_meaning": tr(
-                    "class_meaning_history" if history else "class_meaning_synthetic", lang
-                ),
+                "class_meaning": tr("class_meaning_history", lang),
                 "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
                 "score_display": tr("exposure_value", lang, value=number(score * 100, lang, 1)),
-                "history_summary": (
-                    tr(
-                        "history_summary",
-                        lang,
-                        on_time=percent(values[0], lang, 0),
-                        late=tr("days", lang, value=number(values[1], lang, 1)),
-                        fill=percent(values[3], lang, 0),
-                        lines=number(values[5], lang, 0),
-                    )
-                    if history
-                    else tr(
-                        "history_summary_synthetic",
-                        lang,
-                        on_time=percent(Decimal(str(values[0])) / 100, lang, 0),
-                        receipts=number(values[1], lang, 0),
-                    )
+                "history_summary": tr(
+                    "history_summary",
+                    lang,
+                    on_time=percent(values[0], lang, 0),
+                    late=tr("days", lang, value=number(values[1], lang, 1)),
+                    fill=percent(values[3], lang, 0),
+                    lines=number(values[5], lang, 0),
                 ),
                 "history_window": (
                     f"{day(feature['history_start'], lang)} – {day(feature['history_end'], lang)}"

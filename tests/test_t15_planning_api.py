@@ -1,7 +1,6 @@
 """Scenario API over stored bases, actual CBC, strict boundaries and stored-only replay.
 
-Bases are pre-P2 synthetic demo cases rebuilt through the application use case (the
-HTTP demo creation route was removed in P2); scenarios use the HTTP API.
+Bases are Odoo-history cases over a fake read-only Odoo (``tests.t15_helpers``).
 """
 
 import json
@@ -16,35 +15,22 @@ from application.errors import RepositoryError
 from application.planning_serialization import read_request
 from backend.app.config import settings
 from backend.app.main import app
-from tests.legacy_cases import create_legacy_case
-from tests.t15_helpers import MemoryPlanningUnitOfWork, controlled_assets, copy_payload
+from tests.t15_helpers import MemoryPlanningUnitOfWork, controlled_terms, odoo_case_api
 from tests.test_t13_planning import exhaustive
 
 BASE = "/api/v2/procurement/planning-cases"
 client = TestClient(app)
-_STORE = {}
-
-
-@pytest.fixture(scope="module")
-def assets(tmp_path_factory):
-    directory = tmp_path_factory.mktemp("t15-model")
-    return directory, controlled_assets(directory)
 
 
 @pytest.fixture
-def configured(assets, monkeypatch):
-    directory, payload = assets
-    from backend.app.routes import planning_cases as routes
-
+def configured(odoo_history, monkeypatch):
     uow = MemoryPlanningUnitOfWork()
-    monkeypatch.setattr(routes, "get_planning_unit_of_work", lambda: uow)
-    monkeypatch.setattr(settings, "api_service_token", SecretStr("t15-test-secret"))
-    _STORE.update(uow=uow, directory=directory)
-    return uow, copy_payload(payload)
+    with odoo_case_api(odoo_history, uow, monkeypatch) as api:
+        yield uow, controlled_terms(api)
 
 
 def headers(key=None):
-    return {"Authorization": "Bearer t15-test-secret", "Idempotency-Key": key or str(uuid4())}
+    return {"Authorization": "Bearer history-test-token", "Idempotency-Key": key or str(uuid4())}
 
 
 def forbidden(*args, **kwargs):
@@ -52,34 +38,32 @@ def forbidden(*args, **kwargs):
 
 
 def create(payload, key=None, solver_factory=None):
-    """Store a legacy synthetic base through the application use case."""
-    if solver_factory is None:
-        return create_legacy_case(_STORE["uow"], payload, _STORE["directory"], key)
-    from application.planning_cases import create_planning_case
-    from tests.legacy_cases import legacy_facts, legacy_infer
-
-    case, _ = create_planning_case(
-        _STORE["uow"],
-        key or str(uuid4()),
-        facts=legacy_facts(payload),
-        infer=legacy_infer(_STORE["directory"]),
-        solver_factory=solver_factory,
-    )
-    return {"case_id": case.case_id, "snapshot": json.loads(case.snapshot)}
+    """Store an Odoo-history base through the HTTP route, optionally with a test solver."""
+    with pytest.MonkeyPatch.context() as patch:
+        if solver_factory is not None:
+            route = "backend.app.routes.planning_cases.planning_solver_factory"
+            patch.setattr(route, solver_factory)
+        response = client.post(
+            f"{BASE}/from-odoo-history",
+            json={"purchase_group_id": 501, "terms": payload},
+            headers=headers(key),
+        )
+    assert response.status_code in (200, 201), response.text
+    return response.json()
 
 
-def test_stored_legacy_base_reads_without_model_or_solver(configured, monkeypatch):
+def test_stored_base_reads_without_model_or_solver(configured, monkeypatch):
     uow, payload = configured
     monkeypatch.setattr("sklearn.tree.DecisionTreeClassifier.fit", forbidden)
     created = create(payload)
     snapshot = created["snapshot"]
     assert snapshot["result"]["status"] == "optimal"
-    assert snapshot["result"]["minimum_cost_plan"]["total_cost"] == "102"
-    assert snapshot["result"]["alternatives"][0]["total_cost"] == "109"
+    assert snapshot["result"]["minimum_cost_plan"]["total_cost"] == "94"
+    assert snapshot["result"]["alternatives"][0]["total_cost"] == "98"
     assert {
         a["supplier_id"]: a["quantity"]
         for a in snapshot["result"]["minimum_cost_plan"]["allocations"]
-    } == {s["supplier_id"]: q for s, q in zip(payload["suppliers"], (6, 4, 0), strict=True)}
+    } == {s["supplier_id"]: q for s, q in zip(payload["suppliers"], (6, 0, 4), strict=True)}
     assert all(a["path"] and sum(a["leaf_counts"]) >= 10 for a in snapshot["assessments"])
     for name in ("infer_odoo_history_features", "planning_solver_factory"):
         monkeypatch.setattr(f"backend.app.routes.planning_cases.{name}", forbidden)
@@ -87,8 +71,7 @@ def test_stored_legacy_base_reads_without_model_or_solver(configured, monkeypatc
     monkeypatch.setattr("application.planning_cases.create_procurement_plans", forbidden)
     retrieved = client.get(f"{BASE}/{created['case_id']}", headers=headers())
     assert retrieved.status_code == 200 and retrieved.json()["snapshot"] == snapshot
-    assert retrieved.json()["origin"] == "demo"
-    # The synthetic creation routes are gone; nothing is created by posting demo facts.
+    # Only the Odoo-history route creates bases; posting bare terms creates nothing.
     for path in (BASE, f"{BASE}/from-odoo"):
         assert client.post(path, json=payload, headers=headers()).status_code in (404, 405)
     assert len(uow.rows) == 1
@@ -102,7 +85,7 @@ def test_five_actual_scenarios_preserve_parent_and_scores(configured, monkeypatc
     uow, payload = configured
     base = create(payload)
     monkeypatch.setattr("backend.app.routes.planning_cases.infer_odoo_history_features", forbidden)
-    monkeypatch.setattr("supplier_evaluation.artifacts.load_model", forbidden)
+    monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
     delta = {"kind": kind, "source": payload["requirement_source"]}
     supplier = payload["suppliers"][0]["supplier_id"]
     change = {"supplier_id": supplier}
@@ -154,15 +137,15 @@ def test_five_actual_scenarios_preserve_parent_and_scores(configured, monkeypatc
 def test_infeasible_and_beyond_score_range_are_distinct(configured):
     uow, payload = configured
     for s in payload["suppliers"]:
-        s["capacity"] = 100
-        s["score_quantities"]["maximum"] = 20
-    payload["policy"]["concentration_limit"] = "0.8"
-    # Base ceiling 8 is covered; growing Q must not narrow physical bounds to fit scores.
+        s["capacity"] = 2000
+        s["price_quantities"]["maximum"] = s["delivery_quantities"]["maximum"] = 2000
+    # Scores are valid for 1-1000 units. Base ceiling 8 is covered; growing Q must not
+    # narrow physical bounds to fit scores.
     base = create(payload)
     delta = {
         "kind": "demand_change",
         "source": payload["requirement_source"],
-        "approved_quantity": 30,
+        "approved_quantity": 1500,
     }
     assert (
         client.post(
@@ -276,7 +259,7 @@ def test_capacity_demand_and_price_change_in_both_directions(configured):
         },
         {
             "kind": "price_change",
-            "suppliers": [{"supplier_id": first["supplier_id"], "unit_price": "9.5"}],
+            "suppliers": [{"supplier_id": first["supplier_id"], "unit_price": "8.5"}],
         },
         {
             "kind": "price_change",
@@ -287,7 +270,7 @@ def test_capacity_demand_and_price_change_in_both_directions(configured):
         {
             "kind": "combined",
             "approved_quantity": demand - 1,
-            "suppliers": [{"supplier_id": first["supplier_id"], "unit_price": "9", "capacity": 1}],
+            "suppliers": [{"supplier_id": first["supplier_id"], "unit_price": "8", "capacity": 1}],
         },
     ]
     for delta in deltas:

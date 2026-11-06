@@ -1,4 +1,4 @@
-"""Narrow T14-to-T13 contract adapter, without training, live assembly or orchestration."""
+"""Narrow assessment-to-planning contract adapter, without training or orchestration."""
 
 from dataclasses import replace
 from datetime import datetime
@@ -61,11 +61,8 @@ def risk_inputs(
     )
     validate_risk(replace(request, risk_coefficients=coefficients))
     context = ExternalRiskContext(
-        (
-            f"docs/MODEL_ML.md#{assessments[0].mapping_version}"
-            if assessments[0].mapping_version == HISTORY_MAPPING_VERSION
-            else f"docs/history/T14_ML_DESIGN.md#{assessments[0].mapping_version}"
-        ),
+        f"docs/MODEL_ML.md#{HISTORY_MAPPING_VERSION}",
+        # Persisted reference prefixes keep their original names.
         "t14-assessments:" + digest([a.reference for a in ordered]),
         "t14-quantity-independent-controlled-proxy:"
         + digest(

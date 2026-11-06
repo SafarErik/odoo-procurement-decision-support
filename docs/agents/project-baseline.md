@@ -68,7 +68,8 @@ resolved, not silently ignored or inferred.
 Architectural, manual-Odoo, trust-boundary and verification rules remain in
 AGENTS.md. V1/WSM code and tables were removed in P0 (ADR-028); V1 evidence lives
 unchanged in `docs/history/` and the Drive archives, and is a historical contrast,
-not a V2 capability. Pre-P2 V2 records (including synthetic cases) stay readable.
+not a V2 capability. Records stored before P2 (including synthetic demo cases) are
+not readable since R1 removed their compatibility code (owner decision 2026-11-05).
 Preserve generated versus observed provenance and the offline-training boundary.
 
 ## Official-task traceability
@@ -133,7 +134,7 @@ ADR-028–034.
 - **Data and ML.** The Decision Tree trains offline on purchase history that the
   guarded seeder (`tools/seed_odoo_history.py`) wrote into the dedicated
   `pdss_history_gen` Odoo database and that is read back only through the Odoo API
-  (ADR-030). The earlier synthetic T14 tree has no runtime role. Metrics prove the
+  (ADR-030). The earlier synthetic T14 tree and its code were removed in R1. Metrics prove the
   method, not real supplier behaviour; the tree beats the majority baseline but not
   the hand-written expert rule on unseen suppliers (L1–L3).
 - **Case creation.** Only from an open Odoo quotation group plus Odoo history

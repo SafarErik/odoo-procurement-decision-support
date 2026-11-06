@@ -25,9 +25,6 @@ class Settings(BaseSettings):
     odoo_history_data_origin: Literal["generated", "observed"] = "generated"
     planning_library_company_id: str = ""
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
-    run_t6_live_contracts: bool = False
-    run_t7s_live_contracts: bool = False
-    run_t7_live_contracts: bool = False
 
     @field_validator("supplier_history_model_directory", mode="before")
     @classmethod

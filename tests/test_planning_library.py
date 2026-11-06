@@ -34,7 +34,6 @@ BASE = "/api/v2/procurement/planning-cases"
 @pytest.mark.parametrize(
     "params",
     [
-        {"origin": "unclassified"},
         {"status": "approve"},
         {"q": "x" * 81},
         {"limit": 0},
@@ -51,15 +50,14 @@ def test_query_rejects_invalid_filters(params):
 
 
 def test_cursor_binds_every_filter_and_scope():
-    query = library_query("company", "demo", q="  product  ")
+    query = library_query("company", q="  product  ")
     assert query.q == "product" and query.limit == 20
     value = {"context": query.context, "time": datetime.now(UTC).isoformat(), "id": str(uuid4())}
     cursor = base64.urlsafe_b64encode(json.dumps(value).encode()).decode()
-    assert library_query("company", "demo", q="product", cursor=cursor).after
+    assert library_query("company", q="product", cursor=cursor).after
     for changes in (
         {"company": "other"},
         {"status": "approved"},
-        {"origin": "odoo"},
         {"q": "other"},
         {"limit": 10},
         {"parent_id": str(uuid4())},
@@ -69,7 +67,6 @@ def test_cursor_binds_every_filter_and_scope():
                 **(
                     {
                         "company": "company",
-                        "origin": "demo",
                         "q": "product",
                         "cursor": cursor,
                     }
@@ -81,7 +78,6 @@ def test_cursor_binds_every_filter_and_scope():
         with pytest.raises(ValueError):
             library_query(
                 "company",
-                "unclassified",
                 q="product",
                 cursor=base64.urlsafe_b64encode(json.dumps(value).encode()).decode(),
             )
@@ -99,7 +95,7 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
     )
     for params in (
         {"company": "other"},
-        {"origin": "unclassified"},
+        {"origin": "all"},  # the demo/Odoo origin filter was removed in R1
         {"status": "bad"},
         {"q": "x" * 81},
         {"limit": "-1"},
@@ -115,10 +111,11 @@ def test_http_validation_and_fail_closed_scope(configured, monkeypatch):
         lambda query: [(uow.rows[base["case_id"]], None)],
         raising=False,
     )
-    page = client.get(BASE, params={"origin": "all"}, headers=headers())
+    page = client.get(BASE, headers=headers())
     assert page.status_code == 200
     summary = page.json()["items"][0]
-    assert summary["origin"] in {"demo", "odoo"} and summary["decision_status"] == "draft"
+    assert summary["source_kind"] == "odoo_quotations_odoo_history"
+    assert summary["decision_status"] == "draft"
     assert "snapshot" not in summary and "assessments" not in summary
     original = uow.rows[base["case_id"]]
     monkeypatch.setattr(
@@ -153,12 +150,12 @@ def test_summaries_preserve_source_lineage_and_decision(configured):
         list_planning_cases(uow, library_query(company, parent_id=child["case_id"]))
     with pytest.raises(RepositoryError):
         case_summary(uow.rows[base["case_id"]], None, "other")
-    legacy = deepcopy(child["snapshot"])
-    legacy["scenario"]["kind"] = "capacity_reduction"  # stored before P2 renamed the kinds
-    legacy_row = case_summary(
-        replace(uow.rows[child["case_id"]], snapshot=snapshot_json(legacy)), None, company
-    )
-    assert legacy_row["scenario_kind"] == "capacity_change"
+    renamed = deepcopy(child["snapshot"])
+    renamed["scenario"]["kind"] = "capacity_reduction"  # a pre-P2 kind name is unknown now
+    with pytest.raises(RepositoryError):
+        case_summary(
+            replace(uow.rows[child["case_id"]], snapshot=snapshot_json(renamed)), None, company
+        )
     invalid = deepcopy(child["snapshot"])
     invalid["scenario"]["suppliers"][0]["available"] = True
     with pytest.raises(RepositoryError):

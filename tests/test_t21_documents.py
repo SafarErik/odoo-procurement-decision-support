@@ -1,7 +1,6 @@
 """PDF v3 boundary: HU/EN plan and audit artifacts from exact approved content, recovery."""
 
 import asyncio
-import json
 from copy import deepcopy
 from dataclasses import replace
 from io import BytesIO
@@ -49,7 +48,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     client, uow, base, *_ = configured
     decision, url = approve(client, base, index)
     original = (uow.rows.copy(), uow.decisions.rows.copy())
-    monkeypatch.setattr("supplier_evaluation.artifacts.load_model", forbidden)
+    monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
     monkeypatch.setattr("sklearn.tree.DecisionTreeClassifier.fit", forbidden)
     response = client.get(url, headers=headers())
     assert response.status_code == 200, response.text
@@ -79,23 +78,23 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     ):
         assert "".join(str(value).split()) in compact
     total = plan["total_cost"]
-    assert f"{int(total) if '.' not in total else total},00EUR".replace(".", ",") in compact
+    assert f"{int(total) if '.' not in total else total},00USD".replace(".", ",") in compact
     required = snapshot["request"]["requirement"]["required_date"].replace("-", ".") + "."
     assert required in compact
     allocated = [a for a in plan["allocations"] if a["quantity"] > 0]
     pages = [page.extract_text() for page in reader.pages]
     proposals = [p for p in pages if "Rendelési tétel" in p]
     assert len(proposals) == len(allocated)
+    names = dict(snapshot["facts"]["labels"])  # Odoo display names stored with the case
     for page, allocation in zip(proposals, allocated, strict=True):
-        assert allocation["supplier_id"] in page and str(allocation["quantity"]) in page
-    unit = snapshot["request"]["requirement"]["quantity_unit"]
-    assert unit == "piece" and " piece" not in text and " db" in text  # Odoo unit name mapped
+        assert names[allocation["supplier_id"]] in page and str(allocation["quantity"]) in page
+    assert " db" in text  # the stored Odoo unit name is mapped
     assert pages[0].count("Jóváhagyott beszerzési terv") >= 1 and "Összefoglaló" in pages[0]
     # Plan: supplier assessment table and verification identifiers; no audit detail.
     assert len(pages) <= len(allocated) + 2
     assert "Beszállítói értékelések" in pages[0] and "Kockázati pontszám" in pages[0]
     for supplier in snapshot["request"]["suppliers"]:
-        assert supplier["supplier_id"] in pages[0]
+        assert names[supplier["supplier_id"]] in pages[0]
     assert "Ellenőrzési azonosítók" in pages[-1] and "Audit nézetéből" in pages[-1]
     assert "Tervezési feltételezések" in proposals[0]
     for absent in (
@@ -108,7 +107,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert snapshot["model_manifest"]["artifact_sha256"] not in compact
     assert base["snapshot_hash"] not in compact
     assert '{"' not in text and "numerator" not in text  # no raw JSON
-    assert "szintetikus bemutató modellből" in pages[0]
+    assert "generált (szimulált) Odoo beszerzési" in pages[0]
     document = uow.documents.rows[(base["case_id"], "hu", "plan")]
     assert document.content_hash == decision["approved_content_hash"]
     assert document.pdf_hash == response.headers["x-pdf-sha256"]
@@ -116,7 +115,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert english.status_code == 200 and english.headers["content-language"] == "en"
     english_text = extracted(english.content)
     assert english_text.count("Order line") == len(allocated)
-    assert " piece" not in english_text and " pcs" in english_text
+    assert " pcs" in english_text
     assert "Verification identifiers" in english_text and "Planning assumptions" in english_text
     assert "Approved procurement plan" in english_text and "Decision path" not in english_text
     assert english.content != response.content and len(uow.documents.rows) == 2
@@ -129,7 +128,7 @@ def test_pdf_matches_exact_approved_allocation_audit_and_terms(configured, monke
     assert client.get(url + "?language=de", headers=headers()).status_code == 422
 
 
-def test_pre_p2_english_artifact_is_served_unchanged_as_plan(configured, monkeypatch):
+def test_stored_pre_p2_v1_artifact_fails_closed(configured, monkeypatch):
     client, uow, base, *_ = configured
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
@@ -144,10 +143,8 @@ def test_pre_p2_english_artifact_is_served_unchanged_as_plan(configured, monkeyp
     )
     uow.documents.rows[(base["case_id"], "en", "plan")] = legacy
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", forbidden)
-    response = client.get(url, params={"language": "en"}, headers=headers())
-    assert response.status_code == 200 and response.content == legacy.pdf
-    assert response.headers["x-pdf-reference"] == legacy.reference
-    assert response.headers["x-document-kind"] == "plan"
+    # Since R1 only v3 references are served; the stored row is kept, never re-rendered.
+    assert client.get(url, params={"language": "en"}, headers=headers()).status_code == 503
     from backend.app.dependencies import render_approved_document
 
     monkeypatch.setattr(
@@ -236,7 +233,8 @@ def test_long_unicode_names_rationale_provenance_paginate_without_losing_text(co
     content = deepcopy(decision["approved_content"])
     identity = content["planning_snapshot"]["request"]["suppliers"][0]["supplier_id"]
     label = "Árvíztűrő Őrség Kft. Ω Ж - " + "supplier_name_" * 15
-    content = json.loads(json.dumps(content, ensure_ascii=False).replace(identity, label))
+    facts = content["planning_snapshot"]["facts"]
+    facts["labels"] = [[key, label if key == identity else name] for key, name in facts["labels"]]
     content["human_decision"]["actor_reference"] = "Árvíztűrő tükörfúrógép Ω Ж"
     content["human_decision"]["rationale"] = "Long explanation & <escaped markup> " * 55
     content["planning_snapshot"]["provenance"]["entries"] *= 3
@@ -378,7 +376,7 @@ def test_plan_and_audit_documents_share_content_and_are_stored_per_kind(configur
     client, uow, base, *_ = configured
     decision, url = approve(client, base)
     content_hash = decision["approved_content_hash"]
-    monkeypatch.setattr("supplier_evaluation.artifacts.load_model", forbidden)
+    monkeypatch.setattr("supplier_evaluation.history_model.load_model", forbidden)
     monkeypatch.setattr("sklearn.tree.DecisionTreeClassifier.fit", forbidden)
     first = {}
     for language in ("hu", "en"):
@@ -433,7 +431,7 @@ def test_plan_and_audit_documents_share_content_and_are_stored_per_kind(configur
 
 
 @pytest.mark.parametrize("renderer", ["layout-v3", "layout-v4"])
-def test_stored_combined_v2_document_stays_the_plan_and_audit_is_added(
+def test_stored_combined_v2_document_fails_closed_and_audit_is_added(
     configured, monkeypatch, renderer
 ):
     client, uow, base, *_ = configured
@@ -457,10 +455,7 @@ def test_stored_combined_v2_document_stays_the_plan_and_audit_is_added(
         return render_audit_pdf(content, language)
 
     monkeypatch.setattr("backend.app.routes.planning_cases.render_approved_document", render)
-    plan = client.get(url, headers=headers())
-    assert plan.status_code == 200 and plan.content == legacy.pdf
-    assert plan.headers["x-pdf-reference"] == legacy.reference and not calls
-    assert plan.headers["x-document-kind"] == "plan"
+    assert client.get(url, headers=headers()).status_code == 503 and not calls
     audit = client.get(url, params={"kind": "audit"}, headers=headers())
     assert audit.status_code == 200 and calls == ["audit"]
     assert audit.headers["x-approved-content-hash"] == content_hash

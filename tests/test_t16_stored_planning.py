@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
 from backend.app.config import settings as backend_settings
@@ -16,44 +15,39 @@ from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
 from frontend.planning_client import fetch_planning_case, submit_planning_request
 from tests.frontend_patching import patch_client
-from tests.legacy_cases import create_legacy_case
-from tests.legacy_cases import prepare_assets as controlled_assets
-from tests.t15_helpers import MemoryPlanningUnitOfWork
+from tests.t15_helpers import (
+    MemoryPlanningUnitOfWork,
+    controlled_terms,
+    create_case,
+    odoo_case_api,
+)
 from tests.test_t15_planning_api import forbidden
 
 TOKEN = "t16-test-secret"
 
 
 @pytest.fixture(scope="module")
-def stored_cases(tmp_path_factory):
-    """A pre-P2 synthetic demo base (stored) with two outage scenarios created over HTTP."""
-    directory = tmp_path_factory.mktemp("t16-model")
-    payload = controlled_assets(directory)
+def stored_cases(odoo_history):
+    """A stored Odoo-history base with two outage scenarios (one infeasible), via HTTP."""
     uow = MemoryPlanningUnitOfWork()
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-    base = create_legacy_case(uow, payload, directory)
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
-        patch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
-        with TestClient(app) as client:
-            base = client.get(
-                f"/api/v2/procurement/planning-cases/{base['case_id']}", headers=headers
-            ).json()
-            children = []
-            for selected in (payload["suppliers"][:1], payload["suppliers"]):
-                child = client.post(
-                    f"/api/v2/procurement/planning-cases/{base['case_id']}/scenarios",
-                    json={
-                        "kind": "supplier_outage",
-                        "source": payload["requirement_source"],
-                        "suppliers": [
-                            {"supplier_id": s["supplier_id"], "available": False} for s in selected
-                        ],
-                    },
-                    headers={**headers, "Idempotency-Key": str(uuid4())},
-                )
-                assert child.status_code == 201
-                children.append(child.json())
+    with pytest.MonkeyPatch.context() as patch, odoo_case_api(odoo_history, uow, patch) as client:
+        terms = controlled_terms(client)
+        base = create_case(client, terms)
+        children = []
+        for selected in (terms["suppliers"][:1], terms["suppliers"]):
+            child = client.post(
+                f"/api/v2/procurement/planning-cases/{base['case_id']}/scenarios",
+                json={
+                    "kind": "supplier_outage",
+                    "source": terms["requirement_source"],
+                    "suppliers": [
+                        {"supplier_id": s["supplier_id"], "available": False} for s in selected
+                    ],
+                },
+                headers={"Idempotency-Key": str(uuid4())},
+            )
+            assert child.status_code == 201, child.text
+            children.append(child.json())
     return uow, base, *children
 
 
@@ -84,14 +78,14 @@ def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, 
     mapped = asyncio.run(read())
     assert all(error == "" for _, error in mapped)
     reference, scenario, no_plan = [display for display, _ in mapped]
-    assert [p["cost"] for p in reference.plans] == ["€102.00", "€109.00"]
+    assert [p["cost"] for p in reference.plans] == ["$94.00", "$98.00"]
     assert reference.details["snapshot_hash"] == base["snapshot_hash"]
     assert scenario.details["parent_id"] == base["case_id"]
-    assert "Cost delta: 4 EUR" in scenario.details["comparison"]
+    assert "Cost delta: 10 USD" in scenario.details["comparison"]
     assert no_plan.details["status"] == "infeasible" and no_plan.plans == []
     assert len(reference.allocations) == 6
     assert reference.assessments[0]["path"]
-    assert "synthetic" in reference.details["input_kind"].lower()
+    assert "odoo purchase history" in reference.details["input_kind"].lower()
     assert reference.provenance[0]["reference"]
     assert before == {key: row.snapshot for key, row in uow.rows.items()}
 
@@ -174,11 +168,10 @@ def test_malformed_snapshots_fail_closed(stored_cases, fault):
     assert display is None and "incomplete or unsupported" in error
 
 
-def test_hybrid_provenance_and_exact_money_are_presented_without_relabelling(stored_cases):
+def test_provenance_and_exact_money_are_presented_without_relabelling(stored_cases):
     payload = deepcopy(stored_cases[1])
-    payload["snapshot"]["facts"]["input_kind"] = "odoo_quotations_synthetic_history"
     payload["snapshot"]["provenance"]["entries"][0]["source_type"] = "odoo_json2"
-    payload["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] = "102.001"
+    payload["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] = "94.001"
     display, error = asyncio.run(
         fetch_planning_case(
             "http://api.test/cases",
@@ -187,8 +180,7 @@ def test_hybrid_provenance_and_exact_money_are_presented_without_relabelling(sto
             transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
         )
     )
-    assert not error and display.plans[0]["cost"] == "€102.001"
-    assert display.details["input_kind"] == "Captured Odoo quotations; synthetic ML history"
+    assert not error and display.plans[0]["cost"] == "$94.001"
     assert display.provenance[0]["type"] == "odoo_json2"
 
 

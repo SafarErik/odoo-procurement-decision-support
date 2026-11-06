@@ -15,7 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from application.errors import RepositoryError
+from application.errors import ProcurementDataResponseError, RepositoryError
 from application.planning_cases import validate_snapshot
 from application.planning_history import capture_features, capture_origin
 from application.planning_serialization import snapshot_json
@@ -24,7 +24,6 @@ from application.purchase_history import (
     PurchaseLineHistory,
     ReceiptEvent,
 )
-from application.rfqs import ProcurementDataResponseError
 from backend.app.config import settings
 from backend.app.main import app
 from frontend.planning_client import _map_case
@@ -133,9 +132,9 @@ def history(tmp_path_factory):
     return build_history(tmp_path_factory.mktemp("history-model"))
 
 
-def build_history(directory):
-    """Generated Odoo-shaped history and a tree trained on it, saved in ``directory``."""
-    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+def build_history(directory, now=None):
+    """Generated Odoo-shaped history ending at ``now`` and a tree trained on it."""
+    now = now or datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     lines = plan_lines(now)
     rows, coverage = build_rows(lines, extracted_at=now)
     boundary = max(r.cutoff for r in rows) - timedelta(days=92)
@@ -593,7 +592,9 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(configured, monkeypa
         )
         library = client.get(BASE, headers=headers())
         assert library.status_code == 200, library.text
-        assert [i["origin"] for i in library.json()["items"]] == ["odoo"]
+        assert [i["source_kind"] for i in library.json()["items"]] == [
+            "odoo_quotations_odoo_history"
+        ]
         # P3 list fields: stored Odoo product name, minimum cost and the model's data origin.
         item = library.json()["items"][0]
         assert item["product_label"] == "T6 Comparison Product"
@@ -829,7 +830,7 @@ def test_model_of_another_data_origin_cannot_assess_the_database(configured, mon
 
 
 def _without_origin(encoded):
-    """A capture as stored before the declared origin was recorded."""
+    """A capture without the declared origin (as stored before it was recorded)."""
     payload = json.loads(encoded)
     old_hash = payload["capture_hash"]
     del payload["evidence"]["data_origin"]
@@ -864,10 +865,10 @@ def test_stored_case_requires_model_origin_equal_to_history_origin(configured):
     with pytest.raises(RepositoryError) as error:
         validate_snapshot(replace(case, snapshot=snapshot_json(mismatched)))
     assert "compatibility mismatch" in str(error.value.__cause__)
-    legacy = json.loads(case.snapshot)
-    legacy["facts"]["history"] = _without_origin(legacy["facts"]["history"])
-    assert capture_origin(legacy["facts"]["history"]) == "generated"
-    assert len(capture_features(legacy["facts"]["history"])) == 3
+    undeclared = _without_origin(json.loads(case.snapshot)["facts"]["history"])
+    for read in (capture_origin, capture_features):
+        with pytest.raises(KeyError):
+            read(undeclared)
 
 
 # --- Seeding tool guards -------------------------------------------------------------

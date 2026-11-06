@@ -13,14 +13,14 @@ from tests.test_t16_stored_planning import stored_cases as stored_cases
 def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
     _, base, _, _ = stored_cases
     mapped = _map_case(base, base["case_id"])
-    assert "€7.00 more" in mapped.details["decision_summary"]
-    assert "79.3 points" in mapped.details["decision_summary"]
+    assert "$4.00 more" in mapped.details["decision_summary"]
+    assert "12.0 points" in mapped.details["decision_summary"]
     for row, assessment in zip(mapped.assessments, base["snapshot"]["assessments"], strict=True):
         assert row["readable_path"]
+        # One numbered readable sentence per stored split; the raw path keeps exact values.
+        assert len(row["readable_path"].splitlines()) == max(1, len(assessment["path"]))
         for step in assessment["path"]:
             assert str(step["threshold"]) in row["path"]
-            # Readable text keeps two decimals of every threshold (percent or count).
-            assert f"{step['threshold']:.2f}" in row["readable_path"]
     altered = deepcopy(base)
     altered["snapshot"]["result"]["alternatives"][0]["risk_exposure"] = {
         "numerator": 1,
@@ -31,7 +31,6 @@ def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
 
 def test_labels_are_readable_without_inventing_odoo_business_names():
     assert _supplier_label("odoo:res.partner:51") == "Supplier 51"
-    assert _supplier_label("synthetic-S226") == "Demo supplier S226"
     assert _supplier_label("other-id") == "other-id"
 
 
@@ -44,12 +43,12 @@ def test_unified_composer_outage_saves_against_original_base(configured):
             PlanningState.run_scenario,
             {
                 "kind": "supplier_outage",
-                "supplier": "synthetic-S226",
+                "supplier": "odoo:res.partner:306",
             },
         )
     )
     assert not state.error_message and state.view == "scenarios"
-    assert calls[0][1]["suppliers"] == [{"supplier_id": "synthetic-S226", "available": False}]
+    assert calls[0][1]["suppliers"] == [{"supplier_id": "odoo:res.partner:306", "available": False}]
     assert state.details["base_id"] == base["case_id"]
     assert uow.rows[base["case_id"]].snapshot == original
 
@@ -62,7 +61,7 @@ def test_unchanged_capacity_error_names_actual_original_without_post(configured)
             PlanningState.run_scenario,
             {
                 "kind": "capacity_change",
-                "supplier": "synthetic-S226",
+                "supplier": "odoo:res.partner:306",
                 "capacity": "6",
             },
         )
@@ -73,20 +72,20 @@ def test_unchanged_capacity_error_names_actual_original_without_post(configured)
 
 def test_draft_changes_clear_on_kind_and_supplier_switch_and_freeze_when_pending(configured):
     state, _, _, _, _ = configured
-    PlanningState.select_stress_supplier.fn(state, "synthetic-S226")
+    PlanningState.select_stress_supplier.fn(state, "odoo:res.partner:306")
     PlanningState.update_stress.fn(state, "capacity", "4")
     assert "6 → 4" in state.scenario_draft
     PlanningState.update_stress.fn(state, "capacity", 5)
     assert state.stress_capacity == "4"
-    PlanningState.select_stress_supplier.fn(state, "synthetic-S184")
+    PlanningState.select_stress_supplier.fn(state, "odoo:res.partner:304")
     assert state.stress_capacity == "" and state.selected_terms["capacity"] == "8"
     PlanningState.update_stress.fn(state, "price", "12.00")
     PlanningState.change_scenario_kind.fn(state, "combined")
     assert state.stress_price == ""
     state.has_pending = True
     PlanningState.update_stress.fn(state, "capacity", "3")
-    PlanningState.select_stress_supplier.fn(state, "synthetic-S226")
-    assert state.stress_capacity == "" and state.stress_supplier == "synthetic-S184"
+    PlanningState.select_stress_supplier.fn(state, "odoo:res.partner:306")
+    assert state.stress_capacity == "" and state.stress_supplier == "odoo:res.partner:304"
     view = state.view
     PlanningState.change_view.fn(state, "audit")
     assert state.view == view

@@ -38,9 +38,9 @@ Storage and API:
   or renderer version; its downgrade refuses while audit or v3 rows exist, because
   stored artifacts are never deleted.
 - Reference `t17-approved-pdf-v3:{case}:{language}:{kind}:{hash}`. Combined documents
-  stored earlier (v2 references, and the pre-P2 v1 English reference) remain valid and
-  are served unchanged as `plan`; a case with only such a row still gets a v3 audit
-  document on request.
+  stored earlier (v2 references, and the pre-P2 v1 English reference) remained valid and
+  were served unchanged as `plan` until R1 (2026-11-05, owner decision to reset the
+  database): since then only v3 references are served and an older row fails closed.
 - `GET /{case_id}/approved-pdf/{content_hash}?language=hu&kind=plan|audit`; `plan` is
   the default, so existing callers are unchanged. Response header `X-Document-Kind`.
   No-award, unapproved and scenario cases have no document of either kind (422);

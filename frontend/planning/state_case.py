@@ -8,7 +8,7 @@ from typing import Any
 import reflex as rx
 
 from frontend.config import settings
-from frontend.planning.state_base import VIEW_ALIASES, VIEWS, focus, reveal_active_case_tab
+from frontend.planning.state_base import VIEWS, focus, reveal_active_case_tab
 from frontend.planning_client import _map_case, fetch_planning_case
 from frontend.supplier_overview_client import fetch_supplier_overview
 
@@ -162,7 +162,6 @@ class CaseMixin(rx.State, mixin=True):
                     "currency",
                     "required_date",
                     "as_of",
-                    "origin",
                 )
             )
         )
@@ -219,7 +218,6 @@ class CaseMixin(rx.State, mixin=True):
 
     @rx.event
     def change_view(self, value: str):
-        value = VIEW_ALIASES.get(value, value)
         if value in VIEWS and value != self.view:
             return self._guard_navigation("view", value, "view-" + self.view)
 
@@ -237,7 +235,7 @@ class CaseMixin(rx.State, mixin=True):
             self._clear_comparison_context()
             yield rx.redirect("/cases")
             return
-        view = VIEW_ALIASES.get(params.get("view", "overview"), params.get("view", "overview"))
+        view = params.get("view", "overview")
         view = view if view in VIEWS else "overview"
         if self.has_case and params.get("case_id") == self.details.get("case_id"):
             self.view = view

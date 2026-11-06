@@ -6,19 +6,62 @@ from decimal import Decimal
 
 import pytest
 
-from decision_core.planning.models import InvalidPlanningInput
-from supplier_evaluation.contracts import QuantityValidity
-from supplier_evaluation.dataset import BOUNDARY, EXTRACTED_AT, generate_dataset, prepare_dataset
-from supplier_evaluation.model import train
+from decision_core.planning.models import (
+    InvalidPlanningInput,
+    MinimumOrder,
+    PlanningPolicy,
+    PlanningRequest,
+    ProcurementRequirement,
+    QuantityRange,
+    SupplierTerms,
+)
+from supplier_evaluation.contracts import Context, QuantityValidity
 from supplier_evaluation.planning_bridge import risk_inputs
-from tests.t14_helpers import planning_fixture
+from supplier_evaluation.purchase_history import feature_snapshot
+from tests.test_odoo_purchase_history import COMPANY, DATABASE
 
 
 @pytest.fixture(scope="module")
-def fixture():
-    split = prepare_dataset(generate_dataset(), boundary=BOUNDARY, extracted_at=EXTRACTED_AT)
-    model = train(split)
-    return planning_fixture(model, split)
+def fixture(odoo_history):
+    """Three history-model assessments at one cutoff and a matching planning request."""
+    now, product, unit = odoo_history["now"], "odoo:product.product:42", "odoo:uom.uom:1"
+    reference = f"x|database={DATABASE}|company=1|capture=y"
+    scores = tuple(
+        odoo_history["model"].infer(
+            feature_snapshot(
+                odoo_history["lines"],
+                Context(f"odoo:res.partner:{n}", COMPANY, product, unit),
+                now,
+                now,
+                reference,
+            ),
+            QuantityValidity(1, 100, "controlled-fixture-v1"),
+        )
+        for n in (301, 304, 306)
+    )
+    deadline = (now + timedelta(days=7)).date()
+    request = PlanningRequest(
+        ProcurementRequirement(product, 10, unit, "EUR", deadline),
+        tuple(
+            SupplierTerms(
+                a.snapshot.context.supplier_id,
+                product,
+                unit,
+                "EUR",
+                Decimal(2 + i),
+                10,
+                True,
+                MinimumOrder(None),
+                QuantityRange(1, 100),
+                QuantityRange(1, 100),
+                deadline,
+            )
+            for i, a in enumerate(scores)
+        ),
+        PlanningPolicy(2, Decimal("0.8"), (Decimal("0.1"),)),
+        None,
+    )
+    return request, scores, COMPANY, now
 
 
 def bridge(fixture, scores=None, **kwargs):
@@ -40,7 +83,7 @@ def test_valid_direction_range_and_provenance_are_preserved(fixture):
         c.valid_quantities.minimum == 1 and c.valid_quantities.maximum == 100 for c in coefficients
     )
     assert context.controlled_fixture is True
-    assert "t14-leaf-exposure-v1" in context.definition_reference
+    assert "leaf-exposure-odoo-history-v2" in context.definition_reference
     assert "t14-assessments:" in context.assessment_reference
     assert "quantity-independent" in context.validity_reference
     assert bridge(fixture, tuple(reversed(fixture[1]))) == (coefficients, context)

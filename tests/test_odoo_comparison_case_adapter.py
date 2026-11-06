@@ -6,7 +6,7 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from application.rfqs import ProcurementDataResponseError
+from application.errors import ProcurementDataResponseError
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 
 

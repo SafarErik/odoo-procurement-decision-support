@@ -13,7 +13,7 @@ from application.supplier_overview import (
     money_text,
     path_steps,
 )
-from supplier_evaluation.contracts import HISTORY_SOURCE, SYNTHETIC, PathStep
+from supplier_evaluation.contracts import HISTORY_SOURCE, PathStep
 
 
 def test_numbers_use_the_language_decimal_separator_and_grouping():
@@ -52,26 +52,20 @@ def test_path_falls_back_to_stored_values_when_rounding_cannot_separate_them():
     assert hu["text"] == "Átlagos késés: 0,5000000001 – 0,5 felett."
 
 
-@pytest.mark.parametrize(
-    ("source", "names", "hu", "en"),
-    [
-        (HISTORY_SOURCE, ("regular", "problematic"), "problémás", "problematic"),
-        (SYNTHETIC, ("schedule_regular", "schedule_watch"), "figyelendő", "watch"),
-    ],
-)
-def test_class_and_leaf_text_follow_the_assessment_source(source, names, hu, en):
+def test_class_and_leaf_text_use_the_history_model_classes():
     assessment = SimpleNamespace(
-        snapshot=SimpleNamespace(source_type=source),
+        snapshot=SimpleNamespace(source_type=HISTORY_SOURCE),
         predicted_class=1,
         leaf_counts=(3, 7),
         score=Decimal("0.7"),
     )
-    assert class_name(assessment) == names[1]
-    assert (class_label(assessment, "hu"), class_label(assessment, "en")) == (hu, en)
-    assert class_name(SimpleNamespace(snapshot=assessment.snapshot, predicted_class=0)) == names[0]
-    if source == SYNTHETIC:
-        assert "7 of 10 were labelled schedule_watch" in leaf_text(assessment, "en")
-        assert "generált tanítópéldák" in leaf_text(assessment, "hu")
-    else:
-        assert "7 of 10 became problematic" in leaf_text(assessment, "en")
-        assert "10 esetből 7 lett problémás" in leaf_text(assessment, "hu")
+    assert class_name(assessment) == "problematic"
+    assert (class_label(assessment, "hu"), class_label(assessment, "en")) == (
+        "problémás",
+        "problematic",
+    )
+    assert class_name(SimpleNamespace(snapshot=assessment.snapshot, predicted_class=0)) == (
+        "regular"
+    )
+    assert "7 of 10 became problematic" in leaf_text(assessment, "en")
+    assert "10 esetből 7 lett problémás" in leaf_text(assessment, "hu")

@@ -56,12 +56,12 @@ async def event(state, handler, *args):
 @pytest.mark.parametrize(
     "form",
     [
-        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "4"},
+        {"kind": "capacity_change", "supplier": "odoo:res.partner:306", "capacity": "4"},
         {"kind": "demand_change", "quantity": "12"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "12.00"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "12,00"},  # HU keypad
-        {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"},
-        {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "price": "12.00"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "12.00"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "12,00"},  # HU keypad
+        {"kind": "combined", "supplier": "odoo:res.partner:306", "capacity": "4", "quantity": "12"},
+        {"kind": "combined", "supplier": "odoo:res.partner:306", "capacity": "4", "price": "12.00"},
     ],
 )
 def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, form):
@@ -87,11 +87,11 @@ def test_all_scenarios_use_base_and_stored_evidence(configured, monkeypatch, for
             s for s in child["request"]["suppliers"] if s["supplier_id"] == row["supplier"]
         )
         assert row["saved_capacity"] == str(saved["capacity"])
-        assert row["saved_price"] == money(Decimal(saved["unit_price"]), "EUR", "en")
+        assert row["saved_price"] == money(Decimal(saved["unit_price"]), "USD", "en")
     assert child["scenario"]["kind"] == form["kind"]
     assert child["scenario"]["source"]["source_reference"] == "t16-ui-what-if-v1"
-    assert state.original_plan["cost"] == "€102.00"
-    assert state.original_plan["exposure_display"] == "98.6 / 100"
+    assert state.original_plan["cost"] == "$94.00"
+    assert state.original_plan["exposure_display"] == "31.2 / 100"
     assert sum(int(row["scenario"]) for row in state.comparison_rows) == int(
         state.details["quantity"]
     )
@@ -137,7 +137,7 @@ def test_infeasibility_is_saved_without_fabricated_comparison(configured):
     # No invented scenario cost: the comparison says so and the table shows "Unavailable".
     assert "no proven minimum-cost plan" in state.details["comparison_display"]
     cost = next(m for m in state.scenario_metrics if m["metric"] == "Minimum total cost")
-    assert cost["scenario"] == "Unavailable" and cost["base"] == "€102.00"
+    assert cost["scenario"] == "Unavailable" and cost["base"] == "$94.00"
     assert state.details["parent_id"] == base["case_id"]
     assert state.details["case_id"] in uow.rows
 
@@ -149,17 +149,17 @@ def test_infeasibility_is_saved_without_fabricated_comparison(configured):
         {"kind": "demand_change", "quantity": "1001"},
         {"kind": "demand_change", "quantity": "١٢"},
         {"kind": "demand_change", "quantity": 12},
-        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "6"},
-        {"kind": "capacity_change", "supplier": "synthetic-S226", "capacity": "-1"},
+        {"kind": "capacity_change", "supplier": "odoo:res.partner:306", "capacity": "6"},
+        {"kind": "capacity_change", "supplier": "odoo:res.partner:306", "capacity": "-1"},
         {"kind": "capacity_change", "supplier": "unknown", "capacity": "0"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "10"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "NaN"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "1e2"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "١٢"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": "01.5"},
-        {"kind": "price_change", "supplier": "synthetic-S226", "price": 12.0},
-        {"kind": "combined", "supplier": "synthetic-S226", "quantity": "12"},
-        {"kind": "combined", "supplier": "synthetic-S226"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "9"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "NaN"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "1e2"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "١٢"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": "01.5"},
+        {"kind": "price_change", "supplier": "odoo:res.partner:306", "price": 12.0},
+        {"kind": "combined", "supplier": "odoo:res.partner:306", "quantity": "12"},
+        {"kind": "combined", "supplier": "odoo:res.partner:306"},
         {"kind": "unsupported"},
         {"kind": []},
     ],
@@ -188,7 +188,12 @@ def test_lost_response_recovers_exact_scenario_without_solving_again(configured,
         )
 
     patch_client(monkeypatch, "submit_planning_request", post)
-    form = {"kind": "combined", "supplier": "synthetic-S226", "capacity": "4", "quantity": "12"}
+    form = {
+        "kind": "combined",
+        "supplier": "odoo:res.partner:306",
+        "capacity": "4",
+        "quantity": "12",
+    }
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.has_pending and len(uow.rows) == count + 1
     pending = state.recovery_json
@@ -221,11 +226,9 @@ def test_corrupt_comparison_fails_closed(stored_cases, change):
         _map_case(payload, payload["case_id"])
 
 
-def test_hybrid_price_change_is_labelled_as_what_if(stored_cases):
+def test_price_change_is_listed_as_a_what_if_assumption(stored_cases):
     _, _, child, _ = stored_cases
     payload = deepcopy(child)
-    payload["snapshot"]["facts"]["input_kind"] = "odoo_quotations_synthetic_history"
     payload["snapshot"]["scenario"]["suppliers"][0]["unit_price"] = "12.00"
     display = _map_case(payload, payload["case_id"])
-    assert "Saved Odoo quotations with what-if changes" in display.details["input_kind"]
-    assert "unit price €12.00" in display.details["assumptions"]
+    assert "unit price $12.00" in display.details["assumptions"]

@@ -21,7 +21,6 @@ class LibraryMixin(rx.State, mixin=True):
     _home_recent_raw: list = []
     library_rows: list[dict[str, str]] = []
     library_children: list[dict[str, str]] = []
-    library_origin: str = "all"
     library_status: str = "all"
     library_search: str = ""
     library_cursor: str = ""
@@ -71,7 +70,7 @@ class LibraryMixin(rx.State, mixin=True):
                     fetch_library(
                         settings.planning_cases_url,
                         settings.api_service_token.get_secret_value(),
-                        {"origin": "all", "status": status, "limit": 5},
+                        {"status": status, "limit": 5},
                         lang=self._lang(),
                     )
                     for status in ("draft", "all")
@@ -128,10 +127,7 @@ class LibraryMixin(rx.State, mixin=True):
 
     @rx.event
     async def set_library_filter(self, field: str, value: str):
-        allowed = {
-            "origin": ("all", "odoo", "demo"),
-            "status": ("all", "draft", "approved", "no_award"),
-        }
+        allowed = {"status": ("all", "draft", "approved", "no_award")}
         if field in allowed and value in allowed[field]:
             setattr(self, "library_" + field, value)
             async for event in self.refresh_library():
@@ -142,7 +138,6 @@ class LibraryMixin(rx.State, mixin=True):
         if self.has_pending or self.is_loading:
             return
         if form_data is not None:
-            self.library_origin = form_data.get("origin", self.library_origin)
             self.library_status = form_data.get("status", self.library_status)
             self.library_search = str(form_data.get("q", "")).strip()
         if self.library_loading:
@@ -153,7 +148,6 @@ class LibraryMixin(rx.State, mixin=True):
         while self._library_stale:
             self._library_stale = False
             self._library_params = {
-                "origin": self.library_origin,
                 "status": self.library_status,
                 "q": self.library_search,
             }
@@ -214,7 +208,7 @@ class LibraryMixin(rx.State, mixin=True):
         self.children_error = self.children_cursor = ""
         yield
         try:
-            params = {"origin": self._library_params.get("origin", "all")}
+            params = {}
             if cursor:
                 params["cursor"] = cursor
             page, self.children_error = await fetch_library(

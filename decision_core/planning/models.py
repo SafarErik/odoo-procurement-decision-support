@@ -151,7 +151,7 @@ class PlanningPolicy:
     concentration_limit: Decimal | None
     epsilons: tuple[Decimal, ...]
     # Cost allowance for the balanced (min–max supplier share) alternative; None skips it.
-    # Recorded only when set, so snapshots saved before it existed keep their exact JSON.
+    # Recorded only when set; saved snapshots must re-encode to their exact stored JSON.
     diversification_epsilon: Decimal | None = field(default=None, metadata={"omit_default": True})
 
     def __post_init__(self):

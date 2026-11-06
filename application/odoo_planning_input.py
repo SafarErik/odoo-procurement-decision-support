@@ -55,8 +55,7 @@ def assemble_odoo_planning_input(
 ) -> tuple[PlanningRequest, ProvenanceManifest]:
     """Use observed quotations and explicitly attributed terms, never quotation Q as demand.
 
-    Currency identity/code must be resolved by the trusted reader. This function
-    does not authorize synthetic-model inference on Odoo-derived history.
+    Currency identity/code must be resolved by the trusted reader.
     """
     require(isinstance(case, OdooComparisonCaseFacts), "invalid_case", "Typed case required.")
     utc(command.as_of)

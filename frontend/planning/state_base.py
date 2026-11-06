@@ -11,8 +11,6 @@ from frontend.i18n import DEFAULT_LANGUAGE, LANGUAGES, tr
 from frontend.planning_client import FINAL_DECISION_CONFLICT, submit_planning_request
 
 VIEWS = ("overview", "suppliers", "plans", "scenarios", "decision", "audit")
-# Bookmarks saved before P3 keep working.
-VIEW_ALIASES = {"whatif": "scenarios"}
 
 
 def focus(identity: str):

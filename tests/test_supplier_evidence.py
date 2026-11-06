@@ -25,7 +25,7 @@ def test_exact_evidence_and_reference_time_survive_readable_projection(stored_ca
             assert row["score"] == assessment["score"]
             assert row["model"] == assessment["model_id"]
             assert row["history_window"].endswith(day(assessment["snapshot"]["history_end"], "en"))
-            assert "future receipts" in row["class_meaning"]
+            assert "next 60 days" in row["class_meaning"]
             assert row["name"]  # Canonical supplier identity supplies missing business labels.
         assert payload == before
 
