@@ -13,7 +13,7 @@ part of the accepted scope and are not implemented.
 | L3 | Drift between training and test period | [MODEL_ML.md](MODEL_ML.md) §6 | 5, 7, 9 |
 | L4 | Uncalibrated scores | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `supplier_assessment` | 5, 9 |
 | L5 | Linear exposure does not reward diversification | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `base_case`, [MODEL_MILP.md](MODEL_MILP.md) §7 | 5, 9 |
-| L6 | Buyer terms are defaults, not Odoo facts | `preview_odoo_history` in `backend/app/dependencies.py`, [P4_MILP_EVALUATION.json](evidence/P4_MILP_EVALUATION.json) `protocol` | 3, 5, 9 |
+| L6 | Buyer terms are defaults, not Odoo facts | `odoo_history_preview` in `application/planning_history.py`, [P4_MILP_EVALUATION.json](evidence/P4_MILP_EVALUATION.json) `protocol` | 3, 5, 9 |
 | L7 | One product, one period | [MODEL_MILP.md](MODEL_MILP.md) §7, [REVAMP_PLAN.md](REVAMP_PLAN.md) §4 | 5, 9 |
 | L8 | Scenarios keep the saved scores | [MODEL_MILP.md](MODEL_MILP.md) §6 | 5, 9 |
 | L9 | Proof-of-concept identity and trust | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `decisions`, [ARCHITECTURE.md](ARCHITECTURE.md) | 4, 9 |

@@ -486,7 +486,7 @@ def test_no_award_has_no_document_of_either_kind(decision_api):
 
 
 def test_application_rejects_unknown_document_kind(decision_api):
-    from application.planning_cases import PlanningCaseError
+    from application.errors import PlanningCaseError
     from application.planning_documents import approved_document
 
     _, uow, base, *_ = decision_api

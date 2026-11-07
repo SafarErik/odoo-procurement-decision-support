@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from supplier_evaluation.contracts import HISTORY_DATA_ORIGINS, HISTORY_GENERATED
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -22,7 +24,7 @@ class Settings(BaseSettings):
     # Model trained offline from Odoo purchase history (tools.train_history_model).
     supplier_history_model_directory: Path | None = None
     # Declared origin of the purchase history in ODOO_DATABASE; the model must match it.
-    odoo_history_data_origin: Literal["generated", "observed"] = "generated"
+    odoo_history_data_origin: Literal[HISTORY_DATA_ORIGINS] = HISTORY_GENERATED
     planning_library_company_id: str = ""
     odoo_request_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
 

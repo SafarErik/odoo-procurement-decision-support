@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from application.purchase_history import PurchaseLineHistory
 from supplier_evaluation.contracts import (
     HISTORY_FEATURE_VERSION,
     HISTORY_FEATURES,
@@ -44,8 +43,8 @@ def _days(delta: timedelta) -> float:
     return delta.total_seconds() / DAY
 
 
-def context_lines(lines, context: Context) -> tuple[PurchaseLineHistory, ...]:
-    """Lines of exactly one company/supplier/product/unit context."""
+def context_lines(lines, context: Context) -> tuple:
+    """Purchase lines (``application.purchase_history.PurchaseLineHistory``) of one context."""
     return tuple(
         line
         for line in lines

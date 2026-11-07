@@ -1,6 +1,7 @@
 """Exact JSON snapshot encoding and explicit stored-value reconstruction."""
 
 import json
+import re
 from dataclasses import fields, is_dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -29,6 +30,13 @@ from supplier_evaluation.contracts import (
     QuantityValidity,
     utc,
 )
+
+# Lowercase hex SHA-256: snapshot hashes, caller fingerprints, artifact and content hashes.
+SHA256_HEX = r"[0-9a-f]{64}"
+
+
+def is_sha256_hex(value) -> bool:
+    return isinstance(value, str) and re.fullmatch(SHA256_HEX, value) is not None
 
 
 def decimal_text(value: Decimal) -> str:

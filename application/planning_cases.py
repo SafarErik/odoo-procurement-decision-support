@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import re
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -11,34 +10,27 @@ from fractions import Fraction
 from typing import Protocol, Self
 from uuid import UUID, uuid4
 
-from application.errors import RepositoryError
-from application.planning_history import (
-    HISTORY_INPUT_KIND,
-    capture_features,
-    capture_origin,
-)
+from application.errors import PlanningCaseError, RepositoryError
+from application.planning_history import capture_features, capture_origin
 from application.planning_input import assemble_planning_input, validate_source
 from application.planning_serialization import (
+    is_sha256_hex,
     json_value,
     read_assessments,
     read_request,
     read_result,
     snapshot_json,
 )
-from application.procurement_planning import PlanningCommand, create_procurement_plans
+from application.procurement_planning import (
+    PlanningCommand,
+    create_procurement_plans,
+    risk_inputs,
+)
 from application.provenance import SourceAttribution
+from application.stored_contracts import HISTORY_INPUT_KIND, SNAPSHOT_VERSION
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import exact_decimal
 from supplier_evaluation.contracts import HISTORY_SOURCE, utc
-from supplier_evaluation.planning_bridge import risk_inputs
-
-SNAPSHOT_VERSION = "t15-controlled-planning-v1"
-
-
-class PlanningCaseError(ValueError):
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +129,8 @@ def validate_snapshot(case: PlanningCase) -> dict:
             s.supplier_id for s in request.suppliers
         }:
             raise ValueError("Incomplete stored assessments.")
+        # The model module owns its metadata contract; importing it loads scikit-learn,
+        # so it is imported only when a stored snapshot is actually checked.
         from supplier_evaluation.history_model import check_manifest_metadata
 
         metadata, facts = value["model_manifest"]["metadata"], value["facts"]
@@ -156,7 +150,7 @@ def validate_snapshot(case: PlanningCase) -> dict:
             )
         ):
             raise ValueError("Stored Odoo source/model compatibility mismatch.")
-        if re.fullmatch(r"[0-9a-f]{64}", value["model_manifest"]["artifact_sha256"]) is None:
+        if not is_sha256_hex(value["model_manifest"]["artifact_sha256"]):
             raise ValueError("Missing stored artifact hash.")
         if any(
             (a.model_id, a.training_id) != (metadata["model_id"], metadata["training_id"])
@@ -183,7 +177,7 @@ def validate_snapshot(case: PlanningCase) -> dict:
         canonical_uuid(case.case_id)
         canonical_uuid(case.idempotency_key)
         utc(case.created_at)
-        if re.fullmatch(r"[0-9a-f]{64}", case.fingerprint) is None:
+        if not is_sha256_hex(case.fingerprint):
             raise ValueError("Invalid stored caller fingerprint.")
         if case.parent_id is not None:
             canonical_uuid(case.parent_id)
@@ -210,9 +204,8 @@ def get_planning_case(uow: PlanningUnitOfWork, case_id: str) -> PlanningCase:
         return case
 
 
-SCENARIO_KINDS = frozenset(
-    {"supplier_outage", "capacity_change", "demand_change", "price_change", "combined"}
-)
+# Order is the order the API lists them in validation errors.
+SCENARIO_KINDS = ("supplier_outage", "capacity_change", "demand_change", "price_change", "combined")
 
 
 def _scenario_request(base: dict, delta: ScenarioDelta):

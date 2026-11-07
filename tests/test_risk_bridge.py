@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 
+from application.procurement_planning import risk_inputs
 from decision_core.planning.models import (
     InvalidPlanningInput,
     MinimumOrder,
@@ -16,7 +17,6 @@ from decision_core.planning.models import (
     SupplierTerms,
 )
 from supplier_evaluation.contracts import Context, QuantityValidity
-from supplier_evaluation.planning_bridge import risk_inputs
 from supplier_evaluation.purchase_history import feature_snapshot
 from tests.helpers.odoo_fakes import COMPANY, DATABASE
 

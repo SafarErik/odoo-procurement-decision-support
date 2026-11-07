@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from application.errors import RepositoryError
 from application.planning_documents import PlanningDocument
-from persistence.schema import PlanningDocumentRecord
+from persistence.schema import DOCUMENT_LOCK_PREFIX, PlanningDocumentRecord
 
 
 class SqlAlchemyPlanningDocumentRepository:
@@ -15,7 +15,8 @@ class SqlAlchemyPlanningDocumentRepository:
     def lock(self, case_id):
         try:
             self._session.execute(
-                text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": "t21:pdf:" + case_id}
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+                {"key": DOCUMENT_LOCK_PREFIX + case_id},
             )
         except SQLAlchemyError as error:
             raise RepositoryError(

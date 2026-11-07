@@ -5,18 +5,10 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Protocol
 
+from supplier_evaluation.contracts import text_identity, utc
+
 MAX_WINDOW = timedelta(days=366)
 MAX_LINES = 500
-
-
-def _utc(value: datetime, label: str) -> None:
-    if not isinstance(value, datetime) or value.utcoffset() != timedelta(0):
-        raise ValueError(f"{label} must be an explicit UTC timestamp.")
-
-
-def _identity(value: str, label: str) -> None:
-    if not isinstance(value, str) or not value.strip() or value != value.strip():
-        raise ValueError(f"{label} must be a canonical identity.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,8 +19,8 @@ class ReceiptEvent:
     backorder_of: str | None = None
 
     def __post_init__(self) -> None:
-        _identity(self.event_id, "event_id")
-        _utc(self.received_at, "received_at")
+        text_identity(self.event_id)
+        utc(self.received_at)
         if not isinstance(self.quantity, Decimal) or not self.quantity.is_finite():
             raise ValueError("Receipt quantity must be a finite decimal.")
         if self.quantity <= 0:
@@ -53,9 +45,9 @@ class PurchaseLineHistory:
 
     def __post_init__(self) -> None:
         for label in ("line_id", "order_id", "company_id", "supplier_id", "product_id", "uom_id"):
-            _identity(getattr(self, label), label)
-        _utc(self.expected_at, "expected_at")
-        _utc(self.confirmed_at, "confirmed_at")
+            text_identity(getattr(self, label))
+        utc(self.expected_at)
+        utc(self.confirmed_at)
         if not isinstance(self.ordered_quantity, Decimal) or not self.ordered_quantity > 0:
             raise ValueError("Ordered quantity must be a positive decimal.")
         if not isinstance(self.receipts, tuple) or any(
@@ -79,10 +71,10 @@ class PurchaseHistoryQuery:
     limit: int = MAX_LINES
 
     def __post_init__(self) -> None:
-        _identity(self.company_id, "company_id")
-        _identity(self.product_id, "product_id")
-        _utc(self.window_start, "window_start")
-        _utc(self.window_end, "window_end")
+        text_identity(self.company_id)
+        text_identity(self.product_id)
+        utc(self.window_start)
+        utc(self.window_end)
         if not timedelta(0) < self.window_end - self.window_start <= MAX_WINDOW:
             raise ValueError("History window must be positive and at most 366 days.")
         if type(self.limit) is not int or not 1 <= self.limit <= MAX_LINES:
@@ -98,9 +90,9 @@ class PurchaseHistorySnapshot:
     source_reference: str
 
     def __post_init__(self) -> None:
-        _utc(self.observed_at, "observed_at")
-        _identity(self.source_type, "source_type")
-        _identity(self.source_reference, "source_reference")
+        utc(self.observed_at)
+        text_identity(self.source_type)
+        text_identity(self.source_reference)
         if self.observed_at < self.query.window_end:
             raise ValueError("A history snapshot cannot be observed before its window closes.")
         if len(self.lines) > self.query.limit or len({x.line_id for x in self.lines}) != len(

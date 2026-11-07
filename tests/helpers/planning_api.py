@@ -41,7 +41,7 @@ def odoo_case_api(history, uow, monkeypatch):
 
     for module in (
         "application.odoo_planning_input",
-        "backend.app.dependencies",
+        "application.planning_history",
         "odoo_adapter.comparison_case_reader",
         "odoo_adapter.product_history_reader",
     ):

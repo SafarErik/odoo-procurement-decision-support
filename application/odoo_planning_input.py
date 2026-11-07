@@ -1,4 +1,4 @@
-"""V2 quotation assembly with separate ERP and supplemental provenance; no ML/IO."""
+"""Quotation assembly with separate ERP and buyer-supplied provenance; no ML or I/O."""
 
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime
@@ -19,6 +19,9 @@ from decision_core.planning.models import (
     require,
 )
 from supplier_evaluation.contracts import utc
+
+# Provenance source type of every value read from Odoo's JSON-2 API (stored in snapshots).
+ODOO_JSON2_SOURCE = "odoo_json2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +78,7 @@ def assemble_odoo_planning_input(
     ):
         validate_source(source, field, command.as_of)
     require(
-        currency_source.source_type == "odoo_json2"
+        currency_source.source_type == ODOO_JSON2_SOURCE
         and currency_source.source_reference == f"{currency_id}#name",
         "invalid_currency_source",
         "Resolve the exact Odoo currency code; do not convert or infer it.",
@@ -166,7 +169,7 @@ def assemble_odoo_planning_input(
             record(
                 f"{prefix}.{field}",
                 field,
-                SourceAttribution(field, "odoo_json2", reference, offer.observed_at),
+                SourceAttribution(field, ODOO_JSON2_SOURCE, reference, offer.observed_at),
             )
         record(f"{prefix}.currency", "currency", currency_source)
     require(len(contexts) == 1, "context_mismatch", "One company/product/unit required.")
@@ -183,7 +186,7 @@ def assemble_odoo_planning_input(
             field,
             SourceAttribution(
                 field,
-                "odoo_json2",
+                ODOO_JSON2_SOURCE,
                 f"{offers[0].lines[0].line_id}#{reference}",
                 offers[0].observed_at,
             ),
@@ -198,7 +201,7 @@ def assemble_odoo_planning_input(
         "company_id",
         SourceAttribution(
             "company_id",
-            "odoo_json2",
+            ODOO_JSON2_SOURCE,
             f"{offers[0].offer_id}#company_id",
             offers[0].observed_at,
         ),
@@ -207,7 +210,7 @@ def assemble_odoo_planning_input(
         "facts.comparison_case_id",
         "purchase_group_id",
         SourceAttribution(
-            "purchase_group_id", "odoo_json2", case.comparison_case_id, case.observed_at
+            "purchase_group_id", ODOO_JSON2_SOURCE, case.comparison_case_id, case.observed_at
         ),
     )
     return PlanningRequest(
@@ -248,7 +251,7 @@ def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, curren
         currency_id=currency_id,
         currency_code=currency_code,
         currency_source=SourceAttribution(
-            "currency", "odoo_json2", f"{currency_id}#name", currency_observed_at
+            "currency", ODOO_JSON2_SOURCE, f"{currency_id}#name", currency_observed_at
         ),
     )
     observed = {s.supplier_id: s for s in request.suppliers}
@@ -288,3 +291,19 @@ def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, curren
     return replace(facts, as_of=as_of, requirement=request.requirement), ProvenanceManifest(
         tuple(entries)
     )
+
+
+def bind_odoo_history_input(captured, facts: OdooHistoryPlanningFacts):
+    """Attach a capture (from ``capture_odoo_history``) to the buyer's facts and bind quotes."""
+    case, code, observed, capture = captured
+    references = {f.context.supplier_id: f.source_reference for f in capture_features(capture)}
+    facts = replace(
+        facts,
+        history=capture,
+        labels=case.labels,
+        suppliers=tuple(
+            replace(s, history_reference=references.get(s.terms.supplier_id, s.history_reference))
+            for s in facts.suppliers
+        ),
+    )
+    return bind_controlled_odoo_input(case, facts, code, observed)

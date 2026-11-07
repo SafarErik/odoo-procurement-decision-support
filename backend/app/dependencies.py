@@ -1,27 +1,17 @@
 """Composition root for backend dependencies."""
 
 import asyncio
-import json
-from dataclasses import replace
-from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
-from application.odoo_planning_input import bind_controlled_odoo_input
+from application import planning_history
+from application.errors import PlanningCaseError, RepositoryError
+from application.odoo_planning_input import bind_odoo_history_input
 from application.odoo_quotations import ComparisonCaseReader
-from application.planning_cases import PlanningCaseError
-from application.planning_history import (
-    HistoryCaptureError,
-    build_capture,
-    capture_features,
-    capture_origin,
-    history_query,
-)
-from application.planning_serialization import json_value
 from backend.app.config import settings
+from decision_core.planning.planner import SOLVER_TIME_LIMIT_SECONDS
 from odoo_adapter.comparison_case_reader import OdooComparisonCaseReader
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
 from persistence.session import create_session_factory
-from supplier_evaluation.contracts import Context
 
 
 def get_comparison_case_reader() -> ComparisonCaseReader:
@@ -43,7 +33,6 @@ def _session_factory():
 
 
 def get_planning_unit_of_work():
-    from application.errors import RepositoryError
     from persistence.planning_cases import SqlAlchemyPlanningUnitOfWork
 
     factory = _session_factory()
@@ -58,7 +47,6 @@ def planning_solver_factory():
     """Concrete solver/runtime construction stays at composition, after replay lookup."""
     from dataclasses import asdict
 
-    from application.errors import RepositoryError
     from optimization_adapter.pulp_cbc import PulpCbcSolver
 
     try:
@@ -67,7 +55,7 @@ def planning_solver_factory():
             "adapter": "t13-pulp-cbc",
             "runtime": solver.runtime_info(),
             "configuration": asdict(solver.configuration),
-            "time_limit_seconds": 30.0,
+            "time_limit_seconds": SOLVER_TIME_LIMIT_SECONDS,
         }
     except Exception as error:
         raise RepositoryError(
@@ -92,56 +80,20 @@ def get_purchase_history_reader():
 
 
 def capture_odoo_history(group_id):
-    """Read one quotation group and its product's bounded history; never on replay."""
-    from application.errors import ProcurementDataResponseError, ProcurementDataUnavailable
-
-    async def read():
-        reader = get_comparison_case_reader()
-        case = await reader.read_comparison_case(group_id)
-        if not case.offers or any(len(o.lines) != 1 for o in case.offers):
-            raise ValueError("A one-line quotation group is required.")
-        code, observed = await reader.read_currency_code(case.offers[0].currency_id)
-        line, company = case.offers[0].lines[0], case.offers[0].company_id
-        # Odoo rejects an export end in its future; a lagging container clock (e.g. after the
-        # host slept) must not turn every read into "unavailable", hence the small margin.
-        read_end = datetime.now(UTC).replace(microsecond=0) - timedelta(seconds=60)
-        query = history_query(company, line.product_id, read_end)
-        snapshot = await get_purchase_history_reader().read_purchase_history(query)
-        contexts = tuple(
-            Context(o.supplier_id, company, line.product_id, line.uom_id) for o in case.offers
+    """Run the async Odoo capture from the sync route handlers (no event loop runs there)."""
+    return asyncio.run(
+        planning_history.capture_odoo_history(
+            get_comparison_case_reader(),
+            get_purchase_history_reader(),
+            group_id,
+            database=settings.odoo_database,
+            data_origin=settings.odoo_history_data_origin,
         )
-        return (
-            case,
-            code,
-            observed,
-            build_capture(
-                snapshot, contexts, settings.odoo_database, settings.odoo_history_data_origin
-            ),
-        )
-
-    try:
-        return asyncio.run(read())
-    except HistoryCaptureError as error:
-        raise PlanningCaseError("odoo_history_insufficient", str(error)) from error
-    except (ProcurementDataUnavailable, ProcurementDataResponseError) as error:
-        raise PlanningCaseError(
-            "odoo_history_unavailable", "The Odoo quotation group or its history is unavailable."
-        ) from error
+    )
 
 
 def resolve_odoo_history_input(group_id, facts):
-    case, code, observed, capture = capture_odoo_history(group_id)
-    references = {f.context.supplier_id: f.source_reference for f in capture_features(capture)}
-    facts = replace(
-        facts,
-        history=capture,
-        labels=case.labels,
-        suppliers=tuple(
-            replace(s, history_reference=references.get(s.terms.supplier_id, s.history_reference))
-            for s in facts.suppliers
-        ),
-    )
-    return bind_controlled_odoo_input(case, facts, code, observed)
+    return bind_odoo_history_input(capture_odoo_history(group_id), facts)
 
 
 def load_history_model():
@@ -172,74 +124,11 @@ def infer_odoo_history_features(features):
 
 
 def preview_odoo_history(group_id):
-    """Read-only preview with suggested buyer terms; nothing is stored."""
-    case, code, observed, capture = capture_odoo_history(group_id)
-    features = capture_features(capture)
-    readiness, origin = "ready", capture_origin(capture)
+    captured = capture_odoo_history(group_id)
     try:
-        model, _ = load_history_model()
-        if model.metadata["company_id"] != case.offers[0].company_id:
-            raise ValueError("Model company mismatch.")
-    except Exception:
-        readiness = "model_unavailable"
-    now = datetime.now(UTC)
-    line = case.offers[0].lines[0]
-    demand = int(line.quantity)
-    deadline = (now + timedelta(days=7)).date().isoformat()
-    source = {
-        "source_type": "buyer_default_terms",
-        "source_reference": "odoo-history-preview-defaults-v2",
-        "observed_at": now.isoformat(),
-    }
-    suppliers = [
-        {
-            "supplier_id": offer.supplier_id,
-            "offer_id": offer.offer_id,
-            "unit_price": str(offer.lines[0].unit_price),
-            "capacity": max(1, -(-demand * 6 // 10)),
-            "available": True,
-            "minimum_order_quantity": None,
-            "price_quantities": {"minimum": 1, "maximum": 1000},
-            "delivery_quantities": {"minimum": 1, "maximum": 1000},
-            "promised_date": deadline,
-            "source": source,
-        }
-        for offer in sorted(case.offers, key=lambda o: o.supplier_id)
-    ]
-    terms = {
-        "company_id": case.offers[0].company_id,
-        "as_of": now.isoformat(),
-        "approval_reference": f"odoo-history-demand-{demand}-v2",
-        "requirement": {
-            "product_id": line.product_id,
-            "approved_quantity": demand,
-            "quantity_unit": line.uom_id,
-            "currency": code,
-            "required_date": deadline,
-        },
-        "requirement_source": source,
-        "policy_source": source,
-        "policy": {
-            "max_suppliers": 2,
-            "concentration_limit": "0.8",
-            "epsilons": ["0.05", "0.1", "0.2"],
-            "diversification_epsilon": "0.2",
-        },
-        "suppliers": suppliers,
-    }
-    parsed = json.loads(capture)
-    return {
-        "purchase_group_id": group_id,
-        "database": settings.odoo_database,
-        "data_origin": origin,
-        "model_readiness": readiness,
-        "captured_at": parsed["evidence"]["cutoff"],
-        "capture_hash": parsed["capture_hash"],
-        "features": json_value(features),
-        "history": [
-            {"supplier_id": f.context.supplier_id}
-            | dict(zip(f.feature_names, f.values, strict=True))
-            for f in features
-        ],
-        "terms": terms,
-    }
+        model_company = load_history_model()[0].metadata["company_id"]
+    except Exception:  # any unusable model: the preview reports model_unavailable
+        model_company = None
+    return planning_history.odoo_history_preview(
+        group_id, captured, database=settings.odoo_database, model_company=model_company
+    )

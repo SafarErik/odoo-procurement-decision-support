@@ -7,10 +7,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from application.errors import RepositoryError
+from application.errors import PlanningCaseError, RepositoryError
 from application.planning_cases import (
     SCENARIO_KINDS,
-    PlanningCaseError,
     canonical_uuid,
     fingerprint,
     validate_snapshot,

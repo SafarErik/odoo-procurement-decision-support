@@ -6,15 +6,14 @@ One immutable artifact per (case, language, kind): the approved procurement plan
 """
 
 import hashlib
-import re
 from dataclasses import dataclass
-from typing import Protocol
 
-from application.errors import RepositoryError
-from application.planning_cases import PlanningCaseError, canonical_uuid
-from application.planning_decisions import CONTENT_VERSION, validate_final_decision
+from application.errors import PlanningCaseError, RepositoryError
+from application.planning_cases import canonical_uuid
+from application.planning_decisions import validate_final_decision
+from application.planning_serialization import is_sha256_hex
+from application.stored_contracts import CONTENT_VERSION, DOCUMENT_VERSION
 
-DOCUMENT_VERSION = "t17-approved-pdf-v3"
 DOCUMENT_LANGUAGES = ("hu", "en")
 DOCUMENT_KINDS = ("plan", "audit")
 FILENAMES = {
@@ -47,19 +46,13 @@ class PlanningDocument:
         return f"{name}-{self.case_id}-{self.content_hash[:12]}-{self.language}.pdf"
 
 
-class PlanningDocumentRepository(Protocol):
-    def lock(self, case_id: str) -> None: ...
-    def get(self, case_id: str, language: str, kind: str) -> PlanningDocument | None: ...
-    def add(self, document: PlanningDocument) -> None: ...
-
-
 def approved_document(uow, case_id, content_hash, render, language="hu", kind="plan"):
     canonical_uuid(case_id)
     if language not in DOCUMENT_LANGUAGES:
         raise PlanningCaseError("invalid_document_language", "Use hu or en.")
     if kind not in DOCUMENT_KINDS:
         raise PlanningCaseError("invalid_document_kind", "Use plan or audit.")
-    if not isinstance(content_hash, str) or re.fullmatch(r"[0-9a-f]{64}", content_hash) is None:
+    if not is_sha256_hex(content_hash):
         raise PlanningCaseError("invalid_document_identity", "Use the saved approved content hash.")
     with uow:
         uow.documents.lock(case_id)

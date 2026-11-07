@@ -47,6 +47,7 @@ from application.supplier_overview import (
     path_steps,
     saved_labels,
 )
+from supplier_evaluation.contracts import HISTORY_GENERATED, HISTORY_OBSERVED
 
 FONT = "ProcurementDejaVu"
 LAYOUT_VERSION = "layout-v6"
@@ -83,11 +84,11 @@ TEXT = {
         "summary": "Összefoglaló",
         "footer": "Jóváhagyott beszerzési terv | {case}",
         "page": "{page}. oldal",
-        "generated": (
+        HISTORY_GENERATED: (
             "Bemutató adatok: a beszállítói értékelés generált (szimulált) Odoo beszerzési "
             "előzményeken tanított döntési fából származik. Nem valós beszállítói teljesítmény."
         ),
-        "observed": (
+        HISTORY_OBSERVED: (
             "A beszállítói értékelés megfigyelt Odoo beszerzési előzményeken tanított döntési "
             "fából származik. A pontszám nem kalibrált meghibásodási valószínűség."
         ),
@@ -215,11 +216,11 @@ TEXT = {
         "summary": "Summary",
         "footer": "Approved procurement plan | {case}",
         "page": "Page {page}",
-        "generated": (
+        HISTORY_GENERATED: (
             "Demonstration data: supplier assessments come from a decision tree trained on "
             "generated (simulated) Odoo purchase history. Not real supplier performance."
         ),
-        "observed": (
+        HISTORY_OBSERVED: (
             "Supplier assessments come from a decision tree trained on observed Odoo purchase "
             "history. The score is not a calibrated failure probability."
         ),
@@ -411,7 +412,7 @@ def _render(content, language, kind):
     offers = {s["terms"]["supplier_id"]: s["offer_id"] for s in facts["suppliers"]}
     names = saved_labels(snapshot)
     metadata = snapshot["model_manifest"]["metadata"]
-    origin = metadata["data_origin"]  # "generated" or "observed", checked at approval
+    origin = metadata["data_origin"]  # one of HISTORY_DATA_ORIGINS, checked at approval
 
     def short(identity):
         return names.get(identity, identity)

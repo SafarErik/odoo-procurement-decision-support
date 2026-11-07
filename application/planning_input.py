@@ -1,10 +1,11 @@
-"""V2 planning facts and field attribution; no live ERP access or ML loading."""
+"""Planning facts and field attribution; no live ERP access or ML loading."""
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from application.planning_history import capture_features
 from application.provenance import FieldProvenance, ProvenanceManifest, SourceAttribution
+from application.stored_contracts import SCORE_QUANTITIES_REFERENCE
 from decision_core.planning.models import (
     PlanningPolicy,
     PlanningRequest,
@@ -19,6 +20,12 @@ from supplier_evaluation.contracts import (
     text_identity,
     utc,
 )
+
+MAX_SUPPLIERS = 10
+MAX_EPSILONS = 3
+# Order quantities every supplier assessment is declared valid for: a controlled proxy,
+# not evidence that the score holds at every quantity.
+SCORE_QUANTITIES = QuantityValidity(1, 1000, SCORE_QUANTITIES_REFERENCE)
 
 
 def validate_source(source: SourceAttribution, field: str, as_of: datetime) -> None:
@@ -73,10 +80,10 @@ def assemble_planning_input(facts: PlanningFacts):
     utc(facts.as_of)
     validate_source(facts.requirement_source, "requirement", facts.as_of)
     validate_source(facts.policy_source, "policy", facts.as_of)
-    if not isinstance(facts.suppliers, tuple) or not 1 <= len(facts.suppliers) <= 10:
-        raise ValueError("Supply 1-10 controlled suppliers.")
-    if not 1 <= len(facts.policy.epsilons) <= 3:
-        raise ValueError("Supply 1-3 explicit epsilon values.")
+    if not isinstance(facts.suppliers, tuple) or not 1 <= len(facts.suppliers) <= MAX_SUPPLIERS:
+        raise ValueError(f"Supply 1-{MAX_SUPPLIERS} controlled suppliers.")
+    if not 1 <= len(facts.policy.epsilons) <= MAX_EPSILONS:
+        raise ValueError(f"Supply 1-{MAX_EPSILONS} explicit epsilon values.")
     offers, features = set(), []
     for item in sorted(facts.suppliers, key=lambda s: s.terms.supplier_id):
         text_identity(item.offer_id)

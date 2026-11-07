@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from application.errors import RepositoryError
 from application.planning_decisions import PlanningFinalDecision
 from application.planning_serialization import snapshot_json
-from persistence.schema import PlanningFinalDecisionRecord
+from persistence.schema import DECISION_LOCK_PREFIX, PlanningFinalDecisionRecord
 
 
 def read_decision_row(row):
@@ -29,7 +29,8 @@ class SqlAlchemyPlanningDecisionRepository:
     def lock(self, key):
         try:
             self._session.execute(
-                text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": "t17:" + key}
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+                {"key": DECISION_LOCK_PREFIX + key},
             )
         except SQLAlchemyError as error:
             raise RepositoryError(
