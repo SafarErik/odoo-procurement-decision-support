@@ -5,19 +5,7 @@ from decimal import Decimal
 
 import httpx
 
-from frontend.i18n import day, money, number, tr, unit
-
-ISSUES = {
-    "unsupported_offer_count": (
-        "Legalább 3, legfeljebb 10 ajánlat szükséges",
-        "Between 3 and 10 quotations are required",
-    ),
-    "not_all_open": ("Nem minden ajánlat nyitott", "Not every quotation is open"),
-    "not_single_line": ("Az ajánlatok nem egysorosak", "Quotations are not single-line"),
-    "duplicate_supplier": ("Egy szállító többször szerepel", "A supplier appears twice"),
-    "mixed_context": ("Eltérő termék, egység vagy pénznem", "Different product, unit or currency"),
-    "discount_or_tax": ("Kedvezményt vagy adót tartalmaz", "Contains a discount or tax"),
-}
+from frontend.i18n import TEXT, day, money, number, tr, unit
 
 
 async def fetch_odoo_history(url, token, *, lang="en", transport=None):
@@ -80,7 +68,7 @@ def group_row(item: dict, lang: str) -> dict[str, str]:
         "offers": " · ".join(f"{p['supplier']} {p['price']}" for p in prices),
         "date": day(item["latest_order_date"], lang),
         "selectable": "yes" if item["selectable"] else "",
-        "issue": "" if not issue else ISSUES.get(issue, (issue, issue))[0 if lang == "hu" else 1],
+        "issue": tr(f"issue_{issue}", lang) if f"issue_{issue}" in TEXT else issue or "",
         "label": f"{name} · {item['product_name'] or '—'}",
     }
 

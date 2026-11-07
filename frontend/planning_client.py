@@ -264,51 +264,6 @@ def _buyer_explanations(entries: list[dict], lang: str = "en", names: dict | Non
     )
 
 
-_HISTORY_STEPS = {
-    "on_time_rate": ("Határidőre teljesített szállítások aránya", "On-time delivery rate", "pct"),
-    "mean_lateness_days": ("Átlagos késés", "Average lateness", "days"),
-    "lateness_spread_days": ("Késés szórása", "Lateness spread", "days"),
-    "fill_rate": ("Mennyiségi teljesítési arány", "Fill rate", "pct"),
-    "partial_share": ("Részszállítások aránya", "Share of partial deliveries", "pct"),
-    "order_count": ("Lezárt beszerzési sorok", "Settled purchase lines", "int"),
-    "days_since_last_receipt": ("Napok az utolsó átvétel óta", "Days since last receipt", "int"),
-    "delivery_schedule_adherence": ("Határidőre teljesítés", "On-time delivery", "percent100"),
-    "historical_completed_count": ("Teljesített átvételek", "Completed receipts", "int"),
-}
-
-
-def _metric(kind: str, value, lang: str) -> str:
-    if kind == "pct":
-        return percent(value, lang)
-    if kind == "percent100":
-        return percent(Decimal(str(value)) / 100, lang, 2)
-    if kind == "days":
-        return tr("days", lang, value=number(value, lang, 1))
-    return number(value, lang, 0)
-
-
-def _history_step(step, lang: str = "en") -> str:
-    """Readable condition for a tree split (stored values only)."""
-    hu, en, kind = _HISTORY_STEPS.get(step["feature"], (step["feature"], step["feature"], "num"))
-    name = hu if lang == "hu" else en
-    if kind == "num":
-        value, threshold = str(step["value_float32"]), str(step["threshold"])
-    else:
-        value = _metric(kind, step["value_float32"], lang)
-        threshold = (
-            number(step["threshold"], lang, 2)
-            if kind == "int" and step["threshold"] % 1
-            else _metric(kind, step["threshold"], lang)
-        )
-        if value == threshold:  # rounding hid the difference; show the stored values
-            value, threshold = f"{step['value_float32']:.4f}", f"{step['threshold']:.4f}"
-    if lang == "hu":
-        relation = "legfeljebb" if step["operator"] == "<=" else "több mint"
-        return f"{name}: {value} – {relation} {threshold}."
-    relation = "is at most" if step["operator"] == "<=" else "is above"
-    return f"{name} ({value}) {relation} {threshold}."
-
-
 def _data_origin(snapshot: dict) -> str:
     """Same rule as the PDF: the history model records where its Odoo data came from."""
     origin = snapshot.get("model_manifest", {}).get("metadata", {}).get("data_origin")
@@ -689,26 +644,12 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
         score = _decimal(assessment["score"])
         if type(predicted) is not int or predicted not in (0, 1) or not 0 <= score <= 1:
             raise ValueError("Unsupported assessment")
-        values = feature["values"]
-        class_key = "problematic" if predicted else "regular"
         assessments.append(
             {
                 "supplier": _required_string(feature["context"], "supplier_id"),
                 "score": str(_decimal(assessment["score"])),
                 "name": name(feature["context"]["supplier_id"]),
-                "class_key": class_key,
-                "class_label": tr("class_" + class_key, lang),
-                "class_meaning": tr("class_meaning_history", lang),
                 "reference_time": _parse_datetime(feature["cutoff"]).isoformat(),
-                "score_display": tr("exposure_value", lang, value=number(score * 100, lang, 1)),
-                "history_summary": tr(
-                    "history_summary",
-                    lang,
-                    on_time=percent(values[0], lang, 0),
-                    late=tr("days", lang, value=number(values[1], lang, 1)),
-                    fill=percent(values[3], lang, 0),
-                    lines=number(values[5], lang, 0),
-                ),
                 "history_window": (
                     f"{day(feature['history_start'], lang)} – {day(feature['history_end'], lang)}"
                 ),
@@ -725,11 +666,6 @@ def _map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDisp
                     f"{step['operator']} {step['threshold']}"
                     for step in assessment["path"]
                 ),
-                "readable_path": "\n".join(
-                    f"{index + 1}. {_history_step(step, lang)}"
-                    for index, step in enumerate(assessment["path"])
-                )
-                or tr("path_root", lang),
             }
         )
     provenance = [

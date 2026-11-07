@@ -107,7 +107,7 @@ def audit_view() -> rx.Component:
         rx.flex(
             rx.box(
                 rx.heading(
-                    t("audit_title"), as_="h2", size="5", id="audit-evidence-heading", tab_index=-1
+                    t("audit"), as_="h2", size="5", id="audit-evidence-heading", tab_index=-1
                 ),
                 muted("audit_intro", margin_top="0.35rem", max_width="70ch"),
             ),
@@ -126,7 +126,7 @@ def audit_view() -> rx.Component:
         ),
         rx.box(
             _pair("audit_case_id", PlanningState.details["case_id"]),
-            _pair("audit_base_id", PlanningState.details["base_id"]),
+            _pair("base_case", PlanningState.details["base_id"]),
             _pair("audit_snapshot_hash", PlanningState.details["snapshot_hash"]),
             _pair("audit_company", PlanningState.details["company"]),
             _pair("audit_product", PlanningState.details["product"]),
@@ -189,7 +189,7 @@ def audit_view() -> rx.Component:
             rx.text(PlanningState.details["explanations"], white_space="pre-line", size="2"),
             rx.text(PlanningState.details["comparison"], white_space="pre-line", size="2"),
             _table(
-                ("audit_plan", "audit_supplier_id", "audit_quantity"),
+                ("plan", "audit_supplier_id", "audit_quantity"),
                 PlanningState.allocations,
                 ("plan", "supplier", "quantity"),
                 "audit_plans",
@@ -217,7 +217,11 @@ def audit_view() -> rx.Component:
                     rx.text(t("audit_window"), ": ", row["history_window"], size="2"),
                     rx.text(t("audit_valid_until"), ": ", row["valid_until"], size="2"),
                     rx.el.pre(row["path"], font_size="0.8rem", white_space="pre-wrap"),
-                    rx.text(row["readable_path"], white_space="pre-line", size="2"),
+                    rx.text(
+                        PlanningState.supplier_paths[row["supplier"]],
+                        white_space="pre-line",
+                        size="2",
+                    ),
                     padding_y="0.5rem",
                     border_bottom=f"1px solid {HAIRLINE}",
                 ),

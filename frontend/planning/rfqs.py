@@ -408,7 +408,7 @@ def _review():
                     )
                     for label, value in (
                         ("col_product", review.get("product", "")),
-                        ("col_demand", review.get("quantity_display", "")),
+                        ("demand", review.get("quantity_display", "")),
                         ("col_required", review.get("required_display", "")),
                         ("currency", review.get("currency", "")),
                     )

@@ -1,6 +1,34 @@
 """Display existing backend PDF bytes; no browser document generation or token."""
 
+import json
+
 import reflex as rx
+
+from frontend.i18n import LANGUAGES, tr
+
+# JS name -> TEXT key; the viewer runs in the browser, so its texts are embedded as JSON.
+_VIEWER_KEYS = {
+    "download": "pdf_download",
+    "previous": "pdf_previous",
+    "next": "next_page",
+    "unavailable": "pdf_unavailable",
+    "page": "pdf_page",
+    "loadingPages": "pdf_loading_pages",
+    "zoom": "pdf_zoom",
+    "fit": "pdf_fit",
+    "failed": "pdf_failed",
+    "region": "pdf_region",
+    "loadingViewer": "pdf_loading_viewer",
+}
+_AUDIT_KEYS = {"download": "audit_pdf_download", "region": "audit_pdf_region"}
+
+
+def _viewer_texts() -> str:
+    def table(keys):
+        texts = {lang: {name: tr(key, lang) for name, key in keys.items()} for lang in LANGUAGES}
+        return json.dumps(texts, ensure_ascii=False)
+
+    return f"const PDF_TEXT = {table(_VIEWER_KEYS)};\nconst AUDIT_TEXT = {table(_AUDIT_KEYS)};\n"
 
 
 class ApprovedPDFViewer(rx.Component):
@@ -17,26 +45,13 @@ class ApprovedPDFViewer(rx.Component):
         }
 
     def _get_custom_code(self):
-        return """
+        return (
+            """
 import "react-pdf/dist/Page/TextLayer.css";
 
-const PDF_TEXT = {
-    hu: {download: "Jóváhagyott PDF letöltése", previous: "Előző oldal", next: "Következő oldal",
-        unavailable: "A PDF előnézet nem érhető el", page: (p, n) => `${p}. oldal / ${n}`,
-        loadingPages: "Oldalak betöltése…", zoom: "Nagyítás", fit: "Teljes szélesség",
-        failed: "Az előnézet nem érhető el. A jóváhagyás mentve van; töltse le a PDF-et.",
-        region: "Jóváhagyott beszerzési PDF", loadingViewer: "PDF-megjelenítő betöltése…"},
-    en: {download: "Download approved PDF", previous: "Previous page", next: "Next page",
-        unavailable: "PDF preview unavailable", page: (p, n) => `Page ${p} of ${n}`,
-        loadingPages: "Loading PDF pages…", zoom: "Zoom", fit: "Fit width",
-        failed: "Preview unavailable. The approval is saved; download the PDF.",
-        region: "Approved procurement PDF", loadingViewer: "Loading PDF viewer…"},
-};
-const AUDIT_TEXT = {
-    hu: {download: "Audit melléklet letöltése", region: "Audit melléklet PDF"},
-    en: {download: "Download audit appendix", region: "Audit appendix PDF"},
-};
-
+"""
+            + _viewer_texts()
+            + """
 function ApprovedPDFViewer({data, filename, lang, kind}) {
     const base = PDF_TEXT[lang] || PDF_TEXT.hu;
     const text = kind === "audit" ? {...base, ...(AUDIT_TEXT[lang] || AUDIT_TEXT.hu)} : base;
@@ -87,7 +102,8 @@ function ApprovedPDFViewer({data, filename, lang, kind}) {
         <button type="button" style={control} disabled={page <= 1 || error || !pages}
             onClick={() => setPage(current => current - 1)}>{text.previous}</button>
         <span role="status" aria-live="polite">
-            {error ? text.unavailable : pages ? text.page(page, pages)
+            {error ? text.unavailable
+                : pages ? text.page.replace("{page}", page).replace("{pages}", pages)
                 : text.loadingPages}</span>
         <button type="button" style={control} disabled={page >= pages || error || !pages}
             onClick={() => setPage(current => current + 1)}>{text.next}</button>
@@ -112,3 +128,4 @@ function ApprovedPDFViewer({data, filename, lang, kind}) {
     </div>;
 }
 """
+        )

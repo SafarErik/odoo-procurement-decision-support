@@ -116,7 +116,7 @@ def _child(row):
             min_width="0",
         ),
         rx.button(
-            t("open_scenario"),
+            t("open"),
             on_click=PlanningState.open_saved_case(row["case_id"], "scenarios"),
             disabled=BUSY,
             size="1",
@@ -198,9 +198,9 @@ def _desktop_table():
             rx.table.header(
                 rx.table.row(
                     rx.table.column_header_cell(t("col_product")),
-                    rx.table.column_header_cell(t("col_demand")),
+                    rx.table.column_header_cell(t("demand")),
                     rx.table.column_header_cell(t("col_required")),
-                    rx.table.column_header_cell(t("col_min_cost"), text_align="right"),
+                    rx.table.column_header_cell(t("min_cost"), text_align="right"),
                     rx.table.column_header_cell(t("col_decision")),
                     rx.table.column_header_cell(t("col_actions")),
                 )
@@ -251,9 +251,9 @@ def _context_panel():
         rx.grid(
             rx.text(t("col_required"), size="2", color=MUTED),
             rx.text(row["required"], size="2"),
-            rx.text(t("col_min_cost"), size="2", color=MUTED),
+            rx.text(t("min_cost"), size="2", color=MUTED),
             rx.text(row["minimum_cost"], size="2"),
-            rx.text(t("col_outcome"), size="2", color=MUTED),
+            rx.text(t("outcome"), size="2", color=MUTED),
             rx.text(row["outcome"], size="2"),
             rx.text(t("col_saved"), size="2", color=MUTED),
             rx.text(row["saved"], size="2"),
@@ -307,7 +307,7 @@ def _list():
                         "empty_cases_title",
                         "empty_cases_body",
                         rx.button(
-                            t("new_comparison"),
+                            t("new_procurement"),
                             on_click=PlanningState.new_comparison,
                             margin_top="1rem",
                             background=ACCENT,
@@ -363,13 +363,13 @@ def library_page():
             rx.flex(
                 rx.box(
                     rx.heading(
-                        t("cases_title"), as_="h1", size="7", id="library-heading", tab_index=-1
+                        t("nav_cases"), as_="h1", size="7", id="library-heading", tab_index=-1
                     ),
                     muted("cases_subtitle", margin_top="0.35rem"),
                 ),
                 rx.button(
                     rx.icon("plus", size=16),
-                    t("new_comparison"),
+                    t("new_procurement"),
                     id="new-comparison",
                     on_click=PlanningState.new_comparison,
                     disabled=BUSY,

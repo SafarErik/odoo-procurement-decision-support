@@ -52,7 +52,7 @@ def decision_badge(status):
         status,
         ("approved", rx.badge(t("decision_approved"), color_scheme="green", size="2")),
         ("no_award", rx.badge(t("decision_no_award"), color_scheme="gray", size="2")),
-        ("scenario", rx.badge(t("badge_scenario"), color_scheme="iris", size="2")),
+        ("scenario", rx.badge(t("scenario"), color_scheme="iris", size="2")),
         rx.badge(t("decision_draft"), color_scheme="amber", size="2"),
     )
 

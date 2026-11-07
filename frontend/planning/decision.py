@@ -33,7 +33,7 @@ def saved_decision() -> rx.Component:
             tab_index=-1,
         ),
         rx.box(
-            _row("decision_plan", PlanningState.details["final_plan_title"]),
+            _row("plan", PlanningState.details["final_plan_title"]),
             rx.cond(approved, _row("total_cost", PlanningState.selected_plan.get("cost", ""))),
             _row("decision_actor", PlanningState.details["final_actor"]),
             rx.cond(
@@ -311,7 +311,7 @@ def _decision_form() -> rx.Component:
                     gap="0.25rem",
                 ),
                 rx.button(
-                    rx.cond(NO_AWARD, t("review_no_award"), t("review_approval")),
+                    rx.cond(NO_AWARD, t("review_decision"), t("review_approval")),
                     id="decision-review-button",
                     type="submit",
                     disabled=BUSY | (PlanningState.final_choice == ""),

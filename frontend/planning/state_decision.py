@@ -54,7 +54,7 @@ class DecisionMixin(rx.State, mixin=True):
             return ""
         outcome = self.details.get("final_outcome", "")
         if outcome == "Approved":
-            return tr("state_approved", lang)
+            return tr("approved_plan", lang)
         if outcome == "No-award":
             return tr("state_no_award", lang)
         if self.details.get("parent_id", "Base case") != "Base case":
