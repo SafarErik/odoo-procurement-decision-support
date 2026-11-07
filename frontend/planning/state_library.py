@@ -2,13 +2,13 @@
 
 import asyncio
 from typing import Any
-from uuid import UUID
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import library
+from frontend.api.library import library_row
+from frontend.api.parsing import is_uuid
 from frontend.planning.state_base import focus
-from frontend.planning_library_client import fetch_library, library_row
 
 
 class LibraryMixin(rx.State, mixin=True):
@@ -67,12 +67,7 @@ class LibraryMixin(rx.State, mixin=True):
         try:
             results = await asyncio.gather(
                 *[
-                    fetch_library(
-                        settings.planning_cases_url,
-                        settings.api_service_token.get_secret_value(),
-                        {"status": status, "limit": 5},
-                        lang=self._lang(),
-                    )
+                    library.fetch_library({"status": status, "limit": 5}, lang=self._lang())
                     for status in ("draft", "all")
                 ]
             )
@@ -105,10 +100,7 @@ class LibraryMixin(rx.State, mixin=True):
 
     @rx.event
     def open_saved_case(self, case_id: str, view: str = "overview"):
-        try:
-            if str(UUID(case_id)) != case_id:
-                return
-        except (ValueError, TypeError, AttributeError):
+        if not is_uuid(case_id):
             return
         view = view if view in ("overview", "scenarios", "decision") else "overview"
         return self._guard_navigation("route", f"/planning?case_id={case_id}&view={view}", "")
@@ -177,12 +169,7 @@ class LibraryMixin(rx.State, mixin=True):
             params = dict(self._library_params)
             if cursor:
                 params["cursor"] = cursor
-            page, self.library_error = await fetch_library(
-                settings.planning_cases_url,
-                settings.api_service_token.get_secret_value(),
-                params,
-                lang=self._lang(),
-            )
+            page, self.library_error = await library.fetch_library(params, lang=self._lang())
             self.library_loaded = True
             if page is not None:
                 self.library_rows, self.library_cursor = page["items"], page["next_cursor"]
@@ -211,11 +198,8 @@ class LibraryMixin(rx.State, mixin=True):
             params = {}
             if cursor:
                 params["cursor"] = cursor
-            page, self.children_error = await fetch_library(
-                f"{settings.planning_cases_url}/{case_id}/scenarios",
-                settings.api_service_token.get_secret_value(),
-                params,
-                lang=self._lang(),
+            page, self.children_error = await library.fetch_scenarios(
+                case_id, params, lang=self._lang()
             )
             if page is not None:
                 self.library_children, self.children_cursor = page["items"], page["next_cursor"]
@@ -247,11 +231,8 @@ class LibraryMixin(rx.State, mixin=True):
         self.base_scenarios_error = ""
         yield
         try:
-            page, error = await fetch_library(
-                f"{settings.planning_cases_url}/{case_id}/scenarios",
-                settings.api_service_token.get_secret_value(),
-                {"cursor": cursor} if cursor else {},
-                lang=self._lang(),
+            page, error = await library.fetch_scenarios(
+                case_id, {"cursor": cursor} if cursor else {}, lang=self._lang()
             )
             # Another case may have been opened while the page was on its way.
             if self.details.get("case_id") != case_id:

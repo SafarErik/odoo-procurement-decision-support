@@ -16,11 +16,11 @@ from pydantic import SecretStr
 
 from backend.app.config import settings as backend_settings
 from backend.app.main import app
+from frontend.api.case_view import map_case
+from frontend.api.cases import submit_planning_request
 from frontend.config import settings as frontend_settings
-from frontend.odoo_history_client import fetch_odoo_history, fetch_quotation_groups
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case, submit_planning_request
-from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.frontend_patching import consume, patch_client, use_transport
 from tests.helpers.in_memory_uow import MemoryPlanningUnitOfWork
 from tests.helpers.odoo_fakes import COMPANY, build_history, install_fake_odoo
 from tests.helpers.planning_api import (
@@ -46,6 +46,17 @@ def odoo_history(tmp_path_factory):
 def history(tmp_path_factory):
     """Generated history and trained tree ending at the current hour (real clock)."""
     return build_history(tmp_path_factory.mktemp("history-model"))
+
+
+@pytest.fixture
+def frontend_api(monkeypatch):
+    """``route(transport, token=TOKEN)``: frontend API calls use this transport and token."""
+
+    def route(transport, token=TOKEN):
+        monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(token))
+        use_transport(monkeypatch, transport)
+
+    return route
 
 
 @pytest.fixture
@@ -124,15 +135,16 @@ def scenario_state(stored_cases, monkeypatch):
     monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     transport, calls = httpx.ASGITransport(app=app), []
+    use_transport(monkeypatch, transport)
 
-    async def post(url, body, key, token, lang="en"):
+    async def post(url, body, key, *, lang="en"):
         calls.append((url, deepcopy(body), key))
-        return await submit_planning_request(url, body, key, token, lang=lang, transport=transport)
+        return await submit_planning_request(url, body, key, lang=lang)
 
     patch_client(monkeypatch, "submit_planning_request", post)
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions read English texts
-    state._show(_map_case(base, base["case_id"]))
+    state._show(map_case(base, base["case_id"]))
     return state, uow, base, calls, transport
 
 
@@ -142,19 +154,10 @@ def prepared_state(fake_odoo, monkeypatch):
 
     Returns ``(state, form)`` with the form prefilled from the preview's terms.
     """
-    asgi = httpx.ASGITransport(app=app)
+    use_transport(monkeypatch, httpx.ASGITransport(app=app))
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://api.test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     monkeypatch.setattr(backend_settings, "planning_library_company_id", COMPANY)
-    for name, function in (
-        ("fetch_quotation_groups", fetch_quotation_groups),
-        ("fetch_odoo_history", fetch_odoo_history),
-    ):
-
-        async def through_api(*args, function=function, **kwargs):
-            return await function(*args, **kwargs, transport=asgi)
-
-        patch_client(monkeypatch, name, through_api)
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions read English texts
     consume(state, PlanningState.load_quotation_groups)

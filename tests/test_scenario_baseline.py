@@ -6,25 +6,26 @@ from fractions import Fraction
 
 import pytest
 
+from frontend.api.case_view import map_case
+from frontend.api.cases import fetch_planning_case
 from frontend.i18n import number
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case, fetch_planning_case
 from tests.helpers.frontend_patching import consume, patch_client
 
 
 def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_draft(
     scenario_state, stored_cases, monkeypatch
 ):
-    _, uow, base, posts, transport = scenario_state
+    _, uow, base, posts, _ = scenario_state
     child = stored_cases[3]
     reads = []
     reject_original = [True]
 
-    async def read(url, identity, token, lang="en"):
+    async def read(identity, *, lang="en"):
         reads.append(identity)
         if identity == base["case_id"] and reject_original[0]:
             return None, "Stored original unavailable."
-        return await fetch_planning_case(url, identity, token, lang=lang, transport=transport)
+        return await fetch_planning_case(identity, lang=lang)
 
     patch_client(monkeypatch, "fetch_planning_case", read)
     state = PlanningState(_reflex_internal_init=True)
@@ -58,9 +59,9 @@ def test_unrelated_original_cannot_replace_retained_evidence(stored_cases, key):
     base, child = stored_cases[1:3]
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
-    original = _map_case(base, base["case_id"])
+    original = map_case(base, base["case_id"])
     state._show(original)
-    state._show(_map_case(child, child["case_id"]))
+    state._show(map_case(child, child["case_id"]))
     bad = deepcopy(original)
     bad.details[key] = "unrelated"
     before = deepcopy(state.original_plan)
@@ -73,9 +74,9 @@ def test_saved_comparison_has_exact_differences_and_cache_survives_child(stored_
     base, child = stored_cases[1:3]
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
-    state._show(_map_case(base, base["case_id"]))
+    state._show(map_case(base, base["case_id"]))
     before = deepcopy(state.original_allocations)
-    state._show(_map_case(child, child["case_id"]))
+    state._show(map_case(child, child["case_id"]))
     assert state.original_allocations == before
     left = base["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"]
     right = child["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"]
