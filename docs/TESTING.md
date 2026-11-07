@@ -22,14 +22,15 @@ Docker Compose on Ubuntu.
 | `tests/test_*.py` | Fast tests (unmarked), one module per capability; each module's docstring names it |
 | `tests/integration/` | `integration` marker: disposable PostgreSQL (`TEST_DATABASE_URL`) and opt-in live Odoo checks |
 | `tests/e2e/` | `integration` + `e2e` markers: browser harness (`conftest.py`) and the fixture API it starts (`odoo_fixture_api.py`) |
-| `tests/conftest.py` | Shared fixtures: `odoo_history` (fixed `REFERENCE_NOW`, exact values), `history` (current hour, real clock), `fake_odoo`, `stored_cases`, `decision_api`, `scenario_state`, `prepared_state` |
+| `tests/conftest.py` | Shared fixtures: `odoo_history` (fixed `REFERENCE_NOW`, exact values), `history` (current hour, real clock), `fake_odoo`, `frontend_api` (token + transport for `frontend/api/`), `stored_cases`, `decision_api`, `scenario_state`, `prepared_state` |
 | `tests/integration/conftest.py` | `postgres_runtime` (migrated test database), `postgres_history_api`, `postgres_decision_api` |
-| `tests/helpers/` | Non-fixture code: `odoo_fakes` (fake read-only Odoo, generated history, trained tree), `planning_api` (token, headers, case creation, decision intents), `in_memory_uow` (transactional in-memory store), `milp_requests` (small requests, exhaustive reference optimum), `frontend_patching` (`patch_client`, `consume`, `event`), `browser` |
+| `tests/helpers/` | Non-fixture code: `odoo_fakes` (fake read-only Odoo, generated history, trained tree), `planning_api` (token, headers, case creation, decision intents), `in_memory_uow` (transactional in-memory store), `milp_requests` (small requests, exhaustive reference optimum), `frontend_patching` (`patch_client`, `use_transport`, `consume`, `event`), `browser` |
 
 Test modules import shared code only from `tests.helpers`, never from another test module.
-Frontend state tests patch HTTP clients with `tests.helpers.frontend_patching.patch_client`,
-which targets the feature module that resolves each name (`state_base`, `state_case`,
-`state_decision`, `state_creation`, …).
+Frontend state tests either replace one API function with
+`tests.helpers.frontend_patching.patch_client` (it patches `frontend/api/<resource>.py`,
+where the state mixins resolve it) or keep the real client and route its requests with
+`use_transport` (an `httpx.ASGITransport` over the FastAPI app or an `httpx.MockTransport`).
 
 ## What the fast suite covers
 

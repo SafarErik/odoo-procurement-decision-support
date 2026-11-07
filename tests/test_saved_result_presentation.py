@@ -5,8 +5,8 @@ from decimal import Decimal
 
 import pytest
 
+from frontend.api.case_view import map_case
 from frontend.app import PlanningState, planning_page
-from frontend.planning_client import _map_case
 
 
 def test_chart_uses_saved_exact_costs_and_fixed_exposure_scale(stored_cases):
@@ -14,7 +14,7 @@ def test_chart_uses_saved_exact_costs_and_fixed_exposure_scale(stored_cases):
     result = payload["snapshot"]["result"]
     result["minimum_cost_plan"]["total_cost"] = "102.000000000000000001"
     result["alternatives"][0]["total_cost"] = "102.000000000000000002"
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     # The chart receives the stored decimals; the table keeps the exact text.
     assert [p["cost_number"] for p in display.plans] == [
         "102.000000000000000001",
@@ -33,7 +33,7 @@ def test_equal_cost_and_endpoint_exposures_stay_on_the_fixed_0_100_scale(stored_
     for plan, score in zip([result["minimum_cost_plan"], *result["alternatives"]], (0, 1)):
         plan["total_cost"] = "102"
         plan["risk_exposure"] = {"numerator": score, "denominator": 1}
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert [p["exposure_number"] for p in display.plans] == ["0.0", "100.0"]
     state = PlanningState(_reflex_internal_init=True)
     state._show(display)
@@ -44,16 +44,16 @@ def test_equal_cost_and_endpoint_exposures_stay_on_the_fixed_0_100_scale(stored_
 def test_single_saved_plan_has_honest_alternative_message_and_no_fabricated_point(stored_cases):
     payload = deepcopy(stored_cases[1])
     payload["snapshot"]["result"]["alternatives"] = []
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert len(display.plans) == 1 and display.plans[0]["cost_number"]
     assert "No lower-risk plan" in display.details["alternative_notice"]
     payload["snapshot"]["result"]["status"] = "solver_error"
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert "did not finish" in display.details["alternative_notice"]
     assert "does not establish" in display.details["alternative_notice"]
     payload["snapshot"]["result"]["status"] = "optimal"
     payload["snapshot"]["request"]["policy"]["epsilons"] = []
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert display.details["alternative_notice"] == "No alternatives were requested for this case."
 
 
@@ -61,9 +61,9 @@ def test_infeasible_case_has_no_cost_chart_values_and_replaces_previous_display(
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     base, infeasible = stored_cases[1], stored_cases[3]
-    state._show(_map_case(base, base["case_id"]))
+    state._show(map_case(base, base["case_id"]))
     assert state.plans
-    state._show(_map_case(infeasible, infeasible["case_id"]))
+    state._show(map_case(infeasible, infeasible["case_id"]))
     assert state.plans == [] and state.chart_minimum == [] and state.chart_alternatives == []
     assert state.details["min_cost_display"] == "" and state.details["alternative_notice"] == ""
     assert state.details["status_label"] == "No feasible plan"
@@ -78,12 +78,12 @@ def test_invalid_saved_exposure_is_rejected_instead_of_clipped(stored_cases, sco
         "denominator": 1,
     }
     with pytest.raises(ValueError, match="exposure"):
-        _map_case(payload, payload["case_id"])
+        map_case(payload, payload["case_id"])
 
 
 def test_saved_input_terms_show_scenario_values_without_changing_base_controls(stored_cases):
     child = stored_cases[2]
-    display = _map_case(child, child["case_id"])
+    display = map_case(child, child["case_id"])
     unavailable = next(
         s for s in display.scenario_suppliers if s["saved_available"] == "Not available"
     )
@@ -96,4 +96,4 @@ def test_saved_input_terms_show_scenario_values_without_changing_base_controls(s
     malformed = deepcopy(child)
     malformed["snapshot"]["request"]["suppliers"].pop()
     with pytest.raises(ValueError, match="supplier join"):
-        _map_case(malformed, child["case_id"])
+        map_case(malformed, child["case_id"])

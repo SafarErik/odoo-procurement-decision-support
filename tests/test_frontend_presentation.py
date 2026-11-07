@@ -8,12 +8,12 @@ from uuid import uuid4
 import pytest
 
 from application.supplier_overview import supplier_overview
+from frontend.api.case_view import map_case
+from frontend.api.library import library_row
+from frontend.api.suppliers import map_overview
 from frontend.i18n import TEXT, day, money, number, percent, tr
 from frontend.planning.state import PlanningState
 from frontend.planning.state_case import _card
-from frontend.planning_client import _map_case
-from frontend.planning_library_client import library_row
-from frontend.supplier_overview_client import map_overview
 from tests.helpers.frontend_patching import patch_client
 
 
@@ -66,7 +66,7 @@ def test_hungarian_is_the_default_and_mapping_uses_it(stored_cases):
     state = PlanningState(_reflex_internal_init=True)
     assert state.lang == "hu"
     base = stored_cases[1]
-    display = _map_case(base, base["case_id"], "hu")
+    display = map_case(base, base["case_id"], "hu")
     assert display.plans[0]["title"] == "Legolcsóbb terv"
     # An alternative names the tightest cost allowance that produced it; the cheapest plan none.
     assert display.plans[0]["budget"] == ""
@@ -84,7 +84,7 @@ def test_language_switch_relabels_without_any_http(stored_cases, monkeypatch):
 
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
     PlanningState.choose_final_plan.fn(state, "Alternative 1")
     for name in ("fetch_planning_case", "submit_planning_request", "fetch_planning_pdf"):
         patch_client(monkeypatch, name, forbidden)
@@ -129,7 +129,7 @@ def test_library_rows_accept_invalid_input_status_and_show_the_odoo_name(stored_
 def test_decision_rationale_is_saved_as_the_buyer_reviewed_it(stored_cases):
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"]))
+    state._show(map_case(base, base["case_id"]))
     form = {
         "choice": "Alternative 1",
         "actor": "buyer",
@@ -175,7 +175,7 @@ def test_scenario_validation_reads_naturally_in_hungarian(stored_cases):
 
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
     form = {"kind": "capacity_change", "supplier": "odoo:res.partner:306", "capacity": "6"}
     asyncio.run(event(state, PlanningState.run_scenario, form))
     assert state.error_message.endswith("azonos az eredetivel (6 db). A 0 megszünteti.")
@@ -205,8 +205,8 @@ def _scenario_item(base_id, kind="supplier_outage", quantity=10):
 
 
 def _scenario_pages(base_id, calls, pages):
-    async def fetch(url, token, params, *, lang="en", transport=None):
-        calls.append((url, dict(params)))
+    async def fetch(case_id, params, *, lang="en"):
+        calls.append((case_id, dict(params)))
         raw, cursor, error = pages.pop(0)
         if raw is None:
             return None, error
@@ -227,15 +227,15 @@ async def _drain(handler, state, *args):
 def test_base_scenarios_tab_lists_saved_scenarios_read_only(stored_cases, monkeypatch):
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
     first = [_scenario_item(base["case_id"]), _scenario_item(base["case_id"], "demand_change", 12)]
     more = [_scenario_item(base["case_id"], "price_change")]
     calls = []
     pages = [(first, "next-page", ""), (more, "", "")]
-    patch_client(monkeypatch, "fetch_library", _scenario_pages(base["case_id"], calls, pages))
+    patch_client(monkeypatch, "fetch_scenarios", _scenario_pages(base["case_id"], calls, pages))
 
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
-    assert calls[0][0].endswith(f"/{base['case_id']}/scenarios") and calls[0][1] == {}
+    assert calls[0] == (base["case_id"], {})
     assert [r["scenario"] for r in state.base_scenarios] == [
         tr("kind_supplier_outage", "hu"),
         tr("kind_demand_change", "hu"),
@@ -259,10 +259,10 @@ def test_base_scenarios_show_empty_and_error_and_never_load_for_a_scenario(
 ):
     base, child = stored_cases[1], stored_cases[2]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
     calls = []
     pages = [(None, "", tr("err_library", "hu")), ([], "", "")]
-    patch_client(monkeypatch, "fetch_library", _scenario_pages(base["case_id"], calls, pages))
+    patch_client(monkeypatch, "fetch_scenarios", _scenario_pages(base["case_id"], calls, pages))
 
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
     assert state.base_scenarios_error == TEXT["err_base_scenarios"][0]
@@ -273,7 +273,7 @@ def test_base_scenarios_show_empty_and_error_and_never_load_for_a_scenario(
     assert TEXT["no_scenarios"][0] == "Ehhez az ügyhöz még nincs forgatókönyv."
 
     # Saving a scenario shows the child: the base list is dropped and reloads on return.
-    state._show(_map_case(child, child["case_id"], "hu"))
+    state._show(map_case(child, child["case_id"], "hu"))
     assert state.base_scenarios_case == "" and state.base_scenarios == []
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
     assert len(calls) == 2
@@ -282,14 +282,14 @@ def test_base_scenarios_show_empty_and_error_and_never_load_for_a_scenario(
 def test_base_scenarios_page_for_a_case_no_longer_open_is_dropped(stored_cases, monkeypatch):
     base, child = stored_cases[1], stored_cases[2]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
 
-    async def fetch(url, token, params, *, lang="en", transport=None):
-        state._show(_map_case(child, child["case_id"], "hu"))  # another case opened meanwhile
+    async def fetch(case_id, params, *, lang="en"):
+        state._show(map_case(child, child["case_id"], "hu"))  # another case opened meanwhile
         raw = [_scenario_item(base["case_id"])]
         return {"items": [library_row(i, lang) for i in raw], "raw": raw, "next_cursor": ""}, ""
 
-    patch_client(monkeypatch, "fetch_library", fetch)
+    patch_client(monkeypatch, "fetch_scenarios", fetch)
     asyncio.run(_drain(PlanningState.load_base_scenarios, state, False))
     assert state.base_scenarios == [] and not state.base_scenarios_loading
 
@@ -300,7 +300,7 @@ def test_a_search_submitted_during_a_library_reload_is_applied(monkeypatch):
     state.library_loaded = True
     calls = []
 
-    async def fetch(url, token, params, *, lang="en", transport=None):
+    async def fetch(params, *, lang="en"):
         calls.append(dict(params))
         if len(calls) == 1:  # the buyer presses Enter while the reload is on its way
             await _drain(PlanningState.refresh_library, state, {"q": " nincs-ilyen-termek "})
@@ -327,7 +327,7 @@ def test_plan_proved_only_by_the_balanced_stage_is_named_and_shows_largest_share
     for run in payload["snapshot"]["result"]["runs"]:
         if run["plan_index"] == 1:
             run["kind"] = "diversified"
-    display = _map_case(payload, payload["case_id"], "hu")
+    display = map_case(payload, payload["case_id"], "hu")
     assert display.plans[1]["title"] == "Kiegyensúlyozott terv"
     assert display.plans[1]["balanced"] == ""  # the title already says it
     assert display.plans[0]["largest_share"].endswith("%")
@@ -343,7 +343,7 @@ def test_plan_proved_only_by_the_balanced_stage_is_named_and_shows_largest_share
     ],
 )
 def test_quotation_group_issue_is_readable_and_unknown_codes_stay_visible(issue, lang, expected):
-    from frontend.odoo_history_client import group_row
+    from frontend.api.odoo_history import group_row
 
     item = {
         "purchase_group_id": 7,

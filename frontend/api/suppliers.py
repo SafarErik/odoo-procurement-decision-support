@@ -1,9 +1,9 @@
-"""Per-supplier read model of one stored case (P2 API); the browser never sees the token."""
+"""Supplier overview resource: per-supplier read model of one stored case (P2 API)."""
 
-from uuid import UUID
-
-import httpx
-
+from frontend.api import http
+from frontend.api.labels import supplier_label
+from frontend.api.parsing import is_uuid
+from frontend.config import settings
 from frontend.i18n import day, money, number, percent, tr, unit
 
 # KPIs compared across suppliers on the Suppliers tab: (feature, scale, higher_is_better).
@@ -14,30 +14,18 @@ CHART_KPIS = (
 )
 
 
-async def fetch_supplier_overview(cases_url, case_id, token, *, lang="hu", transport=None):
-    try:
-        if str(UUID(case_id)) != case_id or lang not in ("hu", "en"):
-            raise ValueError("Invalid request")
-        async with httpx.AsyncClient(timeout=10, transport=transport, trust_env=False) as client:
-            response = await client.get(
-                f"{cases_url.rstrip('/')}/{case_id}/suppliers",
-                params={"language": lang},
-                headers={"Authorization": "Bearer " + token},
-            )
-        if response.status_code != 200:
-            return None, tr("err_suppliers", lang)
-        return map_overview(response.json(), lang), ""
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, ArithmeticError):
+async def fetch_supplier_overview(case_id: str, *, lang: str = "hu"):
+    """Cards and chart rows from the stored snapshot; never re-scores."""
+    if not is_uuid(case_id) or lang not in ("hu", "en"):
         return None, tr("err_suppliers", lang)
-
-
-def _name(row, lang):
-    if row["supplier_name"]:
-        return row["supplier_name"]
-    identity = row["supplier_id"]
-    if identity.startswith("odoo:res.partner:"):
-        return tr("supplier_n", lang, n=identity.removeprefix("odoo:res.partner:"))
-    return identity
+    return await http.get_json(
+        f"{settings.planning_cases_url}/{case_id}/suppliers",
+        lambda response: map_overview(response.json(), lang),
+        lang=lang,
+        params={"language": lang},
+        unavailable="err_suppliers",
+        invalid="err_suppliers",
+    )
 
 
 def map_overview(data: dict, lang: str) -> dict:
@@ -48,7 +36,7 @@ def map_overview(data: dict, lang: str) -> dict:
     unit_name = unit(first.get("unit_name") or "Units", lang)
     cards, charts = [], {feature: [] for feature, _, _ in CHART_KPIS}
     for row in data["suppliers"]:
-        name = _name(row, lang)
+        name = supplier_label(row["supplier_id"], lang, {row["supplier_id"]: row["supplier_name"]})
         assessment, terms, history = row["assessment"], row["terms"], row["history"]
         metrics = {m["feature"]: m for m in history["metrics"]}
         for feature, scale, _ in CHART_KPIS:

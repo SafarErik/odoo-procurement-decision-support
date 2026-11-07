@@ -8,11 +8,11 @@ from decimal import Decimal
 import httpx
 import pytest
 
+from frontend.api.case_view import map_case
+from frontend.api.cases import fetch_planning_case
 from frontend.app import PlanningState, planning_page
-from frontend.config import settings as frontend_settings
 from frontend.i18n import money
-from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
-from tests.helpers.frontend_patching import event, patch_client
+from tests.helpers.frontend_patching import event, use_transport
 from tests.helpers.planning_api import TOKEN, forbidden
 
 
@@ -71,14 +71,7 @@ def test_all_scenarios_use_base_and_stored_evidence(scenario_state, monkeypatch,
     assert calls[0][0] == calls[1][0] and calls[0][2] != calls[1][2]
     assert uow.rows[base["case_id"]].snapshot == before
     monkeypatch.setattr("backend.app.routes.planning_cases.planning_solver_factory", forbidden)
-    display, error = asyncio.run(
-        fetch_planning_case(
-            frontend_settings.planning_cases_url,
-            child_id,
-            TOKEN,
-            transport=transport,
-        )
-    )
+    display, error = asyncio.run(fetch_planning_case(child_id))
     assert not error and display.comparison_rows and display.scenario_suppliers == child_terms
     assert TOKEN not in str(state.dict()) and TOKEN not in state.recovery_json
     assert planning_page() is not None
@@ -145,12 +138,7 @@ def test_lost_response_recovers_exact_scenario_without_solving_again(scenario_st
             raise httpx.ReadTimeout("Lost after commit", request=request)
         return response
 
-    async def post(url, payload, key, token, lang="en"):
-        return await submit_planning_request(
-            url, payload, key, token, lang=lang, transport=httpx.MockTransport(lose_first)
-        )
-
-    patch_client(monkeypatch, "submit_planning_request", post)
+    use_transport(monkeypatch, httpx.MockTransport(lose_first))
     form = {
         "kind": "combined",
         "supplier": "odoo:res.partner:306",
@@ -186,12 +174,12 @@ def test_corrupt_comparison_fails_closed(stored_cases, change):
         rows = payload["snapshot"]["comparison"]["minimum_cost"]["scenario_allocations"]
         rows[0]["quantity"], rows[1]["quantity"] = rows[1]["quantity"], rows[0]["quantity"]
     with pytest.raises(ValueError):
-        _map_case(payload, payload["case_id"])
+        map_case(payload, payload["case_id"])
 
 
 def test_price_change_is_listed_as_a_what_if_assumption(stored_cases):
     _, _, child, _ = stored_cases
     payload = deepcopy(child)
     payload["snapshot"]["scenario"]["suppliers"][0]["unit_price"] = "12.00"
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert "unit price $12.00" in display.details["assumptions"]

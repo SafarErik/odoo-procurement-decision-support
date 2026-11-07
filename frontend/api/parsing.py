@@ -1,7 +1,16 @@
-"""Strict parsing helpers shared by the HTTP clients."""
+"""Strict parsing helpers shared by the API client modules and the state."""
 
 from datetime import datetime
 from typing import Any
+from uuid import UUID
+
+
+def is_uuid(value: Any) -> bool:
+    """True only for a UUID in canonical lowercase hyphenated form (the API's identities)."""
+    try:
+        return str(UUID(value)) == value
+    except (ValueError, TypeError, AttributeError):
+        return False
 
 
 def required_string(value: dict[str, Any], field: str) -> str:

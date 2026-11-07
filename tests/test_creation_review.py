@@ -6,13 +6,14 @@ from copy import deepcopy
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from backend.app.main import app
+from frontend.api.cases import submit_planning_request
+from frontend.config import settings as frontend_settings
 from frontend.i18n import tr
-from frontend.odoo_history_client import fetch_quotation_groups
 from frontend.planning.state import PlanningState
-from frontend.planning_client import submit_planning_request
-from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.frontend_patching import consume, patch_client, use_transport
 from tests.helpers.planning_api import TOKEN
 
 
@@ -63,12 +64,7 @@ def test_review_has_no_io_and_save_replays_identical_classified_intent(
             raise httpx.ReadTimeout("Lost after commit", request=request)
         return response
 
-    async def post(url, payload, key, token, lang="en"):
-        return await submit_planning_request(
-            url, payload, key, token, lang=lang, transport=httpx.MockTransport(lose_first)
-        )
-
-    patch_client(monkeypatch, "submit_planning_request", post)
+    use_transport(monkeypatch, httpx.MockTransport(lose_first))
     read_before = len(upstream)
     PlanningState.review_odoo.fn(state, form)
     assert not requests and len(upstream) == read_before and not uow.rows
@@ -213,14 +209,8 @@ def test_failed_new_save_does_not_treat_previous_case_as_success(prepared_state,
 
 
 def test_unavailable_group_listing_is_actionable(monkeypatch):
-    async def unavailable(*args, **kwargs):
-        return await fetch_quotation_groups(
-            "http://api.test/groups",
-            "token",
-            transport=httpx.MockTransport(lambda request: httpx.Response(503)),
-        )
-
-    patch_client(monkeypatch, "fetch_quotation_groups", unavailable)
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
+    use_transport(monkeypatch, httpx.MockTransport(lambda request: httpx.Response(503)))
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     consume(state, PlanningState.load_quotation_groups)
@@ -236,16 +226,20 @@ def test_unavailable_group_listing_is_actionable(monkeypatch):
         (429, {"detail": "Too many requests"}),
     ],
 )
-def test_a_definite_client_error_on_creation_is_not_reported_as_uncertain(status, body):
+def test_a_definite_client_error_on_creation_is_not_reported_as_uncertain(
+    status, body, monkeypatch
+):
     # A 4xx means the backend rejected the request; offering a same-key retry would trap
     # the buyer in recovery for a request that can never succeed.
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
+    use_transport(
+        monkeypatch, httpx.MockTransport(lambda request: httpx.Response(status, json=body))
+    )
     display, error, uncertain = asyncio.run(
         submit_planning_request(
             "http://api.test/api/v2/procurement/planning-cases/from-odoo-history",
             {"purchase_group_id": 1},
             "8f14e45f-ceea-467f-a8f2-8c1c9e1a2b3c",
-            TOKEN,
-            transport=httpx.MockTransport(lambda request: httpx.Response(status, json=body)),
         )
     )
     assert display is None and error and not uncertain

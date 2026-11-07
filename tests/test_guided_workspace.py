@@ -5,10 +5,10 @@ from copy import deepcopy
 
 import pytest
 
+from frontend.api.case_view import map_case
+from frontend.api.odoo_history import quotation_rows
 from frontend.i18n import tr
-from frontend.odoo_history_client import quotation_rows
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case
 from tests.helpers.frontend_patching import patch_client
 
 
@@ -97,7 +97,7 @@ def test_home_queries_are_bounded_independent_and_do_not_change_library_filters(
     state.library_status, state.library_search = "approved", "keep me"
     calls = []
 
-    async def fetch(url, token, params, **kwargs):
+    async def fetch(params, **kwargs):
         calls.append(dict(params))
         if params["status"] == "draft":
             return None, "Unavailable"
@@ -162,7 +162,7 @@ def test_quote_details_preserve_individual_source_references_and_quantities():
 def test_selected_chart_only_highlights_an_explicit_stored_selection(stored_cases):
     base = stored_cases[1]
     state = PlanningState(_reflex_internal_init=True)
-    state._show(_map_case(base, base["case_id"], "hu"))
+    state._show(map_case(base, base["case_id"], "hu"))
     assert not state.chart_selected
     PlanningState.choose_final_plan.fn(state, "Alternative 1")
     point = state.chart_selected[0]
