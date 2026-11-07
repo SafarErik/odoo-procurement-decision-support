@@ -1,4 +1,4 @@
-"""MILP/API evaluation on the Odoo-history path (P4).
+"""MILP/API evaluation on the Odoo-history path.
 
     python -m tools.milp_evaluation [--repetitions 30] [--warmups 2]
 
@@ -51,7 +51,7 @@ from decision_core.planning.planner import plan_procurement
 from optimization_adapter.pulp_cbc import PulpCbcSolver
 from tools.demo import api, check_reproduction_window, git_revision
 from tools.dev import ROOT, _env
-from tools.t17_demo import BASE, checked, write_json
+from tools.http_flow import BASE, checked, write_json
 
 SIZES = (4, 5, 10)
 EPSILONS = {1: ("0.2",), 3: ("0.05", "0.1", "0.2")}
@@ -500,7 +500,7 @@ def run(args) -> dict:
         for c in correctness
     ) and all(w["infeasible_scenario_status"] == "infeasible" for w in workloads)
     return {
-        "report": "P4 MILP/API evaluation (Odoo-history path)",
+        "report": "MILP/API evaluation (Odoo-history path)",
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "repository": git_revision(),
         "environment": environment(),
@@ -533,7 +533,9 @@ def run(args) -> dict:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--repetitions", type=int, default=30)
     parser.add_argument("--warmups", type=int, default=2)
     parser.add_argument("--directory", type=Path, default=ROOT / ".artifacts" / "evaluation")

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "odoo-procurement-decision-support"
 version = "0.0.1"
-description = "Development foundation for an ERP-independent procurement decision-support system."
+description = "Decision support for single-product procurement next to Odoo 19: supplier evaluation, MILP allocation, scenarios and human approval."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -78,9 +78,12 @@ known-first-party = [
     "application",
     "backend",
     "decision_core",
+    "document_adapter",
     "frontend",
     "odoo_adapter",
     "persistence",
     "optimization_adapter",
     "supplier_evaluation",
+    "tests",
+    "tools",
 ]

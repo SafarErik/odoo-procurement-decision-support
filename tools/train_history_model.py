@@ -13,7 +13,8 @@ the database holds (``generated`` by tools/seed_odoo_history.py, the default, or
 and the backend only uses a model whose origin matches ODOO_HISTORY_DATA_ORIGIN.
 ``--products`` is required with ``--data-origin observed``; without it the generated
 seed manifest's products are used, which applies only to generated history.
-Output: .artifacts/ml/.
+Output: .artifacts/ml/; ``report`` compares with docs/evidence/P1_ML_REPORT.json and
+writes docs/evidence/P4_ML_REPORT_CHECK.json.
 The backend only loads the resulting model (SUPPLIER_HISTORY_MODEL_DIRECTORY).
 """
 
@@ -173,7 +174,7 @@ def report_check(export: dict, model_directory: Path, reference: dict) -> dict:
     }
     primary = evaluation["primary_supplier_and_time_holdout"]
     return {
-        "report": "P4 ML evaluation check: saved model re-evaluated, not retrained",
+        "report": "ML evaluation check: saved model re-evaluated, not retrained",
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "model_id": model.metadata["model_id"],
         "artifact_sha256": manifest["artifact_sha256"],

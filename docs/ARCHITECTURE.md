@@ -58,7 +58,7 @@ The Reflex web UI drives every step through the HTTP API only.
 | `infra/odoo/addons/t7s_inventory_history_projection/` | Odoo addon with two bounded, company-scoped, read-only methods: receipt projection by line ids and the per-product purchase-history export | Odoo |
 | `infra/odoo/addons/pdss_quotation_reader/` | Read-only group for the quotation integration user (no write rights, no Purchase role) | Odoo |
 | `migrations/` | Alembic schema for the planning database | `persistence.schema` |
-| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code), the HTTP acceptance demo (`t17_demo`), the one-command demonstration (`demo`) and the MILP/API evaluation (`milp_evaluation`) | everything |
+| `tools/` | Developer entry point (`tools.dev`), offline training (`train_history_model`), the test-database seeder (`seed_odoo_history`, never imported by runtime code), the HTTP acceptance flow (`http_flow`), the one-command demonstration (`demo`) the MILP/API evaluation (`milp_evaluation`) and UI evidence screenshots (`ui_screenshots`) | everything |
 
 Boundaries enforced by `tests/test_architecture.py`: the planning core imports no
 application/adapter code and carries no provenance; the application layer imports

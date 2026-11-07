@@ -34,22 +34,10 @@ jobs:
       - name: Install project and development dependencies
         run: python -m pip install -e ".[frontend,dev]"
 
-      - name: Check formatting
-        run: ruff format --check .
-
-      - name: Lint
-        run: ruff check .
-
-      - name: Compile Python sources
-        run: python -m compileall application backend frontend decision_core odoo_adapter optimization_adapter document_adapter supplier_evaluation persistence migrations
-
-      # Unmarked solver and ML runtime tests execute real CBC and ML in this same suite.
-      # Missing runtimes fail; do not repeat the included tests in separate steps.
-      - name: Run fast tests including required ML and CBC runtime
-        run: pytest -m "not integration and not e2e" -v
-
-      - name: Check installed dependencies
-        run: python -m pip check
+      # The same gate as locally: ruff format/lint, compileall, fast tests (real CBC and
+      # scikit-learn; missing runtimes fail) and pip check. See tools/dev.py.
+      - name: Fast quality gate
+        run: python -m tools.dev check
 
       - name: Check whitespace errors
         run: git diff --check
@@ -73,8 +61,8 @@ jobs:
             config --quiet
           printf '%s\n' \
             'TEST_POSTGRES_PASSWORD=synthetic-quality-only' \
-            > "$RUNNER_TEMP/t11-quality.env"
+            > "$RUNNER_TEMP/persistence-quality.env"
           docker compose \
-            --env-file "$RUNNER_TEMP/t11-quality.env" \
+            --env-file "$RUNNER_TEMP/persistence-quality.env" \
             -f infra/persistence/compose.test.yaml \
             config --quiet

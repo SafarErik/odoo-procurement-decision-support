@@ -129,7 +129,7 @@ Set `SUPPLIER_HISTORY_MODEL_DIRECTORY` to the absolute path of `.artifacts/ml/mo
 In the UI, **New procurement** (Hungarian: **Új beszerzés**) lists the company's open
 groups (`GET /api/v2/procurement/quotation-groups`); choose one, then Demand → Supplier
 terms → Review previews and saves a case from live Odoo history. Full HTTP flow:
-`python -m tools.t17_demo run --odoo-history <group> --actor … --reason … --no-award-reason …`
+`python -m tools.http_flow run --odoo-history <group> --actor … --reason … --no-award-reason …`
 (base case, nine scenarios in both directions, approval, No-award, HU PDF, stored replay).
 Opt-in live check: `RUN_ODOO_HISTORY_LIVE=true pytest tests/integration/test_live_purchase_history.py -m integration`.
 

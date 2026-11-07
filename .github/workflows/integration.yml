@@ -13,10 +13,12 @@ on:
       - "infra/persistence/**"
       - "infra/odoo/**"
       - "migrations/**"
+      - "alembic.ini"
       - "odoo_adapter/**/*.py"
+      - "optimization_adapter/**"
       - "persistence/**"
       - "supplier_evaluation/**"
-      - "tools/t17_demo.py"
+      - "tools/**"
       - "tests/**"
       - "pyproject.toml"
   push:
@@ -33,10 +35,12 @@ on:
       - "infra/persistence/**"
       - "infra/odoo/**"
       - "migrations/**"
+      - "alembic.ini"
       - "odoo_adapter/**/*.py"
+      - "optimization_adapter/**"
       - "persistence/**"
       - "supplier_evaluation/**"
-      - "tools/t17_demo.py"
+      - "tools/**"
       - "tests/**"
       - "pyproject.toml"
   workflow_dispatch:
@@ -132,7 +136,7 @@ jobs:
               break
             fi
             if [[ "$attempt" == "30" ]]; then
-              echo "T11 test PostgreSQL did not become healthy in time."
+              echo "Decision test PostgreSQL did not become healthy in time."
               exit 1
             fi
             sleep 2
@@ -253,7 +257,7 @@ jobs:
           docker compose \
             --env-file "$ODOO_ENV_FILE" \
             -f infra/persistence/compose.test.yaml \
-            logs --no-color > "$log_dir/t11-persistence-compose.log" 2>&1 || true
+            logs --no-color > "$log_dir/decision-db-compose.log" 2>&1 || true
           if [[ -f "$RUNNER_TEMP/uvicorn.log" ]]; then
             cp "$RUNNER_TEMP/uvicorn.log" "$log_dir/uvicorn.log"
           fi

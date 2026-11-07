@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import app
 from tests.helpers.planning_api import forbidden
-from tools.t17_demo import run_flow, verify_stored
+from tools.http_flow import run_flow, verify_stored
 
 TOKEN = {"Authorization": "Bearer history-test-token"}
 
@@ -109,7 +109,7 @@ def test_uncertain_post_preserves_exact_intent_without_automatic_retry(fake_odoo
                 "No purchase authorized in this separate demonstration.",
                 odoo_history=501,
             )
-    report = json.loads(next(tmp_path.glob("t17-run-*.json")).read_text())
+    report = json.loads(next(tmp_path.glob("http-flow-run-*.json")).read_text())
     posts = [c for c in calls if c.method == "POST"]
     assert len(posts) == len(report["operations"]) == 1
     intent = report["operations"][0]

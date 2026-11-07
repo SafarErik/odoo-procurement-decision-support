@@ -251,13 +251,24 @@ def test_solver_adapter_is_not_an_erp_or_application_client():
         ), path
 
 
+def _assert_quality_ci_runs_the_fast_suite():
+    """Quality CI on Python 3.11 runs tools.dev check, which compiles every package and
+    runs all unmarked tests (real CBC and scikit-learn)."""
+    from tools.dev import PACKAGES
+
+    quality = (PROJECT_ROOT / ".github/workflows/quality.yml").read_text()
+    assert 'python-version: "3.11"' in quality
+    assert "run: python -m tools.dev check" in quality
+    dev = (PROJECT_ROOT / "tools/dev.py").read_text(encoding="utf-8")
+    assert '"not integration and not e2e"' in dev
+    assert {"supplier_evaluation", "optimization_adapter", "tools"} <= set(PACKAGES)
+
+
 def test_solver_is_required_in_python_311_quality_not_an_optional_skip():
     project = (PROJECT_ROOT / "pyproject.toml").read_text()
     required = project.split("[project.optional-dependencies]")[0]
     assert '"pulp==3.3.0"' in required
-    quality = (PROJECT_ROOT / ".github/workflows/quality.yml").read_text()
-    assert 'python-version: "3.11"' in quality
-    assert 'run: pytest -m "not integration and not e2e" -v' in quality
+    _assert_quality_ci_runs_the_fast_suite()
     runtime = ast.parse((PROJECT_ROOT / "tests/test_solver_runtime.py").read_text())
     assert not {"integration", "e2e"} & {
         node.attr for node in ast.walk(runtime) if isinstance(node, ast.Attribute)
@@ -311,10 +322,7 @@ def test_required_ml_dependency_and_python311_ci_cannot_silently_skip():
     project = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text())
     assert "scikit-learn==1.8.0" in project["project"]["dependencies"]
     assert "supplier_evaluation*" in project["tool"]["setuptools"]["packages"]["find"]["include"]
-    quality = (PROJECT_ROOT / ".github/workflows/quality.yml").read_text()
-    assert 'python-version: "3.11"' in quality
-    assert 'run: pytest -m "not integration and not e2e" -v' in quality
-    assert "supplier_evaluation" in quality
+    _assert_quality_ci_runs_the_fast_suite()
     from supplier_evaluation.history_model import runtime
 
     assert runtime()["sklearn"] == "1.8.0"

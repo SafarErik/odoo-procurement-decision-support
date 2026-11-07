@@ -17,6 +17,7 @@ build/
 # Reflex generated files
 frontend/.web/
 frontend/.states/
+/.states/
 frontend/.reflex/
 frontend/assets/.DS_Store
 

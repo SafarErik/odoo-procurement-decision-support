@@ -10,7 +10,8 @@ drives a real browser against Reflex + FastAPI + PostgreSQL. Unknown markers fai
 | `pytest -m "integration and not e2e"` | Real PostgreSQL migrations, immutability triggers, idempotency races, live Odoo contracts (opt-in) |
 | `pytest -m e2e --browser chromium` | Browser flows on the Odoo-history path: real FastAPI, PostgreSQL (disposable Compose project) and Reflex; Odoo and the supplier model come from the fast-test fakes (`tests/e2e/odoo_fixture_api.py` over `tests/helpers/odoo_fakes.py`), so no live Odoo is needed. Needs Podman and `pip install -e ".[e2e]"` plus `playwright install chromium` |
 
-CI: `.github/workflows/quality.yml` (required) runs the fast gate on Python 3.11;
+CI: `.github/workflows/quality.yml` (required) runs `python -m tools.dev check` on Python 3.11
+plus whitespace and Compose-configuration checks;
 `integration.yml` (path-filtered, optional) runs the container/API tests with
 Docker Compose on Ubuntu.
 
