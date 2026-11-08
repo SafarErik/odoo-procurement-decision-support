@@ -33,7 +33,7 @@ is unchanged and the test was made independent of the budget.
 | `audit_document.py` | `audit_story` → `_data_source_and_model`, `_assessments`, `_optimization`, `_decision_log`, identity block, `_provenance` |
 | `texts.py` | `TEXT` (HU/EN), `RECORDED_TEXT_HU`, `SOLVER_OUTCOME_HU` |
 | `formatting.py` | `UNITS` (the one backend copy; the frontend keeps its own in `frontend/i18n/format.py`) and `Formatter`: Hungarian decimal comma and space grouping, dates, money, quantities, recorded sentences, solver outcomes |
-| `layout.py` | `FONT`, `LAYOUT_VERSION` (still `layout-v6`: output unchanged), styles, `register_font`, `check_glyphs`, `paragraph`, `fields`, `grid` |
+| `layout.py` | `FONT`, `LAYOUT_VERSION` (`layout-v7`, see the review fixes below), styles, `register_font`, `check_glyphs`, `paragraph`, `fields`, `grid` |
 
 ### Long functions → named steps
 
@@ -134,12 +134,18 @@ Experiments (scratch scripts, not committed):
 - Determinism across processes: the 420-request golden set below was solved by two
   different processes (HEAD and this tree) with identical results.
 
-Conclusion: environmental, not a solver defect. The test now passes a 600 s budget to
-every solve (it patches `tools.milp_evaluation.plan_procurement` with a wrapper), so it
-still requires identical repeated and permuted results but cannot be failed by a slow
-runner; the assertion message now lists every solve's status and CBC run count, so a
-real nondeterminism would show `optimal` statuses with different results. `tools/` is
-unchanged (out of scope). The production 30 s budget is unchanged.
+Conclusion: environmental, not a solver defect. The determinism test now gives all its
+solves one shared 120 s budget (about 25 times its 4.5 s local run, well inside the
+10-minute quality job; it patches `tools.milp_evaluation.plan_procurement` with a
+wrapper). It still requires identical repeated and permuted results, but one slow
+solve no longer breaks it, and its total time stays bounded. The assertion message lists every
+solve's status and CBC run count, so a real nondeterminism would show `optimal` statuses
+with different results. A separate test,
+`test_controlled_variants_are_proven_within_the_production_budget`, solves each variant
+once with the production 30 s budget and checks its status, so a solver that becomes too
+slow for production is still caught. `tools/` is unchanged (out of scope). A hard kill
+of a hung CBC process would need `pytest-timeout`, which is not a dependency; CBC itself
+stops at its time limit.
 
 ## Evidence (commands actually run)
 
@@ -154,7 +160,8 @@ split. Scratch scripts are not committed.
   rendered as plan and audit in HU and EN (16 PDFs) with ReportLab's `rl_config.invariant = 1`
   (no timestamps or random document ids), before and after the split. Result:
   **identical bytes and identical `pypdf` text for all 16**. Rendering twice before the split
-  was also identical, so the method is deterministic. `LAYOUT_VERSION` stays `layout-v6`.
+  was also identical, so the method is deterministic. After the row-splitting fix below,
+  the same 16 PDFs are still byte-identical; only the renderer version string changed.
 - **Plans and explanations.** 420 seeded requests (60 random cases with 2–7 suppliers,
   random prices, capacities, MOQs, availability, concentration, scores, 1–3 epsilons, half
   with a balanced stage, plus the six evaluation variants each and a cost-only variant):
@@ -169,16 +176,24 @@ split. Scratch scripts are not committed.
   hashes were compared unmasked. One note: the order of the states in the open-quotation
   filter comes from a Python set and varies between processes; the comparison sorts it.
 - **Flaky test.** `pytest tests/test_validation_tools.py` 25 times in a row:
-  **25 × 15 passed** (15.2–20.5 s each).
-- `python -m tools.dev check` (final tree): format, lint, compile, **466 passed**,
-  51 deselected, `uv pip check` OK.
+  **25 × 15 passed** (15.2–20.5 s each) with the first fix, and **25 × 16 passed** (30.9–35.7 s each) with the
+  final version (shared budget plus the production-budget test).
+- `python -m tools.dev check` (final tree): format, lint, compile, **471 passed** (466 + the
+  five tests added by the review fixes), 51 deselected, `uv pip check` OK. Plans, HTTP and
+  stored JSON, Odoo request bodies and the 16 PDFs were compared with `HEAD` again after
+  the review fixes: identical (PDF bytes and page text; only the renderer version string
+  is now `layout-v7`).
 - `pytest -m "integration and not e2e"` with `RUN_ODOO_HISTORY_LIVE=true` against the
   disposable test DB (`podman compose -f infra/persistence/compose.test.yaml up -d`, with the
   `.venv` `podman-compose.exe` as provider and the `.env` password) and this tree's API on
   port 8000 for the two running-service checks: **46 passed, 2 skipped** (opt-in
   `RUN_T6_LIVE_CONTRACTS` / `RUN_T7S_LIVE_CONTRACTS`). An earlier run without the API and
   without live history gave 42 passed, 4 skipped and 2 failed (connection refused on port
-  8000).
+  8000). After the review fixes (2026-11-09; Odoo started with `tools.dev odoo-up`, this
+  tree's API on port 8000): **44 passed, 4 skipped** without live history. With
+  `RUN_ODOO_HISTORY_LIVE=true`, 44 passed and the two live-history tests failed with
+  HTTP 401: the renewed key expired at 2026-11-08 00:00. Those two tests are unrun for
+  the final tree.
 - `python -m tools.dev demo` (renewed Odoo key): complete, 23.6 s. The same demo from the
   `HEAD` copy: plans, allocations, costs, exposures, scenario statuses, supplier
   assessments and stored replay are **identical**. Only case ids, hashes, timings and the
@@ -191,10 +206,43 @@ split. Scratch scripts are not committed.
   told plans and failures apart by `SolveOutcome`, so a duck-typed solver answer could
   crash outside the `try`; it now checks `ProcurementPlan`, the type the planner builds itself.
 
+### Review fixes (after the first handoff)
+
+Five inline review comments and one nitpick were checked against the code. All were still valid and are fixed:
+
+- `assemble_odoo_planning_input` docstring: business violations raise
+  `InvalidPlanningInput` with a code; a non-UTC timestamp or a missing, misnamed or
+  future source attribution raises a plain `ValueError` without a code.
+- Planner: the non-optimal alternative outcome (`status`, `code`) is now read inside the
+  `try`. A malformed solver answer becomes a `SOLVER_ERROR` run
+  (`alternative_verification_failed`), and the verified minimum-cost plan is kept. New test
+  `test_malformed_alternative_outcome_is_a_solver_error_that_keeps_the_minimum`; it fails
+  on the previous loop.
+- PDF label/value tables (`layout.fields`) may now split a row across pages
+  (`splitInRow=1`, as `grid` already did). Before, a valid rationale of about 400 short lines
+  (1,998 characters, under the 2,000 limit) raised ReportLab `LayoutError` in both
+  documents. Every retry failed the same way, so the approved case never got a PDF. This
+  bug predates R7. `LAYOUT_VERSION` is raised to `layout-v7` because a row that used to
+  move whole to the next page may now split. Stored PDFs keep their bytes; the 16
+  reference PDFs are byte-identical. New test
+  `test_rationale_taller_than_a_page_continues_on_the_next_page` (HU/EN, plan and audit);
+  it fails with `LayoutError` without the fix.
+- Odoo reader: `_read_lines` now also rejects a line whose `order_id` names another order
+  than the one listing it, or a line listed by two orders. The complete-set check
+  stays. Before, such a line was silently attached to another quotation or dropped. The request bodies
+  sent to Odoo are unchanged. New parametrized test
+  `test_reader_rejects_a_line_that_does_not_belong_to_the_order_listing_it`; both cases
+  fail without the check.
+- Validation test runtime and production budget: see the flaky-test conclusion above.
+  The nitpick asked to keep 600 s per solve. That conflicts with the requested bound
+  under the 10-minute CI job, so the solves share one 120 s test budget instead.
+
 ## Not run (name explicitly)
 
 - Browser e2e (`pytest -m e2e`): no UI change in this increment.
 - Hosted CI. Local success is not hosted CI; the flaky-test fix is proven locally only.
+- Live Odoo history tests and `tools.dev demo` on the final tree (after the review fixes):
+  the Odoo history key expired; they passed on the tree before the review fixes.
 
 ## Limitations
 

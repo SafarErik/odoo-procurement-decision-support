@@ -63,7 +63,9 @@ def assemble_odoo_planning_input(
     the buyer's command, each with its own source. The quotation quantity is never used
     as demand. Every request field gets a provenance entry saying where it came from.
     Currency identity and code must already be resolved by the trusted Odoo reader.
-    Violations raise ``InvalidPlanningInput`` with a specific code.
+    Business violations raise ``InvalidPlanningInput`` with a specific code. A timestamp
+    that is not UTC, a missing or misnamed source attribution, or a source observed after
+    the cutoff raise a plain ``ValueError`` without a code.
     """
     terms = _check_group_and_sources(case, command, currency_id, currency_source)
     suppliers, entries, contexts = [], [], set()

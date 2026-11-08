@@ -136,6 +136,34 @@ def test_reader_rejects_incomplete_grouped_line_response() -> None:
         asyncio.run(reader.read_comparison_case(501))
 
 
+@pytest.mark.parametrize("change", ["other_order", "listed_twice"])
+def test_reader_rejects_a_line_that_does_not_belong_to_the_order_listing_it(change) -> None:
+    payloads = quotation_payloads()
+    if change == "other_order":  # line 201 is listed by order 101 but claims order 102
+        payloads["lines"][0]["order_id"] = [102, "T6-RFQ-B"]  # type: ignore[index]
+    else:  # order 102 also lists order 101's line 201
+        payloads["orders"][1]["order_line"] = [202, 201]  # type: ignore[index]
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/purchase.order/search_count"):
+            return httpx.Response(200, json=3)
+        if request.url.path.endswith("/purchase.order/search_read"):
+            return httpx.Response(200, json=payloads["orders"])
+        if request.url.path.endswith("/purchase.order.line/search_read"):
+            return httpx.Response(200, json=payloads["lines"])
+        return httpx.Response(200, json=payloads["partners"])
+
+    reader = OdooComparisonCaseReader(
+        base_url="http://odoo.example.test",
+        database="db",
+        api_key="key",
+        transport=httpx.MockTransport(respond),
+    )
+
+    with pytest.raises(ProcurementDataResponseError, match="invalid comparison-case payload"):
+        asyncio.run(reader.read_comparison_case(501))
+
+
 def _down(request: httpx.Request) -> httpx.Response:
     raise httpx.ConnectError("refused", request=request)
 

@@ -89,15 +89,13 @@ def plan_procurement(
     for epsilon, kind in stages:
         try:
             plan = _alternative_stage(request, solver, minimum, epsilon, kind, deadline)
+            # Anything else is the solver's non-optimal outcome; read it here, in the try.
+            failed = None if isinstance(plan, ProcurementPlan) else (plan.status, plan.code)
         except Exception:
-            status = PlanningStatus.SOLVER_ERROR
-            runs.append(
-                AlternativeRun(epsilon, status, None, "alternative_verification_failed", kind)
-            )
-            break
-        if not isinstance(plan, ProcurementPlan):  # the solver's non-optimal outcome
-            status = plan.status
-            runs.append(AlternativeRun(epsilon, status, None, plan.code, kind))
+            failed = (PlanningStatus.SOLVER_ERROR, "alternative_verification_failed")
+        if failed is not None:
+            status = failed[0]
+            runs.append(AlternativeRun(epsilon, status, None, failed[1], kind))
             break
         duplicate = plan.allocations in signatures
         if not duplicate:

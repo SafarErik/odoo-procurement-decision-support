@@ -1,6 +1,7 @@
 """Validation tools: evaluation-group seeding, reference optimum, latency and demo report."""
 
 import json
+import time
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -11,6 +12,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import app
 from decision_core.planning.planner import plan_procurement
+from optimization_adapter.pulp_cbc import PulpCbcSolver
 from tests.helpers.milp_requests import request, scored, supplier
 from tools import demo
 from tools.milp_evaluation import (
@@ -176,20 +178,8 @@ def test_nearest_rank_p95_uses_the_29th_of_30_values():
     assert describe(values)["p95_ms"] == 29.0 and describe(values)["n"] == 30
 
 
-def test_solver_matches_exhaustive_reference_on_controlled_variants(monkeypatch):
-    # A planning run has a 30 s wall-clock budget. On an overloaded CI runner (2026-11-06)
-    # a repeat ran out of it and honestly returned no_proven_optimum, which then differed
-    # from the first solve although the model is deterministic. Give every solve ample
-    # time so the check measures determinism only, and keep the statuses for the message.
-    statuses = []
-
-    def unhurried(request, solver):
-        result = plan_procurement(request, solver, time_limit_seconds=600)
-        statuses.append(result.status.value)
-        return result
-
-    monkeypatch.setattr("tools.milp_evaluation.plan_procurement", unhurried)
-    data = scored(
+def _controlled_request():
+    return scored(
         request(
             quantity=12,
             suppliers=(
@@ -203,6 +193,30 @@ def test_solver_matches_exhaustive_reference_on_controlled_variants(monkeypatch)
         values=("0.8", "0.4", "0", "0.6"),
         epsilons=(Decimal("0.05"), Decimal("0.1"), Decimal("0.3")),
     )
+
+
+# Whole-test budget for the determinism check: about 25 times its local run (4.5 s), and
+# well inside the 10-minute quality job.
+DETERMINISM_TEST_SECONDS = 120
+
+
+def test_solver_matches_exhaustive_reference_on_controlled_variants(monkeypatch):
+    # A planning run has a 30 s wall-clock budget. On an overloaded CI runner (2026-11-06)
+    # a repeat ran out of it and honestly returned no_proven_optimum, which then differed
+    # from the first solve although the model is deterministic. So the solves here share
+    # one test-wide budget instead (each CBC call stops at what is left of it), and the
+    # statuses go into the message. The production budget is checked separately below.
+    deadline = time.monotonic() + DETERMINISM_TEST_SECONDS
+    statuses = []
+
+    def unhurried(request, solver):
+        remaining = max(deadline - time.monotonic(), 0.001)
+        result = plan_procurement(request, solver, time_limit_seconds=remaining)
+        statuses.append(result.status.value)
+        return result
+
+    monkeypatch.setattr("tools.milp_evaluation.plan_procurement", unhurried)
+    data = _controlled_request()
     checks, solves = {}, {}
     for name, variant in variants(data):
         statuses.clear()
@@ -226,6 +240,23 @@ def test_solver_matches_exhaustive_reference_on_controlled_variants(monkeypatch)
         "demand_x5_infeasible",
     ):
         assert checks[name]["status"] == "infeasible" and not checks[name]["reference_feasible"]
+
+
+def test_controlled_variants_are_proven_within_the_production_budget():
+    # The check above gives the solver extra time; production has 30 s per planning run.
+    expected = {
+        "stored_request": "optimal",
+        "max_suppliers_3": "optimal",
+        "equal_prices_tie_break": "optimal",
+        "max_suppliers_1_infeasible": "infeasible",
+        "moq_combination_infeasible": "infeasible",
+        "demand_x5_infeasible": "infeasible",
+    }
+    statuses = {
+        name: plan_procurement(variant, PulpCbcSolver()).status.value
+        for name, variant in variants(_controlled_request())
+    }
+    assert statuses == expected
 
 
 def test_reference_detects_a_wrong_plan():

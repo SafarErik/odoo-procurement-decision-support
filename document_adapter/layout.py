@@ -17,7 +17,7 @@ from reportlab.platypus import Paragraph, Table, TableStyle
 
 FONT = "ProcurementDejaVu"
 # Part of the stored renderer version; raise it whenever the rendered output changes.
-LAYOUT_VERSION = "layout-v6"
+LAYOUT_VERSION = "layout-v7"
 _font_lock = Lock()
 
 DARK_BLUE = colors.HexColor("#153d55")
@@ -77,11 +77,13 @@ def paragraph(value, style=BODY) -> Paragraph:
 
 
 def fields(rows) -> Table:
-    """Label/value pairs, labels in grey on the left."""
+    """Label/value pairs, labels in grey on the left; a long value may continue on the
+    next page instead of failing the render."""
     table = Table(
         [[paragraph(label, CELL), paragraph(value, CELL)] for label, value in rows],
         colWidths=[175, 318],
         hAlign="LEFT",
+        splitInRow=1,  # a value taller than a page (a long rationale) continues on the next
     )
     table.setStyle(
         TableStyle(

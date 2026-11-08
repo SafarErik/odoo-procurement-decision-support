@@ -98,7 +98,7 @@ class OdooComparisonCaseReader(Json2Reader):
                     raise ProcurementDataResponseError(
                         f"Odoo comparison case exceeds the {_MAX_GROUP_LINES}-line safety bound"
                     )
-                lines = await self._read_lines(client, line_ids, _MAX_GROUP_LINES)
+                lines = await self._read_lines(client, orders, line_ids, _MAX_GROUP_LINES)
                 partner_ids = [_many2one_id(order, "partner_id") for order in orders]
                 partners = await self._read_partners(client, partner_ids)
 
@@ -160,7 +160,7 @@ class OdooComparisonCaseReader(Json2Reader):
             raise ProcurementDataResponseError(
                 "Odoo quotation groups exceed the per-group line safety bound"
             )
-        lines = await self._read_lines(client, line_ids, len(line_ids)) if line_ids else []
+        lines = await self._read_lines(client, orders, line_ids, len(line_ids)) if line_ids else []
         partner_ids = sorted({_many2one_id(o, "partner_id") for o in orders})
         return orders, lines, await self._read_partners(client, partner_ids)
 
@@ -175,8 +175,13 @@ class OdooComparisonCaseReader(Json2Reader):
             raise TypeError("Expected a purchase.order list")
         return orders
 
-    async def _read_lines(self, client, line_ids: list[int], limit: int) -> list:
-        """Exactly the requested order lines, or TypeError."""
+    async def _read_lines(self, client, orders: list, line_ids: list[int], limit: int) -> list:
+        """The order lines listed by ``orders``, each checked to belong to the order listing it.
+
+        ``line_ids`` are those orders' ``order_line`` ids in order. A missing line, a line
+        listed by two orders or a line whose ``order_id`` names another order raises
+        TypeError, so no line is silently attached to the wrong quotation or dropped.
+        """
         lines = await self._post(
             client,
             "purchase.order.line",
@@ -192,6 +197,15 @@ class OdooComparisonCaseReader(Json2Reader):
             raise TypeError("Expected a purchase.order.line list")
         if {required_int(line, "id") for line in lines} != set(line_ids):
             raise TypeError("Odoo did not return the complete order-line set")
+        owners = {
+            line_id: required_int(order, "id")
+            for order in orders
+            for line_id in _integer_list(order, "order_line")
+        }
+        if len(owners) != len(line_ids) or any(
+            _many2one_id(line, "order_id") != owners[required_int(line, "id")] for line in lines
+        ):
+            raise TypeError("An order line does not belong to the order that lists it")
         return lines
 
     async def _read_partners(self, client, partner_ids: list[int]) -> list:
