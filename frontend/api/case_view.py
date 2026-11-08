@@ -39,6 +39,8 @@ _WHY = {
 
 @dataclass(frozen=True, slots=True)
 class PlanningDisplay:
+    """Display rows of one stored case, every value already a localized string."""
+
     details: dict[str, str]
     plans: list[dict[str, str]]
     allocations: list[dict[str, str]]
@@ -80,12 +82,14 @@ def map_case(payload: dict, expected_id: str, lang: str = "en") -> PlanningDispl
 
 
 def _integer(value: object) -> str:
+    """The value as text if it is a real int (not bool); raises otherwise."""
     if type(value) is not int:
         raise ValueError("Expected an integer")
     return str(value)
 
 
 def _decimal(value: object) -> Decimal:
+    """An exact, finite Decimal from a decimal string; raises otherwise."""
     if not isinstance(value, str):
         raise ValueError("Expected an exact decimal string")
     number_ = Decimal(value)
@@ -95,6 +99,7 @@ def _decimal(value: object) -> Decimal:
 
 
 def _rational(value: dict) -> str:
+    """A stored numerator/denominator pair as exact text with a 4-digit value."""
     numerator, denominator = value["numerator"], value["denominator"]
     _integer(numerator)
     _integer(denominator)
@@ -104,11 +109,13 @@ def _rational(value: dict) -> str:
 
 
 def _ratio(value: dict) -> Decimal:
+    """The value of a validated stored rational as a Decimal."""
     _rational(value)
     return Decimal(value["numerator"]) / Decimal(value["denominator"])
 
 
 def _allocation(rows: list[dict], message: str) -> dict[str, int]:
+    """Supplier → quantity of allocation rows; raises ``message`` on a bad row."""
     by_supplier = {}
     for row in rows:
         identity = required_string(row, "supplier_id")
@@ -120,6 +127,7 @@ def _allocation(rows: list[dict], message: str) -> dict[str, int]:
 
 
 def _recorded_plans(result: dict) -> list[dict]:
+    """The minimum-cost plan (if any) followed by the alternatives."""
     minimum = result["minimum_cost_plan"]
     return ([] if minimum is None else [minimum]) + result["alternatives"]
 
@@ -167,7 +175,10 @@ def validate_case(payload: dict, expected_id: str) -> None:
         by_supplier = _allocation(plan["allocations"], "Invalid recorded allocation")
         if set(by_supplier) != set(supplier_ids) or sum(by_supplier.values()) != quantity:
             raise ValueError("Invalid recorded allocation supplier join or demand total")
-        if not 0 <= _ratio(plan["risk_exposure"]) <= 1:
+        exposure = plan["risk_exposure"]
+        _rational(exposure)
+        # Compare the exact integers: a 28-digit Decimal quotient can round 1.000…01 to 1.
+        if not 0 <= exposure["numerator"] <= exposure["denominator"]:
             raise ValueError("Invalid recorded exposure")
     for assessment in snapshot["assessments"]:
         if assessment["snapshot"]["source_type"] != "odoo_purchase_history" or facts[
@@ -183,6 +194,7 @@ def validate_case(payload: dict, expected_id: str) -> None:
 
 
 def _validate_comparison(comparison, result, supplier_ids, base_quantity, quantity):
+    """Check a scenario's comparison against the supplier set and demands."""
     if comparison is None or comparison["minimum_cost"] is None:
         return
     delta = comparison["minimum_cost"]
@@ -198,6 +210,7 @@ def _validate_comparison(comparison, result, supplier_ids, base_quantity, quanti
 
 
 def _validate_decision(payload, plans):
+    """Check the recorded decision and its approved-content hash."""
     decision = payload.get("final_decision")
     if decision is None:
         return
@@ -245,6 +258,7 @@ class _Case:
     """A validated case plus the labels and units every section formats with."""
 
     def __init__(self, payload: dict, lang: str):
+        """Index the payload once so every section reads the same values."""
         self.payload, self.lang = payload, lang
         self.snapshot = snapshot = payload["snapshot"]
         self.facts, self.request, self.result = (
@@ -264,16 +278,20 @@ class _Case:
         self.minimum = self.result["minimum_cost_plan"]
 
     def name(self, identity: str) -> str:
+        """Readable supplier name."""
         return supplier_label(identity, self.lang, self.names)
 
     def amount(self, value, signed: bool = False) -> str:
+        """Money in the case currency."""
         return money(value, self.currency, self.lang, signed=signed)
 
     def pieces(self, value) -> str:
+        """Quantity with the case unit."""
         return tr("pieces", self.lang, quantity=number(value, self.lang), unit=self.unit_name)
 
 
 def _unit_label(identity: str, lang: str, names: dict) -> str:
+    """Readable unit name from the saved labels or the unit identity."""
     if names.get(identity):
         return unit(names[identity], lang)
     # Without a saved name the unit is not known to mean pieces; keep the identity visible.
@@ -281,6 +299,7 @@ def _unit_label(identity: str, lang: str, names: dict) -> str:
 
 
 def _buyer_explanations(entries: list[dict], lang: str = "en", names: dict | None = None) -> str:
+    """Known solver explanation codes as buyer sentences, deduplicated."""
     return "\n".join(
         dict.fromkeys(
             ((supplier_label(e["supplier_id"], lang, names) + ": ") if e["supplier_id"] else "")
@@ -309,6 +328,7 @@ def _balanced_only(result: dict) -> set[int]:
 
 
 def _plan_title(result: dict, index: int, lang: str) -> str:
+    """Buyer title of plan ``index``: cheapest, balanced or alternative n."""
     if index == 0:
         return tr("plan_minimum", lang)
     if index in _balanced_only(result):

@@ -13,14 +13,17 @@ FINAL_DECISION_CONFLICT = "decision_conflict"
 
 
 def from_odoo_history_url() -> str:
+    """POST target that captures Odoo history and saves a new base case."""
     return settings.planning_cases_url + "/from-odoo-history"
 
 
 def scenarios_url(base_id: str) -> str:
+    """Scenarios of base case ``base_id`` (POST saves one, GET lists them)."""
     return f"{settings.planning_cases_url}/{base_id}/scenarios"
 
 
 def final_decision_url(case_id: str) -> str:
+    """POST target that records the one human decision on ``case_id``."""
     return f"{settings.planning_cases_url}/{case_id}/final-decision"
 
 
@@ -51,8 +54,13 @@ async def submit_planning_request(
             413: "err_too_large",
         }
         if url.endswith("/from-odoo-history") and response.status_code in (409, 422, 503):
-            # FastAPI's own request validation answers 422 with a list-shaped detail.
-            detail = response.json().get("detail")
+            # FastAPI's own request validation answers 422 with a list-shaped detail; a proxy
+            # may answer with no JSON at all. Either way the status decides below.
+            try:
+                body = response.json()
+            except ValueError:
+                body = None
+            detail = body.get("detail") if isinstance(body, dict) else None
             code = detail.get("code") if isinstance(detail, dict) else None
             history_errors = {
                 "odoo_history_insufficient": "err_history_insufficient",

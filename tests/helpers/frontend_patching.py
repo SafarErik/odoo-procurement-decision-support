@@ -17,6 +17,7 @@ MODULES = {
 
 
 def patch_client(monkeypatch, name, replacement):
+    """Replace one API client function where the state mixins resolve it."""
     monkeypatch.setattr(f"{MODULES[name]}.{name}", replacement)
 
 
@@ -29,6 +30,7 @@ def consume(state, handler, *args):
     """Run a Reflex event handler to completion; returns every update it yielded."""
 
     async def run():
+        """Collect every update the handler yields."""
         return [event async for event in handler.fn(state, *args)]
 
     return asyncio.run(run())

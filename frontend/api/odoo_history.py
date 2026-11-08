@@ -10,6 +10,7 @@ from frontend.i18n import TEXT, day, money, number, tr, unit
 
 
 def _preview(response) -> dict:
+    """The validated history preview of one quotation group."""
     if len(response.content) > 256 * 1024:
         raise ValueError("Oversized history preview.")
     data = response.json()
@@ -81,6 +82,7 @@ def group_row(item: dict, lang: str) -> dict[str, str]:
 
 
 def _groups(response, lang: str) -> dict:
+    """Validated open quotation groups as rows, raw items and supplier names."""
     if len(response.content) > 512 * 1024:
         raise ValueError("Oversized group listing.")
     data = response.json()

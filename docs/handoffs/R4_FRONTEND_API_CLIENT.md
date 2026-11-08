@@ -156,6 +156,34 @@ Each has a one-line docstring. Section functions still parse single values stric
     unavailable", New procurement Refresh → "Open RFQs are unavailable. Check the Odoo
     connection." (375 px).
 
+## PR review follow-up (2026-11-08)
+
+All seven review findings were checked against the code and were valid; each fix has a
+regression test that fails without it.
+
+- `case_view.validate_case` compares plan exposure as exact integers
+  (`0 <= numerator <= denominator`). Before, a 28-digit Decimal quotient rounded e.g.
+  `(10**30 + 1) / 10**30` to 1 and accepted it (inherited from `main`). Test: `exposure`
+  fault in `test_malformed_snapshots_fail_closed`.
+- `cases.submit_planning_request`: a 409/422 (or 503) on `from-odoo-history` with a non-JSON
+  or non-object body no longer counts as an uncertain save; the status decides (409
+  `err_key_conflict`, 422 `err_odoo_changed`, 503 stays uncertain). Before, the JSON
+  parse error offered a same-key retry for a definite rejection (inherited from `main`).
+- `http.get_bytes` takes `check_headers`, run before any body byte is read;
+  `documents.fetch_planning_pdf` passes its header check there, so a wrong document is
+  rejected without downloading up to 2 MB.
+- `http._headers` also rejects tokens with NUL or other control characters (before, the
+  request failed in the transport and a save was reported as uncertain).
+- Tests: the uppercase-identity case uses a fixed UUID with letters (a random `uuid4` could
+  be all digits after the version nibble); timeout assertions use the documented 15 / 45 s
+  instead of the constants they test.
+- One-line docstrings on every function and class in `frontend/api/` and
+  `tests/helpers/frontend_patching.py` (the PR's docstring-coverage check). Test functions
+  were not given docstrings; whether the PR check counts them was not verified.
+- Evidence: `python -m tools.dev check` — 482 passed, 51 deselected; ruff, compileall and
+  `uv pip check` OK. Not re-run: e2e and the browser walkthrough (no UI-visible change
+  except the rejection texts above).
+
 ## Limitations
 
 - Two error texts change on a transport failure (backend down or timeout) because there is
@@ -169,8 +197,6 @@ Each has a one-line docstring. Section functions still parse single values stric
 - Timeouts changed for three reads (see the table); no displayed value depends on them.
 - `fetch_scenarios` refuses a non-canonical case id before sending (`err_library`); before,
   the string went into the URL.
-- The PDF body is downloaded (up to 2 MB) before its headers are checked; before, the
-  headers were checked first. Same result, same limit.
 - Browser run setup in this worktree (all ignored paths): its own `.venv` (the main
   `.venv`'s editable install points `frontend` at the main checkout), a copy of `.env`, and a
   copy of `.artifacts/ml/model` (without it the backend reports "compatible model not

@@ -51,7 +51,7 @@ def test_one_error_mapping_for_every_read(frontend_api, respond, expected):
     assert (value, error) == (expected[0], expected[1] and tr(expected[1], "en"))
 
 
-@pytest.mark.parametrize("token", ["", "two words", "ékezet"])
+@pytest.mark.parametrize("token", ["", "two words", "ékezet", "nul\x00byte"])
 def test_a_missing_or_unsafe_token_sends_nothing(frontend_api, token):
     frontend_api(httpx.MockTransport(lambda r: pytest.fail("No request without a token.")), token)
     assert asyncio.run(library.fetch_library({}, lang="en")) == (None, tr("err_token", "en"))
@@ -82,20 +82,47 @@ def test_requests_carry_the_bearer_token_and_the_documented_timeout(frontend_api
     asyncio.run(every_call())
     timeouts = {(method, path.rsplit("/", 1)[-1]): timeout for method, path, timeout in seen}
     assert len(timeouts) == len(seen) == 8
-    # Stored reads use the short tier; live Odoo reads, PDF rendering and saves the long one.
+    # The documented policy: stored reads 15 s; live Odoo reads, PDF rendering and saves 45 s.
     short = [CASE, "planning-cases", "scenarios", "suppliers"]
-    assert {timeouts["GET", name] for name in short} == {http.TIMEOUT}
+    assert {timeouts["GET", name] for name in short} == {15}
     long = [
         ("GET", "quotation-groups"),
         ("GET", "preview"),
         ("GET", "a" * 64),
         ("POST", "scenarios"),
     ]
-    assert {timeouts[key] for key in long} == {http.LONG_TIMEOUT}
+    assert {timeouts[key] for key in long} == {45}
 
 
 def test_noncanonical_identities_never_reach_a_url(frontend_api):
     frontend_api(httpx.MockTransport(lambda r: pytest.fail("Identity guard must stop this.")))
-    for identity in ("../other", CASE.upper(), "{" + CASE + "}"):
+    lettered = "0f8fad5b-d9cb-469f-a165-70867728950e"  # uppercasing must change it
+    for identity in ("../other", lettered.upper(), "{" + CASE + "}"):
         assert asyncio.run(library.fetch_scenarios(identity, {}))[0] is None
         assert asyncio.run(cases.fetch_planning_case(identity))[0] is None
+
+
+@pytest.mark.parametrize("status", [409, 422])
+def test_a_non_json_rejection_of_an_odoo_save_is_definite(frontend_api, status):
+    frontend_api(httpx.MockTransport(lambda r: httpx.Response(status, text="<html>proxy</html>")))
+    _, error, uncertain = asyncio.run(
+        cases.submit_planning_request(cases.from_odoo_history_url(), {}, CASE)
+    )
+    expected = "err_key_conflict" if status == 409 else "err_odoo_changed"
+    assert error == tr(expected, "en") and not uncertain
+
+
+def test_pdf_headers_are_rejected_before_the_body_is_read(frontend_api):
+    read = []
+
+    async def body():
+        read.append(True)
+        yield b"%PDF-"
+
+    frontend_api(
+        httpx.MockTransport(
+            lambda r: httpx.Response(200, headers={"content-type": "text/html"}, content=body())
+        )
+    )
+    document, error = asyncio.run(documents.fetch_planning_pdf(CASE, "a" * 64, language="en"))
+    assert document is None and error == tr("err_pdf", "en") and not read

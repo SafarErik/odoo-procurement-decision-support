@@ -30,13 +30,21 @@ class Unreachable(Exception):
 
 
 def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """Bearer header from the service token plus ``extra``; raises TokenMissing."""
     token = settings.api_service_token.get_secret_value()
-    if not token or not token.isascii() or any(c.isspace() for c in token):
+    # isprintable() rejects NUL and other control characters a header cannot carry.
+    if (
+        not token
+        or not token.isascii()
+        or not token.isprintable()
+        or any(c.isspace() for c in token)
+    ):
         raise TokenMissing
     return {"Authorization": "Bearer " + token, **(extra or {})}
 
 
 def _client(timeout: float) -> httpx.AsyncClient:
+    """A client with the shared transport rules and the given timeout."""
     return httpx.AsyncClient(
         timeout=timeout, transport=transport, trust_env=False, follow_redirects=False
     )
@@ -52,10 +60,13 @@ async def send(method: str, url: str, *, timeout: float = TIMEOUT, headers=None,
         raise Unreachable from error
 
 
-async def get_bytes(url: str, *, params: dict, limit: int, timeout: float = LONG_TIMEOUT):
+async def get_bytes(
+    url: str, *, params: dict, limit: int, check_headers, timeout: float = LONG_TIMEOUT
+):
     """Stream a 200 body of at most ``limit`` bytes; returns ``(headers, data)``.
 
-    Raises ``TokenMissing``, ``Unreachable`` or ``ValueError`` (other status, too large).
+    ``check_headers(headers)`` runs before any body byte is read and raises to reject.
+    Raises ``TokenMissing``, ``Unreachable`` or ``ValueError`` (status, headers, size).
     """
     request_headers = _headers()
     try:
@@ -63,6 +74,7 @@ async def get_bytes(url: str, *, params: dict, limit: int, timeout: float = LONG
             async with client.stream("GET", url, params=params, headers=request_headers) as reply:
                 if reply.status_code != 200:
                     raise ValueError(f"Unexpected status {reply.status_code}")
+                check_headers(reply.headers)
                 data = bytearray()
                 async for chunk in reply.aiter_bytes():
                     if len(data) + len(chunk) > limit:

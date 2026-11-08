@@ -71,6 +71,7 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
 
 
 def _page(response, lang: str) -> dict:
+    """One validated library page as display rows, raw items and the next cursor."""
     data = response.json()
     if (
         set(data) != {"items", "next_cursor"}
@@ -88,6 +89,7 @@ def _page(response, lang: str) -> dict:
 
 
 async def _fetch(url: str, params: dict, lang: str):
+    """GET one library page with the library error texts."""
     return await http.get_json(
         url,
         lambda response: _page(response, lang),

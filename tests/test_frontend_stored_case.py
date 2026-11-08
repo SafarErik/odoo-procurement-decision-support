@@ -93,7 +93,9 @@ def test_invalid_identity_or_missing_secret_never_sends_request(case_id, token, 
     assert display is None and error
 
 
-@pytest.mark.parametrize("fault", ["identity", "version", "decimal", "source", "shape", "quantity"])
+@pytest.mark.parametrize(
+    "fault", ["identity", "version", "decimal", "source", "shape", "quantity", "exposure"]
+)
 def test_malformed_snapshots_fail_closed(stored_cases, fault, frontend_api):
     payload = deepcopy(stored_cases[1])
     if fault == "identity":
@@ -108,6 +110,11 @@ def test_malformed_snapshots_fail_closed(stored_cases, fault, frontend_api):
         del payload["snapshot"]["request"]["requirement"]["currency"]
     if fault == "quantity":
         payload["snapshot"]["request"]["requirement"]["approved_quantity"] = 0
+    if fault == "exposure":  # just above 1; a 28-digit Decimal quotient would round it to 1
+        payload["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"] = {
+            "numerator": 10**30 + 1,
+            "denominator": 10**30,
+        }
     frontend_api(httpx.MockTransport(lambda _: httpx.Response(200, json=payload)))
     display, error = asyncio.run(fetch_planning_case(stored_cases[1]["case_id"]))
     assert display is None and "incomplete or unsupported" in error
