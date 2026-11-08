@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from decision_core.planning.planner import plan_procurement
 from tests.helpers.milp_requests import request, scored, supplier
 from tools import demo
 from tools.milp_evaluation import (
@@ -175,7 +176,19 @@ def test_nearest_rank_p95_uses_the_29th_of_30_values():
     assert describe(values)["p95_ms"] == 29.0 and describe(values)["n"] == 30
 
 
-def test_solver_matches_exhaustive_reference_on_controlled_variants():
+def test_solver_matches_exhaustive_reference_on_controlled_variants(monkeypatch):
+    # A planning run has a 30 s wall-clock budget. On an overloaded CI runner (2026-11-06)
+    # a repeat ran out of it and honestly returned no_proven_optimum, which then differed
+    # from the first solve although the model is deterministic. Give every solve ample
+    # time so the check measures determinism only, and keep the statuses for the message.
+    statuses = []
+
+    def unhurried(request, solver):
+        result = plan_procurement(request, solver, time_limit_seconds=600)
+        statuses.append(result.status.value)
+        return result
+
+    monkeypatch.setattr("tools.milp_evaluation.plan_procurement", unhurried)
     data = scored(
         request(
             quantity=12,
@@ -190,10 +203,14 @@ def test_solver_matches_exhaustive_reference_on_controlled_variants():
         values=("0.8", "0.4", "0", "0.6"),
         epsilons=(Decimal("0.05"), Decimal("0.1"), Decimal("0.3")),
     )
-    checks = {name: solver_check(name, v, 2, 0) for name, v in variants(data)}
+    checks, solves = {}, {}
+    for name, variant in variants(data):
+        statuses.clear()
+        checks[name] = solver_check(name, variant, 2, 0)
+        solves[name] = (list(statuses), checks[name]["cbc_runs_per_solve"])
     for name, check in checks.items():
         assert check["reference_match"], (name, check["failures"])
-        assert check["repeated_identical"] and check["permutation_identical"], name
+        assert check["repeated_identical"] and check["permutation_identical"], (name, solves)
     assert checks["stored_request"]["status"] == "optimal"
     assert checks["stored_request"]["distinct_alternatives"] >= 1
     # Equal prices: the tie-break gives the earliest supplier ids the largest quantities.

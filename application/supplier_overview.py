@@ -130,8 +130,48 @@ def saved_labels(snapshot: dict) -> dict[str, str]:
     return {key: value for key, value in snapshot["facts"].get("labels", ())}
 
 
+def _history(features, language: str) -> dict:
+    """The history window and the seven feature values, each with a readable label."""
+    return {
+        "source_type": features.source_type,
+        "feature_version": features.feature_version,
+        "window_start": features.history_start.isoformat(),
+        "window_end": features.history_end.isoformat(),
+        "cutoff": features.cutoff.isoformat(),
+        "metrics": [
+            {
+                "feature": name,
+                "label": feature_label(name, language),
+                "value": value,
+                "display": metric_display(name, value, language),
+            }
+            for name, value in zip(features.feature_names, features.values, strict=True)
+        ],
+    }
+
+
+def _assessment(assessment: Assessment, language: str) -> dict:
+    """The saved Decision Tree result: class, score, leaf support and the readable path."""
+    return {
+        "class": class_name(assessment),
+        "class_label": class_label(assessment, language),
+        "score": str(assessment.score),
+        "similar_cases": sum(assessment.leaf_counts),
+        "problematic_cases": assessment.leaf_counts[1],
+        "model_id": assessment.model_id,
+        "training_id": assessment.training_id,
+        "valid_until": assessment.valid_until.isoformat(),
+        "path": path_steps(assessment, language),
+        "summary": leaf_text(assessment, language),
+    }
+
+
 def supplier_overview(snapshot: dict, language: str = "hu") -> dict:
-    """Per-supplier rows of a validated stored snapshot (callers validate first)."""
+    """Per-supplier rows of a validated stored snapshot (callers validate first).
+
+    Each row joins the supplier's saved terms, history metrics, Decision Tree assessment
+    and its quantity in every saved plan.
+    """
     _language(language)
     request = read_request(snapshot["request"])
     assessments = {
@@ -148,7 +188,6 @@ def supplier_overview(snapshot: dict, language: str = "hu") -> dict:
     rows = []
     for terms in request.suppliers:
         assessment = assessments[terms.supplier_id]
-        features = assessment.snapshot
         rows.append(
             {
                 "supplier_id": terms.supplier_id,
@@ -167,34 +206,8 @@ def supplier_overview(snapshot: dict, language: str = "hu") -> dict:
                     "minimum_order_quantity": terms.minimum_order.quantity,
                     "promised_date": terms.promised_date.isoformat(),
                 },
-                "history": {
-                    "source_type": features.source_type,
-                    "feature_version": features.feature_version,
-                    "window_start": features.history_start.isoformat(),
-                    "window_end": features.history_end.isoformat(),
-                    "cutoff": features.cutoff.isoformat(),
-                    "metrics": [
-                        {
-                            "feature": name,
-                            "label": feature_label(name, language),
-                            "value": value,
-                            "display": metric_display(name, value, language),
-                        }
-                        for name, value in zip(features.feature_names, features.values, strict=True)
-                    ],
-                },
-                "assessment": {
-                    "class": class_name(assessment),
-                    "class_label": class_label(assessment, language),
-                    "score": str(assessment.score),
-                    "similar_cases": sum(assessment.leaf_counts),
-                    "problematic_cases": assessment.leaf_counts[1],
-                    "model_id": assessment.model_id,
-                    "training_id": assessment.training_id,
-                    "valid_until": assessment.valid_until.isoformat(),
-                    "path": path_steps(assessment, language),
-                    "summary": leaf_text(assessment, language),
-                },
+                "history": _history(assessment.snapshot, language),
+                "assessment": _assessment(assessment, language),
                 "allocation": {
                     "minimum_cost_quantity": quantities[0].get(terms.supplier_id, 0)
                     if quantities

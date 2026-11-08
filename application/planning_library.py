@@ -69,6 +69,11 @@ def library_query(company, status="all", q="", limit=20, cursor=None, parent_id=
 
 
 def case_summary(case, decision, company):
+    """One library row for a stored case: context, cost, status and changed assumptions.
+
+    Re-validates the stored case (and its decision) first; anything inconsistent raises
+    ``RepositoryError("invalid_library_data")`` instead of showing a partial row.
+    """
     try:
         snapshot = validate_snapshot(case)
         facts, requirement = snapshot["facts"], snapshot["request"]["requirement"]
@@ -85,45 +90,8 @@ def case_summary(case, decision, company):
             saved = validate_final_decision(case, decision)
             outcome = "approved" if saved["audit"]["outcome"] == "approve" else "no_award"
         scenario = snapshot["scenario"]
-        changes = None
-        if scenario is not None:
-            if set(scenario) != {"kind", "source", "suppliers", "approved_quantity"}:
-                raise ValueError("Invalid scenario shape.")
-            if scenario["kind"] not in SCENARIO_KINDS:
-                raise ValueError("Unknown scenario kind.")
-            quantity = scenario["approved_quantity"]
-            if quantity is not None and (
-                type(quantity) is not int or quantity != requirement["approved_quantity"]
-            ):
-                raise ValueError("Scenario demand disagrees with saved request.")
-            suppliers = {s["supplier_id"]: s for s in snapshot["request"]["suppliers"]}
-            changed = set()
-            for change in scenario["suppliers"]:
-                if set(change) != {"supplier_id", "available", "capacity", "unit_price"}:
-                    raise ValueError("Invalid supplier change shape.")
-                identity = change["supplier_id"]
-                if identity in changed or identity not in suppliers:
-                    raise ValueError("Invalid changed supplier identity.")
-                changed.add(identity)
-                for field in ("available", "capacity", "unit_price"):
-                    value = change[field]
-                    if value is None:
-                        continue
-                    if (
-                        (field == "available" and type(value) is not bool)
-                        or (field == "capacity" and (type(value) is not int or value < 0))
-                        or (
-                            field == "unit_price"
-                            and (
-                                not isinstance(value, str)
-                                or not Decimal(value).is_finite()
-                                or Decimal(value) <= 0
-                            )
-                        )
-                        or value != suppliers[identity][field]
-                    ):
-                        raise ValueError("Scenario change disagrees with saved request.")
-            changes = {key: scenario[key] for key in ("approved_quantity", "suppliers")}
+        labels = dict(facts.get("labels", ()))
+        minimum = snapshot["result"]["minimum_cost_plan"]
         return {
             "case_id": case.case_id,
             "parent_id": case.parent_id,
@@ -131,13 +99,9 @@ def case_summary(case, decision, company):
             "company_id": company,
             "product_id": requirement["product_id"],
             # Odoo display name stored with the snapshot; the identity if Odoo gave none.
-            "product_label": dict(facts.get("labels", ())).get(
-                requirement["product_id"], requirement["product_id"]
-            ),
-            "unit_label": dict(facts.get("labels", ())).get(requirement["quantity_unit"]),
-            "minimum_cost": None
-            if snapshot["result"]["minimum_cost_plan"] is None
-            else snapshot["result"]["minimum_cost_plan"]["total_cost"],
+            "product_label": labels.get(requirement["product_id"], requirement["product_id"]),
+            "unit_label": labels.get(requirement["quantity_unit"]),
+            "minimum_cost": None if minimum is None else minimum["total_cost"],
             "approved_quantity": requirement["approved_quantity"],
             "quantity_unit": requirement["quantity_unit"],
             "currency": requirement["currency"],
@@ -148,10 +112,52 @@ def case_summary(case, decision, company):
             # Same rule as the PDF notice: the history model records where its data came from.
             "data_origin": snapshot["model_manifest"]["metadata"]["data_origin"],
             "scenario_kind": None if scenario is None else scenario["kind"],
-            "changed_assumptions": changes,
+            "changed_assumptions": None if scenario is None else _scenario_changes(snapshot),
         }
     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError) as error:
         raise RepositoryError("invalid_library_data", "Saved library data is invalid.") from error
+
+
+def _scenario_changes(snapshot: dict) -> dict:
+    """The scenario's changed demand and supplier fields, checked against its saved request."""
+    scenario, request = snapshot["scenario"], snapshot["request"]
+    if set(scenario) != {"kind", "source", "suppliers", "approved_quantity"}:
+        raise ValueError("Invalid scenario shape.")
+    if scenario["kind"] not in SCENARIO_KINDS:
+        raise ValueError("Unknown scenario kind.")
+    quantity = scenario["approved_quantity"]
+    if quantity is not None and (
+        type(quantity) is not int or quantity != request["requirement"]["approved_quantity"]
+    ):
+        raise ValueError("Scenario demand disagrees with saved request.")
+    suppliers = {s["supplier_id"]: s for s in request["suppliers"]}
+    changed = set()
+    for change in scenario["suppliers"]:
+        if set(change) != {"supplier_id", "available", "capacity", "unit_price"}:
+            raise ValueError("Invalid supplier change shape.")
+        identity = change["supplier_id"]
+        if identity in changed or identity not in suppliers:
+            raise ValueError("Invalid changed supplier identity.")
+        changed.add(identity)
+        for field in ("available", "capacity", "unit_price"):
+            value = change[field]
+            if value is None:
+                continue
+            if (
+                (field == "available" and type(value) is not bool)
+                or (field == "capacity" and (type(value) is not int or value < 0))
+                or (
+                    field == "unit_price"
+                    and (
+                        not isinstance(value, str)
+                        or not Decimal(value).is_finite()
+                        or Decimal(value) <= 0
+                    )
+                )
+                or value != suppliers[identity][field]
+            ):
+                raise ValueError("Scenario change disagrees with saved request.")
+    return {key: scenario[key] for key in ("approved_quantity", "suppliers")}
 
 
 def list_planning_cases(uow, query):

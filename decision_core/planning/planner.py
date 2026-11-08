@@ -15,6 +15,7 @@ from decision_core.planning.models import (
     PlanningRequest,
     PlanningResult,
     PlanningStatus,
+    ProcurementPlan,
 )
 from decision_core.planning.rules import checked_plan, necessary_diagnostics, validate_risk
 
@@ -51,7 +52,15 @@ def plan_procurement(
     *,
     time_limit_seconds: float = SOLVER_TIME_LIMIT_SECONDS,
 ) -> PlanningResult:
-    """One shared wall-clock budget; verified reference survives failed alternative work."""
+    """Solve the minimum-cost plan, then one alternative per stage, all verified exactly.
+
+    Stages (docs/MODEL_MILP.md §3): one lower-risk alternative per cost tolerance
+    epsilon, in increasing order, then the balanced (diversified) alternative when the
+    policy asks for one. All stages share one wall-clock budget. Every solver answer is
+    rechecked with ``checked_plan``; an alternative found twice is recorded as a
+    duplicate, never stored twice. If a later stage fails, the verified plans found so
+    far are kept and the result's status names the failure.
+    """
     if (
         not isinstance(request, PlanningRequest)
         or type(time_limit_seconds) not in (int, float)
@@ -67,6 +76,52 @@ def plan_procurement(
             ),
         )
     deadline = time.monotonic() + time_limit_seconds
+    first = _minimum_cost_stage(request, solver, deadline)
+    if isinstance(first, PlanningResult):
+        return first
+    minimum, diagnostics = first
+    distinct, runs = [], []
+    signatures = {minimum.allocations: 0}
+    status = PlanningStatus.OPTIMAL
+    stages = [(epsilon, "risk") for epsilon in sorted(set(request.policy.epsilons))]
+    if request.policy.diversification_epsilon is not None:
+        stages.append((request.policy.diversification_epsilon, "diversified"))
+    for epsilon, kind in stages:
+        try:
+            plan = _alternative_stage(request, solver, minimum, epsilon, kind, deadline)
+        except Exception:
+            status = PlanningStatus.SOLVER_ERROR
+            runs.append(
+                AlternativeRun(epsilon, status, None, "alternative_verification_failed", kind)
+            )
+            break
+        if not isinstance(plan, ProcurementPlan):  # the solver's non-optimal outcome
+            status = plan.status
+            runs.append(AlternativeRun(epsilon, status, None, plan.code, kind))
+            break
+        duplicate = plan.allocations in signatures
+        if not duplicate:
+            distinct.append(plan)
+            signatures[plan.allocations] = len(distinct)
+        runs.append(
+            AlternativeRun(
+                epsilon,
+                PlanningStatus.OPTIMAL,
+                signatures[plan.allocations],
+                "duplicate_allocation" if duplicate else "distinct_alternative",
+                kind,
+            )
+        )
+    return PlanningResult(status, minimum, tuple(distinct), tuple(runs), diagnostics)
+
+
+def _minimum_cost_stage(request, solver, deadline):
+    """The verified minimum-cost plan and the necessary diagnostics, or the final result.
+
+    Returns a ``PlanningResult`` when planning ends here: the bounds already prove the
+    demand cannot be met, the solver finds no optimum, the input is invalid, or the
+    solver adapter fails.
+    """
     try:
         validate_risk(request)
         diagnostics = necessary_diagnostics(request)
@@ -92,7 +147,7 @@ def plan_procurement(
                     ),
                 ),
             )
-        minimum = checked_plan(request, outcome.allocations)
+        return checked_plan(request, outcome.allocations), diagnostics
     except InvalidPlanningInput as exc:
         status = (
             PlanningStatus.SOLVER_ERROR
@@ -107,61 +162,39 @@ def plan_procurement(
                 Explanation("solver_failure", "Solver adapter failed; no plan is returned."),
             ),
         )
-    distinct, runs = [], []
-    signatures = {minimum.allocations: 0}
-    status = PlanningStatus.OPTIMAL
-    stages = [(epsilon, "risk") for epsilon in sorted(set(request.policy.epsilons))]
-    if request.policy.diversification_epsilon is not None:
-        stages.append((request.policy.diversification_epsilon, "diversified"))
-    for epsilon, kind in stages:
-        try:
-            outcome = (
-                solver.risk_alternative(request, Fraction(minimum.total_cost), epsilon, deadline)
-                if kind == "risk"
-                else solver.diversified_alternative(
-                    request,
-                    Fraction(minimum.total_cost),
-                    minimum.risk_exposure,
-                    epsilon,
-                    deadline,
-                )
-            )
-            if outcome.status is PlanningStatus.INFEASIBLE:
-                outcome = SolveOutcome(
-                    PlanningStatus.SOLVER_ERROR, code="contradictory_alternative_infeasibility"
-                )
-            if outcome.status is not PlanningStatus.OPTIMAL:
-                status = outcome.status
-                runs.append(AlternativeRun(epsilon, status, None, outcome.code, kind))
-                break
-            plan = checked_plan(request, outcome.allocations, Fraction(minimum.total_cost), epsilon)
-            if plan.risk_exposure is None or plan.risk_exposure > minimum.risk_exposure:
-                raise InvalidPlanningInput(
-                    "invalid_solver_output",
-                    "Alternative worsens the feasible minimum's score exposure.",
-                )
-            if kind == "diversified" and plan.largest_share > minimum.largest_share:
-                raise InvalidPlanningInput(
-                    "invalid_solver_output",
-                    "Balanced alternative raises the minimum plan's largest supplier share.",
-                )
-            duplicate = plan.allocations in signatures
-            if not duplicate:
-                distinct.append(plan)
-                signatures[plan.allocations] = len(distinct)
-            runs.append(
-                AlternativeRun(
-                    epsilon,
-                    PlanningStatus.OPTIMAL,
-                    signatures[plan.allocations],
-                    "duplicate_allocation" if duplicate else "distinct_alternative",
-                    kind,
-                )
-            )
-        except Exception:
-            status = PlanningStatus.SOLVER_ERROR
-            runs.append(
-                AlternativeRun(epsilon, status, None, "alternative_verification_failed", kind)
-            )
-            break
-    return PlanningResult(status, minimum, tuple(distinct), tuple(runs), diagnostics)
+
+
+def _alternative_stage(request, solver, minimum, epsilon, kind, deadline):
+    """One verified alternative plan, or the non-optimal ``SolveOutcome`` that ends planning.
+
+    The alternative may cost at most ``(1 + epsilon)`` times the minimum cost, may not
+    have more risk exposure than the minimum-cost plan, and a balanced one may not
+    depend more on one supplier. A broken promise raises ``InvalidPlanningInput``.
+    Infeasible is impossible here (the minimum-cost plan itself satisfies every
+    constraint), so a solver claiming it is reported as a solver error.
+    """
+    reference_cost = Fraction(minimum.total_cost)
+    if kind == "risk":
+        outcome = solver.risk_alternative(request, reference_cost, epsilon, deadline)
+    else:
+        outcome = solver.diversified_alternative(
+            request, reference_cost, minimum.risk_exposure, epsilon, deadline
+        )
+    if outcome.status is PlanningStatus.INFEASIBLE:
+        outcome = SolveOutcome(
+            PlanningStatus.SOLVER_ERROR, code="contradictory_alternative_infeasibility"
+        )
+    if outcome.status is not PlanningStatus.OPTIMAL:
+        return outcome
+    plan = checked_plan(request, outcome.allocations, reference_cost, epsilon)
+    if plan.risk_exposure is None or plan.risk_exposure > minimum.risk_exposure:
+        raise InvalidPlanningInput(
+            "invalid_solver_output",
+            "Alternative worsens the feasible minimum's score exposure.",
+        )
+    if kind == "diversified" and plan.largest_share > minimum.largest_share:
+        raise InvalidPlanningInput(
+            "invalid_solver_output",
+            "Balanced alternative raises the minimum plan's largest supplier share.",
+        )
+    return plan

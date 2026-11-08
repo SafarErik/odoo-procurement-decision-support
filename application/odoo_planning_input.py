@@ -56,10 +56,71 @@ def assemble_odoo_planning_input(
     currency_code: str,
     currency_source: SourceAttribution,
 ) -> tuple[PlanningRequest, ProvenanceManifest]:
-    """Use observed quotations and explicitly attributed terms, never quotation Q as demand.
+    """Build the planning request from an Odoo quotation group plus the buyer's terms.
 
-    Currency identity/code must be resolved by the trusted reader.
+    Prices, product, unit, company and suppliers come from the Odoo quotations; demand,
+    date, policy and per-supplier terms (capacity, MOQ, ranges, promised date) come from
+    the buyer's command, each with its own source. The quotation quantity is never used
+    as demand. Every request field gets a provenance entry saying where it came from.
+    Currency identity and code must already be resolved by the trusted Odoo reader.
+    Violations raise ``InvalidPlanningInput`` with a specific code.
     """
+    terms = _check_group_and_sources(case, command, currency_id, currency_source)
+    suppliers, entries, contexts = [], [], set()
+    seen_offers, seen_suppliers, seen_lines = set(), set(), set()
+    offers = tuple(sorted(case.offers, key=lambda item: item.offer_id))
+    for offer in offers:
+        line = _checked_offer_line(offer, case, command)
+        require(
+            offer.offer_id not in seen_offers
+            and offer.supplier_id not in seen_suppliers
+            and line.line_id not in seen_lines,
+            "duplicate_quotation",
+            "Stable offers, suppliers and lines must be unique.",
+        )
+        seen_offers.add(offer.offer_id)
+        seen_suppliers.add(offer.supplier_id)
+        seen_lines.add(line.line_id)
+        require(
+            line.company_id == offer.company_id
+            and line.currency_id == offer.currency_id == currency_id
+            and line.discount == 0
+            and not line.tax_ids,
+            "unsupported_quotation_context",
+            "Matching company/currency, zero discount and no taxes required.",
+        )
+        contexts.add((offer.company_id, line.product_id, line.uom_id))
+        extra = terms[offer.offer_id]
+        validate_source(extra.source, "commercial_terms", command.as_of)
+        supplier = SupplierTerms(
+            offer.supplier_id,
+            line.product_id,
+            line.uom_id,
+            currency_code,
+            line.unit_price,
+            extra.capacity,
+            extra.available,
+            extra.minimum_order,
+            extra.price_quantities,
+            extra.delivery_quantities,
+            extra.promised_date,
+        )
+        suppliers.append(supplier)
+        entries += _supplier_provenance(supplier, offer, line, extra.source, currency_source)
+    require(len(contexts) == 1, "context_mismatch", "One company/product/unit required.")
+    company, product, unit = contexts.pop()
+    identity(company, "company")
+    requirement = ProcurementRequirement(
+        product, command.approved_quantity, unit, currency_code, command.required_date
+    )
+    entries += _requirement_provenance(case, command, offers[0], currency_source)
+    return PlanningRequest(
+        requirement, tuple(sorted(suppliers, key=lambda s: s.supplier_id)), command.policy, None
+    ), ProvenanceManifest(tuple(entries))
+
+
+def _check_group_and_sources(case, command, currency_id, currency_source) -> dict:
+    """Group, cutoff, offer count and sources are valid; return the buyer terms by offer id."""
     require(isinstance(case, OdooComparisonCaseFacts), "invalid_case", "Typed case required.")
     utc(command.as_of)
     utc(case.observed_at)
@@ -90,67 +151,45 @@ def assemble_odoo_planning_input(
         "invalid_terms_join",
         "Exactly one attributed term set per offer required.",
     )
-    suppliers, entries = [], []
-    seen_offers, seen_suppliers, seen_lines, contexts = set(), set(), set(), set()
+    return terms
 
-    def record(path, field, source):
-        entries.append(
-            FieldProvenance(
-                path, field, source.source_type, source.source_reference, source.observed_at
-            )
-        )
 
-    offers = tuple(sorted(case.offers, key=lambda item: item.offer_id))
-    for offer in offers:
-        for value in (offer.offer_id, offer.supplier_id, offer.supplier_source_reference):
-            identity(value, "offer/supplier identity")
-        utc(offer.observed_at)
-        require(offer.observed_at <= command.as_of, "future_source", "Offer is after cutoff.")
-        require(
-            offer.comparison_case_id == case.comparison_case_id
-            and offer.state in {"draft", "sent", "to approve"}
-            and len(offer.lines) == 1,
-            "unsupported_quotation",
-            "One supported line in the exact open comparison group required.",
-        )
-        line, extra = offer.lines[0], terms[offer.offer_id]
-        identity(line.line_id, "quotation line")
-        decimal(line.quantity, "quotation quantity", positive=True)
-        require(
-            offer.offer_id not in seen_offers
-            and offer.supplier_id not in seen_suppliers
-            and line.line_id not in seen_lines,
-            "duplicate_quotation",
-            "Stable offers, suppliers and lines must be unique.",
-        )
-        seen_offers.add(offer.offer_id)
-        seen_suppliers.add(offer.supplier_id)
-        seen_lines.add(line.line_id)
-        require(
-            line.company_id == offer.company_id
-            and line.currency_id == offer.currency_id == currency_id
-            and line.discount == 0
-            and not line.tax_ids,
-            "unsupported_quotation_context",
-            "Matching company/currency, zero discount and no taxes required.",
-        )
-        contexts.add((offer.company_id, line.product_id, line.uom_id))
-        validate_source(extra.source, "commercial_terms", command.as_of)
-        supplier = SupplierTerms(
-            offer.supplier_id,
-            line.product_id,
-            line.uom_id,
-            currency_code,
-            line.unit_price,
-            extra.capacity,
-            extra.available,
-            extra.minimum_order,
-            extra.price_quantities,
-            extra.delivery_quantities,
-            extra.promised_date,
-        )
-        suppliers.append(supplier)
-        prefix = f"request.suppliers[{supplier.supplier_id}]"
+def _checked_offer_line(offer, case, command):
+    """An open quotation of this group, observed before the cutoff, with exactly one line;
+    return that line."""
+    for value in (offer.offer_id, offer.supplier_id, offer.supplier_source_reference):
+        identity(value, "offer/supplier identity")
+    utc(offer.observed_at)
+    require(offer.observed_at <= command.as_of, "future_source", "Offer is after cutoff.")
+    require(
+        offer.comparison_case_id == case.comparison_case_id
+        and offer.state in {"draft", "sent", "to approve"}
+        and len(offer.lines) == 1,
+        "unsupported_quotation",
+        "One supported line in the exact open comparison group required.",
+    )
+    line = offer.lines[0]
+    identity(line.line_id, "quotation line")
+    decimal(line.quantity, "quotation quantity", positive=True)
+    return line
+
+
+def _entry(path: str, field: str, source: SourceAttribution) -> FieldProvenance:
+    return FieldProvenance(
+        path, field, source.source_type, source.source_reference, source.observed_at
+    )
+
+
+def _odoo(field: str, reference: str, observed_at: datetime) -> SourceAttribution:
+    """A value read from Odoo's JSON-2 API at ``reference`` (record id and field)."""
+    return SourceAttribution(field, ODOO_JSON2_SOURCE, reference, observed_at)
+
+
+def _supplier_provenance(supplier, offer, line, terms_source, currency_source) -> list:
+    """Buyer terms from the buyer's source; identity, price, product and unit from Odoo."""
+    prefix = f"request.suppliers[{supplier.supplier_id}]"
+    entries = [
+        _entry(f"{prefix}.{field}", field, terms_source)
         for field in (
             "capacity",
             "available",
@@ -158,64 +197,50 @@ def assemble_odoo_planning_input(
             "price_quantities",
             "delivery_quantities",
             "promised_date",
-        ):
-            record(f"{prefix}.{field}", field, extra.source)
-        for field, reference in (
-            ("supplier_id", offer.supplier_source_reference),
-            ("unit_price", f"{line.line_id}#price_unit"),
-            ("product_id", f"{line.line_id}#product_id"),
-            ("quantity_unit", f"{line.line_id}#product_uom_id"),
-        ):
-            record(
-                f"{prefix}.{field}",
-                field,
-                SourceAttribution(field, ODOO_JSON2_SOURCE, reference, offer.observed_at),
-            )
-        record(f"{prefix}.currency", "currency", currency_source)
-    require(len(contexts) == 1, "context_mismatch", "One company/product/unit required.")
-    company, product, unit = contexts.pop()
-    identity(company, "company")
-    requirement = ProcurementRequirement(
-        product, command.approved_quantity, unit, currency_code, command.required_date
-    )
-    for field in ("approved_quantity", "required_date"):
-        record(f"request.requirement.{field}", field, command.requirement_source)
-    for field, reference in (("product_id", "product_id"), ("quantity_unit", "product_uom_id")):
-        record(
-            f"request.requirement.{field}",
-            field,
-            SourceAttribution(
-                field,
-                ODOO_JSON2_SOURCE,
-                f"{offers[0].lines[0].line_id}#{reference}",
-                offers[0].observed_at,
-            ),
         )
-    record("request.requirement.currency", "currency", currency_source)
-    for field in asdict(command.policy):
-        record(f"request.policy.{field}", field, command.policy_source)
-    for field in ("approval_reference", "as_of"):
-        record(f"facts.{field}", field, command.requirement_source)
-    record(
-        "facts.company_id",
-        "company_id",
-        SourceAttribution(
-            "company_id",
-            ODOO_JSON2_SOURCE,
-            f"{offers[0].offer_id}#company_id",
-            offers[0].observed_at,
-        ),
-    )
-    record(
-        "facts.comparison_case_id",
-        "purchase_group_id",
-        SourceAttribution(
-            "purchase_group_id", ODOO_JSON2_SOURCE, case.comparison_case_id, case.observed_at
-        ),
-    )
-    return PlanningRequest(
-        requirement, tuple(sorted(suppliers, key=lambda s: s.supplier_id)), command.policy, None
-    ), ProvenanceManifest(tuple(entries))
+    ]
+    for field, reference in (
+        ("supplier_id", offer.supplier_source_reference),
+        ("unit_price", f"{line.line_id}#price_unit"),
+        ("product_id", f"{line.line_id}#product_id"),
+        ("quantity_unit", f"{line.line_id}#product_uom_id"),
+    ):
+        entries.append(
+            _entry(f"{prefix}.{field}", field, _odoo(field, reference, offer.observed_at))
+        )
+    entries.append(_entry(f"{prefix}.currency", "currency", currency_source))
+    return entries
+
+
+def _requirement_provenance(case, command, first_offer, currency_source) -> list:
+    """Demand, date, policy and approval from the buyer; product, unit, company from Odoo."""
+    line_id, observed_at = first_offer.lines[0].line_id, first_offer.observed_at
+    entries = [
+        _entry(f"request.requirement.{field}", field, command.requirement_source)
+        for field in ("approved_quantity", "required_date")
+    ]
+    for field, reference in (("product_id", "product_id"), ("quantity_unit", "product_uom_id")):
+        entries.append(
+            _entry(
+                f"request.requirement.{field}",
+                field,
+                _odoo(field, f"{line_id}#{reference}", observed_at),
+            )
+        )
+    entries.append(_entry("request.requirement.currency", "currency", currency_source))
+    entries += [
+        _entry(f"request.policy.{field}", field, command.policy_source)
+        for field in asdict(command.policy)
+    ]
+    entries += [
+        _entry(f"facts.{field}", field, command.requirement_source)
+        for field in ("approval_reference", "as_of")
+    ]
+    company = _odoo("company_id", f"{first_offer.offer_id}#company_id", observed_at)
+    entries.append(_entry("facts.company_id", "company_id", company))
+    group = _odoo("purchase_group_id", case.comparison_case_id, case.observed_at)
+    entries.append(_entry("facts.comparison_case_id", "purchase_group_id", group))
+    return entries
 
 
 def bind_controlled_odoo_input(case, facts: PlanningFacts, currency_code, currency_observed_at):

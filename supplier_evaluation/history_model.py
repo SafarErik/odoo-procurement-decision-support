@@ -7,7 +7,6 @@ import platform
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal, localcontext
 from pathlib import Path
 
 import joblib
@@ -32,6 +31,7 @@ from supplier_evaluation.contracts import (
     QuantityValidity,
     canonical,
     digest,
+    leaf_score,
     text_identity,
     utc,
 )
@@ -218,6 +218,18 @@ class HistoryTreeModel:
             raise ValueError("Artifact semantic identity mismatch.")
 
     def infer(self, snapshot: FeatureSnapshot, quantities: QuantityValidity) -> Assessment:
+        """Score one supplier's history snapshot with the trained tree.
+
+        The snapshot must come from the same Odoo source, company and database the model
+        was trained on, and its cutoff may not be before the end of the training data.
+        The features walk down the tree to one leaf. The class is the leaf's majority
+        label (problematic only when it has more problematic than regular training
+        rows); the score is the leaf's problematic share (``leaf_score``). The visited
+        conditions are kept as the readable decision path. The assessment stays valid for
+        30 days after the cutoff and only for the given quantity range.
+
+        Raises ValueError for an incompatible model file or snapshot.
+        """
         self.validate()
         if (
             not isinstance(snapshot, FeatureSnapshot)
@@ -232,11 +244,6 @@ class HistoryTreeModel:
         x = np.asarray([snapshot.values], dtype=np.float32)
         leaf = int(self.tree.apply(x)[0])
         counts = self.leaf_counts[leaf]
-        with localcontext() as ctx:
-            ctx.prec = 28
-            score = (Decimal(counts[1]) / sum(counts)).quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
         t, path = self.tree.tree_, []
         for node in self.tree.decision_path(x).indices:
             if node != leaf:
@@ -256,7 +263,7 @@ class HistoryTreeModel:
             quantities,
             snapshot.cutoff + timedelta(days=30),
             int(counts[1] > counts[0]),
-            score,
+            leaf_score(counts),
             self.metadata["model_id"],
             self.metadata["training_id"],
             leaf,

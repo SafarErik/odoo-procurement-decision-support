@@ -58,7 +58,13 @@ _LINE_FIELDS = (
 
 
 class OdooComparisonCaseReader(Json2Reader):
-    """Retrieve typed Odoo facts without supplying missing business semantics."""
+    """Retrieve typed Odoo facts without supplying missing business semantics.
+
+    Every read is bounded (offers, lines and scanned orders per call) and checked for
+    completeness; a payload that breaks a bound or a shape raises
+    ``ProcurementDataResponseError`` (HTTP 502), unreachable Odoo
+    ``ProcurementDataUnavailable`` (HTTP 503).
+    """
 
     async def read_comparison_case(self, purchase_group_id: int) -> OdooComparisonCaseFacts:
         """Read all RFQs and lines in one explicit persisted alternative group."""
@@ -70,13 +76,11 @@ class OdooComparisonCaseReader(Json2Reader):
         if purchase_group_id <= 0:
             raise ValueError("purchase_group_id must be greater than zero")
 
+        domain = [["purchase_group_id", "=", purchase_group_id]]
         with odoo_errors("Odoo", _INVALID_CASE):
             async with self._client() as client:
                 count = await self._post(
-                    client,
-                    "purchase.order",
-                    "search_count",
-                    {"domain": [["purchase_group_id", "=", purchase_group_id]]},
+                    client, "purchase.order", "search_count", {"domain": domain}
                 )
                 if isinstance(count, bool) or not isinstance(count, int):
                     raise TypeError("Expected an integer purchase.order count")
@@ -84,19 +88,7 @@ class OdooComparisonCaseReader(Json2Reader):
                     raise ProcurementDataResponseError(
                         f"Odoo comparison case exceeds the {_MAX_GROUP_OFFERS}-offer safety bound"
                     )
-                orders = await self._post(
-                    client,
-                    "purchase.order",
-                    "search_read",
-                    {
-                        "domain": [["purchase_group_id", "=", purchase_group_id]],
-                        "fields": list(_ORDER_FIELDS),
-                        "limit": _MAX_GROUP_OFFERS,
-                        "order": "id asc",
-                    },
-                )
-                if not isinstance(orders, list):
-                    raise TypeError("Expected a purchase.order list")
+                orders = await self._read_orders(client, domain, _ORDER_FIELDS, _MAX_GROUP_OFFERS)
                 if len(orders) != count:
                     raise TypeError("purchase.order count changed during the bounded read")
                 line_ids = [
@@ -106,42 +98,21 @@ class OdooComparisonCaseReader(Json2Reader):
                     raise ProcurementDataResponseError(
                         f"Odoo comparison case exceeds the {_MAX_GROUP_LINES}-line safety bound"
                     )
-                lines = await self._post(
-                    client,
-                    "purchase.order.line",
-                    "search_read",
-                    {
-                        "domain": [["id", "in", line_ids]],
-                        "fields": list(_LINE_FIELDS),
-                        "limit": _MAX_GROUP_LINES,
-                        "order": "id asc",
-                    },
-                )
-                if not isinstance(lines, list):
-                    raise TypeError("Expected a purchase.order.line list")
-                if {required_int(line, "id") for line in lines} != set(line_ids):
-                    raise TypeError("Odoo did not return the complete grouped order-line set")
+                lines = await self._read_lines(client, line_ids, _MAX_GROUP_LINES)
                 partner_ids = [_many2one_id(order, "partner_id") for order in orders]
-                partners = await self._post(
-                    client,
-                    "res.partner",
-                    "search_read",
-                    {
-                        "domain": [["id", "in", partner_ids]],
-                        "fields": ["id", "commercial_partner_id"],
-                        "limit": len(partner_ids),
-                        "order": "id asc",
-                    },
-                )
-                if not isinstance(partners, list):
-                    raise TypeError("Expected a res.partner list")
+                partners = await self._read_partners(client, partner_ids)
 
         with odoo_errors("Odoo", _INVALID_CASE):
             observed_at = datetime.now(UTC)
             return _map_case(purchase_group_id, orders, lines, partners, observed_at)
 
     async def list_quotation_groups(self, company_id: str, limit: int) -> QuotationGroupListing:
-        """List the newest open quotation groups of one company with bounded reads."""
+        """List the newest open quotation groups of one company with bounded reads.
+
+        First scan the newest open grouped RFQs for group ids, then read the chosen
+        groups' orders, lines and suppliers. ``truncated`` tells the caller that more
+        groups exist than were listed.
+        """
         if not self._configured:
             raise ProcurementDataUnavailable("Odoo integration is not configured")
         company = prefixed_id(company_id, "odoo:res.company:")
@@ -149,92 +120,96 @@ class OdooComparisonCaseReader(Json2Reader):
             raise ValueError("limit must be between 1 and 20")
         with odoo_errors("Odoo", _INVALID_LISTING):
             async with self._client() as client:
-                scan = await self._post(
+                scan = await self._read_orders(
                     client,
-                    "purchase.order",
-                    "search_read",
-                    {
-                        "domain": [
-                            ["company_id", "=", company],
-                            ["purchase_group_id", "!=", False],
-                            ["state", "in", list(OPEN_QUOTATION_STATES)],
-                        ],
-                        "fields": ["id", "purchase_group_id"],
-                        "limit": _MAX_SCANNED_ORDERS,
-                        "order": "date_order desc, id desc",
-                    },
+                    [
+                        ["company_id", "=", company],
+                        ["purchase_group_id", "!=", False],
+                        ["state", "in", list(OPEN_QUOTATION_STATES)],
+                    ],
+                    ("id", "purchase_group_id"),
+                    _MAX_SCANNED_ORDERS,
+                    order="date_order desc, id desc",
                 )
-                if not isinstance(scan, list):
-                    raise TypeError("Expected a purchase.order list")
                 group_ids = list(dict.fromkeys(_many2one_id(o, "purchase_group_id") for o in scan))
                 truncated = len(group_ids) > limit or len(scan) >= _MAX_SCANNED_ORDERS
                 group_ids = group_ids[:limit]
                 orders, lines, partners = [], [], []
                 if group_ids:
-                    domain = [
-                        ["company_id", "=", company],
-                        ["purchase_group_id", "in", group_ids],
-                    ]
-                    bound = len(group_ids) * _MAX_GROUP_OFFERS
-                    count = await self._post(
-                        client, "purchase.order", "search_count", {"domain": domain}
-                    )
-                    if isinstance(count, bool) or not isinstance(count, int) or count > bound:
-                        raise ProcurementDataResponseError(
-                            "Odoo quotation groups exceed the per-group offer safety bound"
-                        )
-                    orders = await self._post(
-                        client,
-                        "purchase.order",
-                        "search_read",
-                        {
-                            "domain": domain,
-                            "fields": [*_ORDER_FIELDS, "date_order"],
-                            "limit": bound,
-                            "order": "id asc",
-                        },
-                    )
-                    if not isinstance(orders, list) or len(orders) != count:
-                        raise TypeError("purchase.order count changed during the bounded read")
-                    line_ids = [i for o in orders for i in _integer_list(o, "order_line")]
-                    if len(line_ids) > len(group_ids) * _MAX_GROUP_LINES:
-                        raise ProcurementDataResponseError(
-                            "Odoo quotation groups exceed the per-group line safety bound"
-                        )
-                    if line_ids:
-                        lines = await self._post(
-                            client,
-                            "purchase.order.line",
-                            "search_read",
-                            {
-                                "domain": [["id", "in", line_ids]],
-                                "fields": list(_LINE_FIELDS),
-                                "limit": len(line_ids),
-                                "order": "id asc",
-                            },
-                        )
-                        if not isinstance(lines, list) or {
-                            required_int(line, "id") for line in lines
-                        } != set(line_ids):
-                            raise TypeError("Odoo did not return the complete order-line set")
-                    partner_ids = sorted({_many2one_id(o, "partner_id") for o in orders})
-                    partners = await self._post(
-                        client,
-                        "res.partner",
-                        "search_read",
-                        {
-                            "domain": [["id", "in", partner_ids]],
-                            "fields": ["id", "commercial_partner_id"],
-                            "limit": len(partner_ids),
-                            "order": "id asc",
-                        },
-                    )
-                    if not isinstance(partners, list):
-                        raise TypeError("Expected a res.partner list")
+                    orders, lines, partners = await self._read_groups(client, company, group_ids)
         with odoo_errors("Odoo", _INVALID_LISTING):
             return _map_listing(
                 company_id, group_ids, orders, lines, partners, truncated, datetime.now(UTC)
             )
+
+    async def _read_groups(self, client, company: int, group_ids: list[int]):
+        """Orders, lines and partners of the listed groups, at most 20 offers and 40 lines
+        per group."""
+        domain = [["company_id", "=", company], ["purchase_group_id", "in", group_ids]]
+        bound = len(group_ids) * _MAX_GROUP_OFFERS
+        count = await self._post(client, "purchase.order", "search_count", {"domain": domain})
+        if isinstance(count, bool) or not isinstance(count, int) or count > bound:
+            raise ProcurementDataResponseError(
+                "Odoo quotation groups exceed the per-group offer safety bound"
+            )
+        orders = await self._read_orders(client, domain, (*_ORDER_FIELDS, "date_order"), bound)
+        if len(orders) != count:
+            raise TypeError("purchase.order count changed during the bounded read")
+        line_ids = [i for o in orders for i in _integer_list(o, "order_line")]
+        if len(line_ids) > len(group_ids) * _MAX_GROUP_LINES:
+            raise ProcurementDataResponseError(
+                "Odoo quotation groups exceed the per-group line safety bound"
+            )
+        lines = await self._read_lines(client, line_ids, len(line_ids)) if line_ids else []
+        partner_ids = sorted({_many2one_id(o, "partner_id") for o in orders})
+        return orders, lines, await self._read_partners(client, partner_ids)
+
+    async def _read_orders(self, client, domain, fields, limit, order="id asc") -> list:
+        orders = await self._post(
+            client,
+            "purchase.order",
+            "search_read",
+            {"domain": domain, "fields": list(fields), "limit": limit, "order": order},
+        )
+        if not isinstance(orders, list):
+            raise TypeError("Expected a purchase.order list")
+        return orders
+
+    async def _read_lines(self, client, line_ids: list[int], limit: int) -> list:
+        """Exactly the requested order lines, or TypeError."""
+        lines = await self._post(
+            client,
+            "purchase.order.line",
+            "search_read",
+            {
+                "domain": [["id", "in", line_ids]],
+                "fields": list(_LINE_FIELDS),
+                "limit": limit,
+                "order": "id asc",
+            },
+        )
+        if not isinstance(lines, list):
+            raise TypeError("Expected a purchase.order.line list")
+        if {required_int(line, "id") for line in lines} != set(line_ids):
+            raise TypeError("Odoo did not return the complete order-line set")
+        return lines
+
+    async def _read_partners(self, client, partner_ids: list[int]) -> list:
+        """Each order partner with its commercial partner (the company that is the supplier)."""
+        partners = await self._post(
+            client,
+            "res.partner",
+            "search_read",
+            {
+                "domain": [["id", "in", partner_ids]],
+                "fields": ["id", "commercial_partner_id"],
+                "limit": len(partner_ids),
+                "order": "id asc",
+            },
+        )
+        if not isinstance(partners, list):
+            raise TypeError("Expected a res.partner list")
+        return partners
 
     async def read_currency_code(self, currency_id: str) -> tuple[str, datetime]:
         """Resolve one already selected currency; no conversion or broad discovery."""

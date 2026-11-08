@@ -17,6 +17,7 @@ from application.planning_serialization import (
     is_sha256_hex,
     json_value,
     read_assessments,
+    read_fraction,
     read_request,
     read_result,
     snapshot_json,
@@ -28,7 +29,7 @@ from application.procurement_planning import (
 )
 from application.provenance import SourceAttribution
 from application.stored_contracts import HISTORY_INPUT_KIND, SNAPSHOT_VERSION
-from decision_core.planning.models import PlanningStatus
+from decision_core.planning.models import PlanningRequest, PlanningStatus
 from decision_core.planning.rules import exact_decimal
 from supplier_evaluation.contracts import HISTORY_SOURCE, utc
 
@@ -104,7 +105,11 @@ def normalize_planning_facts(facts):
 
 
 def validate_snapshot(case: PlanningCase) -> dict:
-    """Decode stored contracts only; never infer, solve or read a model/upstream."""
+    """Decode and cross-check a stored case; never infer, solve or read a model or Odoo.
+
+    Returns the decoded snapshot. Anything unreadable or inconsistent raises
+    ``RepositoryError("invalid_persisted_case")`` (HTTP 503) instead of showing it.
+    """
     try:
         value = json.loads(case.snapshot)
         if set(value) != {
@@ -129,58 +134,9 @@ def validate_snapshot(case: PlanningCase) -> dict:
             s.supplier_id for s in request.suppliers
         }:
             raise ValueError("Incomplete stored assessments.")
-        # The model module owns its metadata contract; importing it loads scikit-learn,
-        # so it is imported only when a stored snapshot is actually checked.
-        from supplier_evaluation.history_model import check_manifest_metadata
-
-        metadata, facts = value["model_manifest"]["metadata"], value["facts"]
-        check_manifest_metadata(metadata)
-        captured = capture_features(facts["history"])
-        if (
-            metadata["data_origin"] != capture_origin(facts["history"])
-            or facts["source_type"] != HISTORY_SOURCE
-            or facts["input_kind"] != HISTORY_INPUT_KIND
-            or metadata["company_id"] != facts["company_id"]
-            or snapshot_json(sorted(captured, key=lambda f: f.context.supplier_id))
-            != snapshot_json(
-                [
-                    a.snapshot
-                    for a in sorted(assessments, key=lambda a: a.snapshot.context.supplier_id)
-                ]
-            )
-        ):
-            raise ValueError("Stored Odoo source/model compatibility mismatch.")
-        if not is_sha256_hex(value["model_manifest"]["artifact_sha256"]):
-            raise ValueError("Missing stored artifact hash.")
-        if any(
-            (a.model_id, a.training_id) != (metadata["model_id"], metadata["training_id"])
-            for a in assessments
-        ):
-            raise ValueError("Stored model identity mismatch.")
-        if not value["risk_context"]["controlled_fixture"] or not value["solver"]:
-            raise ValueError("Missing controlled runtime evidence.")
-        result = read_result(value["result"])
-        for plan in (
-            ()
-            if result.minimum_cost_plan is None
-            else (result.minimum_cost_plan, *result.alternatives)
-        ):
-            if (
-                tuple(a.supplier_id for a in plan.allocations)
-                != tuple(sorted(s.supplier_id for s in request.suppliers))
-                or sum(a.quantity for a in plan.allocations)
-                != request.requirement.approved_quantity
-            ):
-                raise ValueError("Invalid recorded allocation join or demand.")
-        if (case.parent_id is None) != (value["scenario"] is None):
-            raise ValueError("Invalid stored scenario lineage.")
-        canonical_uuid(case.case_id)
-        canonical_uuid(case.idempotency_key)
-        utc(case.created_at)
-        if not is_sha256_hex(case.fingerprint):
-            raise ValueError("Invalid stored caller fingerprint.")
-        if case.parent_id is not None:
-            canonical_uuid(case.parent_id)
+        _check_model_evidence(value, assessments)
+        _check_recorded_plans(value, request)
+        _check_case_row(case, value)
         return value
     except (
         ValueError,
@@ -192,6 +148,65 @@ def validate_snapshot(case: PlanningCase) -> dict:
         raise RepositoryError(
             "invalid_persisted_case", "The stored planning snapshot is invalid."
         ) from error
+
+
+def _check_model_evidence(value: dict, assessments) -> None:
+    """The model metadata, the captured Odoo history and every assessment belong together."""
+    # The model module owns its metadata contract; importing it loads scikit-learn,
+    # so it is imported only when a stored snapshot is actually checked.
+    from supplier_evaluation.history_model import check_manifest_metadata
+
+    metadata, facts = value["model_manifest"]["metadata"], value["facts"]
+    check_manifest_metadata(metadata)
+    captured = capture_features(facts["history"])
+    if (
+        metadata["data_origin"] != capture_origin(facts["history"])
+        or facts["source_type"] != HISTORY_SOURCE
+        or facts["input_kind"] != HISTORY_INPUT_KIND
+        or metadata["company_id"] != facts["company_id"]
+        or snapshot_json(sorted(captured, key=lambda f: f.context.supplier_id))
+        != snapshot_json(
+            [a.snapshot for a in sorted(assessments, key=lambda a: a.snapshot.context.supplier_id)]
+        )
+    ):
+        raise ValueError("Stored Odoo source/model compatibility mismatch.")
+    if not is_sha256_hex(value["model_manifest"]["artifact_sha256"]):
+        raise ValueError("Missing stored artifact hash.")
+    if any(
+        (a.model_id, a.training_id) != (metadata["model_id"], metadata["training_id"])
+        for a in assessments
+    ):
+        raise ValueError("Stored model identity mismatch.")
+    if not value["risk_context"]["controlled_fixture"] or not value["solver"]:
+        raise ValueError("Missing controlled runtime evidence.")
+
+
+def _check_recorded_plans(value: dict, request) -> None:
+    """Every recorded plan lists each supplier once, in id order, and meets the demand."""
+    result = read_result(value["result"])
+    plans = (
+        () if result.minimum_cost_plan is None else (result.minimum_cost_plan, *result.alternatives)
+    )
+    for plan in plans:
+        if (
+            tuple(a.supplier_id for a in plan.allocations)
+            != tuple(sorted(s.supplier_id for s in request.suppliers))
+            or sum(a.quantity for a in plan.allocations) != request.requirement.approved_quantity
+        ):
+            raise ValueError("Invalid recorded allocation join or demand.")
+
+
+def _check_case_row(case: PlanningCase, value: dict) -> None:
+    """Row identities are canonical and only a scenario has a parent and a scenario delta."""
+    if (case.parent_id is None) != (value["scenario"] is None):
+        raise ValueError("Invalid stored scenario lineage.")
+    canonical_uuid(case.case_id)
+    canonical_uuid(case.idempotency_key)
+    utc(case.created_at)
+    if not is_sha256_hex(case.fingerprint):
+        raise ValueError("Invalid stored caller fingerprint.")
+    if case.parent_id is not None:
+        canonical_uuid(case.parent_id)
 
 
 def get_planning_case(uow: PlanningUnitOfWork, case_id: str) -> PlanningCase:
@@ -282,17 +297,13 @@ def _comparison(base: dict, result: dict) -> dict:
         "meaning": "Total cost across explicit demand; not a like-for-like saving claim.",
     }
     if left is not None and right is not None:
-
-        def fraction(value):
-            return Fraction(value["numerator"], value["denominator"])
-
         comparison["minimum_cost"] = json_value(
             {
                 "total_cost_delta": exact_decimal(
                     Fraction(Decimal(right["total_cost"])) - Fraction(Decimal(left["total_cost"]))
                 ),
-                "risk_exposure_delta": fraction(right["risk_exposure"])
-                - fraction(left["risk_exposure"]),
+                "risk_exposure_delta": read_fraction(right["risk_exposure"])
+                - read_fraction(left["risk_exposure"]),
                 "base_allocations": left["allocations"],
                 "scenario_allocations": right["allocations"],
             }
@@ -335,10 +346,13 @@ def create_planning_case(
     base_intent: dict | None = None,
     load_base: Callable | None = None,
 ) -> tuple[PlanningCase, bool]:
-    """One locked transaction contains computation and immutable key/case insertion.
+    """Create a base case or a scenario in one locked transaction; return (case, replayed).
 
     A base comes from an Odoo quotation group with Odoo purchase history (``load_base``,
-    called only when the key is new); a scenario changes a stored base.
+    called only when the key is new); a scenario applies ``delta`` to a stored base
+    ``parent_id`` and reuses its saved assessments. Repeating a key with the same request
+    returns the stored case unchanged (``replayed`` True) without reading Odoo, scoring
+    or solving again; the same key with a different request is a conflict.
     """
     canonical_uuid(key)
     loaded_base = base_intent is not None and load_base is not None
@@ -371,66 +385,11 @@ def create_planning_case(
             validate_snapshot(previous)
             return previous, True
         try:
-            base = None
             if parent_id is None:
-                normalized, extra_provenance = load_base()
-                request, features, provenance = assemble_planning_input(normalized)
-                if extra_provenance is not None:
-                    overrides = {e.canonical_path: e for e in extra_provenance.entries}
-                    if len(overrides) != len(extra_provenance.entries):
-                        raise ValueError("Duplicate prepared provenance paths.")
-                    entries = {e.canonical_path: e for e in provenance.entries}
-                    entries.update(overrides)
-                    provenance = type(provenance)(tuple(entries[k] for k in sorted(entries)))
-                assessments, manifest = infer(features)
-                as_of, company = normalized.as_of, normalized.company_id
-                snapshot = {
-                    "facts": json_value(normalized),
-                    "model_manifest": manifest,
-                    "provenance": json_value(provenance),
-                }
-                snapshot["facts"]["input_kind"] = HISTORY_INPUT_KIND
-                snapshot["facts"]["comparison_case_id"] = (
-                    f"odoo:purchase.order.group:{base_intent['purchase_group_id']}"
-                )
+                inputs = _base_inputs(load_base, infer, base_intent)
             else:
-                parent = uow.cases.get(parent_id)
-                if parent is None:
-                    raise PlanningCaseError(
-                        "planning_case_not_found", "The base planning case does not exist."
-                    )
-                if parent.parent_id is not None:
-                    raise ValueError("This slice creates scenarios from a base case only.")
-                base = validate_snapshot(parent)
-                request, as_of = _scenario_request(base, delta)
-                company = base["facts"]["company_id"]
-                assessments = read_assessments(base["assessments"])
-                snapshot = {
-                    "facts": base["facts"],
-                    "model_manifest": base["model_manifest"],
-                    "provenance": _scenario_provenance(base, delta),
-                }
-            coefficients, context = risk_inputs(
-                request, assessments, company_id=company, as_of=as_of
-            )
-            request = replace(request, risk_coefficients=coefficients)
-            solver, evidence = solver_factory()
-            result = create_procurement_plans(PlanningCommand(request, context), solver)
-            if result.status is PlanningStatus.INVALID_INPUT:
-                raise ValueError(
-                    "The planning input violates the supported numerical/business contract."
-                )
-            encoded_result = json_value(result)
-            snapshot.update(
-                snapshot_version=SNAPSHOT_VERSION,
-                request=json_value(request),
-                assessments=json_value(assessments),
-                risk_context=json_value(context),
-                solver=evidence,
-                result=encoded_result,
-                scenario=json_value(delta),
-                comparison=None if base is None else _comparison(base, encoded_result),
-            )
+                inputs = _scenario_inputs(uow, parent_id, delta)
+            snapshot = _planned_snapshot(inputs, delta, solver_factory)
             case = PlanningCase(
                 str(uuid4()),
                 datetime.now(UTC),
@@ -449,3 +408,89 @@ def create_planning_case(
             raise PlanningCaseError(
                 "invalid_planning_input", "Controlled input, evidence or validity is incompatible."
             ) from error
+
+
+@dataclass(frozen=True, slots=True)
+class _CaseInputs:
+    """What a new case plans from; ``base`` is the parent snapshot of a scenario."""
+
+    request: PlanningRequest
+    assessments: tuple
+    as_of: datetime
+    company_id: str
+    snapshot: dict  # facts, model_manifest and provenance so far
+    base: dict | None
+
+
+def _base_inputs(load_base: Callable, infer: Callable, base_intent: dict) -> _CaseInputs:
+    """Read Odoo (via ``load_base``), assemble the request and score every supplier."""
+    normalized, extra_provenance = load_base()
+    request, features, provenance = assemble_planning_input(normalized)
+    if extra_provenance is not None:
+        # Field sources recorded while binding the Odoo quotations replace the generic ones.
+        overrides = {e.canonical_path: e for e in extra_provenance.entries}
+        if len(overrides) != len(extra_provenance.entries):
+            raise ValueError("Duplicate prepared provenance paths.")
+        entries = {e.canonical_path: e for e in provenance.entries}
+        entries.update(overrides)
+        provenance = type(provenance)(tuple(entries[k] for k in sorted(entries)))
+    assessments, manifest = infer(features)
+    snapshot = {
+        "facts": json_value(normalized),
+        "model_manifest": manifest,
+        "provenance": json_value(provenance),
+    }
+    snapshot["facts"]["input_kind"] = HISTORY_INPUT_KIND
+    snapshot["facts"]["comparison_case_id"] = (
+        f"odoo:purchase.order.group:{base_intent['purchase_group_id']}"
+    )
+    return _CaseInputs(
+        request, assessments, normalized.as_of, normalized.company_id, snapshot, None
+    )
+
+
+def _scenario_inputs(uow, parent_id: str, delta: ScenarioDelta) -> _CaseInputs:
+    """Load the stored base, apply the changes and reuse its saved assessments."""
+    parent = uow.cases.get(parent_id)
+    if parent is None:
+        raise PlanningCaseError("planning_case_not_found", "The base planning case does not exist.")
+    if parent.parent_id is not None:
+        raise ValueError("This slice creates scenarios from a base case only.")
+    base = validate_snapshot(parent)
+    request, as_of = _scenario_request(base, delta)
+    snapshot = {
+        "facts": base["facts"],
+        "model_manifest": base["model_manifest"],
+        "provenance": _scenario_provenance(base, delta),
+    }
+    return _CaseInputs(
+        request,
+        read_assessments(base["assessments"]),
+        as_of,
+        base["facts"]["company_id"],
+        snapshot,
+        base,
+    )
+
+
+def _planned_snapshot(inputs: _CaseInputs, delta, solver_factory: Callable) -> dict:
+    """Attach risk coefficients, run the MILP and complete the snapshot to be stored."""
+    coefficients, context = risk_inputs(
+        inputs.request, inputs.assessments, company_id=inputs.company_id, as_of=inputs.as_of
+    )
+    request = replace(inputs.request, risk_coefficients=coefficients)
+    solver, evidence = solver_factory()
+    result = create_procurement_plans(PlanningCommand(request, context), solver)
+    if result.status is PlanningStatus.INVALID_INPUT:
+        raise ValueError("The planning input violates the supported numerical/business contract.")
+    encoded_result = json_value(result)
+    return inputs.snapshot | {
+        "snapshot_version": SNAPSHOT_VERSION,
+        "request": json_value(request),
+        "assessments": json_value(inputs.assessments),
+        "risk_context": json_value(context),
+        "solver": evidence,
+        "result": encoded_result,
+        "scenario": json_value(delta),
+        "comparison": None if inputs.base is None else _comparison(inputs.base, encoded_result),
+    }
