@@ -3,7 +3,6 @@
 import json
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
-from decimal import Decimal
 from fractions import Fraction
 
 from application.errors import PlanningCaseError, RepositoryError
@@ -25,7 +24,7 @@ from application.procurement_planning import risk_inputs
 from application.stored_contracts import CONTENT_VERSION, DECISION_VERSION, HISTORY_INPUT_KIND
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.rules import checked_plan
-from supplier_evaluation.contracts import HISTORY_SOURCE, text_identity, utc
+from supplier_evaluation.contracts import HISTORY_SOURCE, SCORE_STEP, text_identity, utc
 
 DECISION_OUTCOMES = ("approve", "no_award")
 MAX_ACTOR_LENGTH = 255
@@ -83,130 +82,156 @@ class PlanningFinalDecision:
 
 
 def _saved_evidence(case: PlanningCase) -> dict:
-    """Recheck saved proof, joins and exact constraints without searching for a plan."""
+    """Recheck a stored base case before a decision is made or read; never search for a plan.
+
+    Each step re-derives something from the stored values and compares it with what was
+    saved. Any mismatch means the stored case was altered or written by incompatible
+    code; the caller then gets ``RepositoryError("invalid_persisted_case")`` (HTTP 503).
+    """
     value = validate_snapshot(case)
     try:
-        facts = value["facts"]
         request = read_request(value["request"])
         assessments = read_assessments(value["assessments"])
         result = read_result(value["result"])
-        metadata = value["model_manifest"]["metadata"]  # validate_snapshot checked it
-        for name in ("model_id", "training_id"):
-            text_identity(metadata[name])
-        utc(datetime.fromisoformat(metadata["trained_through"]))
-        solver = value["solver"]
-        for name in ("adapter",):
-            text_identity(solver[name])
-        if (
-            not solver["configuration"]
-            or not solver["runtime"]
-            or solver["time_limit_seconds"] <= 0
-        ):
-            raise ValueError("Incomplete saved solver evidence.")
-        for version in solver["runtime"].values():
-            text_identity(version)
-        sources = value["provenance"]["entries"]
-        paths = set()
-        for source in sources:
-            if set(source) != {
-                "canonical_path",
-                "field_name",
-                "source_type",
-                "source_reference",
-                "observed_at",
-            }:
-                raise ValueError("Invalid saved provenance contract.")
-            for name in ("canonical_path", "field_name", "source_type", "source_reference"):
-                text_identity(source[name])
-            utc(datetime.fromisoformat(source["observed_at"]))
-            if source["canonical_path"] in paths:
-                raise ValueError("Duplicate saved provenance path.")
-            paths.add(source["canonical_path"])
-        required_paths = {f"request.requirement.{k}" for k in value["request"]["requirement"]}
-        required_paths.update(f"request.policy.{k}" for k in value["request"]["policy"])
-        required_paths.update(f"facts.{k}" for k in ("company_id", "as_of", "approval_reference"))
-        for supplier in value["request"]["suppliers"]:
-            required_paths.update(
-                f"request.suppliers[{supplier['supplier_id']}].{k}" for k in supplier
-            )
-        if not required_paths <= paths:
-            raise ValueError("Missing saved field provenance.")
-        if (
-            case.parent_id is not None
-            or value["comparison"] is not None
-            or facts["source_type"] != HISTORY_SOURCE
-            or facts["input_kind"] != HISTORY_INPUT_KIND
-            or value["risk_context"]["controlled_fixture"] is not True
-            or value["request"] != json_value(request)
-            or value["assessments"] != json_value(assessments)
-            or value["result"] != json_value(result)
-            or facts["requirement"] != value["request"]["requirement"]
-            or facts["policy"] != value["request"]["policy"]
-            or [s["terms"] for s in facts["suppliers"]] != value["request"]["suppliers"]
-        ):
-            raise ValueError("Unsupported or inconsistent saved contracts.")
-        coefficients, context = risk_inputs(
-            replace(request, risk_coefficients=None),
-            # Assessment reference digests preserve the score's four-place mapping precision.
-            tuple(replace(a, score=a.score.quantize(Decimal("0.0001"))) for a in assessments),
-            company_id=facts["company_id"],
-            as_of=datetime.fromisoformat(facts["as_of"]),
-        )
-        if (
-            coefficients != request.risk_coefficients
-            or json_value(context) != value["risk_context"]
-            or any(a.snapshot.source_type != HISTORY_SOURCE for a in assessments)
-        ):
-            raise ValueError("Stored risk evidence does not match its planning context.")
-        plans = (
-            ()
-            if result.minimum_cost_plan is None
-            else (result.minimum_cost_plan, *result.alternatives)
-        )
-        if plans:
-            if checked_plan(request, plans[0].allocations) != plans[0]:
-                raise ValueError("Invalid saved reference metrics or constraints.")
-            stages = tuple((e, "risk") for e in sorted(set(request.policy.epsilons)))
-            if request.policy.diversification_epsilon is not None:
-                stages += ((request.policy.diversification_epsilon, "diversified"),)
-            if tuple((r.epsilon, r.kind) for r in result.runs) != stages[: len(result.runs)]:
-                raise ValueError("Invalid saved stage order.")
-            if result.status is PlanningStatus.OPTIMAL:
-                if len(result.runs) != len(stages):
-                    raise ValueError("Missing saved stage proof.")
-            elif (
-                not result.runs
-                or result.runs[-1].status != result.status
-                or result.runs[-1].status is PlanningStatus.OPTIMAL
-                or any(r.status is not PlanningStatus.OPTIMAL for r in result.runs[:-1])
-            ):
-                raise ValueError("Retained plans require a recorded later-stage failure.")
-            proved = {0}
-            for run in result.runs:
-                if run.status is not PlanningStatus.OPTIMAL:
-                    continue
-                plan = plans[run.plan_index]
-                checked = checked_plan(
-                    request, plan.allocations, Fraction(plans[0].total_cost), run.epsilon
-                )
-                if (
-                    (run.plan_index != 0 and checked != plan)
-                    or checked.risk_exposure > plans[0].risk_exposure
-                    or (
-                        run.kind == "diversified" and checked.largest_share > plans[0].largest_share
-                    )
-                ):
-                    raise ValueError("Invalid saved alternative proof or metrics.")
-                proved.add(run.plan_index)
-            if proved != set(range(len(plans))) or len({p.allocations for p in plans}) != len(
-                plans
-            ):
-                raise ValueError("Missing proof or duplicated plan.")
+        _check_model_and_solver(value)
+        _check_provenance(value)
+        _check_contracts(case, value, request, assessments, result)
+        _check_risk_replay(value, request, assessments)
+        _check_plan_proofs(request, result)
         return value
     except (ValueError, TypeError, KeyError, AttributeError, IndexError, ArithmeticError) as error:
         raise RepositoryError(
             "invalid_persisted_case", "The stored approval evidence is invalid."
         ) from error
+
+
+def _check_model_and_solver(value: dict) -> None:
+    """Model identity, training time and solver versions are present and well formed."""
+    metadata = value["model_manifest"]["metadata"]  # validate_snapshot checked it
+    for name in ("model_id", "training_id"):
+        text_identity(metadata[name])
+    utc(datetime.fromisoformat(metadata["trained_through"]))
+    solver = value["solver"]
+    text_identity(solver["adapter"])
+    if not solver["configuration"] or not solver["runtime"] or solver["time_limit_seconds"] <= 0:
+        raise ValueError("Incomplete saved solver evidence.")
+    for version in solver["runtime"].values():
+        text_identity(version)
+
+
+def _check_provenance(value: dict) -> None:
+    """Every request field has exactly one well-formed provenance entry."""
+    paths = set()
+    for source in value["provenance"]["entries"]:
+        if set(source) != {
+            "canonical_path",
+            "field_name",
+            "source_type",
+            "source_reference",
+            "observed_at",
+        }:
+            raise ValueError("Invalid saved provenance contract.")
+        for name in ("canonical_path", "field_name", "source_type", "source_reference"):
+            text_identity(source[name])
+        utc(datetime.fromisoformat(source["observed_at"]))
+        if source["canonical_path"] in paths:
+            raise ValueError("Duplicate saved provenance path.")
+        paths.add(source["canonical_path"])
+    request = value["request"]
+    required = {f"request.requirement.{k}" for k in request["requirement"]}
+    required.update(f"request.policy.{k}" for k in request["policy"])
+    required.update(f"facts.{k}" for k in ("company_id", "as_of", "approval_reference"))
+    for supplier in request["suppliers"]:
+        required.update(f"request.suppliers[{supplier['supplier_id']}].{k}" for k in supplier)
+    if not required <= paths:
+        raise ValueError("Missing saved field provenance.")
+
+
+def _check_contracts(case, value, request, assessments, result) -> None:
+    """A base case built from Odoo history whose stored JSON re-encodes exactly and whose
+    Odoo facts agree with the planning request."""
+    facts = value["facts"]
+    if (
+        case.parent_id is not None
+        or value["comparison"] is not None
+        or facts["source_type"] != HISTORY_SOURCE
+        or facts["input_kind"] != HISTORY_INPUT_KIND
+        or value["risk_context"]["controlled_fixture"] is not True
+        or value["request"] != json_value(request)
+        or value["assessments"] != json_value(assessments)
+        or value["result"] != json_value(result)
+        or facts["requirement"] != value["request"]["requirement"]
+        or facts["policy"] != value["request"]["policy"]
+        or [s["terms"] for s in facts["suppliers"]] != value["request"]["suppliers"]
+    ):
+        raise ValueError("Unsupported or inconsistent saved contracts.")
+
+
+def _check_risk_replay(value, request, assessments) -> None:
+    """Rebuilding the MILP risk coefficients from the saved assessments gives the saved ones."""
+    facts = value["facts"]
+    coefficients, context = risk_inputs(
+        replace(request, risk_coefficients=None),
+        # Stored JSON drops trailing zeros ("0.25"), but the assessment digest was taken on
+        # the four-place score ("0.2500"): restore that form. The value does not change.
+        tuple(replace(a, score=a.score.quantize(SCORE_STEP)) for a in assessments),
+        company_id=facts["company_id"],
+        as_of=datetime.fromisoformat(facts["as_of"]),
+    )
+    if (
+        coefficients != request.risk_coefficients
+        or json_value(context) != value["risk_context"]
+        or any(a.snapshot.source_type != HISTORY_SOURCE for a in assessments)
+    ):
+        raise ValueError("Stored risk evidence does not match its planning context.")
+
+
+def _check_plan_proofs(request, result) -> None:
+    """Every saved plan is feasible with exactly the saved metrics and proved by its stage.
+
+    Stages run in a fixed order (one risk run per cost tolerance, then the optional
+    diversified run). A non-optimal overall status is allowed only when the last
+    recorded stage is the one that failed. No alternative may be riskier than the
+    minimum-cost plan, a diversified one may not be more concentrated, and no plan
+    may appear twice.
+    """
+    if result.minimum_cost_plan is None:
+        return
+    plans = (result.minimum_cost_plan, *result.alternatives)
+    if checked_plan(request, plans[0].allocations) != plans[0]:
+        raise ValueError("Invalid saved reference metrics or constraints.")
+    stages = tuple((e, "risk") for e in sorted(set(request.policy.epsilons)))
+    if request.policy.diversification_epsilon is not None:
+        stages += ((request.policy.diversification_epsilon, "diversified"),)
+    if tuple((r.epsilon, r.kind) for r in result.runs) != stages[: len(result.runs)]:
+        raise ValueError("Invalid saved stage order.")
+    if result.status is PlanningStatus.OPTIMAL:
+        if len(result.runs) != len(stages):
+            raise ValueError("Missing saved stage proof.")
+    elif (
+        not result.runs
+        or result.runs[-1].status != result.status
+        or result.runs[-1].status is PlanningStatus.OPTIMAL
+        or any(r.status is not PlanningStatus.OPTIMAL for r in result.runs[:-1])
+    ):
+        raise ValueError("Retained plans require a recorded later-stage failure.")
+    proved = {0}
+    for run in result.runs:
+        if run.status is not PlanningStatus.OPTIMAL:
+            continue
+        plan = plans[run.plan_index]
+        checked = checked_plan(
+            request, plan.allocations, Fraction(plans[0].total_cost), run.epsilon
+        )
+        if (
+            (run.plan_index != 0 and checked != plan)
+            or checked.risk_exposure > plans[0].risk_exposure
+            or (run.kind == "diversified" and checked.largest_share > plans[0].largest_share)
+        ):
+            raise ValueError("Invalid saved alternative proof or metrics.")
+        proved.add(run.plan_index)
+    if proved != set(range(len(plans))) or len({p.allocations for p in plans}) != len(plans):
+        raise ValueError("Missing proof or duplicated plan.")
 
 
 def _approved_content(case, snapshot, intent, audit):

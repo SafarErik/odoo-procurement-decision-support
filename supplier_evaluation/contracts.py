@@ -9,7 +9,7 @@ import json
 import math
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal, localcontext
 from fractions import Fraction
 
 # V2: features computed from the bounded Odoo purchase-history export (docs/MODEL_ML.md).
@@ -34,6 +34,8 @@ HISTORY_LABEL_VERSION = "next-60d-problematic-v2"
 HISTORY_MAPPING_VERSION = "leaf-exposure-odoo-history-v2"
 HISTORY_LOOKBACK = timedelta(days=120)
 HISTORY_SETTLEMENT = timedelta(days=14)
+# Risk scores have four decimal places (0.0000..1.0000).
+SCORE_STEP = Decimal("0.0001")
 
 
 def canonical(value: object) -> str:
@@ -60,6 +62,25 @@ def utc(value: datetime) -> None:
 
 
 def feature_vector(names: tuple[str, ...], values: tuple[float, ...]) -> tuple[float, ...]:
+    """The seven history features in model order, after a plausibility check.
+
+    The ranges are generous sanity bounds around what the feature definitions in
+    ``purchase_history.feature_values`` can produce (docs/MODEL_ML.md §3); a value outside
+    them means broken input data, not an unusual supplier:
+
+    - rates (on-time, fill, partial share) are shares, so 0..1;
+    - ``order_count`` 3..500: at least ``MIN_FEATURE_LINES`` (3) settled lines are needed
+      for a score, and one history read returns at most 500 lines
+      (``application.purchase_history.MAX_LINES``);
+    - ``mean_lateness_days`` -30..400: arriving more than 30 days early on average is
+      treated as a data error; a delay cannot exceed 134 days (the oldest line in the
+      feature window is due 134 days before the cutoff), so 400 is a loose upper bound;
+    - ``lateness_spread_days`` and ``days_since_last_receipt`` 0..400: both are bounded by
+      the window lengths (134 and 180 days); 400 covers the earlier 400-day recency cap.
+
+    Outside the ranges this raises ValueError: the supplier gets no score, there is no
+    fallback score, so no planning case is created from that history.
+    """
     if names != HISTORY_FEATURES or not isinstance(values, tuple) or len(values) != len(names):
         raise ValueError("Exact ordered feature schema required.")
     if any(type(x) not in (int, float) or not math.isfinite(x) for x in values):
@@ -75,6 +96,18 @@ def feature_vector(names: tuple[str, ...], values: tuple[float, ...]) -> tuple[f
     ):
         raise ValueError("Invalid feature range or insufficient history support.")
     return tuple(float(x) for x in values)
+
+
+def leaf_score(counts: tuple[int, int]) -> Decimal:
+    """Risk score of a tree leaf: its share of problematic training rows.
+
+    ``counts`` is (regular, problematic) training rows in the leaf. The share is rounded
+    half up to four places (``SCORE_STEP``), e.g. 3 of 7 rows -> 0.4286. The model computes
+    it at inference and ``Assessment`` recomputes it to check a stored score.
+    """
+    with localcontext() as ctx:
+        ctx.prec = 28
+        return (Decimal(counts[1]) / sum(counts)).quantize(SCORE_STEP, rounding=ROUND_HALF_UP)
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,18 +266,11 @@ class Assessment:
             or sum(self.leaf_counts) < 10
         ):
             raise ValueError("Insufficient leaf support.")
-        from decimal import ROUND_HALF_UP, localcontext
-
-        with localcontext() as ctx:
-            ctx.prec = 28
-            expected = (Decimal(self.leaf_counts[1]) / sum(self.leaf_counts)).quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
         if (
             not isinstance(self.score, Decimal)
             or not self.score.is_finite()
             or not 0 <= self.score <= 1
-            or self.score != expected
+            or self.score != leaf_score(self.leaf_counts)
             or self.predicted_class != int(self.leaf_counts[1] > self.leaf_counts[0])
         ):
             raise ValueError("Invalid risk score, direction or class mapping.")

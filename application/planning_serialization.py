@@ -151,23 +151,29 @@ def read_assessments(values: list) -> tuple[Assessment, ...]:
     return tuple(assessments)
 
 
+def read_fraction(value: dict) -> Fraction:
+    """A stored exact rational ``{"numerator": n, "denominator": d}`` (d > 0) as a Fraction.
+
+    Shares, exposures and premiums are stored this way so no rounding happens on save.
+    Raises ValueError for any other shape.
+    """
+    if (
+        set(value) != {"numerator", "denominator"}
+        or any(type(x) is not int for x in value.values())
+        or value["denominator"] <= 0
+    ):
+        raise ValueError("Invalid stored rational.")
+    return Fraction(value["numerator"], value["denominator"])
+
+
 def read_result(value: dict) -> PlanningResult:
     """Reconstruct recorded values, without recalculating any plan or objective."""
-
-    def fraction(v):
-        if (
-            set(v) != {"numerator", "denominator"}
-            or any(type(x) is not int for x in v.values())
-            or v["denominator"] <= 0
-        ):
-            raise ValueError("Invalid stored rational.")
-        return Fraction(v["numerator"], v["denominator"])
 
     def plan(v):
         allocations = tuple(Allocation(**a) for a in v["allocations"])
         cost = Decimal(v["total_cost"])
-        exposure = None if v["risk_exposure"] is None else fraction(v["risk_exposure"])
-        share, premium = fraction(v["largest_share"]), fraction(v["cost_premium"])
+        exposure = None if v["risk_exposure"] is None else read_fraction(v["risk_exposure"])
+        share, premium = read_fraction(v["largest_share"]), read_fraction(v["cost_premium"])
         if (
             not cost.is_finite()
             or cost <= 0

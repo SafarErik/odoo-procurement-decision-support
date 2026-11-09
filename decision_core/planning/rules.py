@@ -126,33 +126,19 @@ def checked_plan(
     reference_cost: Fraction | None = None,
     epsilon: Decimal | None = None,
 ) -> ProcurementPlan:
+    """Verify a solver's allocation exactly and turn it into a plan with its explanations.
+
+    The solver's answer is never trusted: every business rule is rechecked here with
+    exact integer/rational arithmetic, and the metrics (cost, exposure, largest share,
+    premium) are recomputed. With ``reference_cost`` (the proven minimum cost) the plan
+    may not be cheaper than it, and with ``epsilon`` not dearer than
+    ``reference_cost * (1 + epsilon)``. A violation raises ``InvalidPlanningInput`` with
+    code ``invalid_solver_output``.
+    """
     ordered = tuple(sorted(request.suppliers, key=lambda s: s.supplier_id))
-    require(
-        isinstance(allocations, tuple) and all(isinstance(a, Allocation) for a in allocations),
-        "invalid_solver_output",
-        "Allocations must be immutable typed values.",
-    )
-    require(
-        tuple(a.supplier_id for a in allocations) == tuple(s.supplier_id for s in ordered),
-        "invalid_solver_output",
-        "Every supplier must appear exactly once in stable order.",
-    )
     limits = bounds(request)
-    for a, b in zip(allocations, limits, strict=True):
-        require(
-            type(a.quantity) is int
-            and 0 <= a.quantity <= b.upper
-            and (a.quantity == 0 or a.quantity >= b.lower),
-            "invalid_solver_output",
-            "Allocation violates exact positive-use business bounds.",
-        )
+    _check_allocations(request, allocations, ordered, limits)
     q = request.requirement.approved_quantity
-    count = sum(a.quantity > 0 for a in allocations)
-    require(
-        sum(a.quantity for a in allocations) == q and count <= request.policy.max_suppliers,
-        "invalid_solver_output",
-        "Demand or maximum supplier count is violated.",
-    )
     cost = sum(
         (Fraction(s.unit_price) * a.quantity for s, a in zip(ordered, allocations, strict=True)),
         Fraction(),
@@ -175,57 +161,103 @@ def checked_plan(
         if complete
         else None
     )
+    count = sum(a.quantity > 0 for a in allocations)
     reasons = list(necessary_diagnostics(request))
     for s, a, b in zip(ordered, allocations, limits, strict=True):
+        reasons += _supplier_explanations(request, s, a.quantity, b)
+    reasons += _plan_explanations(request, count, premium, exposure)
+    return ProcurementPlan(
+        allocations,
+        exact_decimal(cost),
+        exposure,
+        Fraction(max(a.quantity for a in allocations), q),
+        count,
+        premium,
+        tuple(reasons),
+    )
+
+
+def _check_allocations(request, allocations, ordered, limits) -> None:
+    """One integer quantity per supplier in id order, within its bounds, meeting demand
+    exactly and using at most the allowed number of suppliers."""
+    require(
+        isinstance(allocations, tuple) and all(isinstance(a, Allocation) for a in allocations),
+        "invalid_solver_output",
+        "Allocations must be immutable typed values.",
+    )
+    require(
+        tuple(a.supplier_id for a in allocations) == tuple(s.supplier_id for s in ordered),
+        "invalid_solver_output",
+        "Every supplier must appear exactly once in stable order.",
+    )
+    for a, b in zip(allocations, limits, strict=True):
+        require(
+            type(a.quantity) is int
+            and 0 <= a.quantity <= b.upper
+            and (a.quantity == 0 or a.quantity >= b.lower),
+            "invalid_solver_output",
+            "Allocation violates exact positive-use business bounds.",
+        )
+    count = sum(a.quantity > 0 for a in allocations)
+    require(
+        sum(a.quantity for a in allocations) == request.requirement.approved_quantity
+        and count <= request.policy.max_suppliers,
+        "invalid_solver_output",
+        "Demand or maximum supplier count is violated.",
+    )
+
+
+def _supplier_explanations(request, supplier, quantity: int, limit) -> list[Explanation]:
+    """What one supplier got and which of its limits the quantity reached."""
+    q = request.requirement.approved_quantity
+    identity = supplier.supplier_id
+    reasons = [Explanation("allocation", f"Allocated {quantity} of {q} integer units.", identity)]
+    if limit.upper > 0:
         reasons.append(
             Explanation(
-                "allocation", f"Allocated {a.quantity} of {q} integer units.", s.supplier_id
+                "effective_bounds",
+                f"Positive-use range [{limit.lower}, {limit.upper}]; "
+                f"upper slack {limit.upper - quantity}.",
+                identity,
             )
         )
-        if b.upper > 0:
-            reasons.append(
-                Explanation(
-                    "effective_bounds",
-                    f"Positive-use range [{b.lower}, {b.upper}]; "
-                    f"upper slack {b.upper - a.quantity}.",
-                    s.supplier_id,
-                )
+    if not quantity and limit.upper > 0:
+        reasons.append(
+            Explanation(
+                "zero_in_optimal_plan",
+                "Zero in the objective/tie-break solution; not a hard exclusion or causal proof.",
+                identity,
             )
-        if not a.quantity and b.upper > 0:
+        )
+    if not quantity:
+        return reasons
+    for code, bound in (
+        ("capacity_binding", supplier.capacity),
+        ("moq_binding", supplier.minimum_order.quantity),
+        ("price_lower_binding", supplier.price_quantities.minimum),
+        ("price_upper_binding", supplier.price_quantities.maximum),
+        ("delivery_lower_binding", supplier.delivery_quantities.minimum),
+        ("delivery_upper_binding", supplier.delivery_quantities.maximum),
+    ):
+        if quantity == bound:
             reasons.append(
-                Explanation(
-                    "zero_in_optimal_plan",
-                    "Zero in the objective/tie-break solution; "
-                    "not a hard exclusion or causal proof.",
-                    s.supplier_id,
-                )
+                Explanation(code, f"Allocation reaches explicit bound {bound}.", identity)
             )
-        if a.quantity:
-            for code, bound in (
-                ("capacity_binding", s.capacity),
-                ("moq_binding", s.minimum_order.quantity),
-                ("price_lower_binding", s.price_quantities.minimum),
-                ("price_upper_binding", s.price_quantities.maximum),
-                ("delivery_lower_binding", s.delivery_quantities.minimum),
-                ("delivery_upper_binding", s.delivery_quantities.maximum),
-            ):
-                if a.quantity == bound:
-                    reasons.append(
-                        Explanation(
-                            code, f"Allocation reaches explicit bound {bound}.", s.supplier_id
-                        )
-                    )
-            if request.policy.concentration_limit is not None and a.quantity == int(
-                Fraction(request.policy.concentration_limit) * q
-            ):
-                code = (
-                    "concentration_binding"
-                    if Fraction(a.quantity, q) == Fraction(request.policy.concentration_limit)
-                    else "integer_concentration_ceiling"
-                )
-                reasons.append(
-                    Explanation(code, "Integer concentration ceiling reached.", s.supplier_id)
-                )
+    limit_share = request.policy.concentration_limit
+    if limit_share is not None and quantity == int(Fraction(limit_share) * q):
+        # The integer ceiling floor(c * Q) can sit just below the exact share c * Q.
+        code = (
+            "concentration_binding"
+            if Fraction(quantity, q) == Fraction(limit_share)
+            else "integer_concentration_ceiling"
+        )
+        reasons.append(Explanation(code, "Integer concentration ceiling reached.", identity))
+    return reasons
+
+
+def _plan_explanations(request, count, premium, exposure) -> list[Explanation]:
+    """Plan-level notes: supplier-count limit reached, cost premium, exposure meaning."""
+    reasons = []
     if count == request.policy.max_suppliers:
         reasons.append(Explanation("supplier_count_binding", "Maximum supplier count reached."))
     reasons.append(
@@ -245,12 +277,4 @@ def checked_plan(
                 "Quantity-weighted external score exposure, not a calibrated failure probability.",
             )
         )
-    return ProcurementPlan(
-        allocations,
-        exact_decimal(cost),
-        exposure,
-        Fraction(max(a.quantity for a in allocations), q),
-        count,
-        premium,
-        tuple(reasons),
-    )
+    return reasons

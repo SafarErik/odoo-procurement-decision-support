@@ -1,7 +1,8 @@
 # Supplier selection and order allocation model (MILP)
 
 Source: `decision_core/planning/` (model, bounds, verification, explanations) and
-`optimization_adapter/pulp_cbc.py` (PuLP/CBC encoding). Thesis chapter 5.
+`optimization_adapter/pulp_cbc.py` (PuLP/CBC encoding; its module docstring restates
+§3 next to the code). Thesis chapter 5.
 
 ## 1. Input
 

@@ -93,10 +93,18 @@ def risk_inputs(
     company_id: str,
     as_of: datetime,
 ) -> tuple[tuple[RiskCoefficient, ...], ExternalRiskContext]:
-    """Turn one assessment per supplier into MILP risk coefficients and their evidence.
+    """Turn one Decision Tree assessment per supplier into MILP risk coefficients.
+
+    The supplier's leaf score (0..1, higher = riskier) becomes its coefficient ``r_i``
+    unchanged; the MILP's risk exposure of a plan is then ``sum(r_i * x_i) / Q``. The
+    coefficient carries the quantity range the assessment is valid for. The returned
+    context records digests of the assessments and their validity, so a stored case can
+    later rebuild the same coefficients and prove they were not altered.
 
     Raises ValueError when an assessment is missing, mixes model versions, or does not
-    cover the request's company, product, unit and dates; there is no zero-risk fallback.
+    cover the request's company, product, unit and dates. There is no fallback score:
+    a supplier without a valid assessment stops the planning, it is never treated as
+    risk-free.
     """
     utc(as_of)
     text_identity(company_id)

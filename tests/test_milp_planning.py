@@ -297,6 +297,22 @@ def test_verified_minimum_survives_alternative_timeout_with_partial_status():
     assert result.runs[0].plan_index is None
 
 
+def test_malformed_alternative_outcome_is_a_solver_error_that_keeps_the_minimum():
+    class Answer:  # status only, no code: not a SolveOutcome
+        status = PlanningStatus.NO_PROVEN_OPTIMUM
+
+    class MalformedSolver(PulpCbcSolver):
+        def risk_alternative(self, request, reference_cost, epsilon, deadline):
+            return Answer()
+
+    result = plan_procurement(scored(request()), MalformedSolver())
+    assert result.status is PlanningStatus.SOLVER_ERROR
+    assert result.minimum_cost_plan.total_cost == Decimal("24") and result.alternatives == ()
+    assert [(r.status, r.code) for r in result.runs] == [
+        (PlanningStatus.SOLVER_ERROR, "alternative_verification_failed")
+    ]
+
+
 def test_later_infeasibility_is_solver_failure_not_business_infeasibility():
     class ContradictorySolver(PulpCbcSolver):
         def risk_alternative(self, request, reference_cost, epsilon, deadline):

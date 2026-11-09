@@ -338,6 +338,20 @@ def test_pdf_client_fails_closed_on_unsupported_response(decision_api, corruptio
     assert result is None and error == tr("err_pdf", "hu") and TOKEN not in error
 
 
+def test_rationale_taller_than_a_page_continues_on_the_next_page(decision_api):
+    client, _, base, *_ = decision_api
+    decision, _ = approve(client, base)
+    content = deepcopy(decision["approved_content"])
+    # Allowed by the 2000-character limit; one table row of ~400 lines used to stop the render.
+    content["human_decision"]["rationale"] = "line\n" * 399 + "end"
+    for render in (render_plan_pdf, render_audit_pdf):
+        for language in ("hu", "en"):
+            data, version = render(content, language)
+            text = extracted(data)
+            assert version.endswith("/layout-v7")
+            assert text.count("line") >= 399 and "end" in text
+
+
 def test_pdf_names_a_plan_proved_only_by_the_balanced_stage(decision_api):
     client, _, base, *_ = decision_api
     decision, _ = approve(client, base, 1)
