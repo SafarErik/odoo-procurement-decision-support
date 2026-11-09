@@ -15,12 +15,12 @@ from application.errors import RepositoryError
 from application.planning_documents import PlanningDocument
 from backend.app.main import app
 from document_adapter.approved_pdf import render_audit_pdf, render_plan_pdf
+from frontend.api.cases import fetch_planning_case
+from frontend.api.documents import fetch_planning_pdf
 from frontend.config import settings as frontend_settings
 from frontend.i18n import tr
 from frontend.planning.state import PlanningState
-from frontend.planning_client import fetch_planning_case
-from frontend.planning_pdf_client import fetch_planning_pdf
-from tests.helpers.frontend_patching import patch_client
+from tests.helpers.frontend_patching import patch_client, use_transport
 from tests.helpers.planning_api import BASE, TOKEN, approve, forbidden, headers, intent
 
 
@@ -264,21 +264,19 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(decision_api
     decision, _ = approve(client, base)
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
-    transport = httpx.ASGITransport(app=app)
+    use_transport(monkeypatch, httpx.ASGITransport(app=app))
     calls = []
 
     async def fetch(*args, **kwargs):
         calls.append(args)
         if len(calls) == 1:
             return None, "PDF unavailable; approval remains saved"
-        return await fetch_planning_pdf(*args, **kwargs, transport=transport)
+        return await fetch_planning_pdf(*args, **kwargs)
 
     patch_client(monkeypatch, "fetch_planning_pdf", fetch)
 
     async def run():
-        display, _ = await fetch_planning_case(
-            "http://test" + BASE, base["case_id"], TOKEN, transport=transport
-        )
+        display, _ = await fetch_planning_case(base["case_id"])
         state = PlanningState(_reflex_internal_init=True)
         state.lang = "en"  # the assertions below read English texts
         state._show(display)
@@ -302,8 +300,10 @@ def test_pdf_frontend_view_download_failure_and_same_identity_retry(decision_api
     "corruption",
     ["hash", "reference", "mime", "version", "language", "kind", "bytes", "oversize", "redirect"],
 )
-def test_pdf_client_fails_closed_on_unsupported_response(decision_api, corruption):
+def test_pdf_client_fails_closed_on_unsupported_response(decision_api, corruption, monkeypatch):
     client, _, base, *_ = decision_api
+    monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
     decision, url = approve(client, base)
     good = client.get(url, headers=headers())
     response_headers = dict(good.headers)
@@ -330,14 +330,9 @@ def test_pdf_client_fails_closed_on_unsupported_response(decision_api, corruptio
         assert request.headers["authorization"] == f"Bearer {TOKEN}"
         return httpx.Response(status, headers=response_headers, content=data)
 
+    use_transport(monkeypatch, httpx.MockTransport(respond))
     result, error = asyncio.run(
-        fetch_planning_pdf(
-            "http://test" + BASE,
-            base["case_id"],
-            decision["approved_content_hash"],
-            TOKEN,
-            transport=httpx.MockTransport(respond),
-        )
+        fetch_planning_pdf(base["case_id"], decision["approved_content_hash"])
     )
     # Hungarian is the default document language, so the message is Hungarian too.
     assert result is None and error == tr("err_pdf", "hu") and TOKEN not in error
@@ -500,21 +495,19 @@ def test_audit_view_fetches_audit_appendix_with_same_error_handling(decision_api
     decision, _ = approve(client, base)
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
-    transport = httpx.ASGITransport(app=app)
+    use_transport(monkeypatch, httpx.ASGITransport(app=app))
     calls = []
 
     async def fetch(*args, **kwargs):
         calls.append(kwargs["kind"])
         if len(calls) == 1:
             return None, "PDF unavailable; approval remains saved"
-        return await fetch_planning_pdf(*args, **kwargs, transport=transport)
+        return await fetch_planning_pdf(*args, **kwargs)
 
     patch_client(monkeypatch, "fetch_planning_pdf", fetch)
 
     async def run():
-        display, _ = await fetch_planning_case(
-            "http://test" + BASE, base["case_id"], TOKEN, transport=transport
-        )
+        display, _ = await fetch_planning_case(base["case_id"])
         state = PlanningState(_reflex_internal_init=True)
         state.lang = "en"
         state._show(display)

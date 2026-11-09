@@ -8,11 +8,11 @@ import pytest
 from pydantic import SecretStr
 
 from backend.app.main import app
+from frontend.api.cases import fetch_planning_case, submit_planning_request
 from frontend.config import settings as frontend_settings
 from frontend.planning.page import planning_page
 from frontend.planning.state import PlanningState
-from frontend.planning_client import fetch_planning_case, submit_planning_request
-from tests.helpers.frontend_patching import patch_client
+from tests.helpers.frontend_patching import patch_client, use_transport
 from tests.helpers.planning_api import BASE, TOKEN, intent
 
 
@@ -20,13 +20,11 @@ def test_explicit_selection_and_lost_success_response_recovery(decision_api, mon
     _, uow, base, *_ = decision_api
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
     monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
-    transport = httpx.ASGITransport(app=app)
+    use_transport(monkeypatch, httpx.ASGITransport(app=app))
     lost = []
 
-    async def send(url, payload, key, token, lang="en"):
-        result = await submit_planning_request(
-            url, payload, key, token, lang=lang, transport=transport
-        )
+    async def send(url, payload, key, *, lang="en"):
+        result = await submit_planning_request(url, payload, key, lang=lang)
         lost.append((url, deepcopy(payload), key))
         if len(lost) == 1:
             assert result[0] is not None
@@ -36,9 +34,7 @@ def test_explicit_selection_and_lost_success_response_recovery(decision_api, mon
     patch_client(monkeypatch, "submit_planning_request", send)
 
     async def flow():
-        display, error = await fetch_planning_case(
-            "http://test" + BASE, base["case_id"], TOKEN, transport=transport
-        )
+        display, error = await fetch_planning_case(base["case_id"])
         assert not error
         state = PlanningState(_reflex_internal_init=True)
         state.lang = "en"  # the assertions below read English texts
@@ -68,19 +64,19 @@ def test_explicit_selection_and_lost_success_response_recovery(decision_api, mon
         assert not state.has_pending and state.details["final_outcome"] == "Approved"
         assert state.details["final_plan"] == "Alternative 1"
         assert lost[0] == lost[1] and len(uow.decisions.rows) == 1
-        loaded, error = await fetch_planning_case(
-            "http://test" + BASE, base["case_id"], TOKEN, transport=transport
-        )
+        loaded, error = await fetch_planning_case(base["case_id"])
         assert not error and loaded.details["final_audit"] == state.details["final_audit"]
 
     asyncio.run(flow())
 
 
 @pytest.mark.parametrize("status", [409, 422, 503, 302])
-def test_rejected_and_uncertain_finalization_responses(decision_api, status):
+def test_rejected_and_uncertain_finalization_responses(decision_api, status, monkeypatch):
     _, _, base, *_ = decision_api
-    transport = httpx.MockTransport(
-        lambda request: httpx.Response(status, json={"detail": "failure"})
+    monkeypatch.setattr(frontend_settings, "api_service_token", SecretStr(TOKEN))
+    use_transport(
+        monkeypatch,
+        httpx.MockTransport(lambda request: httpx.Response(status, json={"detail": "failure"})),
     )
 
     async def run():
@@ -88,8 +84,6 @@ def test_rejected_and_uncertain_finalization_responses(decision_api, status):
             "http://test" + BASE + f"/{base['case_id']}/final-decision",
             intent(base),
             base["case_id"],
-            TOKEN,
-            transport=transport,
         )
 
     result, error, uncertain = asyncio.run(run())

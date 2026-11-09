@@ -18,10 +18,9 @@ from application.planning_library import case_summary, library_query, list_plann
 from application.planning_serialization import snapshot_json
 from backend.app.config import settings
 from backend.app.main import app
+from frontend.api.library import fetch_library
 from frontend.planning.library import library_page
 from frontend.planning.state import PlanningState
-from frontend.planning_library_client import fetch_library
-from tests.helpers.frontend_patching import patch_client
 from tests.helpers.planning_api import BASE, headers, intent
 
 
@@ -160,33 +159,25 @@ def test_summaries_preserve_source_lineage_and_decision(decision_api):
         )
 
 
-def test_library_http_client_unavailable_and_invalid_data():
+def test_library_http_client_unavailable_and_invalid_data(frontend_api):
     async def flow():
         for response in (
             httpx.Response(503),
             httpx.Response(200, json={"items": [{}], "next_cursor": None}),
         ):
-            page, error = await fetch_library(
-                "http://test", "secret", {}, transport=httpx.MockTransport(lambda request: response)
-            )
+            frontend_api(httpx.MockTransport(lambda request: response), "secret")
+            page, error = await fetch_library({})
             assert page is None and error and "secret" not in error
 
     asyncio.run(flow())
 
 
-def test_bookmark_clear_invalid_previous_and_pending_guard(decision_api, monkeypatch):
+def test_bookmark_clear_invalid_previous_and_pending_guard(decision_api, monkeypatch, frontend_api):
     from frontend.config import settings as frontend_settings
-    from frontend.planning_client import fetch_planning_case
 
     _, _, base, *_ = decision_api
     monkeypatch.setattr(frontend_settings, "backend_base_url", "http://test")
-
-    async def fetch(url, case_id, token, lang="en"):
-        return await fetch_planning_case(
-            url, case_id, headers()["Authorization"][7:], transport=httpx.ASGITransport(app=app)
-        )
-
-    patch_client(monkeypatch, "fetch_planning_case", fetch)
+    frontend_api(httpx.ASGITransport(app=app), headers()["Authorization"][7:])
 
     async def flow():
         root = rx.State(_reflex_internal_init=True)

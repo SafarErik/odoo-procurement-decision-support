@@ -6,9 +6,8 @@ from uuid import uuid4
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import cases
 from frontend.i18n import DEFAULT_LANGUAGE, LANGUAGES, tr
-from frontend.planning_client import FINAL_DECISION_CONFLICT, submit_planning_request
 
 VIEWS = ("overview", "suppliers", "plans", "scenarios", "decision", "audit")
 
@@ -183,14 +182,10 @@ class BaseMixin(rx.State, mixin=True):
         self.is_loading = True
 
     async def _send_pending(self, *, recovering: bool = False):
-        result, error, uncertain = await submit_planning_request(
-            self._pending["url"],
-            self._pending["payload"],
-            self._pending["key"],
-            settings.api_service_token.get_secret_value(),
-            lang=self._lang(),
+        result, error, uncertain = await cases.submit_planning_request(
+            self._pending["url"], self._pending["payload"], self._pending["key"], lang=self._lang()
         )
-        self.decision_conflict = error == FINAL_DECISION_CONFLICT
+        self.decision_conflict = error == cases.FINAL_DECISION_CONFLICT
         self.error_message = self._tr("err_decision_conflict") if self.decision_conflict else error
         self.has_pending = uncertain or (recovering and result is None)
         if not self.has_pending:

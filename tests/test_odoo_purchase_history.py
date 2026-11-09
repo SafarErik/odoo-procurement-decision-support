@@ -25,7 +25,7 @@ from application.purchase_history import (
 )
 from backend.app.config import settings
 from backend.app.main import app
-from frontend.planning_client import _map_case
+from frontend.api.case_view import map_case
 from odoo_adapter.product_history_reader import OdooProductHistoryReader
 from supplier_evaluation.contracts import (
     HISTORY_FEATURES,
@@ -370,7 +370,7 @@ def test_odoo_history_case_lifecycle_and_stored_only_replay(fake_odoo, monkeypat
         assert facts["source_type"] == "odoo_purchase_history"
         assert facts["comparison_case_id"] == "odoo:purchase.order.group:501"
         assert base["snapshot"]["model_manifest"]["metadata"]["data_origin"] == "generated"
-        mapped = _map_case(base, base["case_id"])
+        mapped = map_case(base, base["case_id"])
         assert len(mapped.assessments) == 3
         provenance = {p["canonical_path"]: p for p in base["snapshot"]["provenance"]["entries"]}
         for assessment in base["snapshot"]["assessments"]:

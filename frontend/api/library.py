@@ -1,14 +1,14 @@
-"""Stored library HTTP/presentation boundary; no persistence or model imports."""
+"""Saved-case library resource: bounded pages of cases or of one base case's scenarios."""
 
 import json
 from datetime import date
 from decimal import Decimal
-from uuid import UUID
 
-import httpx
-
+from frontend.api import http
+from frontend.api.labels import product_label
+from frontend.api.parsing import is_uuid, parse_datetime, required_string
+from frontend.config import settings
 from frontend.i18n import day, moment, money, number, tr, unit
-from frontend.parsing import parse_datetime, required_string
 
 _DECISIONS = {
     "draft": "decision_draft",
@@ -18,19 +18,13 @@ _DECISIONS = {
 _OUTCOMES = ("optimal", "infeasible", "no_proven_optimum", "solver_error", "invalid_input")
 
 
-def _product(label: str, lang: str) -> str:
-    if label.startswith("odoo:product.product:"):
-        return tr("product_n", lang, n=label.removeprefix("odoo:product.product:"))
-    return label
-
-
 def library_row(item: dict, lang: str) -> dict[str, str]:
     """One saved case as buyer-readable strings; raises on invalid data."""
     case_id = required_string(item, "case_id")
-    if str(UUID(case_id)) != case_id:
+    if not is_uuid(case_id):
         raise ValueError("Invalid identity.")
     parent = item["parent_id"]
-    if parent is not None and str(UUID(parent)) != parent:
+    if parent is not None and not is_uuid(parent):
         raise ValueError("Invalid lineage.")
     if item["planning_status"] not in _OUTCOMES:
         raise ValueError("Invalid planning status.")
@@ -49,7 +43,7 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
         "case_id": case_id,
         "short_id": case_id[:8],
         "parent_id": parent or "",
-        "product": _product(required_string(item, "product_label"), lang),
+        "product": product_label(required_string(item, "product_label"), lang),
         "quantity": tr("pieces", lang, quantity=number(quantity, lang), unit=unit_name),
         "required": day(item["required_date"], lang),
         "currency": currency,
@@ -76,29 +70,43 @@ def library_row(item: dict, lang: str) -> dict[str, str]:
     }
 
 
-async def fetch_library(url, token, params, *, lang="en", transport=None):
-    try:
-        async with httpx.AsyncClient(transport=transport, timeout=15, trust_env=False) as client:
-            response = await client.get(
-                url, params=params, headers={"Authorization": "Bearer " + token}
-            )
-        if response.status_code != 200:
-            return None, tr("err_library", lang)
-        data = response.json()
-        if (
-            set(data) != {"items", "next_cursor"}
-            or not isinstance(data["items"], list)
-            or len(data["items"]) > 50
-        ):
-            raise ValueError("Invalid library page.")
-        cursor = data["next_cursor"]
-        if cursor is not None and (not isinstance(cursor, str) or not 1 <= len(cursor) <= 1024):
-            raise ValueError("Invalid continuation.")
-        rows = [library_row(item, lang) for item in data["items"]]
-        if len({row["case_id"] for row in rows}) != len(rows):
-            raise ValueError("Duplicate library row.")
-        return {"items": rows, "raw": data["items"], "next_cursor": cursor or ""}, ""
-    except httpx.HTTPError:
+def _page(response, lang: str) -> dict:
+    """One validated library page as display rows, raw items and the next cursor."""
+    data = response.json()
+    if (
+        set(data) != {"items", "next_cursor"}
+        or not isinstance(data["items"], list)
+        or len(data["items"]) > 50
+    ):
+        raise ValueError("Invalid library page.")
+    cursor = data["next_cursor"]
+    if cursor is not None and (not isinstance(cursor, str) or not 1 <= len(cursor) <= 1024):
+        raise ValueError("Invalid continuation.")
+    rows = [library_row(item, lang) for item in data["items"]]
+    if len({row["case_id"] for row in rows}) != len(rows):
+        raise ValueError("Duplicate library row.")
+    return {"items": rows, "raw": data["items"], "next_cursor": cursor or ""}
+
+
+async def _fetch(url: str, params: dict, lang: str):
+    """GET one library page with the library error texts."""
+    return await http.get_json(
+        url,
+        lambda response: _page(response, lang),
+        lang=lang,
+        params=params,
+        unavailable="err_library",
+        invalid="err_library_data",
+    )
+
+
+async def fetch_library(params: dict, *, lang: str = "en"):
+    """One page of saved base cases (filters ``status``/``q``/``limit``/``cursor``)."""
+    return await _fetch(settings.planning_cases_url, params, lang)
+
+
+async def fetch_scenarios(case_id: str, params: dict, *, lang: str = "en"):
+    """One page of the saved scenarios of base case ``case_id``."""
+    if not is_uuid(case_id):
         return None, tr("err_library", lang)
-    except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError):
-        return None, tr("err_library_data", lang)
+    return await _fetch(f"{settings.planning_cases_url}/{case_id}/scenarios", params, lang)

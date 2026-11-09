@@ -10,15 +10,17 @@ from pydantic import SecretStr
 
 from backend.app.config import settings as backend_settings
 from backend.app.main import app
+from frontend.api.cases import fetch_planning_case, submit_planning_request
 from frontend.app import PlanningState, planning_page
 from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
-from frontend.planning_client import fetch_planning_case, submit_planning_request
 from tests.helpers.frontend_patching import patch_client
 from tests.helpers.planning_api import TOKEN, forbidden
 
 
-def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, monkeypatch):
+def test_real_stored_api_mapping_without_upstream_model_or_solver(
+    stored_cases, monkeypatch, frontend_api
+):
     uow, base, child, infeasible = stored_cases
     monkeypatch.setattr("backend.app.routes.planning_cases.get_planning_unit_of_work", lambda: uow)
     monkeypatch.setattr(backend_settings, "api_service_token", SecretStr(TOKEN))
@@ -31,16 +33,10 @@ def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, 
     monkeypatch.setattr("application.planning_cases.assemble_planning_input", forbidden)
     before = {key: row.snapshot for key, row in uow.rows.items()}
 
+    frontend_api(httpx.ASGITransport(app=app))
+
     async def read():
-        return [
-            await fetch_planning_case(
-                "http://api.test/api/v2/procurement/planning-cases",
-                case["case_id"],
-                TOKEN,
-                transport=httpx.ASGITransport(app=app),
-            )
-            for case in (base, child, infeasible)
-        ]
+        return [await fetch_planning_case(case["case_id"]) for case in (base, child, infeasible)]
 
     mapped = asyncio.run(read())
     assert all(error == "" for _, error in mapped)
@@ -68,7 +64,7 @@ def test_real_stored_api_mapping_without_upstream_model_or_solver(stored_cases, 
         (302, "cannot be loaded"),
     ],
 )
-def test_http_failures_are_safe_and_not_retried(status, expected):
+def test_http_failures_are_safe_and_not_retried(status, expected, frontend_api):
     calls = []
 
     def respond(request):
@@ -76,14 +72,8 @@ def test_http_failures_are_safe_and_not_retried(status, expected):
         assert request.method == "GET" and request.headers["Authorization"] == f"Bearer {TOKEN}"
         return httpx.Response(status, headers={"Location": "http://elsewhere.test/"}, text=TOKEN)
 
-    display, error = asyncio.run(
-        fetch_planning_case(
-            "http://api.test/cases",
-            str(uuid4()),
-            TOKEN,
-            transport=httpx.MockTransport(respond),
-        )
-    )
+    frontend_api(httpx.MockTransport(respond))
+    display, error = asyncio.run(fetch_planning_case(str(uuid4())))
     assert display is None and expected in error and TOKEN not in error
     assert len(calls) == 1
 
@@ -97,20 +87,16 @@ def test_http_failures_are_safe_and_not_retried(status, expected):
         (str(uuid4()), "unsafe\ntoken"),
     ],
 )
-def test_invalid_identity_or_missing_secret_never_sends_request(case_id, token):
-    display, error = asyncio.run(
-        fetch_planning_case(
-            "http://api.test/cases",
-            case_id,
-            token,
-            transport=httpx.MockTransport(forbidden),
-        )
-    )
+def test_invalid_identity_or_missing_secret_never_sends_request(case_id, token, frontend_api):
+    frontend_api(httpx.MockTransport(forbidden), token)
+    display, error = asyncio.run(fetch_planning_case(case_id))
     assert display is None and error
 
 
-@pytest.mark.parametrize("fault", ["identity", "version", "decimal", "source", "shape", "quantity"])
-def test_malformed_snapshots_fail_closed(stored_cases, fault):
+@pytest.mark.parametrize(
+    "fault", ["identity", "version", "decimal", "source", "shape", "quantity", "exposure"]
+)
+def test_malformed_snapshots_fail_closed(stored_cases, fault, frontend_api):
     payload = deepcopy(stored_cases[1])
     if fault == "identity":
         payload["case_id"] = str(uuid4())
@@ -124,52 +110,41 @@ def test_malformed_snapshots_fail_closed(stored_cases, fault):
         del payload["snapshot"]["request"]["requirement"]["currency"]
     if fault == "quantity":
         payload["snapshot"]["request"]["requirement"]["approved_quantity"] = 0
-    display, error = asyncio.run(
-        fetch_planning_case(
-            "http://api.test/cases",
-            stored_cases[1]["case_id"],
-            TOKEN,
-            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
-        )
-    )
+    if fault == "exposure":  # just above 1; a 28-digit Decimal quotient would round it to 1
+        payload["snapshot"]["result"]["minimum_cost_plan"]["risk_exposure"] = {
+            "numerator": 10**30 + 1,
+            "denominator": 10**30,
+        }
+    frontend_api(httpx.MockTransport(lambda _: httpx.Response(200, json=payload)))
+    display, error = asyncio.run(fetch_planning_case(stored_cases[1]["case_id"]))
     assert display is None and "incomplete or unsupported" in error
 
 
-def test_provenance_and_exact_money_are_presented_without_relabelling(stored_cases):
+def test_provenance_and_exact_money_are_presented_without_relabelling(stored_cases, frontend_api):
     payload = deepcopy(stored_cases[1])
     payload["snapshot"]["provenance"]["entries"][0]["source_type"] = "odoo_json2"
     payload["snapshot"]["result"]["minimum_cost_plan"]["total_cost"] = "94.001"
-    display, error = asyncio.run(
-        fetch_planning_case(
-            "http://api.test/cases",
-            payload["case_id"],
-            TOKEN,
-            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
-        )
-    )
+    frontend_api(httpx.MockTransport(lambda _: httpx.Response(200, json=payload)))
+    display, error = asyncio.run(fetch_planning_case(payload["case_id"]))
     assert not error and display.plans[0]["cost"] == "$94.001"
     assert display.provenance[0]["type"] == "odoo_json2"
 
 
-def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, monkeypatch):
+def test_state_loading_failure_clears_previous_case_and_recovery(
+    stored_cases, monkeypatch, frontend_api
+):
     # Reflex imports this during event payload conversion, including plain forms.
     # It must work on a fresh frontend install (SQLAlchemy asyncio/greenlet).
     from reflex.model import Model
 
     assert Model is not None
     payload = stored_cases[1]
-    display, _ = asyncio.run(
-        fetch_planning_case(
-            "http://api.test/cases",
-            payload["case_id"],
-            TOKEN,
-            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload)),
-        )
-    )
+    frontend_api(httpx.MockTransport(lambda _: httpx.Response(200, json=payload)))
+    display, _ = asyncio.run(fetch_planning_case(payload["case_id"]))
     outcomes = iter([(display, ""), (None, "Planning data is unavailable."), (display, "")])
 
-    async def fetch(url, case_id, token, lang="en"):
-        assert token == TOKEN and case_id == payload["case_id"]
+    async def fetch(case_id, *, lang="en"):
+        assert case_id == payload["case_id"]
         return next(outcomes)
 
     patch_client(monkeypatch, "fetch_planning_case", fetch)
@@ -202,21 +177,16 @@ def test_state_loading_failure_clears_previous_case_and_recovery(stored_cases, m
 @pytest.mark.parametrize(
     "status,uncertain", [(401, False), (409, False), (422, False), (503, True), (302, True)]
 )
-def test_post_errors_keep_secrets_private_and_never_retry(status, uncertain):
+def test_post_errors_keep_secrets_private_and_never_retry(status, uncertain, frontend_api):
     calls = []
 
     def respond(request):
         calls.append(request)
         return httpx.Response(status, text=TOKEN, headers={"Location": "http://elsewhere.test"})
 
+    frontend_api(httpx.MockTransport(respond))
     display, error, pending = asyncio.run(
-        submit_planning_request(
-            "http://api.test/cases",
-            {"synthetic": True},
-            str(uuid4()),
-            TOKEN,
-            transport=httpx.MockTransport(respond),
-        )
+        submit_planning_request("http://api.test/cases", {"synthetic": True}, str(uuid4()))
     )
     assert display is None and error and TOKEN not in error and pending is uncertain
     assert len(calls) == 1 and calls[0].method == "POST"

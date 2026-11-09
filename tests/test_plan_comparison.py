@@ -5,14 +5,14 @@ from decimal import Decimal
 
 import pytest
 
+from frontend.api.case_view import map_case
 from frontend.i18n import money
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case
 
 
 def test_selection_mirrors_saved_values_and_never_preselects_or_creates_intent(stored_cases):
     base = stored_cases[1]
-    display = _map_case(base, base["case_id"])
+    display = map_case(base, base["case_id"])
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     state._show(display)
@@ -60,7 +60,7 @@ def test_bad_saved_allocation_cannot_reach_comparison_or_review(stored_cases, ba
     else:
         rows[0]["quantity"] += 1
     with pytest.raises(ValueError, match="allocation"):
-        _map_case(payload, payload["case_id"])
+        map_case(payload, payload["case_id"])
 
 
 def test_exact_absolute_premium_is_not_rounded_by_decimal_context(stored_cases):
@@ -68,7 +68,7 @@ def test_exact_absolute_premium_is_not_rounded_by_decimal_context(stored_cases):
     result = payload["snapshot"]["result"]
     result["minimum_cost_plan"]["total_cost"] = "123456789012345678901234567890.000000000000000001"
     result["alternatives"][0]["total_cost"] = "123456789012345678901234567890.000000000000000002"
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     assert display.plans[1]["premium_absolute"] == "+$0.000000000000000001"
 
 
@@ -76,12 +76,12 @@ def test_child_selection_is_analytical_and_empty_results_clear_review(stored_cas
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     child, infeasible = stored_cases[2:]
-    state._show(_map_case(child, child["case_id"]))
+    state._show(map_case(child, child["case_id"]))
     PlanningState.choose_final_plan.fn(state, "Minimum cost")
     assert state.selected_plan["label"] == "Minimum cost" and not state._pending
     PlanningState.choose_final_plan.fn(state, "No-award")
     assert state.final_choice == "Minimum cost"
-    state._show(_map_case(infeasible, infeasible["case_id"]))
+    state._show(map_case(infeasible, infeasible["case_id"]))
     assert state.selected_plan == {} and state.plans == []
 
 
@@ -94,7 +94,7 @@ def test_incomplete_outcomes_show_only_retained_saved_plans(stored_cases, status
     if not retained:
         result["minimum_cost_plan"] = None
         result["alternatives"] = []
-    display = _map_case(payload, payload["case_id"])
+    display = map_case(payload, payload["case_id"])
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     state._show(display)

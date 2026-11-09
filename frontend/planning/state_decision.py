@@ -6,11 +6,9 @@ from typing import Any
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import cases, documents
 from frontend.i18n import tr
 from frontend.planning.state_base import focus
-from frontend.planning_client import fetch_planning_case
-from frontend.planning_pdf_client import fetch_planning_pdf
 
 
 class DecisionMixin(rx.State, mixin=True):
@@ -149,8 +147,7 @@ class DecisionMixin(rx.State, mixin=True):
             self.error_message = self._tr("err_review_changed")
             return
         self._prepare_request(
-            f"{settings.planning_cases_url}/{self.details['case_id']}/final-decision",
-            self._decision_payload,
+            cases.final_decision_url(self.details["case_id"]), self._decision_payload
         )
         self._clear_decision_review()
         yield
@@ -171,11 +168,8 @@ class DecisionMixin(rx.State, mixin=True):
         self.is_loading = True
         yield
         try:
-            saved, error = await fetch_planning_case(
-                settings.planning_cases_url,
-                self.details["case_id"],
-                settings.api_service_token.get_secret_value(),
-                lang=self._lang(),
+            saved, error = await cases.fetch_planning_case(
+                self.details["case_id"], lang=self._lang()
             )
             if saved is not None and saved.details["final_outcome"]:
                 self.has_pending = False
@@ -234,11 +228,9 @@ class DecisionMixin(rx.State, mixin=True):
             self.is_loading = False
 
     async def _fetch_pdf(self, kind):
-        return await fetch_planning_pdf(
-            settings.planning_cases_url,
+        return await documents.fetch_planning_pdf(
             self.details["case_id"],
             self.details["final_content_hash"],
-            settings.api_service_token.get_secret_value(),
             language=self._lang(),
             kind=kind,
         )

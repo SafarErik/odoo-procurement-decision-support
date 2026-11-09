@@ -7,10 +7,10 @@ from typing import Any
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import cases
 from frontend.i18n import money, number, tr
 from frontend.planning.state_base import focus
-from frontend.planning.state_creation import _bounded_form_integer
+from frontend.planning.state_creation import bounded_form_integer
 
 KINDS = ("supplier_outage", "capacity_change", "demand_change", "price_change", "combined")
 
@@ -223,7 +223,7 @@ class ScenarioMixin(rx.State, mixin=True):
                 value = form_data.get("quantity", "")
                 if kind == "demand_change" or value != "":
                     try:
-                        demand = _bounded_form_integer(value, minimum=1)
+                        demand = bounded_form_integer(value, minimum=1)
                     except ValueError as error:
                         raise ValueError(self._tr("err_quantity")) from error
                     if demand == int(self.details["base_quantity"]):
@@ -251,7 +251,7 @@ class ScenarioMixin(rx.State, mixin=True):
                     value = form_data.get("capacity", "")
                     if kind == "capacity_change" or value != "":
                         try:
-                            capacity = _bounded_form_integer(value, minimum=0)
+                            capacity = bounded_form_integer(value, minimum=0)
                         except ValueError as error:
                             raise ValueError(self._tr("err_capacity")) from error
                         if capacity == int(terms["capacity"]):
@@ -296,9 +296,7 @@ class ScenarioMixin(rx.State, mixin=True):
         except (TypeError, KeyError, StopIteration, InvalidOperation):
             self.error_message = self._tr("err_scenario_fields")
             return
-        self._prepare_request(
-            f"{settings.planning_cases_url}/{self.details['base_id']}/scenarios", payload
-        )
+        self._prepare_request(cases.scenarios_url(self.details["base_id"]), payload)
         yield
         try:
             saved = await self._send_pending()

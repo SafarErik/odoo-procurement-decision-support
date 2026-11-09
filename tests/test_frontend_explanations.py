@@ -3,14 +3,15 @@
 import asyncio
 from copy import deepcopy
 
+from frontend.api.case_view import map_case
+from frontend.api.labels import supplier_label
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case, _supplier_label
 from tests.helpers.frontend_patching import event
 
 
 def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
     _, base, _, _ = stored_cases
-    mapped = _map_case(base, base["case_id"])
+    mapped = map_case(base, base["case_id"])
     assert "$4.00 more" in mapped.details["decision_summary"]
     assert "12.0 points" in mapped.details["decision_summary"]
     for row, assessment in zip(mapped.assessments, base["snapshot"]["assessments"], strict=True):
@@ -22,12 +23,12 @@ def test_tradeoff_summary_and_tree_explanation_keep_exact_records(stored_cases):
         "numerator": 1,
         "denominator": 1,
     }
-    assert "lowers" not in _map_case(altered, base["case_id"]).details["decision_summary"]
+    assert "lowers" not in map_case(altered, base["case_id"]).details["decision_summary"]
 
 
 def test_labels_are_readable_without_inventing_odoo_business_names():
-    assert _supplier_label("odoo:res.partner:51") == "Supplier 51"
-    assert _supplier_label("other-id") == "other-id"
+    assert supplier_label("odoo:res.partner:51") == "Supplier 51"
+    assert supplier_label("other-id") == "other-id"
 
 
 def test_unified_composer_outage_saves_against_original_base(scenario_state):

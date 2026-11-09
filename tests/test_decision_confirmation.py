@@ -8,11 +8,12 @@ import pytest
 from pydantic import SecretStr
 
 from backend.app.main import app
+from frontend.api.case_view import map_case
+from frontend.api.cases import fetch_planning_case, submit_planning_request
 from frontend.config import settings
 from frontend.i18n import tr
 from frontend.planning.state import PlanningState
-from frontend.planning_client import _map_case, fetch_planning_case, submit_planning_request
-from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.frontend_patching import consume, patch_client, use_transport
 from tests.helpers.planning_api import TOKEN, intent
 
 
@@ -21,16 +22,15 @@ def prepared(decision_api, monkeypatch):
     _, uow, base, child, *_ = decision_api
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
-    state._show(_map_case(base, base["case_id"]))
+    state._show(map_case(base, base["case_id"]))
     monkeypatch.setattr(settings, "backend_base_url", "http://test")
     monkeypatch.setattr(settings, "api_service_token", SecretStr(TOKEN))
+    use_transport(monkeypatch, httpx.ASGITransport(app=app))
     posts = []
 
-    async def send(url, payload, key, token, lang="en"):
+    async def send(url, payload, key, *, lang="en"):
         posts.append((url, deepcopy(payload), key))
-        return await submit_planning_request(
-            url, payload, key, token, lang=lang, transport=httpx.ASGITransport(app=app)
-        )
+        return await submit_planning_request(url, payload, key, lang=lang)
 
     patch_client(monkeypatch, "submit_planning_request", send)
     return state, uow, base, child, posts
@@ -118,7 +118,7 @@ def test_no_award_requires_reason_has_no_plan_and_child_cannot_review(prepared):
     assert posts[0][1]["outcome"] == "no_award" and posts[0][1]["plan_index"] is None
     assert state.details["final_outcome"] == "No-award"
     assert state.comparison_state == tr("state_no_award", "en")
-    state._show(_map_case(child, child["case_id"]))
+    state._show(map_case(child, child["case_id"]))
     assert state.comparison_state == tr("state_scenario", "en")
     state.review_final_decision(form("No-award"))
     assert not state.decision_open and len(posts) == 1
@@ -178,19 +178,14 @@ def test_conflict_blocks_further_posts_and_reopens_recorded_decision_only(
         assert state._pending == pending and state.has_pending
 
     async def no_record(*args, **kwargs):
-        return _map_case(base, base["case_id"]), ""
+        return map_case(base, base["case_id"]), ""
 
     patch_client(monkeypatch, "fetch_planning_case", no_record)
     consume(state, PlanningState.reopen_conflicted_decision)
     assert state.decision_conflict and "No recorded decision" in state.error_message
     assert state.recovery_json == recovery and len(posts) == 1
 
-    async def fetch(url, case_id, token, lang="en"):
-        return await fetch_planning_case(
-            url, case_id, token, lang=lang, transport=httpx.ASGITransport(app=app)
-        )
-
-    patch_client(monkeypatch, "fetch_planning_case", fetch)
+    patch_client(monkeypatch, "fetch_planning_case", fetch_planning_case)
     consume(state, PlanningState.reopen_conflicted_decision)
     assert not state.has_pending and not state.decision_conflict
     assert state.details["final_plan"] == "Minimum cost"

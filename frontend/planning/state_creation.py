@@ -7,19 +7,14 @@ from typing import Any
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import cases, odoo_history
+from frontend.api.labels import supplier_label
+from frontend.api.odoo_history import group_row, quotation_rows
 from frontend.i18n import day, moment, money, number, percent, tr, unit
-from frontend.odoo_history_client import (
-    fetch_odoo_history,
-    fetch_quotation_groups,
-    group_row,
-    quotation_rows,
-)
 from frontend.planning.state_base import focus
-from frontend.planning_client import _supplier_label
 
 
-def _bounded_form_integer(value: Any, *, minimum: int) -> int:
+def bounded_form_integer(value: Any, *, minimum: int) -> int:
     if (
         not isinstance(value, str)
         or not value.isascii()
@@ -108,7 +103,7 @@ class CreationMixin(rx.State, mixin=True):
         self._review_url = ""
 
     def _name(self, identity: str) -> str:
-        return _supplier_label(identity, self._lang(), self._group_names.get(self.selected_group))
+        return supplier_label(identity, self._lang(), self._group_names.get(self.selected_group))
 
     @rx.var
     def selected_group_row(self) -> dict[str, str]:
@@ -138,7 +133,7 @@ class CreationMixin(rx.State, mixin=True):
     def _demand_valid(self) -> bool:
         self.creation_errors = {}
         try:
-            _bounded_form_integer(self.creation_values.get("odoo_quantity"), minimum=1)
+            bounded_form_integer(self.creation_values.get("odoo_quantity"), minimum=1)
         except (TypeError, ValueError):
             self.creation_errors["odoo-quantity"] = self._tr("err_quantity")
         try:
@@ -218,11 +213,7 @@ class CreationMixin(rx.State, mixin=True):
         self.groups_error = ""
         yield
         try:
-            listing, error = await fetch_quotation_groups(
-                settings.quotation_groups_url,
-                settings.api_service_token.get_secret_value(),
-                lang=self._lang(),
-            )
+            listing, error = await odoo_history.fetch_quotation_groups(lang=self._lang())
             self.groups_error = error
             self.error_message = error
             self.groups_loaded = True
@@ -295,12 +286,7 @@ class CreationMixin(rx.State, mixin=True):
             if not group.isdecimal() or int(group) <= 0:
                 self.error_message = self._tr("err_choose_group")
                 return
-            data, error = await fetch_odoo_history(
-                settings.planning_cases_url
-                + f"/odoo-history/preview?purchase_group_id={int(group)}",
-                settings.api_service_token.get_secret_value(),
-                lang=self._lang(),
-            )
+            data, error = await odoo_history.fetch_odoo_history(int(group), lang=self._lang())
             if data is None:
                 self.error_message = error
                 return
@@ -410,7 +396,7 @@ class CreationMixin(rx.State, mixin=True):
         quantity = field(
             "odoo_quantity",
             "odoo-quantity",
-            lambda value: _bounded_form_integer(value, minimum=1),
+            lambda value: bounded_form_integer(value, minimum=1),
             "err_quantity",
         )
         required = field("odoo_required_date", "odoo-required-date", _form_date, "err_date")
@@ -422,13 +408,13 @@ class CreationMixin(rx.State, mixin=True):
             supplier["capacity"] = field(
                 prefix + "_capacity",
                 prefix + "_capacity",
-                lambda value: _bounded_form_integer(value, minimum=0),
+                lambda value: bounded_form_integer(value, minimum=0),
                 "err_capacity",
             )
             supplier["minimum_order_quantity"] = field(
                 prefix + "_moq",
                 prefix + "_moq",
-                lambda value: None if value == "" else _bounded_form_integer(value, minimum=1),
+                lambda value: None if value == "" else bounded_form_integer(value, minimum=1),
                 "err_moq",
             )
             supplier["promised_date"] = field(
@@ -439,7 +425,7 @@ class CreationMixin(rx.State, mixin=True):
                     field(
                         f"{prefix}_{name}_{end}",
                         f"{prefix}_{name}_{end}",
-                        lambda value: _bounded_form_integer(value, minimum=1),
+                        lambda value: bounded_form_integer(value, minimum=1),
                         "err_range",
                     )
                     for end in ("min", "max")
@@ -475,7 +461,7 @@ class CreationMixin(rx.State, mixin=True):
             currency = r["currency"]
             unit_name = self.selected_group_row.get("unit", "") or unit("Units", lang)
             self._review_payload = deepcopy(payload)
-            self._review_url = settings.planning_cases_url + "/from-odoo-history"
+            self._review_url = cases.from_odoo_history_url()
             group = self.selected_group_row
             self.creation_review = {
                 "kind": "odoo",

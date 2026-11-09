@@ -7,11 +7,10 @@ from typing import Any
 
 import reflex as rx
 
-from frontend.config import settings
+from frontend.api import cases, suppliers
+from frontend.api.case_view import map_case
 from frontend.i18n import tr
 from frontend.planning.state_base import VIEWS, focus, reveal_active_case_tab
-from frontend.planning_client import _map_case, fetch_planning_case
-from frontend.supplier_overview_client import fetch_supplier_overview
 
 
 @dataclass
@@ -121,9 +120,9 @@ class CaseMixin(rx.State, mixin=True):
             return None
         lang = self._lang()
         try:
-            self._apply(_map_case(self._case_raw, self.details["case_id"], lang))
+            self._apply(map_case(self._case_raw, self.details["case_id"], lang))
             if self._original_raw:
-                original = _map_case(self._original_raw, self._original_raw["case_id"], lang)
+                original = map_case(self._original_raw, self._original_raw["case_id"], lang)
                 self.original_details = deepcopy(original.details)
                 self.original_plan = deepcopy(original.plans[0]) if original.plans else {}
                 self.original_allocations = [
@@ -170,12 +169,7 @@ class CaseMixin(rx.State, mixin=True):
     async def _ensure_original(self, *, refresh=False):
         if self._original_matches_context(self.original_details) and not refresh:
             return
-        result, error = await fetch_planning_case(
-            settings.planning_cases_url,
-            self.details["base_id"],
-            settings.api_service_token.get_secret_value(),
-            lang=self._lang(),
-        )
+        result, error = await cases.fetch_planning_case(self.details["base_id"], lang=self._lang())
         try:
             if result is None:
                 raise ValueError(error)
@@ -205,11 +199,8 @@ class CaseMixin(rx.State, mixin=True):
         self.suppliers_error = ""
         yield
         try:
-            overview, self.suppliers_error = await fetch_supplier_overview(
-                settings.planning_cases_url,
-                self.details["case_id"],
-                settings.api_service_token.get_secret_value(),
-                lang=self._lang(),
+            overview, self.suppliers_error = await suppliers.fetch_supplier_overview(
+                self.details["case_id"], lang=self._lang()
             )
             if overview is not None:
                 self.supplier_cards = [_card(c) for c in overview["cards"]]
@@ -281,11 +272,8 @@ class CaseMixin(rx.State, mixin=True):
         yield
         try:
             case_id = form_data.get("case_id", "")
-            result, self.error_message = await fetch_planning_case(
-                settings.planning_cases_url,
-                case_id.strip() if isinstance(case_id, str) else "",
-                settings.api_service_token.get_secret_value(),
-                lang=self._lang(),
+            result, self.error_message = await cases.fetch_planning_case(
+                case_id.strip() if isinstance(case_id, str) else "", lang=self._lang()
             )
             if result is not None:
                 self._show(result)
