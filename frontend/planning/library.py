@@ -1,30 +1,36 @@
-"""Cases: saved comparisons with filters, a context panel and scenarios on demand."""
+"""Cases page: search and status filter, the saved-case table (cards on phones) with
+each case's scenarios on demand, paging, and the selected-case panel."""
 
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, MUTED
-from frontend.ui import card, decision_badge, empty_state, error_state, loading_state, muted, t
+from frontend.theme import HAIRLINE, MUTED, RADIUS_NAV, SIDE_COLUMN, SUBTLE
+from frontend.ui import (
+    BUSY,
+    NATIVE_FIELD,
+    card,
+    decision_badge,
+    empty_state,
+    error_state,
+    loading_state,
+    muted,
+    primary_button,
+    t,
+)
 from frontend.workspace import page_frame, workspace_shell
 
-_SELECT = {
-    "padding": "0.55rem 0.65rem",
-    "border": f"1px solid {HAIRLINE}",
-    "border_radius": "8px",
-    "background": "white",
-    "width": "100%",
-    "min_height": "2.75rem",
-}
-BUSY = PlanningState.has_pending | PlanningState.is_loading
+_SELECT = {"padding": "0.55rem 0.65rem", **NATIVE_FIELD}
 
 
 def _origin_badge(row):
+    """Grey "generated data" badge when the case is not from observed data."""
     return rx.cond(
         row["badge"] != "", rx.badge(row["badge"], color_scheme="gray", variant="soft"), ""
     )
 
 
 def _filters():
+    """Search box, decision-status filter and Refresh above the case list."""
     # Only the very first load disables the filters. A reload (on_load after returning from a
     # case) keeps them usable: disabling them mid-typing silently dropped an Enter submit.
     disabled = ~PlanningState.library_loaded
@@ -81,6 +87,7 @@ def _filters():
 
 
 def _actions(row):
+    """Open case and Show/Hide scenarios buttons of one case."""
     return rx.flex(
         rx.button(
             t("open_case"),
@@ -109,6 +116,7 @@ def _actions(row):
 
 
 def _child(row):
+    """One saved scenario under an expanded case, with its Open button."""
     return rx.flex(
         rx.box(
             rx.text(row["scenario"], font_weight="650", size="2"),
@@ -131,6 +139,7 @@ def _child(row):
 
 
 def _children(row):
+    """The expanded case's scenarios: loading, error, none, list, more."""
     return rx.cond(
         PlanningState.expanded_case == row["case_id"],
         rx.box(
@@ -158,15 +167,16 @@ def _children(row):
                     variant="ghost",
                 ),
             ),
-            background="#f6f9f7",
+            background=SUBTLE,
             padding="0.75rem 1rem",
-            border_radius="8px",
+            border_radius=RADIUS_NAV,
             margin_top="0.5rem",
         ),
     )
 
 
 def _table_row(row):
+    """Desktop table row of one case (click selects it) plus its scenarios."""
     selected = PlanningState.library_selection["case_id"] == row["case_id"]
     return rx.fragment(
         rx.table.row(
@@ -193,6 +203,7 @@ def _table_row(row):
 
 
 def _desktop_table():
+    """From md: the case table with product, demand, date, cost, decision."""
     return rx.box(
         rx.table.root(
             rx.table.header(
@@ -215,6 +226,7 @@ def _desktop_table():
 
 
 def _mobile_card(row):
+    """Below md: one case as a card with the same facts and actions."""
     return rx.box(
         rx.flex(
             rx.box(
@@ -243,6 +255,7 @@ def _mobile_card(row):
 
 
 def _context_panel():
+    """Sticky right panel with the selected case's facts and Open/PDF."""
     row = PlanningState.library_selection
     return card(
         rx.text(t("selected_case"), size="2", color=MUTED),
@@ -263,12 +276,10 @@ def _context_panel():
         ),
         decision_badge(row["status"]),
         rx.flex(
-            rx.button(
+            primary_button(
                 t("open_case"),
                 on_click=PlanningState.open_saved_case(row["case_id"], "overview"),
                 disabled=BUSY,
-                background=ACCENT,
-                color="white",
                 width="100%",
             ),
             rx.cond(
@@ -291,7 +302,46 @@ def _context_panel():
     )
 
 
+def _empty():
+    """No cases: "nothing matches the filters", or "no cases yet" with New procurement."""
+    return rx.cond(
+        (PlanningState.library_search != "") | (PlanningState.library_status != "all"),
+        empty_state("empty_filtered_title", "empty_filtered_body"),
+        empty_state(
+            "empty_cases_title",
+            "empty_cases_body",
+            primary_button(
+                t("new_procurement"), on_click=PlanningState.new_comparison, margin_top="1rem"
+            ),
+        ),
+    )
+
+
+def _pager():
+    """Number of cases on this page and the Next page button when there are more."""
+    return rx.flex(
+        rx.text(
+            PlanningState.library_rows.length(), " ", t("cases_on_page"), size="2", color=MUTED
+        ),
+        rx.cond(
+            PlanningState.library_cursor != "",
+            rx.button(
+                t("next_page"),
+                rx.icon("chevron-right", size=16),
+                on_click=PlanningState.next_library_page,
+                disabled=PlanningState.library_loading,
+                variant="outline",
+                size="2",
+            ),
+        ),
+        justify="between",
+        align="center",
+        margin_top="1rem",
+    )
+
+
 def _list():
+    """Cases body: loading, error, empty, or the table/cards beside the selected case."""
     return rx.cond(
         ~PlanningState.library_loaded | PlanningState.library_loading,
         loading_state("loading_cases"),
@@ -300,21 +350,7 @@ def _list():
             error_state(PlanningState.library_error, retry=PlanningState.refresh_library),
             rx.cond(
                 PlanningState.library_rows.length() == 0,
-                rx.cond(
-                    (PlanningState.library_search != "") | (PlanningState.library_status != "all"),
-                    empty_state("empty_filtered_title", "empty_filtered_body"),
-                    empty_state(
-                        "empty_cases_title",
-                        "empty_cases_body",
-                        rx.button(
-                            t("new_procurement"),
-                            on_click=PlanningState.new_comparison,
-                            margin_top="1rem",
-                            background=ACCENT,
-                            color="white",
-                        ),
-                    ),
-                ),
+                _empty(),
                 rx.grid(
                     card(
                         _desktop_table(),
@@ -322,33 +358,11 @@ def _list():
                             rx.foreach(PlanningState.library_rows, _mobile_card),
                             display=rx.breakpoints(initial="block", md="none"),
                         ),
-                        rx.flex(
-                            rx.text(
-                                PlanningState.library_rows.length(),
-                                " ",
-                                t("cases_on_page"),
-                                size="2",
-                                color=MUTED,
-                            ),
-                            rx.cond(
-                                PlanningState.library_cursor != "",
-                                rx.button(
-                                    t("next_page"),
-                                    rx.icon("chevron-right", size=16),
-                                    on_click=PlanningState.next_library_page,
-                                    disabled=PlanningState.library_loading,
-                                    variant="outline",
-                                    size="2",
-                                ),
-                            ),
-                            justify="between",
-                            align="center",
-                            margin_top="1rem",
-                        ),
+                        _pager(),
                         padding=["0.75rem 1rem", "1rem 1.25rem"],
                     ),
                     rx.box(_context_panel(), display=rx.breakpoints(initial="none", lg="block")),
-                    columns=rx.breakpoints(initial="1", lg="minmax(0,1fr) 20rem"),
+                    columns=rx.breakpoints(initial="1", lg=f"minmax(0,1fr) {SIDE_COLUMN}"),
                     gap="1.25rem",
                     align_items="start",
                 ),
@@ -358,6 +372,7 @@ def _list():
 
 
 def library_page():
+    """The Cases page: heading, New procurement, filters and the list."""
     return workspace_shell(
         page_frame(
             rx.flex(
@@ -367,14 +382,12 @@ def library_page():
                     ),
                     muted("cases_subtitle", margin_top="0.35rem"),
                 ),
-                rx.button(
+                primary_button(
                     rx.icon("plus", size=16),
                     t("new_procurement"),
                     id="new-comparison",
                     on_click=PlanningState.new_comparison,
                     disabled=BUSY,
-                    background=ACCENT,
-                    color="white",
                     size="3",
                 ),
                 direction=rx.breakpoints(initial="column", sm="row"),

@@ -14,7 +14,7 @@ from frontend.api.cases import fetch_planning_case, submit_planning_request
 from frontend.app import PlanningState, planning_page
 from frontend.config import FrontendSettings
 from frontend.config import settings as frontend_settings
-from tests.helpers.frontend_patching import patch_client
+from tests.helpers.frontend_patching import open_case, patch_client
 from tests.helpers.planning_api import TOKEN, forbidden
 
 
@@ -153,9 +153,7 @@ def test_state_loading_failure_clears_previous_case_and_recovery(
     state.lang = "en"  # the assertions below read English texts
 
     async def submit():
-        updates = PlanningState.load_case.fn(
-            state, {"case_id": payload["case_id"], "token": "ignored"}
-        )
+        updates = open_case(state, payload["case_id"])
         await anext(updates)
         assert state.is_loading and not state.has_case and state.plans == []
         async for _ in updates:

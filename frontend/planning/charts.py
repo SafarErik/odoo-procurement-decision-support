@@ -1,9 +1,10 @@
-"""Recharts views of stored values; every chart has a table or text equivalent nearby."""
+"""The charts: cost versus risk of the plans, base versus scenario quantities and the
+supplier KPI bars. They read stored values; a table or text equivalent is always nearby."""
 
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import GRID, MUTED, SERIES_1, SERIES_2
+from frontend.theme import GRID, HAIRLINE, INK, MUTED, RADIUS_NAV, SERIES_1, SERIES_2
 from frontend.ui import t
 
 _TICK = {"fill": MUTED, "fontSize": 12}
@@ -13,7 +14,11 @@ _GROUPED = (
     "document.querySelector('.workspace')?.lang === 'en' ? 'en-US' : 'hu-HU')"
 )
 _TOOLTIP = {
-    "content_style": {"borderRadius": "8px", "border": "1px solid #d1ded6", "fontSize": "13px"},
+    "content_style": {
+        "borderRadius": RADIUS_NAV,
+        "border": f"1px solid {HAIRLINE}",
+        "fontSize": "13px",
+    },
 }
 
 
@@ -22,6 +27,47 @@ def _point_labels(position="top"):
     return rx.recharts.label_list(
         data_key="name", position=position, offset=8, fill=MUTED, font_size=12
     )
+
+
+def _plan_points():
+    """The plan series: minimum (circle), alternatives (diamond), balanced (square) and
+    an outline ring on the plan selected for review."""
+    return [
+        rx.recharts.scatter(
+            _point_labels("right"),
+            data=PlanningState.chart_minimum,
+            name=t("plan_minimum"),
+            fill=SERIES_1,
+            shape="circle",
+            is_animation_active=False,
+        ),
+        rx.recharts.scatter(
+            _point_labels(),
+            data=PlanningState.chart_alternatives,
+            name=t("chart_alternatives"),
+            fill=SERIES_2,
+            shape="diamond",
+            is_animation_active=False,
+        ),
+        rx.recharts.scatter(
+            _point_labels("left"),
+            data=PlanningState.chart_balanced,
+            name=t("plan_balanced"),
+            fill=SERIES_2,
+            shape="square",
+            is_animation_active=False,
+        ),
+        rx.recharts.scatter(
+            data=PlanningState.chart_selected,
+            name=t("selected_for_review"),
+            fill="transparent",
+            stroke=INK,
+            stroke_width=3,
+            shape="circle",
+            legend_type="none",
+            is_animation_active=False,
+        ),
+    ]
 
 
 def cost_exposure_chart() -> rx.Component:
@@ -52,40 +98,7 @@ def cost_exposure_chart() -> rx.Component:
             ),
             rx.recharts.graphing_tooltip(**_TOOLTIP),
             rx.recharts.legend(icon_type="circle", vertical_align="bottom"),
-            rx.recharts.scatter(
-                _point_labels("right"),
-                data=PlanningState.chart_minimum,
-                name=t("plan_minimum"),
-                fill=SERIES_1,
-                shape="circle",
-                is_animation_active=False,
-            ),
-            rx.recharts.scatter(
-                _point_labels(),
-                data=PlanningState.chart_alternatives,
-                name=t("chart_alternatives"),
-                fill=SERIES_2,
-                shape="diamond",
-                is_animation_active=False,
-            ),
-            rx.recharts.scatter(
-                _point_labels("left"),
-                data=PlanningState.chart_balanced,
-                name=t("plan_balanced"),
-                fill=SERIES_2,
-                shape="square",
-                is_animation_active=False,
-            ),
-            rx.recharts.scatter(
-                data=PlanningState.chart_selected,
-                name=t("selected_for_review"),
-                fill="transparent",
-                stroke="#173e3d",
-                stroke_width=3,
-                shape="circle",
-                legend_type="none",
-                is_animation_active=False,
-            ),
+            *_plan_points(),
             width="100%",
             height=260,
             margin={"top": 24, "right": 24, "bottom": 0, "left": 8},

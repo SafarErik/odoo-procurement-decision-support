@@ -12,7 +12,7 @@ from frontend.api.cases import fetch_planning_case, submit_planning_request
 from frontend.config import settings as frontend_settings
 from frontend.planning.page import planning_page
 from frontend.planning.state import PlanningState
-from tests.helpers.frontend_patching import patch_client, use_transport
+from tests.helpers.frontend_patching import open_case, patch_client, use_transport
 from tests.helpers.planning_api import BASE, TOKEN, intent
 
 
@@ -103,7 +103,7 @@ def test_no_award_and_scenario_controls_and_unavailable_load(decision_api, monke
         state.lang = "en"  # the assertions below read English texts
         state.details = {"final_outcome": "Approved"}
         state.has_case = True
-        async for _ in state.load_case({"case_id": base["case_id"]}):
+        async for _ in open_case(state, base["case_id"]):
             pass
         assert not state.has_case and state.details == {} and state.error_message
         state.has_case = True

@@ -1,4 +1,5 @@
-"""One saved case: loading, tabs, original base, supplier overview and chart data."""
+"""State of the open case page: the loaded case and its display rows, the active tab,
+the original base for scenario comparisons, the supplier overview and chart data."""
 
 import math
 from copy import deepcopy
@@ -39,12 +40,11 @@ class SupplierCard:
     metrics: list[KpiRow] = field(default_factory=list)
     path: list[str] = field(default_factory=list)
 
-
-def _card(row: dict) -> SupplierCard:
-    values = {k: v for k, v in row.items() if k not in ("metrics", "path")}
-    return SupplierCard(
-        **values, metrics=[KpiRow(**m) for m in row["metrics"]], path=list(row["path"])
-    )
+    @classmethod
+    def from_row(cls, row: dict) -> "SupplierCard":
+        """A card from one ``map_overview`` row (nested metrics become ``KpiRow``)."""
+        values = {k: v for k, v in row.items() if k not in ("metrics", "path")}
+        return cls(**values, metrics=[KpiRow(**m) for m in row["metrics"]], path=list(row["path"]))
 
 
 class CaseMixin(rx.State, mixin=True):
@@ -203,7 +203,7 @@ class CaseMixin(rx.State, mixin=True):
                 self.details["case_id"], lang=self._lang()
             )
             if overview is not None:
-                self.supplier_cards = [_card(c) for c in overview["cards"]]
+                self.supplier_cards = [SupplierCard.from_row(c) for c in overview["cards"]]
                 self.supplier_charts = overview["charts"]
         finally:
             self.suppliers_loading = False
@@ -242,14 +242,6 @@ class CaseMixin(rx.State, mixin=True):
             yield reveal_active_case_tab(self.view)
             yield type(self).load_supplier_overview
             yield focus("saved-case-heading")
-
-    @rx.event
-    async def load_case(self, form_data: dict[str, Any]):
-        if self.creation_dirty or self.scenario_dirty:
-            yield self.open_saved_case(form_data.get("case_id", "").strip())
-            return
-        async for event in self._load_case(form_data):
-            yield event
 
     async def _load_case(self, form_data: dict[str, Any]):
         if self.is_loading or self.has_pending:

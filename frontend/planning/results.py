@@ -1,21 +1,35 @@
-"""Plans tab: aligned comparison, cost–exposure chart and the selected allocation."""
+"""Plans tab: plan summary cards, the side-by-side allocation table, the cost-versus-risk
+chart and, on the right, the plan currently selected for review."""
 
 import reflex as rx
 
 from frontend.planning.charts import cost_exposure_chart
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, INK, MUTED, SERIES_1
-from frontend.ui import BUSY, card, heading, muted, t
+from frontend.theme import (
+    ACCENT,
+    BAR_TRACK,
+    HAIRLINE,
+    INK,
+    MUTED,
+    RADIUS_BAR,
+    RADIUS_TERMS,
+    SELECTED,
+    SERIES_1,
+    SIDE_COLUMN,
+    SURFACE,
+)
+from frontend.ui import BUSY, card, heading, muted, primary_button, t
 
-SELECTED_BG = "#f1eff8"
 DECIDED = PlanningState.details["final_outcome"] != ""
 
 
 def _is_selected(plan):
+    """True for the plan the buyer selected for review."""
     return PlanningState.selected_plan.get("label", "") == plan["label"]
 
 
 def _selection_button(plan):
+    """Select for review / Selected / Approved plan button under a plan card."""
     return rx.button(
         rx.cond(
             _is_selected(plan),
@@ -38,97 +52,73 @@ def _selection_button(plan):
 
 
 def _cell(plan, *content, **props):
+    """Table cell tinted when its plan column is the selected one."""
     return rx.table.cell(
         *content,
-        background=rx.cond(_is_selected(plan), SELECTED_BG, "transparent"),
+        background=rx.cond(_is_selected(plan), SELECTED, "transparent"),
         vertical_align="top",
         **props,
     )
 
 
+def _plan_header_cell(plan):
+    """Column head: plan title and its hint (e.g. "lowest risk")."""
+    return rx.table.column_header_cell(
+        rx.text(
+            plan["title"], font_weight="650", color=INK, overflow_wrap="normal", hyphens="auto"
+        ),
+        rx.cond(plan["hint"] != "", rx.text(plan["hint"], size="1", color=MUTED)),
+        min_width="7.5rem",
+        vertical_align="top",
+        background=rx.cond(_is_selected(plan), SELECTED, "transparent"),
+    )
+
+
+def _metric_row(label: str, value):
+    """One comparison row; ``value(plan)`` gives that plan's cell content."""
+    return rx.table.row(
+        rx.table.row_header_cell(t(label)),
+        rx.foreach(PlanningState.plans, lambda plan: _cell(plan, value(plan))),
+    )
+
+
+def _supplier_row(supplier):
+    """One supplier's allocated quantity in every plan (zero in grey)."""
+
+    def quantity(plan):
+        return rx.foreach(
+            PlanningState.allocations,
+            lambda row: rx.cond(
+                (row["plan"] == plan["label"]) & (row["supplier"] == supplier["supplier"]),
+                rx.text(row["quantity_display"], color=rx.cond(row["quantity"] == "0", MUTED, INK)),
+            ),
+        )
+
+    return rx.table.row(
+        rx.table.row_header_cell(supplier["name"]),
+        rx.foreach(PlanningState.plans, lambda plan: _cell(plan, quantity(plan))),
+    )
+
+
 def _comparison_table():
+    """Plans side by side: cost, premium, each supplier's quantity, demand, exposure, share."""
     return rx.box(
         rx.table.root(
             rx.table.header(
                 rx.table.row(
                     rx.table.column_header_cell(t("col_metric"), min_width="8rem"),
-                    rx.foreach(
-                        PlanningState.plans,
-                        lambda plan: rx.table.column_header_cell(
-                            rx.text(
-                                plan["title"],
-                                font_weight="650",
-                                color=INK,
-                                overflow_wrap="normal",
-                                hyphens="auto",
-                            ),
-                            rx.cond(
-                                plan["hint"] != "",
-                                rx.text(plan["hint"], size="1", color=MUTED),
-                            ),
-                            min_width="7.5rem",
-                            vertical_align="top",
-                            background=rx.cond(_is_selected(plan), SELECTED_BG, "transparent"),
-                        ),
-                    ),
+                    rx.foreach(PlanningState.plans, _plan_header_cell),
                 ),
             ),
             rx.table.body(
-                rx.table.row(
-                    rx.table.row_header_cell(t("total_cost")),
-                    rx.foreach(
-                        PlanningState.plans,
-                        lambda plan: _cell(plan, rx.text(plan["cost"], font_weight="650")),
-                    ),
+                _metric_row("total_cost", lambda plan: rx.text(plan["cost"], font_weight="650")),
+                _metric_row("premium", lambda plan: plan["premium_absolute"]),
+                rx.foreach(PlanningState.scenario_suppliers, _supplier_row),
+                _metric_row(
+                    "demand_covered", lambda plan: PlanningState.details["quantity_display"]
                 ),
-                rx.table.row(
-                    rx.table.row_header_cell(t("premium")),
-                    rx.foreach(
-                        PlanningState.plans, lambda plan: _cell(plan, plan["premium_absolute"])
-                    ),
-                ),
-                rx.foreach(
-                    PlanningState.scenario_suppliers,
-                    lambda supplier: rx.table.row(
-                        rx.table.row_header_cell(supplier["name"]),
-                        rx.foreach(
-                            PlanningState.plans,
-                            lambda plan: _cell(
-                                plan,
-                                rx.foreach(
-                                    PlanningState.allocations,
-                                    lambda row: rx.cond(
-                                        (row["plan"] == plan["label"])
-                                        & (row["supplier"] == supplier["supplier"]),
-                                        rx.text(
-                                            row["quantity_display"],
-                                            color=rx.cond(row["quantity"] == "0", MUTED, INK),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                rx.table.row(
-                    rx.table.row_header_cell(t("demand_covered")),
-                    rx.foreach(
-                        PlanningState.plans,
-                        lambda plan: _cell(plan, PlanningState.details["quantity_display"]),
-                    ),
-                ),
-                rx.table.row(
-                    rx.table.row_header_cell(t("risk_exposure")),
-                    rx.foreach(
-                        PlanningState.plans, lambda plan: _cell(plan, plan["exposure_display"])
-                    ),
-                ),
-                rx.table.row(
-                    rx.table.row_header_cell(t("largest_share_label")),
-                    rx.foreach(
-                        PlanningState.plans, lambda plan: _cell(plan, plan["largest_share"])
-                    ),
-                ),
+                _metric_row("risk_exposure", lambda plan: plan["exposure_display"]),
+                _metric_row("largest_share_label", lambda plan: plan["largest_share"]),
             ),
             variant="ghost",
             size="2",
@@ -143,6 +133,7 @@ def _comparison_table():
 
 
 def _allocation_bar(row):
+    """Supplier name, quantity and share above a bar filled to that share."""
     return rx.box(
         rx.flex(
             rx.text(row["name"], size="2", min_width="0"),
@@ -157,11 +148,11 @@ def _allocation_bar(row):
                 width=row["share"] + "%",
                 height="100%",
                 background=SERIES_1,
-                border_radius="4px",
+                border_radius=RADIUS_BAR,
             ),
             height="0.5rem",
-            background="#e6ece8",
-            border_radius="4px",
+            background=BAR_TRACK,
+            border_radius=RADIUS_BAR,
             margin_top="0.35rem",
             role="presentation",
         ),
@@ -170,6 +161,7 @@ def _allocation_bar(row):
 
 
 def _plan_summary(plan):
+    """Plan card: title, badges, cost, premium, exposure, largest share, select button."""
     return rx.box(
         rx.flex(
             rx.heading(plan["title"], as_="h3", size="4"),
@@ -206,12 +198,13 @@ def _plan_summary(plan):
         min_width="0",
         border=f"1px solid {HAIRLINE}",
         border_color=rx.cond(_is_selected(plan), ACCENT, HAIRLINE),
-        background=rx.cond(_is_selected(plan), SELECTED_BG, "white"),
-        border_radius="12px",
+        background=rx.cond(_is_selected(plan), SELECTED, SURFACE),
+        border_radius=RADIUS_TERMS,
     )
 
 
 def _selected_panel():
+    """Sticky right panel: the selected (or suggested) plan's cost and allocation bars."""
     plan = PlanningState.focus_plan
     return card(
         rx.text(
@@ -243,12 +236,10 @@ def _selected_panel():
         ),
         rx.cond(
             (PlanningState.details["parent_id"] == "Base case") & ~DECIDED,
-            rx.button(
+            primary_button(
                 t("review_decision"),
                 on_click=PlanningState.change_view("decision"),
                 disabled=BUSY | (PlanningState.final_choice == ""),
-                background=ACCENT,
-                color="white",
                 width="100%",
                 margin_top="1.25rem",
             ),
@@ -265,6 +256,7 @@ def _selected_panel():
 
 
 def _constraint_notes():
+    """The 'What shapes the allocation?' section: binding limits per plan, the policy."""
     return rx.el.details(
         rx.el.summary(t("what_shapes")),
         rx.cond(
@@ -287,7 +279,41 @@ def _constraint_notes():
     )
 
 
+def _allocation_card():
+    """Card around the comparison table with the alternative and incomplete notices."""
+    return card(
+        heading("allocation_details", size="4"),
+        _comparison_table(),
+        rx.cond(
+            PlanningState.details["alternative_notice"] != "",
+            muted(PlanningState.details["alternative_notice"], margin_top="0.75rem"),
+        ),
+        rx.cond(
+            PlanningState.details["status_code"] != "optimal",
+            rx.callout(t("incomplete_body"), color_scheme="amber", margin_top="1rem"),
+        ),
+    )
+
+
+def _tradeoff_card():
+    """Cost versus risk chart with the exposure and largest-share explanations."""
+    return card(
+        heading("chart_tradeoff", size="4"),
+        muted("chart_tradeoff_note", margin_y="0.35rem"),
+        cost_exposure_chart(),
+        rx.el.details(
+            rx.el.summary(t("chart_exposure"), font_weight="550"),
+            muted("exposure_explained", margin_top="0.5rem"),
+        ),
+        rx.el.details(
+            rx.el.summary(t("largest_share_label"), font_weight="550"),
+            muted("balanced_explained", margin_top="0.5rem"),
+        ),
+    )
+
+
 def plans_view() -> rx.Component:
+    """The Plans tab: plan cards and details on the left, the selected plan on the right."""
     return rx.cond(
         PlanningState.plans.length() > 0,
         rx.grid(
@@ -302,31 +328,8 @@ def plans_view() -> rx.Component:
                         margin_top="1rem",
                     ),
                 ),
-                card(
-                    heading("allocation_details", size="4"),
-                    _comparison_table(),
-                    rx.cond(
-                        PlanningState.details["alternative_notice"] != "",
-                        muted(PlanningState.details["alternative_notice"], margin_top="0.75rem"),
-                    ),
-                    rx.cond(
-                        PlanningState.details["status_code"] != "optimal",
-                        rx.callout(t("incomplete_body"), color_scheme="amber", margin_top="1rem"),
-                    ),
-                ),
-                card(
-                    heading("chart_tradeoff", size="4"),
-                    muted("chart_tradeoff_note", margin_y="0.35rem"),
-                    cost_exposure_chart(),
-                    rx.el.details(
-                        rx.el.summary(t("chart_exposure"), font_weight="550"),
-                        muted("exposure_explained", margin_top="0.5rem"),
-                    ),
-                    rx.el.details(
-                        rx.el.summary(t("largest_share_label"), font_weight="550"),
-                        muted("balanced_explained", margin_top="0.5rem"),
-                    ),
-                ),
+                _allocation_card(),
+                _tradeoff_card(),
                 card(_constraint_notes()),
                 direction="column",
                 gap="1rem",
@@ -337,7 +340,7 @@ def plans_view() -> rx.Component:
                 position=rx.breakpoints(initial="static", lg="sticky"),
                 top="1rem",
             ),
-            columns=rx.breakpoints(initial="1", lg="minmax(0,1fr) 20rem"),
+            columns=rx.breakpoints(initial="1", lg=f"minmax(0,1fr) {SIDE_COLUMN}"),
             gap="1rem",
             align_items="start",
         ),

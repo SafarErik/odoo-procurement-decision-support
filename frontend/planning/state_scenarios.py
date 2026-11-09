@@ -1,4 +1,5 @@
-"""Stress scenarios: one change set against the original base, the same MILP, saved as a child."""
+"""State of the What if…? form: the change kind and new values, the draft sentence, the
+base-versus-scenario rows, and the request that saves the scenario as a child case."""
 
 import re
 from decimal import Decimal, InvalidOperation, localcontext
@@ -9,8 +10,8 @@ import reflex as rx
 
 from frontend.api import cases
 from frontend.i18n import money, number, tr
+from frontend.planning.creation_rules import bounded_form_integer
 from frontend.planning.state_base import focus
-from frontend.planning.state_creation import bounded_form_integer
 
 KINDS = ("supplier_outage", "capacity_change", "demand_change", "price_change", "combined")
 
@@ -196,100 +197,111 @@ class ScenarioMixin(rx.State, mixin=True):
             self.stress_capacity = self.stress_quantity = self.stress_price = ""
             self.error_message = ""
 
+    def _demand_change(self, value) -> int:
+        """The new demand; it must differ from the base case's."""
+        try:
+            demand = bounded_form_integer(value, minimum=1)
+        except ValueError as error:
+            raise ValueError(self._tr("err_quantity")) from error
+        if demand == int(self.details["base_quantity"]):
+            raise ValueError(
+                self._tr(
+                    "err_scenario_demand_same",
+                    quantity=self.details["base_quantity"],
+                    unit=self.details.get("unit_label", ""),
+                )
+            )
+        return demand
+
+    def _capacity_change(self, value, terms) -> int:
+        """The supplier's new capacity; it must differ from the saved one."""
+        try:
+            capacity = bounded_form_integer(value, minimum=0)
+        except ValueError as error:
+            raise ValueError(self._tr("err_capacity")) from error
+        if capacity == int(terms["capacity"]):
+            raise ValueError(
+                self._tr(
+                    "err_scenario_capacity_same",
+                    name=terms["name"],
+                    capacity=terms["capacity"],
+                    unit=self.details.get("unit_label", ""),
+                )
+            )
+        return capacity
+
+    def _price_change(self, value, terms) -> str:
+        """The supplier's new positive unit price as a plain decimal; it must differ."""
+        if isinstance(value, str):  # a Hungarian keypad types a decimal comma
+            value = value.replace(",", ".")
+        if (
+            not isinstance(value, str)
+            or len(value) > 64
+            or re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value) is None
+            or Decimal(value) <= 0
+            or Decimal(value) == Decimal(terms["price"])
+        ):
+            raise ValueError(
+                self._tr("err_scenario_price", name=terms["name"], price=terms["price_display"])
+            )
+        return value
+
+    def _scenario_payload(self, form_data: dict[str, Any]) -> dict:
+        """The what-if request from the form; ValueError carries the buyer-facing message."""
+        # shortcut: combined changes one supplier plus demand; extend for a multi-supplier case.
+        if not self.has_case:
+            raise ValueError(self._tr("err_scenario_load"))
+        kind = form_data.get("kind")
+        if kind not in KINDS:
+            raise ValueError(self._tr("err_scenario_kind"))
+        payload = {
+            "kind": kind,
+            "source": {
+                "source_type": "controlled_business_terms",
+                "source_reference": "t16-ui-what-if-v1",
+                "observed_at": self.details["as_of"],
+            },
+            "suppliers": [],
+        }
+        # In a combined change an empty field means "unchanged"; otherwise it is required.
+        changes = 0
+        if kind in {"demand_change", "combined"}:
+            value = form_data.get("quantity", "")
+            if kind == "demand_change" or value != "":
+                payload["approved_quantity"] = self._demand_change(value)
+                changes += 1
+        supplier_change = {}
+        if kind in {"supplier_outage", "capacity_change", "price_change", "combined"}:
+            selected = form_data.get("supplier", "")
+            terms = next((s for s in self.scenario_suppliers if s["supplier"] == selected), None)
+            if terms is None:
+                raise ValueError(self._tr("err_scenario_supplier"))
+            supplier_change["supplier_id"] = selected
+            if kind == "supplier_outage":
+                supplier_change["available"] = False
+            if kind in {"capacity_change", "combined"}:
+                value = form_data.get("capacity", "")
+                if kind == "capacity_change" or value != "":
+                    supplier_change["capacity"] = self._capacity_change(value, terms)
+                    changes += 1
+            if kind in {"price_change", "combined"}:
+                value = form_data.get("price", "")
+                if kind == "price_change" or value != "":
+                    supplier_change["unit_price"] = self._price_change(value, terms)
+                    changes += 1
+        if kind == "combined" and changes < 2:
+            raise ValueError(self._tr("err_scenario_combined"))
+        if len(supplier_change) > 1:
+            payload["suppliers"] = [supplier_change]
+        return payload
+
     @rx.event
     async def run_scenario(self, form_data: dict[str, Any]):
-        # shortcut: combined changes one supplier plus demand; extend for a multi-supplier case.
         if self.is_loading or self.has_pending:
             return
         self.error_target = "scenario"
-        unit_label = self.details.get("unit_label", "")
         try:
-            if not self.has_case:
-                raise ValueError(self._tr("err_scenario_load"))
-            kind = form_data.get("kind")
-            if kind not in KINDS:
-                raise ValueError(self._tr("err_scenario_kind"))
-            payload = {
-                "kind": kind,
-                "source": {
-                    "source_type": "controlled_business_terms",
-                    "source_reference": "t16-ui-what-if-v1",
-                    "observed_at": self.details["as_of"],
-                },
-                "suppliers": [],
-            }
-            changes = 0
-            if kind in {"demand_change", "combined"}:
-                value = form_data.get("quantity", "")
-                if kind == "demand_change" or value != "":
-                    try:
-                        demand = bounded_form_integer(value, minimum=1)
-                    except ValueError as error:
-                        raise ValueError(self._tr("err_quantity")) from error
-                    if demand == int(self.details["base_quantity"]):
-                        raise ValueError(
-                            self._tr(
-                                "err_scenario_demand_same",
-                                quantity=self.details["base_quantity"],
-                                unit=unit_label,
-                            )
-                        )
-                    payload["approved_quantity"] = demand
-                    changes += 1
-            supplier_change = {}
-            if kind in {"supplier_outage", "capacity_change", "price_change", "combined"}:
-                selected = form_data.get("supplier", "")
-                terms = next(
-                    (s for s in self.scenario_suppliers if s["supplier"] == selected), None
-                )
-                if terms is None:
-                    raise ValueError(self._tr("err_scenario_supplier"))
-                supplier_change["supplier_id"] = selected
-                if kind == "supplier_outage":
-                    supplier_change["available"] = False
-                if kind in {"capacity_change", "combined"}:
-                    value = form_data.get("capacity", "")
-                    if kind == "capacity_change" or value != "":
-                        try:
-                            capacity = bounded_form_integer(value, minimum=0)
-                        except ValueError as error:
-                            raise ValueError(self._tr("err_capacity")) from error
-                        if capacity == int(terms["capacity"]):
-                            raise ValueError(
-                                self._tr(
-                                    "err_scenario_capacity_same",
-                                    name=terms["name"],
-                                    capacity=terms["capacity"],
-                                    unit=unit_label,
-                                )
-                            )
-                        supplier_change["capacity"] = capacity
-                        changes += 1
-                if kind in {"price_change", "combined"}:
-                    value = form_data.get("price", "")
-                    if isinstance(value, str):  # a Hungarian keypad types a decimal comma
-                        value = value.replace(",", ".")
-                    if kind == "price_change" or value != "":
-                        if (
-                            not isinstance(value, str)
-                            or len(value) > 64
-                            or re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value) is None
-                            or Decimal(value) <= 0
-                            or Decimal(value) == Decimal(terms["price"])
-                        ):
-                            raise ValueError(
-                                self._tr(
-                                    "err_scenario_price",
-                                    name=terms["name"],
-                                    price=terms["price_display"],
-                                )
-                            )
-                        supplier_change["unit_price"] = value
-                        changes += 1
-            if kind == "combined" and changes < 2:
-                raise ValueError(self._tr("err_scenario_combined"))
-            if len(supplier_change) > 1:
-                payload["suppliers"] = [supplier_change]
+            payload = self._scenario_payload(form_data)
         except ValueError as error:
             self.error_message = str(error)
             return
