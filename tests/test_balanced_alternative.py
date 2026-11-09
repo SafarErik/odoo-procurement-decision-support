@@ -10,7 +10,7 @@ from application.planning_serialization import json_value, read_request, read_re
 from decision_core.planning.models import PlanningStatus
 from decision_core.planning.planner import plan_procurement
 from optimization_adapter.pulp_cbc import PulpCbcSolver
-from tests.helpers.milp_requests import request, scored, supplier
+from tests.helpers.milp_requests import CORRECTNESS_BUDGET_SECONDS, request, scored, supplier
 from tools.milp_evaluation import check_result, reference_plans
 
 
@@ -33,7 +33,9 @@ def quantities(plan):
 
 
 def test_balanced_plan_halves_the_largest_dependence_without_raising_exposure():
-    result = plan_procurement(balanced(l5_case()), PulpCbcSolver())
+    result = plan_procurement(
+        balanced(l5_case()), PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS
+    )
     assert result.status is PlanningStatus.OPTIMAL
     minimum = result.minimum_cost_plan
     assert quantities(minimum) == [120, 80, 0] and minimum.largest_share == Fraction(3, 5)
@@ -52,7 +54,9 @@ def test_balanced_plan_halves_the_largest_dependence_without_raising_exposure():
 
 
 def test_risk_stages_keep_their_kind_and_the_balanced_stage_comes_last():
-    result = plan_procurement(balanced(l5_case()), PulpCbcSolver())
+    result = plan_procurement(
+        balanced(l5_case()), PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS
+    )
     assert [(r.kind, r.epsilon) for r in result.runs] == [
         ("risk", Decimal("0.05")),
         ("diversified", Decimal("0.2")),
@@ -61,7 +65,9 @@ def test_risk_stages_keep_their_kind_and_the_balanced_stage_comes_last():
 
 def test_tight_allowance_returns_the_cheapest_plan_as_its_own_balanced_proof():
     # With no extra cost allowed only the unique cheapest split fits; the stage proves plan 0.
-    result = plan_procurement(balanced(l5_case(), "0"), PulpCbcSolver())
+    result = plan_procurement(
+        balanced(l5_case(), "0"), PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS
+    )
     assert result.runs[-1].kind == "diversified"
     assert result.runs[-1].plan_index == 0
     assert result.runs[-1].code == "duplicate_allocation"
@@ -80,7 +86,9 @@ def test_balanced_plan_matches_the_exhaustive_reference_on_random_instances():
         values = tuple(str(Decimal(rng.randint(0, 10)) / 10) for _ in suppliers)
         data = balanced(scored(data, values=values, epsilons=(Decimal("0.1"),)), "0.3")
         expected = reference_plans(data)
-        result = plan_procurement(data, PulpCbcSolver())
+        result = plan_procurement(
+            data, PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS
+        )
         assert check_result(data, result, expected) == [], (data, result)
 
 
@@ -88,7 +96,7 @@ def test_snapshots_without_the_balanced_stage_keep_their_exact_json():
     plain = l5_case()
     encoded = json_value(plain)
     assert "diversification_epsilon" not in encoded["policy"]
-    result = plan_procurement(plain, PulpCbcSolver())
+    result = plan_procurement(plain, PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS)
     assert all("kind" not in run for run in json_value(result)["runs"])
     assert read_request(encoded) == plain
 
@@ -98,14 +106,18 @@ def test_balanced_records_round_trip():
     encoded = json_value(data)
     assert encoded["policy"]["diversification_epsilon"] == "0.2"
     assert read_request(encoded) == data
-    result = plan_procurement(data, PulpCbcSolver())
+    result = plan_procurement(data, PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS)
     stored = json_value(result)
     assert stored["runs"][-1]["kind"] == "diversified"
     assert read_result(stored) == result
 
 
 def test_unknown_recorded_kind_is_rejected():
-    stored = json_value(plan_procurement(balanced(l5_case()), PulpCbcSolver()))
+    stored = json_value(
+        plan_procurement(
+            balanced(l5_case()), PulpCbcSolver(), time_limit_seconds=CORRECTNESS_BUDGET_SECONDS
+        )
+    )
     stored["runs"][-1]["kind"] = "made_up"
     try:
         read_result(stored)
@@ -118,7 +130,11 @@ def test_permuted_supplier_order_gives_the_same_balanced_allocation():
     base = balanced(l5_case())
     expected = None
     for order in itertools.permutations(base.suppliers):
-        result = plan_procurement(replace(base, suppliers=order), PulpCbcSolver())
+        result = plan_procurement(
+            replace(base, suppliers=order),
+            PulpCbcSolver(),
+            time_limit_seconds=CORRECTNESS_BUDGET_SECONDS,
+        )
         plan = result.alternatives[result.runs[-1].plan_index - 1]
         allocation = {a.supplier_id: a.quantity for a in plan.allocations}
         expected = expected or allocation
