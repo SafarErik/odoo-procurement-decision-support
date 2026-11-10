@@ -1,14 +1,16 @@
-"""Task-oriented home, using bounded saved-case queries without invented totals."""
+"""Home page: the New procurement button and two short lists, cases awaiting a decision
+and recently saved cases (bounded reads, never invented totals)."""
 
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, MUTED
-from frontend.ui import BUSY, card, decision_badge, error_state, loading_state, t
+from frontend.theme import HAIRLINE, MUTED
+from frontend.ui import BUSY, card, decision_badge, error_state, loading_state, primary_button, t
 from frontend.workspace import page_frame, workspace_shell
 
 
 def _case(row):
+    """One case row: product, context, id and time, badges, cost and Continue."""
     return rx.box(
         rx.flex(
             rx.box(
@@ -57,6 +59,7 @@ def _case(row):
 
 
 def _section(title, rows, error, empty):
+    """A Home list card: title, its rows, error or empty text, and All cases."""
     return card(
         rx.heading(t(title), as_="h2", size="5"),
         rx.cond(
@@ -80,6 +83,7 @@ def _section(title, rows, error, empty):
 
 
 def home_page():
+    """Home: title, New procurement, the two case lists and the scope note."""
     return workspace_shell(
         page_frame(
             rx.flex(
@@ -93,12 +97,10 @@ def home_page():
                         margin_top="0.75rem",
                     ),
                 ),
-                rx.button(
+                primary_button(
                     rx.icon("plus", size=19),
                     t("new_procurement"),
                     on_click=PlanningState.new_comparison,
-                    background=ACCENT,
-                    color="white",
                     size="3",
                     disabled=BUSY,
                 ),

@@ -26,12 +26,12 @@ def test_stay_preserves_draft_discard_clears_and_navigates(dirty):
     state.odoo_ready = True
     state._odoo_payload = {"quantity": 10}
     state.stress_quantity = "25"
-    assert state.open_library() is None
+    assert state.navigate_global("cases") is None
     assert state.navigation_open
     state.stay_navigation()
     assert not state.navigation_open and getattr(state, dirty)
     assert state._odoo_payload == {"quantity": 10} and state.stress_quantity == "25"
-    state.open_library()
+    state.navigate_global("cases")
     event = state.discard_navigation()
     assert event.args[0][1]._js_expr == '"/cases"'
     assert not state.creation_dirty and not state.scenario_dirty

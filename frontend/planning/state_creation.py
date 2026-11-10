@@ -1,4 +1,6 @@
-"""New procurement wizard: list Odoo quotation groups, preview history, review terms, save."""
+"""State of the New procurement wizard: the Odoo quotation groups, the chosen group's
+preview, the buyer's form values and errors, the review, and the save. Parsing and wording
+live in ``creation_rules``; this mixin holds the values and runs the requests."""
 
 import json
 from copy import deepcopy
@@ -10,59 +12,9 @@ import reflex as rx
 from frontend.api import cases, odoo_history
 from frontend.api.labels import supplier_label
 from frontend.api.odoo_history import group_row, quotation_rows
-from frontend.i18n import day, moment, money, number, percent, tr, unit
+from frontend.i18n import moment, tr, unit
+from frontend.planning import creation_rules as rules
 from frontend.planning.state_base import focus
-
-
-def bounded_form_integer(value: Any, *, minimum: int) -> int:
-    if (
-        not isinstance(value, str)
-        or not value.isascii()
-        or not value.isdecimal()
-        or len(value) > 4
-        or not minimum <= int(value) <= 1000
-    ):
-        raise ValueError(f"Enter a whole-number quantity from {minimum} to 1,000.")
-    return int(value)
-
-
-def _form_date(value: Any) -> str:
-    if not isinstance(value, str) or date.fromisoformat(value).isoformat() != value:
-        raise ValueError("Invalid date")
-    return value
-
-
-SUPPLIER_TERM_FIELDS = (
-    "capacity",
-    "available",
-    "minimum_order_quantity",
-    "price_quantities",
-    "delivery_quantities",
-    "promised_date",
-)
-REQUIREMENT_TERM_FIELDS = ("approved_quantity", "required_date")
-RANGE_FIELDS = (("price_quantities", "price"), ("delivery_quantities", "delivery"))
-
-
-def _kept_suggested(source: dict) -> set[str]:
-    reference = source["source_reference"]
-    kept = reference.split(";kept-suggested=", 1)[1] if ";kept-suggested=" in reference else ""
-    return set(kept.split(",")) - {"none", ""}
-
-
-def _reviewed_source(saved: dict, suggested: dict, fields: tuple[str, ...], as_of: str) -> dict:
-    """Buyer-reviewed terms that record which values were kept from the preview suggestion.
-
-    The preview proposes defaults (e.g. capacity, "no MOQ", validity ranges). Saving
-    them is an explicit buyer decision, but the stored source must still show which
-    values the buyer left at the suggestion instead of claiming they were entered.
-    """
-    kept = [name for name in fields if saved[name] == suggested[name]]
-    return {
-        "source_type": "buyer_reviewed_terms",
-        "source_reference": "ui-odoo-terms-v2;kept-suggested=" + (",".join(kept) or "none"),
-        "observed_at": as_of,
-    }
 
 
 class CreationMixin(rx.State, mixin=True):
@@ -131,17 +83,8 @@ class CreationMixin(rx.State, mixin=True):
             self.creation_errors = {}
 
     def _demand_valid(self) -> bool:
-        self.creation_errors = {}
-        try:
-            bounded_form_integer(self.creation_values.get("odoo_quantity"), minimum=1)
-        except (TypeError, ValueError):
-            self.creation_errors["odoo-quantity"] = self._tr("err_quantity")
-        try:
-            value = _form_date(self.creation_values.get("odoo_required_date"))
-            if date.fromisoformat(value) < datetime.now(UTC).date():
-                self.creation_errors["odoo-required-date"] = self._tr("err_date_past")
-        except (TypeError, ValueError):
-            self.creation_errors["odoo-required-date"] = self._tr("err_date")
+        *_, errors = rules.read_demand(self.creation_values, datetime.now(UTC).date())
+        self.creation_errors = {identity: self._tr(key) for identity, key in errors.items()}
         return not self.creation_errors
 
     @rx.event
@@ -315,141 +258,30 @@ class CreationMixin(rx.State, mixin=True):
         """Display strings for a verified preview; called again when the language changes."""
         lang = self._lang()
         facts = data["terms"]
-        currency = facts["requirement"]["currency"]
         self._preview = data
         self.creation_origin = data.get("data_origin", "")
         self.odoo_history_mode = True
         self.odoo_history_readiness = data["model_readiness"]
-        self.odoo_offers = [
-            {
-                "supplier": s["supplier_id"],
-                "name": self._name(s["supplier_id"]),
-                "offer": s["offer_id"],
-                "price": money(s["unit_price"], currency, lang),
-                "capacity": str(s["capacity"]),
-                "moq": str(s["minimum_order_quantity"])
-                if s["minimum_order_quantity"] is not None
-                else "",
-                "promised_date": s["promised_date"],
-                **{
-                    f"{prefix}_{end}": str(s[key][bound])
-                    for key, prefix in RANGE_FIELDS
-                    for end, bound in (("min", "minimum"), ("max", "maximum"))
-                },
-            }
-            for s in facts["suppliers"]
-        ]
+        self.odoo_offers = rules.preview_offers(facts, self._name, lang)
         if not self.creation_values:
-            self.creation_values = {
-                "odoo_quantity": str(facts["requirement"]["approved_quantity"]),
-                "odoo_required_date": facts["requirement"]["required_date"],
-                **{
-                    row["supplier"] + "_" + key: row[key]
-                    for row in self.odoo_offers
-                    for key in (
-                        "capacity",
-                        "moq",
-                        "promised_date",
-                        "price_min",
-                        "price_max",
-                        "delivery_min",
-                        "delivery_max",
-                    )
-                },
-            }
+            self.creation_values = rules.suggested_values(facts, self.odoo_offers)
             self.creation_suggestions = dict(self.creation_values)
-        self.odoo_history_rows = [
-            {
-                "supplier": self._name(r["supplier_id"]),
-                "on_time": percent(r["on_time_rate"], lang, 0),
-                "lateness": tr("days", lang, value=number(r["mean_lateness_days"], lang, 1)),
-                "fill": percent(r["fill_rate"], lang, 0),
-                "lines": number(r["order_count"], lang, 0),
-            }
-            for r in data["history"]
-        ]
+        self.odoo_history_rows = rules.history_rows(data["history"], self._name, lang)
         self.odoo_details = tr("captured_at", lang, time=data["captured_at"][:16].replace("T", " "))
-        policy = facts["policy"]
-        self.odoo_policy = tr(
-            "policy_text",
-            lang,
-            suppliers=policy["max_suppliers"],
-            share=percent(policy["concentration_limit"], lang, 0),
-            allowance=", ".join(percent(e, lang, 0) for e in policy["epsilons"]),
-        )
+        self.odoo_policy = rules.policy_text(facts["policy"], lang)
 
     def _odoo_request(self, form_data):
+        """The save request from the form, or None with ``creation_errors`` filled."""
         self.creation_errors = {}
         if not self.odoo_ready:
             self.error_message = self._tr("err_load_group")
             return None
-        payload = deepcopy(self._odoo_payload)
-        facts = payload["controlled_input"]
-
-        def field(name, identity, parser, message):
-            try:
-                return parser(form_data.get(name))
-            except (ValueError, TypeError):
-                self.creation_errors[identity] = self._tr(message)
-                return None
-
-        quantity = field(
-            "odoo_quantity",
-            "odoo-quantity",
-            lambda value: bounded_form_integer(value, minimum=1),
-            "err_quantity",
-        )
-        required = field("odoo_required_date", "odoo-required-date", _form_date, "err_date")
-        now = datetime.now(UTC)
-        if required and date.fromisoformat(required) < now.date():
-            self.creation_errors["odoo-required-date"] = self._tr("err_date_past")
-        for supplier in facts["suppliers"]:
-            prefix = supplier["supplier_id"]
-            supplier["capacity"] = field(
-                prefix + "_capacity",
-                prefix + "_capacity",
-                lambda value: bounded_form_integer(value, minimum=0),
-                "err_capacity",
-            )
-            supplier["minimum_order_quantity"] = field(
-                prefix + "_moq",
-                prefix + "_moq",
-                lambda value: None if value == "" else bounded_form_integer(value, minimum=1),
-                "err_moq",
-            )
-            supplier["promised_date"] = field(
-                prefix + "_promised_date", prefix + "_promised_date", _form_date, "err_date"
-            )
-            for key, name in RANGE_FIELDS:
-                low, high = (
-                    field(
-                        f"{prefix}_{name}_{end}",
-                        f"{prefix}_{name}_{end}",
-                        lambda value: bounded_form_integer(value, minimum=1),
-                        "err_range",
-                    )
-                    for end in ("min", "max")
-                )
-                if low is not None and high is not None and low > high:
-                    self.creation_errors[f"{prefix}_{name}_max"] = self._tr("err_range")
-                supplier[key] = {"minimum": low, "maximum": high}
+        request, errors = rules.reviewed_terms(form_data, self._odoo_payload, datetime.now(UTC))
+        self.creation_errors = {identity: self._tr(key) for identity, key in errors.items()}
         if self.creation_errors:
             self.error_message = self._tr("err_fix_fields")
             return None
-        facts["as_of"] = now.isoformat()
-        facts["requirement"]["approved_quantity"] = quantity
-        facts["requirement"]["required_date"] = required
-        facts["approval_reference"] = f"controlled-demand-{quantity}-t16-odoo-v1"
-        suggested = self._odoo_payload["controlled_input"]
-        facts["requirement_source"] = _reviewed_source(
-            facts["requirement"], suggested["requirement"], REQUIREMENT_TERM_FIELDS, facts["as_of"]
-        )
-        proposals = {s["supplier_id"]: s for s in suggested["suppliers"]}
-        for supplier in facts["suppliers"]:
-            supplier["source"] = _reviewed_source(
-                supplier, proposals[supplier["supplier_id"]], SUPPLIER_TERM_FIELDS, facts["as_of"]
-            )
-        return {"purchase_group_id": payload["purchase_group_id"], "terms": facts}
+        return request
 
     def _set_review(self, payload):
         try:
@@ -457,75 +289,18 @@ class CreationMixin(rx.State, mixin=True):
             if any(type(s["available"]) is not bool for s in facts["suppliers"]):
                 raise ValueError("Invalid prepared availability")
             lang = self._lang()
-            r = facts["requirement"]
-            currency = r["currency"]
-            unit_name = self.selected_group_row.get("unit", "") or unit("Units", lang)
+            group = self.selected_group_row
             self._review_payload = deepcopy(payload)
             self._review_url = cases.from_odoo_history_url()
-            group = self.selected_group_row
-            self.creation_review = {
-                "kind": "odoo",
-                "product": group.get("product", r["product_id"]),
-                "group": group.get("name", ""),
-                "company": facts["company_id"],
-                "quantity": str(r["approved_quantity"]),
-                "quantity_display": tr(
-                    "pieces", lang, quantity=number(r["approved_quantity"], lang), unit=unit_name
-                ),
-                "unit": r["quantity_unit"],
-                "currency": currency,
-                "required_date": r["required_date"],
-                "required_display": day(r["required_date"], lang),
-                "cutoff": facts["as_of"],
-                "captured": self._odoo_payload["controlled_input"]["as_of"],
-                "origin": "Odoo",
-                "policy": self.odoo_policy,
-                "suggested_requirements": ", ".join(
-                    tr(key, lang)
-                    for field, key in (
-                        ("approved_quantity", "demand_label"),
-                        ("required_date", "required_label"),
-                    )
-                    if field in _kept_suggested(facts["requirement_source"])
-                )
-                or tr("none", lang),
-            }
-
-            def quantities(s, key):
-                values = s[key]
-                text = f"{number(values['minimum'], lang, 0)}–{number(values['maximum'], lang, 0)}"
-                if key in _kept_suggested(s["source"]):
-                    text += f" ({tr('suggested_value', lang)})"
-                return text
-
-            self.review_suppliers = [
-                {
-                    "name": self._name(s["supplier_id"]),
-                    "price": money(s["unit_price"], currency, lang),
-                    "capacity": str(s["capacity"]),
-                    "moq": tr("none", lang)
-                    if s["minimum_order_quantity"] is None
-                    else str(s["minimum_order_quantity"]),
-                    "price_range": quantities(s, "price_quantities"),
-                    "delivery_range": quantities(s, "delivery_quantities"),
-                    "promised": day(s["promised_date"], lang),
-                    "available": tr("available" if s["available"] else "not_available", lang),
-                    "offer": s["offer_id"],
-                    "suggested": ", ".join(
-                        tr(key, lang)
-                        for field, key in (
-                            ("capacity", "capacity_label"),
-                            ("minimum_order_quantity", "moq_label"),
-                            ("promised_date", "promised_label"),
-                            ("price_quantities", "price_range_label"),
-                            ("delivery_quantities", "delivery_range_label"),
-                        )
-                        if field in _kept_suggested(s["source"])
-                    )
-                    or tr("none", lang),
-                }
-                for s in facts["suppliers"]
-            ]
+            self.creation_review = rules.review_summary(
+                facts,
+                group,
+                group.get("unit", "") or unit("Units", lang),
+                self.odoo_policy,
+                self._odoo_payload["controlled_input"]["as_of"],
+                lang,
+            )
+            self.review_suppliers = rules.review_rows(facts, self._name, lang)
             self.error_message = ""
             self.error_target = "creation"
             self.creation_step = 3

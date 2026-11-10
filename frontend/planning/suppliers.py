@@ -1,4 +1,5 @@
-"""Suppliers tab: KPI comparison charts and one card per supplier (P2 supplier overview)."""
+"""Suppliers tab: KPI comparison charts and one card per supplier with its terms, history
+KPIs and the decision-tree reasons for its class."""
 
 import reflex as rx
 
@@ -9,6 +10,7 @@ from frontend.ui import card, error_state, heading, loading_state, muted, t
 
 
 def _class_badge(row):
+    """Supplier class badge: amber for watch/problematic, teal otherwise."""
     return rx.match(
         row["class_key"],
         ("problematic", rx.badge(row["class_label"], color_scheme="amber", size="2")),
@@ -18,6 +20,7 @@ def _class_badge(row):
 
 
 def _fact(label: str, value):
+    """Small label over a bold value in a supplier card."""
     return rx.box(
         rx.text(t(label), size="1", color=MUTED),
         rx.text(value, size="2", font_weight="600", color=INK),
@@ -26,6 +29,7 @@ def _fact(label: str, value):
 
 
 def _supplier_card(row):
+    """One supplier: name, class, terms, history KPIs and why the class."""
     return card(
         rx.flex(
             rx.box(
@@ -79,7 +83,41 @@ def _supplier_card(row):
     )
 
 
+def _kpi_comparison() -> rx.Component:
+    """Card with the three KPI bar charts (on time, fill rate, lateness) and their help."""
+    return card(
+        heading("kpi_compare", size="4"),
+        muted("kpi_compare_note", margin_top="0.25rem"),
+        rx.text(
+            t("kpi_reference"),
+            ": ",
+            PlanningState.details.get("as_of_display", ""),
+            size="1",
+            color=MUTED,
+            margin_top="0.4rem",
+        ),
+        rx.el.details(
+            rx.el.summary(t("kpi_help_title"), font_weight="600"),
+            *[
+                muted(key, margin_top="0.6rem", max_width="75ch")
+                for key in ("kpi_help_rates", "kpi_help_lateness", "kpi_help_sample")
+            ],
+            margin_top="0.5rem",
+        ),
+        rx.grid(
+            kpi_chart("on_time_rate", "kpi_on_time", "%"),
+            kpi_chart("fill_rate", "kpi_fill", "%"),
+            kpi_chart("mean_lateness_days", "kpi_lateness", ""),
+            columns=rx.breakpoints(initial="1", md="3"),
+            gap="1.5rem",
+            margin_top="1rem",
+        ),
+        margin_top="1rem",
+    )
+
+
 def suppliers_view() -> rx.Component:
+    """The Suppliers tab: intro, origin note, KPI charts and one card per supplier."""
     return rx.box(
         rx.flex(
             rx.box(
@@ -112,39 +150,7 @@ def suppliers_view() -> rx.Component:
                     margin_top="1rem",
                 ),
                 rx.box(
-                    card(
-                        heading("kpi_compare", size="4"),
-                        muted("kpi_compare_note", margin_top="0.25rem"),
-                        rx.text(
-                            t("kpi_reference"),
-                            ": ",
-                            PlanningState.details.get("as_of_display", ""),
-                            size="1",
-                            color=MUTED,
-                            margin_top="0.4rem",
-                        ),
-                        rx.el.details(
-                            rx.el.summary(t("kpi_help_title"), font_weight="600"),
-                            *[
-                                muted(key, margin_top="0.6rem", max_width="75ch")
-                                for key in (
-                                    "kpi_help_rates",
-                                    "kpi_help_lateness",
-                                    "kpi_help_sample",
-                                )
-                            ],
-                            margin_top="0.5rem",
-                        ),
-                        rx.grid(
-                            kpi_chart("on_time_rate", "kpi_on_time", "%"),
-                            kpi_chart("fill_rate", "kpi_fill", "%"),
-                            kpi_chart("mean_lateness_days", "kpi_lateness", ""),
-                            columns=rx.breakpoints(initial="1", md="3"),
-                            gap="1.5rem",
-                            margin_top="1rem",
-                        ),
-                        margin_top="1rem",
-                    ),
+                    _kpi_comparison(),
                     rx.grid(
                         rx.foreach(PlanningState.supplier_cards, _supplier_card),
                         columns=rx.breakpoints(initial="1", md="2", xl="3"),

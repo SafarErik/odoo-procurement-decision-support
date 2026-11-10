@@ -1,5 +1,6 @@
 """Original saved evidence stays available when a child has no proven plan."""
 
+import asyncio
 from copy import deepcopy
 from decimal import Decimal
 from fractions import Fraction
@@ -10,7 +11,7 @@ from frontend.api.case_view import map_case
 from frontend.api.cases import fetch_planning_case
 from frontend.i18n import number
 from frontend.planning.state import PlanningState
-from tests.helpers.frontend_patching import consume, patch_client
+from tests.helpers.frontend_patching import consume, open_case, patch_client
 
 
 def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_draft(
@@ -31,7 +32,12 @@ def test_fresh_infeasible_child_load_reads_original_only_and_retry_preserves_dra
     state = PlanningState(_reflex_internal_init=True)
     state.lang = "en"  # the assertions below read English texts
     before = {key: row.snapshot for key, row in uow.rows.items()}
-    consume(state, PlanningState.load_case, {"case_id": child["case_id"]})
+
+    async def load():
+        async for _ in open_case(state, child["case_id"]):
+            pass
+
+    asyncio.run(load())
     assert reads == [child["case_id"], base["case_id"]] and not posts
     assert state.has_case and state.details["case_id"] == child["case_id"]
     assert state.original_error and not state.original_plan

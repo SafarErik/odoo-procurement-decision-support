@@ -1,4 +1,5 @@
-"""Frontend runtime configuration kept outside Reflex components."""
+"""Frontend settings from ``.env``: the backend URL and service token, and the API routes
+built from them. Read only by ``frontend/api``."""
 
 from pathlib import Path
 

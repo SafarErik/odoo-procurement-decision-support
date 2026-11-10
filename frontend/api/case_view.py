@@ -336,6 +336,28 @@ def _plan_title(result: dict, index: int, lang: str) -> str:
     return tr("plan_alternative", lang, n=index)
 
 
+def _policy_sentence(policy: dict, lang: str) -> str:
+    """The saved sourcing policy in words, plus the balanced-plan allowance when set."""
+    concentration = policy["concentration_limit"]
+    text = tr(
+        "policy_text",
+        lang,
+        suppliers=_integer(policy["max_suppliers"]),
+        share=tr("policy_no_share", lang)
+        if concentration is None
+        else percent(_decimal(concentration), lang, 0),
+        allowance=", ".join(percent(_decimal(e), lang, 0) for e in policy["epsilons"])
+        or tr("none", lang),
+    )
+    if policy.get("diversification_epsilon") is None:
+        return text
+    return text + tr(
+        "policy_balanced",
+        lang,
+        allowance=percent(_decimal(policy["diversification_epsilon"]), lang, 0),
+    )
+
+
 # Sections.
 
 
@@ -345,8 +367,6 @@ def summary(case: _Case) -> dict[str, str]:
     status = case.result["status"]
     parent = payload["parent_id"]
     scenario = case.snapshot["scenario"]
-    policy = case.request["policy"]
-    concentration = policy["concentration_limit"]
     data_origin = _data_origin(case.snapshot)
     status_label = tr("status_" + status, lang)
     return {
@@ -380,25 +400,7 @@ def summary(case: _Case) -> dict[str, str]:
         "base_quantity_display": case.pieces(case.base_quantity),
         "scenario_status": status.replace("_", " "),
         "scenario_status_label": status_label,
-        "policy": tr(
-            "policy_text",
-            lang,
-            suppliers=_integer(policy["max_suppliers"]),
-            share=tr("policy_no_share", lang)
-            if concentration is None
-            else percent(_decimal(concentration), lang, 0),
-            allowance=", ".join(percent(_decimal(e), lang, 0) for e in policy["epsilons"])
-            or tr("none", lang),
-        )
-        + (
-            ""
-            if policy.get("diversification_epsilon") is None
-            else tr(
-                "policy_balanced",
-                lang,
-                allowance=percent(_decimal(policy["diversification_epsilon"]), lang, 0),
-            )
-        ),
+        "policy": _policy_sentence(case.request["policy"], lang),
         "product_label": product_label(requirement["product_id"], lang, case.names),
         "buyer_diagnostics": _buyer_explanations(case.result["explanations"], lang, case.names),
     }
@@ -471,95 +473,109 @@ def alternatives(case: _Case) -> dict[str, str]:
     return details
 
 
-def plan_rows(case: _Case) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    """One row per recorded plan (cost, exposure, premium, notes) and its allocation rows."""
-    lang, result, minimum, quantity = case.lang, case.result, case.minimum, case.quantity
-    recorded = case.recorded
-    lowest = min(
-        range(len(recorded)), key=lambda i: _ratio(recorded[i]["risk_exposure"]), default=0
-    )
-    # Keep the tightest allowance that proves each plan, independent of run order.
-    budgets = {}
+def _plan_budgets(result: dict) -> dict[int, Decimal]:
+    """Per plan index, the tightest cost allowance that proves it, independent of run order."""
+    budgets: dict[int, Decimal] = {}
     for run in result.get("runs", []):
         if run.get("plan_index"):
             epsilon = _decimal(run["epsilon"])
             budgets[run["plan_index"]] = min(epsilon, budgets.get(run["plan_index"], epsilon))
-    balanced_only = _balanced_only(result)
+    return budgets
+
+
+def _allocation_rows(case: _Case, label: str, by_supplier: dict) -> list[dict[str, str]]:
+    """One row per supplier of plan ``label``: quantity, share and promised date."""
+    return [
+        {
+            "plan": label,
+            "supplier": identity,
+            "quantity": str(by_supplier[identity]),
+            "quantity_display": case.pieces(by_supplier[identity]),
+            "name": case.name(identity),
+            "promised": day(case.saved_suppliers[identity]["promised_date"], case.lang),
+            "share": f"{Decimal(by_supplier[identity]) / case.quantity * 100:.2f}",
+            "share_display": percent(Decimal(by_supplier[identity]) / case.quantity, case.lang, 0),
+        }
+        for identity in sorted(by_supplier)
+    ]
+
+
+def _plan_row(case: _Case, index: int, plan: dict, label: str, marks: dict) -> dict[str, str]:
+    """Display strings of one recorded plan; ``marks`` say which plans get which badge."""
+    lang, minimum = case.lang, case.minimum
+    by_supplier = {a["supplier_id"]: a["quantity"] for a in plan["allocations"]}
+    with localcontext() as context:
+        context.prec = max(28, len(plan["total_cost"]) + len(minimum["total_cost"]))
+        extra_cost = _decimal(plan["total_cost"]) - _decimal(minimum["total_cost"])
+    exposure = _ratio(plan["risk_exposure"])
+    used = [i for i in sorted(by_supplier) if by_supplier[i] > 0]
+    budgets = marks["budgets"]
+    return {
+        "label": label,
+        "title": _plan_title(case.result, index, lang),
+        "stage": "balanced" if index in marks["balanced_only"] else "",
+        "hint": tr("plan_lower_risk", lang) if index == marks["lowest"] and index else "",
+        "balanced": tr("plan_balanced_hint", lang)
+        if index in marks["balanced"] - marks["balanced_only"]
+        else "",
+        "largest_share": percent(_ratio(plan["largest_share"]), lang, 0),
+        "budget": tr("plan_budget", lang, allowance=percent(budgets[index], lang, 0))
+        if index in budgets
+        else "",
+        "number": str(index + 1),
+        "index": str(index),
+        "cost": case.amount(_decimal(plan["total_cost"])),
+        "cost_exact": plan["total_cost"],
+        "cost_number": f"{_decimal(plan['total_cost']):f}",
+        "exposure": _rational(plan["risk_exposure"]),
+        "exposure_number": f"{exposure * 100:.1f}",
+        "premium": _rational(plan["cost_premium"]),
+        "premium_absolute": case.amount(extra_cost, signed=True),
+        "premium_exact": (
+            f"{plan['cost_premium']['numerator']}/{plan['cost_premium']['denominator']}"
+        ),
+        "exposure_exact": (
+            f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}"
+        ),
+        "supplier_count": str(len(used)),
+        "allocation_summary": "; ".join(
+            f"{case.name(identity)}: {case.pieces(by_supplier[identity])}" for identity in used
+        ),
+        "exposure_display": tr("exposure_value", lang, value=number(exposure * 100, lang, 1)),
+        "premium_display": tr("minimum_for_limits", lang)
+        if index == 0
+        else tr(
+            "above_minimum",
+            lang,
+            amount=f"{case.amount(extra_cost, signed=True)} "
+            f"({percent(_ratio(plan['cost_premium']), lang)})",
+        ),
+        "buyer_notes": _buyer_explanations(plan["explanations"], lang, case.names),
+        "explanations": "\n".join(
+            f"{e['supplier_id'] or 'Plan'} — {e['code']}: {e['detail']}"
+            for e in plan["explanations"]
+        ),
+    }
+
+
+def plan_rows(case: _Case) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """One row per recorded plan (cost, exposure, premium, notes) and its allocation rows."""
+    result, recorded = case.result, case.recorded
     balanced = {r["plan_index"] for r in result.get("runs", []) if r.get("kind") == "diversified"}
-    balanced -= {0}
+    marks = {
+        "lowest": min(
+            range(len(recorded)), key=lambda i: _ratio(recorded[i]["risk_exposure"]), default=0
+        ),
+        "budgets": _plan_budgets(result),
+        "balanced_only": _balanced_only(result),
+        "balanced": balanced - {0},
+    }
     plans, allocations = [], []
     for index, plan in enumerate(recorded):
         label = "Minimum cost" if index == 0 else f"Alternative {index}"
+        plans.append(_plan_row(case, index, plan, label, marks))
         by_supplier = {a["supplier_id"]: a["quantity"] for a in plan["allocations"]}
-        with localcontext() as context:
-            context.prec = max(28, len(plan["total_cost"]) + len(minimum["total_cost"]))
-            extra_cost = _decimal(plan["total_cost"]) - _decimal(minimum["total_cost"])
-        exposure = _ratio(plan["risk_exposure"])
-        used = [i for i in sorted(by_supplier) if by_supplier[i] > 0]
-        plans.append(
-            {
-                "label": label,
-                "title": _plan_title(result, index, lang),
-                "stage": "balanced" if index in balanced_only else "",
-                "hint": tr("plan_lower_risk", lang) if index == lowest and index else "",
-                "balanced": tr("plan_balanced_hint", lang)
-                if index in balanced - balanced_only
-                else "",
-                "largest_share": percent(_ratio(plan["largest_share"]), lang, 0),
-                "budget": tr("plan_budget", lang, allowance=percent(budgets[index], lang, 0))
-                if index in budgets
-                else "",
-                "number": str(index + 1),
-                "index": str(index),
-                "cost": case.amount(_decimal(plan["total_cost"])),
-                "cost_exact": plan["total_cost"],
-                "cost_number": f"{_decimal(plan['total_cost']):f}",
-                "exposure": _rational(plan["risk_exposure"]),
-                "exposure_number": f"{exposure * 100:.1f}",
-                "premium": _rational(plan["cost_premium"]),
-                "premium_absolute": case.amount(extra_cost, signed=True),
-                "premium_exact": (
-                    f"{plan['cost_premium']['numerator']}/{plan['cost_premium']['denominator']}"
-                ),
-                "exposure_exact": (
-                    f"{plan['risk_exposure']['numerator']}/{plan['risk_exposure']['denominator']}"
-                ),
-                "supplier_count": str(len(used)),
-                "allocation_summary": "; ".join(
-                    f"{case.name(identity)}: {case.pieces(by_supplier[identity])}"
-                    for identity in used
-                ),
-                "exposure_display": tr(
-                    "exposure_value", lang, value=number(exposure * 100, lang, 1)
-                ),
-                "premium_display": tr("minimum_for_limits", lang)
-                if index == 0
-                else tr(
-                    "above_minimum",
-                    lang,
-                    amount=f"{case.amount(extra_cost, signed=True)} "
-                    f"({percent(_ratio(plan['cost_premium']), lang)})",
-                ),
-                "buyer_notes": _buyer_explanations(plan["explanations"], lang, case.names),
-                "explanations": "\n".join(
-                    f"{e['supplier_id'] or 'Plan'} — {e['code']}: {e['detail']}"
-                    for e in plan["explanations"]
-                ),
-            }
-        )
-        allocations.extend(
-            {
-                "plan": label,
-                "supplier": identity,
-                "quantity": str(by_supplier[identity]),
-                "quantity_display": case.pieces(by_supplier[identity]),
-                "name": case.name(identity),
-                "promised": day(case.saved_suppliers[identity]["promised_date"], lang),
-                "share": f"{Decimal(by_supplier[identity]) / quantity * 100:.2f}",
-                "share_display": percent(Decimal(by_supplier[identity]) / quantity, lang, 0),
-            }
-            for identity in sorted(by_supplier)
-        )
+        allocations.extend(_allocation_rows(case, label, by_supplier))
     return plans, allocations
 
 
@@ -610,35 +626,36 @@ def scenario_comparison(case: _Case) -> tuple[list[dict[str, str]], dict[str, st
         if case.base_quantity != case.quantity:
             details["comparison_display"] += " " + tr("scenario_demand_changed", lang)
     if scenario is not None:
-        assumptions = []
-        if scenario["approved_quantity"] is not None:
-            assumptions.append(
-                tr("assume_demand", lang, quantity=case.pieces(scenario["approved_quantity"]))
-            )
-        for change in scenario["suppliers"]:
-            supplier = case.name(required_string(change, "supplier_id"))
-            if change["available"] is False:
-                assumptions.append(tr("assume_outage", lang, name=supplier))
-            if change["capacity"] is not None:
-                assumptions.append(
-                    tr(
-                        "assume_capacity",
-                        lang,
-                        name=supplier,
-                        quantity=case.pieces(change["capacity"]),
-                    )
-                )
-            if change["unit_price"] is not None:
-                assumptions.append(
-                    tr(
-                        "assume_price",
-                        lang,
-                        name=supplier,
-                        price=case.amount(_decimal(change["unit_price"])),
-                    )
-                )
-        details["assumptions"] = "; ".join(assumptions)
+        details["assumptions"] = _assumptions(case, scenario)
     return rows, details
+
+
+def _assumptions(case: _Case, scenario: dict) -> str:
+    """The what-if changes in words: new demand, outages, capacities and prices."""
+    lang = case.lang
+    assumptions = []
+    if scenario["approved_quantity"] is not None:
+        assumptions.append(
+            tr("assume_demand", lang, quantity=case.pieces(scenario["approved_quantity"]))
+        )
+    for change in scenario["suppliers"]:
+        supplier = case.name(required_string(change, "supplier_id"))
+        if change["available"] is False:
+            assumptions.append(tr("assume_outage", lang, name=supplier))
+        if change["capacity"] is not None:
+            assumptions.append(
+                tr("assume_capacity", lang, name=supplier, quantity=case.pieces(change["capacity"]))
+            )
+        if change["unit_price"] is not None:
+            assumptions.append(
+                tr(
+                    "assume_price",
+                    lang,
+                    name=supplier,
+                    price=case.amount(_decimal(change["unit_price"])),
+                )
+            )
+    return "; ".join(assumptions)
 
 
 def audit(case: _Case) -> tuple[list[dict[str, str]], list[dict[str, str]], dict[str, str]]:

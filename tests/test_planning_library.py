@@ -204,7 +204,7 @@ def test_bookmark_clear_invalid_previous_and_pending_guard(decision_api, monkeyp
         async for _ in state.library_on_load():
             pass
         assert state._pending == before and state.open_saved_case(base["case_id"]) is None
-        assert state.open_library() is None
+        assert state.navigate_global("cases") is None
         root.router = RouterData.from_router_data({"asPath": state._pending_route})
         assert [event async for event in state.load_bookmark()] == []
 

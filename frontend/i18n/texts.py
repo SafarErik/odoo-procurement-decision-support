@@ -222,7 +222,7 @@ TEXT: dict[str, tuple[str, str]] = {
     # New procurement: demand and supplier history preview
     "history_title": ("Szállítói előzmények az Odoo-ból", "Supplier history from Odoo"),
     "history_note": (
-        "A lezárt beszerzési sorokból számolva.",
+        "A lezárt rendelési sorokból számolva.",
         "Calculated from settled purchase lines.",
     ),
     "kpi_on_time": ("Határidőre", "On time"),
@@ -876,7 +876,7 @@ TEXT: dict[str, tuple[str, str]] = {
     ),
     "err_too_large": ("A kérés túl nagy.", "The request is too large."),
     "err_history_insufficient": (
-        "Legalább egy szállítónak háromnál kevesebb lezárt beszerzési sora van az Odoo-ban. "
+        "Legalább egy szállítónak háromnál kevesebb lezárt rendelési sora van az Odoo-ban. "
         "Nem mentettünk ügyet.",
         "At least one supplier has fewer than three settled purchase lines in Odoo. No case "
         "was saved.",

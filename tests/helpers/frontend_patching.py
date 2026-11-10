@@ -36,6 +36,12 @@ def consume(state, handler, *args):
     return asyncio.run(run())
 
 
+def open_case(state, case_id):
+    """Updates of loading stored case ``case_id`` with the loader behind the
+    ``/planning?case_id=…`` bookmark (``load_bookmark`` adds only routing around it)."""
+    return state._load_case({"case_id": case_id})
+
+
 async def event(state, handler, *args):
     """Await a Reflex event handler, checking it shows loading until it finishes."""
     async for update in handler.fn(state, *args):

@@ -1,14 +1,18 @@
-"""Audit view: exact stored values, hashes, tree paths, provenance and solver records."""
+"""Audit view: the exact stored values, hashes, tree paths, provenance and solver records of
+the open case, each in a collapsible section, plus the audit appendix PDF."""
 
 import reflex as rx
 
-from frontend.planning.pdf import ApprovedPDFViewer
+from frontend.planning.pdf import pdf_panel
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, MUTED
+from frontend.theme import HAIRLINE, MUTED
 from frontend.ui import BUSY, card, muted, t
+
+DETAILS = PlanningState.details
 
 
 def _pair(label: str, value):
+    """One "label: exact value" line of the case identity block."""
     return rx.flex(
         rx.text(t(label), size="2", color=MUTED, min_width="11rem"),
         rx.code(value, size="2", variant="ghost", overflow_wrap="anywhere"),
@@ -20,6 +24,7 @@ def _pair(label: str, value):
 
 
 def _table(headers: tuple[str, ...], rows, cells, label: str, min_width="40rem"):
+    """Scrollable, keyboard-focusable table of stored rows."""
     return rx.box(
         rx.table.root(
             rx.table.header(
@@ -43,6 +48,7 @@ def _table(headers: tuple[str, ...], rows, cells, label: str, min_width="40rem")
 
 
 def _section(title: str, *children):
+    """Collapsed section with a bold summary line."""
     return rx.el.details(
         rx.el.summary(t(title), font_weight="650"),
         rx.flex(*children, direction="column", gap="0.75rem", margin_top="0.75rem"),
@@ -51,203 +57,172 @@ def _section(title: str, *children):
     )
 
 
+def _pre(text, **props):
+    """Monospaced stored text that keeps its line breaks."""
+    return rx.el.pre(text, font_size="0.8rem", white_space="pre-wrap", **props)
+
+
 def _audit_pdf() -> rx.Component:
-    """Audit appendix PDF of the approved content; only for an approved base case."""
+    """Audit appendix PDF button and viewer; only for an approved base case."""
     return rx.cond(
-        PlanningState.details["final_outcome"] == "Approved",
+        DETAILS["final_outcome"] == "Approved",
         rx.box(
-            rx.flex(
-                rx.button(
-                    rx.cond(
-                        PlanningState.is_loading,
-                        rx.spinner(size="2"),
-                        rx.icon("file-search", size=16),
-                    ),
-                    rx.cond(
-                        PlanningState.audit_pdf_error != "", t("retry_audit_pdf"), t("audit_pdf")
-                    ),
-                    on_click=PlanningState.request_audit_pdf,
-                    disabled=BUSY,
-                    background=ACCENT,
-                    color="white",
-                ),
-                rx.text(t("audit_pdf_note"), size="2", color=MUTED),
-                gap="0.75rem",
-                align="center",
-                wrap="wrap",
-            ),
-            rx.cond(
-                PlanningState.audit_pdf_error != "",
-                rx.callout(
-                    PlanningState.audit_pdf_error,
-                    color_scheme="amber",
-                    role="alert",
-                    margin_top="1rem",
-                ),
-            ),
-            rx.cond(
-                PlanningState.audit_pdf_data_url != "",
-                rx.box(
-                    ApprovedPDFViewer.create(
-                        data=PlanningState.audit_pdf_data_url,
-                        filename=PlanningState.audit_pdf_filename,
-                        lang=PlanningState.lang,
-                        kind="audit",
-                    ),
-                    margin_top="1rem",
-                ),
+            pdf_panel(
+                on_click=PlanningState.request_audit_pdf,
+                error=PlanningState.audit_pdf_error,
+                data_url=PlanningState.audit_pdf_data_url,
+                filename=PlanningState.audit_pdf_filename,
+                icon="file-search",
+                label="audit_pdf",
+                retry_label="retry_audit_pdf",
+                note="audit_pdf_note",
+                kind="audit",
             ),
             margin_bottom="1rem",
         ),
     )
 
 
-def audit_view() -> rx.Component:
-    return card(
-        rx.flex(
-            rx.box(
-                rx.heading(
-                    t("audit"), as_="h2", size="5", id="audit-evidence-heading", tab_index=-1
-                ),
-                muted("audit_intro", margin_top="0.35rem", max_width="70ch"),
-            ),
-            rx.button(
-                rx.icon("arrow-left", size=16),
-                t("back_to_overview"),
-                on_click=PlanningState.change_view("overview"),
-                disabled=BUSY,
-                variant="outline",
-            ),
-            justify="between",
-            align="start",
-            gap="1rem",
-            wrap="wrap",
-            margin_bottom="1rem",
-        ),
+def _header() -> rx.Component:
+    """Audit heading, its introduction and the way back to Overview."""
+    return rx.flex(
         rx.box(
-            _pair("audit_case_id", PlanningState.details["case_id"]),
-            _pair("base_case", PlanningState.details["base_id"]),
-            _pair("audit_snapshot_hash", PlanningState.details["snapshot_hash"]),
-            _pair("audit_company", PlanningState.details["company"]),
-            _pair("audit_product", PlanningState.details["product"]),
-            _pair("audit_cutoff", PlanningState.details["as_of"]),
-            _pair("audit_saved", PlanningState.details["created_at"]),
-            _pair("audit_input_kind", PlanningState.details["input_kind"]),
-            rx.cond(
-                PlanningState.details["final_content_hash"] != "",
-                _pair("audit_content_hash", PlanningState.details["final_content_hash"]),
-            ),
-            rx.button(
-                rx.icon("copy", size=14),
-                t("copy_case_id"),
-                variant="soft",
-                size="1",
-                on_click=rx.set_clipboard(PlanningState.details["case_id"]),
-                margin_top="0.75rem",
-            ),
-            margin_bottom="1rem",
+            rx.heading(t("audit"), as_="h2", size="5", id="audit-evidence-heading", tab_index=-1),
+            muted("audit_intro", margin_top="0.35rem", max_width="70ch"),
         ),
-        _audit_pdf(),
-        _section(
-            "audit_inputs",
-            rx.text(PlanningState.details["policy"], size="2"),
-            _table(
-                (
-                    "col_supplier",
-                    "offer_price",
-                    "capacity_label",
-                    "moq_label",
-                    "promised_label",
-                    "availability",
-                    "audit_ranges",
-                ),
-                PlanningState.scenario_suppliers,
-                (
-                    "name",
-                    "saved_price",
-                    "saved_capacity",
-                    "saved_moq",
-                    "saved_date",
-                    "saved_available",
-                    "saved_ranges",
-                ),
-                "audit_inputs",
-            ),
+        rx.button(
+            rx.icon("arrow-left", size=16),
+            t("back_to_overview"),
+            on_click=PlanningState.change_view("overview"),
+            disabled=BUSY,
+            variant="outline",
         ),
-        _section(
-            "audit_plans",
-            rx.foreach(
-                PlanningState.plans,
-                lambda plan: rx.box(
-                    rx.text(plan["title"], font_weight="650", size="2"),
-                    rx.text(t("audit_cost_exact"), ": ", plan["cost_exact"], size="2"),
-                    rx.text(t("audit_exposure_exact"), ": ", plan["exposure"], size="2"),
-                    rx.text(t("audit_premium_exact"), ": ", plan["premium"], size="2"),
-                    rx.el.pre(plan["explanations"], font_size="0.8rem", white_space="pre-wrap"),
-                ),
-            ),
-            rx.text(PlanningState.details["explanations"], white_space="pre-line", size="2"),
-            rx.text(PlanningState.details["comparison"], white_space="pre-line", size="2"),
-            _table(
-                ("plan", "audit_supplier_id", "audit_quantity"),
-                PlanningState.allocations,
-                ("plan", "supplier", "quantity"),
-                "audit_plans",
-                min_width="24rem",
-            ),
-        ),
-        _section(
-            "audit_tree",
-            rx.foreach(
-                PlanningState.assessments,
-                lambda row: rx.box(
-                    rx.text(row["name"], " (", row["supplier"], ")", font_weight="650", size="2"),
-                    rx.text(
-                        t("audit_class"),
-                        ": ",
-                        row["class"],
-                        " · ",
-                        t("audit_score"),
-                        ": ",
-                        row["score"],
-                        size="2",
-                    ),
-                    rx.text(t("audit_model"), ": ", row["model"], size="2"),
-                    rx.text(t("audit_history_ref"), ": ", row["source"], size="2"),
-                    rx.text(t("audit_window"), ": ", row["history_window"], size="2"),
-                    rx.text(t("audit_valid_until"), ": ", row["valid_until"], size="2"),
-                    rx.el.pre(row["path"], font_size="0.8rem", white_space="pre-wrap"),
-                    rx.text(
-                        PlanningState.supplier_paths[row["supplier"]],
-                        white_space="pre-line",
-                        size="2",
-                    ),
-                    padding_y="0.5rem",
-                    border_bottom=f"1px solid {HAIRLINE}",
-                ),
-            ),
-        ),
-        _section(
-            "audit_provenance",
-            _table(
-                ("audit_field", "audit_source", "audit_reference", "audit_observed"),
-                PlanningState.provenance,
-                ("field", "type", "reference", "observed_at"),
-                "audit_provenance",
-                min_width="48rem",
-            ),
-        ),
+        justify="between",
+        align="start",
+        gap="1rem",
+        wrap="wrap",
+        margin_bottom="1rem",
+    )
+
+
+def _identity() -> rx.Component:
+    """Case id, base case, snapshot hash, company, product and dates, with a copy button."""
+    return rx.box(
+        _pair("audit_case_id", DETAILS["case_id"]),
+        _pair("base_case", DETAILS["base_id"]),
+        _pair("audit_snapshot_hash", DETAILS["snapshot_hash"]),
+        _pair("audit_company", DETAILS["company"]),
+        _pair("audit_product", DETAILS["product"]),
+        _pair("audit_cutoff", DETAILS["as_of"]),
+        _pair("audit_saved", DETAILS["created_at"]),
+        _pair("audit_input_kind", DETAILS["input_kind"]),
         rx.cond(
-            PlanningState.details["final_audit"] != "",
+            DETAILS["final_content_hash"] != "",
+            _pair("audit_content_hash", DETAILS["final_content_hash"]),
+        ),
+        rx.button(
+            rx.icon("copy", size=14),
+            t("copy_case_id"),
+            variant="soft",
+            size="1",
+            on_click=rx.set_clipboard(DETAILS["case_id"]),
+            margin_top="0.75rem",
+        ),
+        margin_bottom="1rem",
+    )
+
+
+def _inputs() -> rx.Component:
+    """Saved supplier terms the solver received, with the policy line."""
+    return _section(
+        "audit_inputs",
+        rx.text(DETAILS["policy"], size="2"),
+        _table(
+            (
+                "col_supplier",
+                "offer_price",
+                "capacity_label",
+                "moq_label",
+                "promised_label",
+                "availability",
+                "audit_ranges",
+            ),
+            PlanningState.scenario_suppliers,
+            (
+                "name",
+                "saved_price",
+                "saved_capacity",
+                "saved_moq",
+                "saved_date",
+                "saved_available",
+                "saved_ranges",
+            ),
+            "audit_inputs",
+        ),
+    )
+
+
+def _plan_record(plan):
+    """One plan's exact cost, exposure, premium and solver explanation."""
+    return rx.box(
+        rx.text(plan["title"], font_weight="650", size="2"),
+        rx.text(t("audit_cost_exact"), ": ", plan["cost_exact"], size="2"),
+        rx.text(t("audit_exposure_exact"), ": ", plan["exposure"], size="2"),
+        rx.text(t("audit_premium_exact"), ": ", plan["premium"], size="2"),
+        _pre(plan["explanations"]),
+    )
+
+
+def _plans() -> rx.Component:
+    """Every plan's exact numbers, the comparison text and the allocation table."""
+    return _section(
+        "audit_plans",
+        rx.foreach(PlanningState.plans, _plan_record),
+        rx.text(DETAILS["explanations"], white_space="pre-line", size="2"),
+        rx.text(DETAILS["comparison"], white_space="pre-line", size="2"),
+        _table(
+            ("plan", "audit_supplier_id", "audit_quantity"),
+            PlanningState.allocations,
+            ("plan", "supplier", "quantity"),
+            "audit_plans",
+            min_width="24rem",
+        ),
+    )
+
+
+def _assessment(row):
+    """One supplier's class, score, model, history window and decision-tree path."""
+    return rx.box(
+        rx.text(row["name"], " (", row["supplier"], ")", font_weight="650", size="2"),
+        rx.text(
+            t("audit_class"),
+            ": ",
+            row["class"],
+            " · ",
+            t("audit_score"),
+            ": ",
+            row["score"],
+            size="2",
+        ),
+        rx.text(t("audit_model"), ": ", row["model"], size="2"),
+        rx.text(t("audit_history_ref"), ": ", row["source"], size="2"),
+        rx.text(t("audit_window"), ": ", row["history_window"], size="2"),
+        rx.text(t("audit_valid_until"), ": ", row["valid_until"], size="2"),
+        _pre(row["path"]),
+        rx.text(PlanningState.supplier_paths[row["supplier"]], white_space="pre-line", size="2"),
+        padding_y="0.5rem",
+        border_bottom=f"1px solid {HAIRLINE}",
+    )
+
+
+def _stored_texts() -> rx.Component:
+    """Decision record, last request and the full snapshot; the first two only if present."""
+    return rx.fragment(
+        rx.cond(
+            DETAILS["final_audit"] != "",
             _section(
                 "audit_decision",
-                rx.el.pre(
-                    PlanningState.details["final_audit"],
-                    font_size="0.8rem",
-                    white_space="pre-wrap",
-                    max_height="24rem",
-                    overflow="auto",
-                ),
+                _pre(DETAILS["final_audit"], max_height="24rem", overflow="auto"),
             ),
         ),
         rx.cond(
@@ -261,14 +236,14 @@ def audit_view() -> rx.Component:
                     on_click=rx.set_clipboard(PlanningState.recovery_json),
                     width="fit-content",
                 ),
-                rx.el.pre(PlanningState.recovery_json, font_size="0.8rem", white_space="pre-wrap"),
+                _pre(PlanningState.recovery_json),
             ),
         ),
         _section(
             "audit_snapshot",
             muted("audit_snapshot_note"),
             rx.el.pre(
-                PlanningState.details["snapshot_json"],
+                DETAILS["snapshot_json"],
                 overflow="auto",
                 max_height="24rem",
                 width="100%",
@@ -279,4 +254,27 @@ def audit_view() -> rx.Component:
                 font_size="0.8rem",
             ),
         ),
+    )
+
+
+def audit_view() -> rx.Component:
+    """The Audit card: identity, audit PDF and the collapsible evidence sections."""
+    return card(
+        _header(),
+        _identity(),
+        _audit_pdf(),
+        _inputs(),
+        _plans(),
+        _section("audit_tree", rx.foreach(PlanningState.assessments, _assessment)),
+        _section(
+            "audit_provenance",
+            _table(
+                ("audit_field", "audit_source", "audit_reference", "audit_observed"),
+                PlanningState.provenance,
+                ("field", "type", "reference", "observed_at"),
+                "audit_provenance",
+                min_width="48rem",
+            ),
+        ),
+        _stored_texts(),
     )

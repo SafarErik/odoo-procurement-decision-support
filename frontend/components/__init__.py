@@ -1,1 +1,1 @@
-"""Shared Python components for the procurement workspace."""
+"""Small Reflex components shared by several pages (wizard step bar, source badges)."""

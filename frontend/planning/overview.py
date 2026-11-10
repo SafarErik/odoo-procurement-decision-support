@@ -1,24 +1,36 @@
-"""Overview tab: headline numbers, plan choice and the numbered next step."""
+"""Overview tab: headline numbers (minimum cost, plans, suppliers), the plan choice as
+radio rows, and the numbered next step."""
 
 import reflex as rx
 
 from frontend.planning.state import PlanningState
-from frontend.theme import ACCENT, HAIRLINE, INK, MUTED
-from frontend.ui import BUSY, card, heading, kpi, muted, t
+from frontend.theme import (
+    ACCENT,
+    HAIRLINE,
+    INK,
+    MUTED,
+    RADIO_RING,
+    RADIUS_NAV,
+    RADIUS_STEP,
+    SELECTED,
+    SURFACE,
+)
+from frontend.ui import BUSY, card, heading, kpi, muted, primary_button, t
 
 BASE = PlanningState.details["parent_id"] == "Base case"
 DECIDED = PlanningState.details["final_outcome"] != ""
 
 
 def _plan_option(plan):
+    """One plan as a radio row: title, badges, budget, cost and premium."""
     chosen = PlanningState.selected_plan.get("label", "") == plan["label"]
     return rx.el.button(
         rx.flex(
             rx.box(
                 width="1.1rem",
                 height="1.1rem",
-                border_radius="50%",
-                border=rx.cond(chosen, f"5px solid {ACCENT}", "2px solid #9fb3ab"),
+                border_radius=RADIUS_STEP,
+                border=rx.cond(chosen, f"5px solid {ACCENT}", f"2px solid {RADIO_RING}"),
                 flex_shrink="0",
             ),
             rx.box(
@@ -63,8 +75,8 @@ def _plan_option(plan):
         width="100%",
         padding="0.85rem 1rem",
         border=rx.cond(chosen, f"2px solid {ACCENT}", f"1px solid {HAIRLINE}"),
-        border_radius="8px",
-        background=rx.cond(chosen, "#f1eff8", "white"),
+        border_radius=RADIUS_NAV,
+        background=rx.cond(chosen, SELECTED, SURFACE),
         cursor="pointer",
         font="inherit",
         _disabled={"cursor": "default"},
@@ -72,6 +84,7 @@ def _plan_option(plan):
 
 
 def _step(number: int, title: str, body: str):
+    """One numbered next-step line: done (check), current or still ahead."""
     done = PlanningState.next_step > number
     current = PlanningState.next_step == number
     return rx.flex(
@@ -79,15 +92,15 @@ def _step(number: int, title: str, body: str):
             rx.cond(done, rx.icon("check", size=14), str(number)),
             width="1.75rem",
             height="1.75rem",
-            border_radius="50%",
+            border_radius=RADIUS_STEP,
             display="flex",
             align_items="center",
             justify_content="center",
             font_size="0.85rem",
             font_weight="650",
             flex_shrink="0",
-            background=rx.cond(done | current, ACCENT, "white"),
-            color=rx.cond(done | current, "white", MUTED),
+            background=rx.cond(done | current, ACCENT, SURFACE),
+            color=rx.cond(done | current, SURFACE, MUTED),
             border=rx.cond(done | current, "none", f"1px solid {HAIRLINE}"),
         ),
         rx.box(
@@ -101,6 +114,7 @@ def _step(number: int, title: str, body: str):
 
 
 def _next_step():
+    """Next step card: the three steps or the decided outcome, and its button."""
     return card(
         heading("next_step", size="4"),
         rx.cond(
@@ -129,14 +143,12 @@ def _next_step():
                 width="100%",
                 margin_top="1.25rem",
             ),
-            rx.button(
+            primary_button(
                 rx.cond(PlanningState.next_step == 3, t("review_decision"), t("compare_plans")),
                 on_click=PlanningState.change_view(
                     rx.cond(PlanningState.next_step == 3, "decision", "plans")
                 ),
                 disabled=BUSY,
-                background=ACCENT,
-                color="white",
                 width="100%",
                 margin_top="1.25rem",
             ),
@@ -145,6 +157,7 @@ def _next_step():
 
 
 def _options():
+    """Plan choice card: radio rows of the plans and Compare plans."""
     return card(
         heading("compare_options", size="4"),
         rx.cond(
@@ -189,6 +202,7 @@ def _options():
 
 
 def _suppliers_tile():
+    """Supplier count tile with how many are flagged and a link to them."""
     counts = PlanningState.supplier_class_counts
     return card(
         rx.text(t("kpi_suppliers"), size="2", color=MUTED),
@@ -209,6 +223,7 @@ def _suppliers_tile():
 
 
 def overview_view() -> rx.Component:
+    """The Overview tab: three number tiles, plan choice and next step."""
     return rx.box(
         rx.grid(
             kpi(

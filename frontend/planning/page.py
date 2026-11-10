@@ -1,4 +1,5 @@
-"""Case page: header with business facts, tabs, and Audit as a secondary view."""
+"""Case page: breadcrumb and header with the case's business facts, messages, the five tabs
+(Overview … Decision & PDF) and Audit as a secondary view."""
 
 import reflex as rx
 
@@ -10,8 +11,8 @@ from frontend.planning.results import plans_view
 from frontend.planning.scenarios import scenarios_view
 from frontend.planning.state import PlanningState
 from frontend.planning.suppliers import suppliers_view
-from frontend.theme import ACCENT, MUTED
-from frontend.ui import BUSY, decision_badge, error_state, loading_state, t
+from frontend.theme import MUTED
+from frontend.ui import BUSY, decision_badge, error_state, loading_state, primary_button, t
 from frontend.workspace import page_frame, workspace_shell
 
 TABS = (
@@ -21,9 +22,11 @@ TABS = (
     ("scenarios", "tab_scenarios"),
     ("decision", "tab_decision"),
 )
+DETAILS = PlanningState.details
 
 
 def _status_code():
+    """Badge code of the open case: scenario, approved, no_award or draft."""
     return rx.cond(
         PlanningState.details["parent_id"] != "Base case",
         "scenario",
@@ -36,68 +39,71 @@ def _status_code():
     )
 
 
-def _header() -> rx.Component:
-    return rx.box(
-        rx.flex(
-            rx.link(
-                t("nav_cases"),
-                on_click=PlanningState.navigate_global("cases"),
-                href="#",
-                color=MUTED,
-                size="2",
-                white_space="nowrap",
-                flex_shrink="0",
-            ),
-            rx.text("/", size="2", color=MUTED),
-            rx.text(PlanningState.details["product_label"], size="2", color=MUTED, truncate=True),
-            gap="0.5rem",
-            align="center",
-            min_width="0",
+def _breadcrumb() -> rx.Component:
+    """ "Cases / product" line linking back to the case library."""
+    return rx.flex(
+        rx.link(
+            t("nav_cases"),
+            on_click=PlanningState.navigate_global("cases"),
+            href="#",
+            color=MUTED,
+            size="2",
+            white_space="nowrap",
+            flex_shrink="0",
         ),
+        rx.text("/", size="2", color=MUTED),
+        rx.text(DETAILS["product_label"], size="2", color=MUTED, truncate=True),
+        gap="0.5rem",
+        align="center",
+        min_width="0",
+    )
+
+
+def _case_facts() -> rx.Component:
+    """Demand, currency and required date with the decision, scenario and origin badges."""
+    return rx.flex(
+        rx.text(
+            DETAILS["quantity_display"],
+            " · ",
+            DETAILS["currency"],
+            " · ",
+            t("required_short"),
+            " ",
+            DETAILS["required_display"],
+            size="2",
+            color=MUTED,
+        ),
+        decision_badge(_status_code()),
+        rx.cond(
+            DETAILS["scenario_label"] != "",
+            rx.badge(DETAILS["scenario_label"], color_scheme="iris", variant="soft"),
+        ),
+        rx.cond(
+            DETAILS["origin_badge"] != "",
+            rx.badge(DETAILS["origin_badge"], color_scheme="gray", variant="soft"),
+        ),
+        gap="0.6rem",
+        align="center",
+        wrap="wrap",
+        margin_top="0.35rem",
+    )
+
+
+def _header() -> rx.Component:
+    """Breadcrumb, product heading with the case facts, and the Audit button."""
+    return rx.box(
+        _breadcrumb(),
         rx.flex(
             rx.box(
                 rx.heading(
-                    PlanningState.details["product_label"],
+                    DETAILS["product_label"],
                     as_="h1",
                     size="7",
                     id="saved-case-heading",
                     tab_index=-1,
                     margin_top="0.35rem",
                 ),
-                rx.flex(
-                    rx.text(
-                        PlanningState.details["quantity_display"],
-                        " · ",
-                        PlanningState.details["currency"],
-                        " · ",
-                        t("required_short"),
-                        " ",
-                        PlanningState.details["required_display"],
-                        size="2",
-                        color=MUTED,
-                    ),
-                    decision_badge(_status_code()),
-                    rx.cond(
-                        PlanningState.details["scenario_label"] != "",
-                        rx.badge(
-                            PlanningState.details["scenario_label"],
-                            color_scheme="iris",
-                            variant="soft",
-                        ),
-                    ),
-                    rx.cond(
-                        PlanningState.details["origin_badge"] != "",
-                        rx.badge(
-                            PlanningState.details["origin_badge"],
-                            color_scheme="gray",
-                            variant="soft",
-                        ),
-                    ),
-                    gap="0.6rem",
-                    align="center",
-                    wrap="wrap",
-                    margin_top="0.35rem",
-                ),
+                _case_facts(),
                 min_width="0",
             ),
             rx.button(
@@ -119,6 +125,7 @@ def _header() -> rx.Component:
 
 
 def _messages() -> rx.Component:
+    """Error, recovery, success and pending-state lines above the case."""
     return rx.box(
         rx.cond(
             (PlanningState.error_message != "")
@@ -151,6 +158,7 @@ def _messages() -> rx.Component:
 
 
 def _workspace() -> rx.Component:
+    """The loaded case: header and the tab strip with its six views."""
     return rx.box(
         _header(),
         rx.tabs.root(
@@ -182,6 +190,7 @@ def _workspace() -> rx.Component:
 
 
 def planning_page() -> rx.Component:
+    """The case page: messages, then the case, its loading or its error."""
     return workspace_shell(
         page_frame(
             _messages(),
@@ -195,11 +204,9 @@ def planning_page() -> rx.Component:
                         (PlanningState.error_message != "") & ~PlanningState.has_pending,
                         rx.box(
                             error_state(PlanningState.error_message, title="case_error_title"),
-                            rx.button(
+                            primary_button(
                                 t("back_to_cases"),
                                 on_click=PlanningState.navigate_global("cases"),
-                                background=ACCENT,
-                                color="white",
                                 margin_top="1rem",
                             ),
                         ),

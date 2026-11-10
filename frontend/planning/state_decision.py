@@ -1,4 +1,5 @@
-"""One-time human decision on the base case and its approved PDF (in the UI language)."""
+"""State of the Decision & PDF tab: the chosen plan, the review dialog, the one-time
+decision request, and the approved and audit PDFs fetched in the UI language."""
 
 from base64 import b64encode
 from copy import deepcopy

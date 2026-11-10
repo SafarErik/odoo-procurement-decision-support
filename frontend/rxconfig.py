@@ -1,4 +1,5 @@
-"""Reflex application configuration."""
+"""Reflex build configuration: app module, backend port and the light iris/sage Radix
+theme every component inherits (DESIGN.md tokens adjust its accent)."""
 
 import reflex as rx
 

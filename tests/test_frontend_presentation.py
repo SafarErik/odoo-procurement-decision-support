@@ -13,7 +13,7 @@ from frontend.api.library import library_row
 from frontend.api.suppliers import map_overview
 from frontend.i18n import TEXT, day, money, number, percent, tr
 from frontend.planning.state import PlanningState
-from frontend.planning.state_case import _card
+from frontend.planning.state_case import SupplierCard
 from tests.helpers.frontend_patching import patch_client
 
 
@@ -33,9 +33,8 @@ def test_each_text_key_is_defined_once():
 
 
 def test_pdf_viewer_texts_are_generated_from_the_shared_texts():
-    from frontend.planning.pdf import _viewer_texts
+    from frontend.planning.pdf import VIEWER_SCRIPT as script
 
-    script = _viewer_texts()
     assert tr("pdf_download", "hu") in script and tr("audit_pdf_region", "en") in script
     assert "{page}. oldal / {pages}" in script and "Page {page} of {pages}" in script
 
@@ -162,7 +161,7 @@ def test_supplier_cards_and_kpi_charts_come_from_the_stored_overview(stored_case
     # The Audit tab numbers the same API-worded tree path; a root-only tree says so.
     state = PlanningState(_reflex_internal_init=True)
     cards = [{**c, "path": ["a", "b"] if i else []} for i, c in enumerate(mapped["cards"])]
-    state.supplier_cards = [_card(c) for c in cards]
+    state.supplier_cards = [SupplierCard.from_row(c) for c in cards]
     paths = state.supplier_paths
     assert paths[cards[0]["supplier"]] == tr("path_root", "hu")
     assert paths[cards[1]["supplier"]] == "1. a\n2. b"
@@ -314,9 +313,9 @@ def test_a_search_submitted_during_a_library_reload_is_applied(monkeypatch):
 
 
 def test_library_filters_stay_usable_while_a_loaded_list_reloads():
-    from frontend.planning.library import _filters
+    from frontend.planning.library import library_page
 
-    rendered = str(_filters())
+    rendered = str(library_page())
     start = rendered.index('id:"library-search"')
     search = rendered[rendered.rindex("jsx(", 0, start) : start]
     assert "library_loaded" in search and "library_loading" not in search

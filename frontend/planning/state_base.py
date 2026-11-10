@@ -1,4 +1,5 @@
-"""Shared state: language, busy flags, guarded navigation and the one pending request."""
+"""State every page shares: UI language, busy flags, navigation guarded by the discard
+dialog, and the one pending save request with its recovery."""
 
 import json
 from copy import deepcopy
@@ -87,7 +88,7 @@ class BaseMixin(rx.State, mixin=True):
 
     def _relabel(self):
         events = []
-        for method in ("_relabel_case", "_relabel_creation", "_relabel_library"):
+        for method in ("_relabel_case", "_relabel_creation", "_relabel_home", "_relabel_library"):
             event = getattr(self, method)()
             if event is not None:
                 events.append(event)

@@ -1,4 +1,5 @@
-"""Reflex composition root; page components and HTTP state live in focused modules."""
+"""Reflex app root: registers the four pages (Home, Cases, New procurement, case page)
+and their on-load events; the pages and state live in ``frontend/planning``."""
 
 import reflex as rx
 
