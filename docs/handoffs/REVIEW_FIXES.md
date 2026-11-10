@@ -2,8 +2,8 @@
 
 Date: 2026-10-19/20. Branch: `feature/cleanup` (on top of `cbc00d1`, i.e. `main` `e3cbf84`
 plus the project-baseline refresh and the [L6 provenance](L6_TERMS_PROVENANCE.md) commit).
-Not committed; the owner commits. Drive was not changed; a separate session updates it after
-merge (Hungarian list at the end). Requirements touched: FR-V2-01/04 and the 06 hybrid-input
+Merged as PR #51. Drive was not changed; a separate session updates it after
+merge (list at the end). Requirements touched: FR-V2-01/04 and the 06 hybrid-input
 rule (L6), NFR-V2-03 (generated vs. observed distinguishable), FR-V2-10, NFR-V2-06; official
 task sentences 7, 9, 11, 12. Limitations: L1, L2, L5, L6.
 
@@ -134,37 +134,37 @@ proposal), chapter 6 (implementation: editable ranges, origin consistency), chap
 (evaluation wording: metric-tied comparison, unit of observation, gate results), and
 chapter 9 (L1, L5, L6 proposals).
 
-## Drive teendők (magyarul, a Drive-session számára, merge után)
+## Drive follow-ups (for the Drive session, after merge)
 
 - **06 Requirements baseline:**
-  - FR-V2-10, NFR-V2-06 és FR-V2-08 normatív szövegének pontosítása, dátummal
-    (2026-10-19) és ADR-028 hivatkozással.
-  - A hibrid bemeneti szabály: a javasolt ár/szállítás tartomány is látható, szerkeszthető,
-    és a review „javasolt” jelöléssel mutatja.
-  - A `data_origin` deklarált (`generated` | `observed`), és a modellnek egyeznie kell az
-    eset history-eredetével.
-- **Állapotfejlécek (00, 06, 07):**
-  - A státusz formája: ág + commit + bizonyító futás (melyik JSON, melyik commit, dirty
+  - Clarify the normative text of FR-V2-10, NFR-V2-06 and FR-V2-08, with the date
+    (2026-10-19) and a reference to ADR-028.
+  - Hybrid input rule: the suggested price/delivery ranges are also visible and editable,
+    and the review marks them as "suggested".
+  - `data_origin` is declared (`generated` | `observed`), and the model must match the
+    case's history origin.
+- **Status headers (00, 06, 07):**
+  - Status format: branch + commit + evidence run (which JSON, which commit, dirty
     flag).
-  - Nem szabad „a demó nem futott újra” állítás, ha a riport újrafutást mutat.
-  - A demó, a `milp_evaluation` és az ML-report a jelen kódon lefutott (2026-10-20,
-    `cbc00d1` + nem commitolt javítások, `dirty: true`); commit után érdemes újrafuttatni.
-- **03 ADR-register:**
-  - ADR-024, 027, 028 és 030 pontosítása: az adat-eredet paraméter, a konzisztencia-ellenőrzés
-    és a régi capture-ök `generated`-ként olvasása.
-  - ADR-030: generált történet, de a pipeline megfigyelt adatra **adaptálható**, nem
-    „változatlanul futtatható”.
-- **04/05/07/08 szövegezés:**
-  - K felső korlát, nem kényszerít diverzifikációt. A kapacitás és a koncentrációs korlát
-    tehet szükségessé több szállítót.
-  - L5 javaslat: darabonként lineáris koncentrációs büntetés vagy explicit kiesési
-    forgatókönyvek; konkáv büntetés nem.
-  - L6: a `product.supplierinfo.min_qty` nem MOQ-forrás (ADR-017).
-  - A 180 napos recency ablak tartalmazza a 14 napos rést (nincs szivárgás).
-  - Az eredmények metrikához kötve: macro-F1 / pontosság / problémás recall.
-  - Mért eredmény és hipotézis külön.
-  - Megfigyelési egység: 2 546 sor → 1 804 sor, 682 tanító, 140 elsődleges teszt sor
-    10 szállítótól.
-  - No-award esetén nincs jóváhagyott PDF. Indoklás kötelező az alternatíva választásánál és
-    No-awardnál.
-  - A CI pontos hatóköre.
+  - Do not state "the demo was not rerun" when the report shows a rerun.
+  - The demo, `milp_evaluation` and the ML report ran on the current code (2026-10-20,
+    `cbc00d1` + uncommitted fixes, `dirty: true`); rerun after the commit.
+- **03 ADR register:**
+  - Clarify ADR-024, 027, 028 and 030: the data-origin parameter, the consistency check
+    and reading old captures as `generated`.
+  - ADR-030: the history is generated, but the pipeline is **adaptable** to observed data,
+    not "runnable unchanged".
+- **04/05/07/08 wording:**
+  - K is an upper bound and does not force diversification. Capacity and the concentration
+    limit can make several suppliers necessary.
+  - L5 proposal: a piecewise-linear concentration penalty or explicit outage scenarios;
+    not a concave penalty.
+  - L6: `product.supplierinfo.min_qty` is not an MOQ source (ADR-017).
+  - The 180-day recency window includes the 14-day gap (no leakage).
+  - Results tied to a metric: macro-F1 / accuracy / problematic-class recall.
+  - Keep measured results and hypotheses separate.
+  - Unit of observation: 2,546 lines → 1,804 lines, 682 training rows, 140 primary test
+    rows from 10 suppliers.
+  - No-award produces no approved PDF. A rationale is mandatory when choosing an
+    alternative and for No-award.
+  - The exact CI scope.

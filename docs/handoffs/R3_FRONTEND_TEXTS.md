@@ -1,7 +1,7 @@
 # R3 — Frontend texts in one place
 
 Date: 2026-11-06. Worktree branch `claude/r3-frontend-texts-5b91f4` on `main` `09d8bd2`.
-Not committed; the owner commits. Drive was not changed. Technical debt only; no FR-V2/AC-V2
+Merged as PR #61. Drive was not changed. Technical debt only; no FR-V2/AC-V2
 change.
 
 ## Problem

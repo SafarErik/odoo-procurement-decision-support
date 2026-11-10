@@ -1,7 +1,7 @@
 # R8 — Tools and CI that explain themselves
 
 Date: 2026-11-06. Worktree branch `claude/r8-tools-ci-1cc27e` on `main` `09d8bd2`.
-Not committed; the owner commits (the rename is staged with `git mv` so Git keeps the
+Merged as PR #60 (the rename was staged with `git mv` so Git keeps the
 history). Drive was not changed. Official task: no clause changes (technical debt only);
 FR-V2/NFR-V2/AC-V2 definitions unchanged. Behaviour-preserving for every tool and CI gate.
 

@@ -1,7 +1,7 @@
 # R5 — Readable Reflex views and state, one source of visual tokens
 
 Date: 2026-11-09. Worktree branch `claude/r5-frontend-views-599e6b` on `main` `325b58d`.
-Not committed; the owner commits. Drive was not changed. Technical debt only; no FR-V2/AC-V2
+Merged as PR #65. Drive was not changed. Technical debt only; no FR-V2/AC-V2
 change. Behaviour-preserving; the visible differences are listed under Evidence.
 
 ## Problem

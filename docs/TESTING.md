@@ -12,8 +12,11 @@ drives a real browser against Reflex + FastAPI + PostgreSQL. Unknown markers fai
 
 CI: `.github/workflows/quality.yml` (required) runs `python -m tools.dev check` on Python 3.11
 plus whitespace and Compose-configuration checks;
-`integration.yml` (path-filtered, optional) runs the container/API tests with
-Docker Compose on Ubuntu.
+`integration.yml` (path-filtered, optional) starts an empty Odoo and the test PostgreSQL with
+Docker Compose on Ubuntu, starts FastAPI, runs `pytest -m "integration and not e2e"` (tests
+that need seeded history skip), compiles the frontend and checks named-volume persistence.
+No CI job runs the live Odoo-history path, the browser flow or the P4 tools below; those are
+local evidence, recorded per run with branch, commit and dirty flag.
 
 ## Where tests live
 

@@ -1,7 +1,7 @@
 # L6 — Provenance of suggested buyer terms, and the P4 evidence rerun
 
 Date: 2026-10-19. Branch: `feature/cleanup` (on top of `bb9badf`,
-which is `main` `e3cbf84` plus the project-baseline refresh). Not committed; the owner commits.
+which is `main` `e3cbf84` plus the project-baseline refresh). Merged as PR #50.
 Requirements touched: FR-V2-01 (field-level provenance), FR-V2-04 / the 06 hybrid-input rule
 on defaults, NFR-V2-03 (sources distinguishable). Limitation: L6.
 

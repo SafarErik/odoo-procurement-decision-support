@@ -1,7 +1,7 @@
 # R4 — One HTTP-client layer for the frontend
 
 Date: 2026-11-07. Worktree branch `claude/r4-frontend-api-95e7cf` on `main` `a29da04`.
-Not committed; the owner commits. Drive was not changed. Technical debt only; no FR-V2/AC-V2
+Merged as PR #63. Drive was not changed. Technical debt only; no FR-V2/AC-V2
 change. Behaviour-preserving except the two error texts listed under Limitations.
 
 ## Problem

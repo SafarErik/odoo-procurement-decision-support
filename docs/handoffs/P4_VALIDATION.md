@@ -1,7 +1,7 @@
 # P4 — Validation and thesis support
 
 Date: 2026-10-18. Branch: `feature/p4-validation` (from `main` at `62caf80`, after the P3
-merge #48). Nothing committed; the owner commits. Plan: [REVAMP_PLAN.md](../REVAMP_PLAN.md)
+merge #48). Merged as PR #49. Plan: [REVAMP_PLAN.md](../history/REVAMP_PLAN.md)
 §P4. Requirements touched: NFR-V2-02/03/04/06/08 and AC-V2-01…13 evidence (reproducible
 tests, infeasible cases, full process, ML evaluation conventions), official task sentences
 11 (reproducible tests) and 12 (further development). Drive was not changed.

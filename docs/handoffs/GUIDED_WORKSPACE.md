@@ -1,7 +1,7 @@
 # Guided procurement workspace
 
 Date: 2026-10-20. Working-tree increment on `feature/frontend-revamp`.
-The owner commits and pushes; this work performs neither.
+Merged as PR #52.
 
 ## Problem
 

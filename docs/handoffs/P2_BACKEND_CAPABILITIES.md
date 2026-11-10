@@ -1,8 +1,7 @@
 # P2 — Backend capabilities
 
 Date: 2026-10-17. Branch: `feature/p2-backend-capabilities` (from `main` at `0d13964`,
-after the P1 merge #46). Status: implemented in the working tree, not committed (owner
-commits). Plan: [REVAMP_PLAN.md](../REVAMP_PLAN.md) §P2. Requirements touched:
+after the P1 merge #46). Status: merged as PR #47. Plan: [REVAMP_PLAN.md](../history/REVAMP_PLAN.md) §P2. Requirements touched:
 FR-V2-01/02 (Odoo data with provenance), FR-V2-07/09 (explanations, UI), FR-V2-08 /
 AC-V2-08 (stress scenarios), FR-V2-10/11/12 / AC-V2-10/11/12 (storage, approval, PDF).
 

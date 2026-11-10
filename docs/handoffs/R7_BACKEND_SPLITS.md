@@ -1,6 +1,6 @@
 # R7 — Readable backend units and models explained in the code
 
-Date 2026-11-07, branch `claude/r7-backend-splits-b77cb4` on main `a29da04`, uncommitted.
+Date 2026-11-07, branch `claude/r7-backend-splits-b77cb4` on main `a29da04`; merged as PR #64.
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # Final review fixes (2026-10-31)
 
-Branch `feature/final-review` from `d3acab7` (`feature/image-regen`), uncommitted. Development
+Branch `feature/final-review` from `d3acab7` (`feature/image-regen`); merged as PR #57. Development
 is closed, so this increment adds no capability: it fixes defects found by a whole-repository
 review (code, browser, thesis text and the official task sheet) and corrects stale
 documentation.

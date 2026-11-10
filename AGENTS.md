@@ -7,7 +7,7 @@ read-only Odoo facts + sourced buyer terms → Decision Tree supplier evaluation
 MILP allocation with cost/risk alternatives → stress scenarios on the same MILP →
 human approval or No-award → approved PDF. One product, one approved demand, N
 suppliers. Start with [README.md](README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-and the current plan [docs/REVAMP_PLAN.md](docs/REVAMP_PLAN.md).
+and the documentation index [docs/README.md](docs/README.md).
 
 ## Workflow
 
