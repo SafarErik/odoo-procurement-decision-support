@@ -18,6 +18,12 @@ from decision_core.planning.models import (
 
 DAY = date(2026, 10, 21)
 
+# Wall-clock budget for tests that check what the solver returns, not how fast. These
+# problems solve in well under a second, but on an overloaded CI runner (2026-11-06 and
+# 2026-11-09) the production budget ran out and CBC honestly answered no_proven_optimum.
+# Only tests about the budget itself use the production limit.
+CORRECTNESS_BUDGET_SECONDS = 600
+
 
 def supplier(identity, price, capacity, **changes):
     return replace(

@@ -8,14 +8,14 @@ import pytest
 
 from decision_core.planning.models import PlanningStatus
 from optimization_adapter.pulp_cbc import PulpCbcSolver
-from tests.helpers.milp_requests import request
+from tests.helpers.milp_requests import CORRECTNESS_BUDGET_SECONDS, request
 
 
 def test_required_pulp_and_actual_cbc_runtime():
     assert sys.version_info >= (3, 11)
     info = PulpCbcSolver().runtime_info()
     assert info["pulp"] == "3.3.0" and info["cbc"] == "2.10.3"
-    result = PulpCbcSolver().minimum_cost(request(), time.monotonic() + 10)
+    result = PulpCbcSolver().minimum_cost(request(), time.monotonic() + CORRECTNESS_BUDGET_SECONDS)
     assert result.status is PlanningStatus.OPTIMAL
     assert tuple(a.quantity for a in result.allocations) == (6, 4, 0)
 
