@@ -1,7 +1,7 @@
 # R1 — Remove pre-P2 legacy code paths
 
 Date: 2026-11-05. Worktree branch `claude/eloquent-benz-007a1d` on `main` `26536bc`.
-Not committed; the owner commits. Drive was not changed. Official task: no clause changes
+Merged as PR #58. Drive was not changed. Official task: no clause changes
 (technical debt only); FR-V2/AC-V2 definitions unchanged. Touches the evidence routes of
 FR-V2-02/03 (ML), FR-V2-10/11/12 (storage, approval, PDF) and NFR-V2-03 (generated vs.
 observed provenance).

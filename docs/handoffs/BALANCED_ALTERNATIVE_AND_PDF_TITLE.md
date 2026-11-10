@@ -1,8 +1,7 @@
 # Balanced alternative (min–max supplier share) and PDF order-line title
 
 Date: 2026-10-20. Working-tree increment on `feature/frontend-revamp`, on top of the
-uncommitted [UI copy increment](UI_COPY_AND_ALTERNATIVES.md). The owner commits and
-pushes; this work performs neither.
+[UI copy increment](UI_COPY_AND_ALTERNATIVES.md). Both merged as PR #52.
 
 ## Problem
 

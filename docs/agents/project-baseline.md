@@ -1,8 +1,9 @@
 # Project and thesis alignment
 
-Reviewed 2026-10-19 against `main` at e3cbf84 (after revamp P0–P4) and the Drive
-living documents 00–08 as synchronized on 2026-10-18/19. This is a routing and
-traceability guide, not a replacement requirements register.
+Reviewed 2026-11-10 against `main` at a262a93 (after revamp P0–P4 and refactor R1–R8).
+The Drive living documents 00–08 were last synchronized on 2026-10-18/19 and were not
+re-read for this refresh. This is a routing and traceability guide, not a replacement
+requirements register.
 
 ## Authoritative sources
 
@@ -38,8 +39,7 @@ repository evidence rather than copying the execution diary.
 
 For baseline/product planning, refresh 00/06 and the affected 02/03 records.
 For implementation, read README and AGENTS.md, then only the relevant
-`docs/` reference (ARCHITECTURE, MODEL_ML, MODEL_MILP, TESTING, RUNBOOK,
-TRACEABILITY), handoffs and code. For thesis work, refresh 01/04/05 and relevant evidence in 07.
+`docs/` reference ([index](../README.md)), the touched package's README, handoffs and code. For thesis work, refresh 01/04/05 and relevant evidence in 07.
 If a necessary primary source cannot be read, identify the assumption and leave
 its conclusion unverified. Do not substitute an archive for a living record.
 
@@ -68,9 +68,7 @@ resolved, not silently ignored or inferred.
 Architectural, manual-Odoo, trust-boundary and verification rules remain in
 AGENTS.md. V1/WSM code and tables were removed in P0 (ADR-028); V1 evidence lives
 unchanged in `docs/history/` and the Drive archives, and is a historical contrast,
-not a V2 capability. Records stored before P2 (including synthetic demo cases) are
-not readable since R1 removed their compatibility code (owner decision 2026-11-05).
-Preserve generated versus observed provenance and the offline-training boundary.
+not a V2 capability. Preserve generated versus observed provenance and the offline-training boundary.
 
 ## Official-task traceability
 
@@ -105,37 +103,34 @@ Keep planned, implemented, locally verified, hosted, live, browser and fully
 accepted states distinct. Synthetic model metrics do not establish observed
 supplier performance, calibrated failure probability or real business savings.
 
-## Current state (main e3cbf84, 2026-10-18)
+## Current state (main a262a93, 2026-11-10)
 
-Working status 2026-10-20: branch `feature/cleanup` at `cbc00d1` plus the uncommitted
-external-review fixes ([REVIEW_FIXES](../handoffs/REVIEW_FIXES.md)). Evidence run on that
-tree: fast gate 504 passed, live integration 46 passed / 3 skipped, e2e 2/2, and `demo`,
-`milp_evaluation` and `train_history_model report` all passed with `dirty: true` in their
-JSON. Rerun the three tools after the commit for a commit-exact record.
+Revamp P0–P4 merged as PRs #45–#49 ([REVAMP_PLAN](../history/REVAMP_PLAN.md), handoffs
+[P0](../handoffs/P0_REPO_CLEANUP.md) … [P4](../handoffs/P4_VALIDATION.md)); follow-ups and
+fixes as #50–#57; the technical-debt refactor R1–R8 as #58–#65 (R1 removed legacy paths,
+R2–R8 preserve behaviour; all listed in the
+[handoffs index](../handoffs/README.md)). None changed an FR-V2/NFR-V2/AC-V2 definition; the
+revamp reasons are recorded in Drive 03 as ADR-028–034, plus ADR-035/036 in [adr/](../adr/).
+The committed P4 evidence JSON is from clean 2026-10-21 runs (MILP evaluation on
+`12f383c`, demo on `e8b8d04`); R1–R8 did not regenerate it, and their handoffs record
+their own reruns.
 
-Revamp P0–P4 merged as PRs #45–#49 ([REVAMP_PLAN](../REVAMP_PLAN.md), handoffs
-[P0](../handoffs/P0_REPO_CLEANUP.md) … [P4](../handoffs/P4_VALIDATION.md)). It
-changed no FR-V2/NFR-V2/AC-V2 definition; the reasons are recorded in Drive 03 as
-ADR-028–034.
-
+- **Structure.** Package map and boundaries: [ARCHITECTURE](../ARCHITECTURE.md) §2 and the
+  README in each package. One home per concept after the refactor: error contracts in
+  `application/errors.py`, stored contract ids in `application/stored_contracts.py`, the
+  Odoo JSON-2 client in `odoo_adapter/json2_client.py`, every UI text in `frontend/i18n/`,
+  every backend call from the UI in `frontend/api/`, shared test code in `tests/helpers/`.
 - **Acceptance.** Every AC-V2-01…13 is LOCAL PASS in the named controlled scope: one
   product, one approved demand, up to 10 suppliers, generated history in the
   dedicated Odoo test database and buyer-entered (prefilled default) terms. This is
   not acceptance on live, observed supplier data. Status table: Drive 06; per-task
-  mapping: [TRACEABILITY.md](../TRACEABILITY.md). Hosted CI (Quality,
-  Container/API) passed on e3cbf84. Its scope: Quality runs format, lint, compile,
-  the fast tests with CBC and scikit-learn and dependency/Compose checks;
-  Container/API starts an empty Odoo and the test PostgreSQL, checks reachability,
-  runs the integration tests that need no seeded history, compiles the frontend and
-  checks named-volume persistence. It does not run the live Odoo-history path, the
-  browser flow or the P4 tools (`demo`, `milp_evaluation`, `train_history_model
-  report`); those are local evidence, recorded per run with branch, commit and
-  dirty flag (see the evidence JSON `repository` field and the latest handoff).
+  mapping: [TRACEABILITY.md](../TRACEABILITY.md). Hosted CI scope and what stays local
+  evidence: [TESTING](../TESTING.md); the evidence JSON `repository` field records branch,
+  commit and dirty flag per run.
 - **Data and ML.** The Decision Tree trains offline on purchase history that the
   guarded seeder (`tools/seed_odoo_history.py`) wrote into the dedicated
   `pdss_history_gen` Odoo database and that is read back only through the Odoo API
-  (ADR-030). The earlier synthetic T14 tree and its code were removed in R1. Metrics prove the
-  method, not real supplier behaviour; the tree beats the majority baseline but not
+  (ADR-030). Metrics prove the method, not real supplier behaviour; the tree beats the majority baseline but not
   the hand-written expert rule on unseen suppliers (L1–L3).
 - **Case creation.** Only from an open Odoo quotation group plus Odoo history
   (ADR-031); synthetic demo creation paths are removed. Capacity, MOQ and price/delivery
@@ -145,11 +140,18 @@ ADR-028–034.
   The history model's `data_origin` (`generated` | `observed`) must equal the
   capture's declared origin (`ODOO_HISTORY_DATA_ORIGIN`).
 - **Scenarios, PDF, UI.** Capacity, demand and price changes in both directions
-  (ADR-032); ReportLab PDF v2 in Hungarian or English with one purchase order
-  proposal per supplier, stored per language (ADR-033), not an Odoo PO;
-  Hungarian-default bilingual Reflex UI (ADR-034).
+  (ADR-032); a balanced alternative beside the cost–risk alternatives (ADR-035); two
+  ReportLab PDFs (`t17-approved-pdf-v3`), the approved plan with one purchase-order
+  proposal per supplier and a separate audit appendix, each in Hungarian or English and
+  stored per language and kind (ADR-033/036), not an Odoo PO; Hungarian-default
+  bilingual Reflex UI (ADR-034).
 - **Removed.** V1/WSM code, routes, tables and the Practice workspace (ADR-028/029);
-  their records stay in `docs/history/` and the Drive archives.
+  in P2 the synthetic demo creation routes; in R1 the synthetic T14 pipeline, the T7/T8
+  historical-KPI path, the open-RFQ summary route (`GET /api/v1/procurement/rfqs`), the
+  library `origin` filter and the code that read pre-P2 records. Their records stay in `docs/history/` and the Drive
+  archives. Cases, decisions and PDFs stored before P2 are not readable; the owner
+  decided to reset the planning database instead (2026-11-05,
+  [RUNBOOK](../RUNBOOK.md#4-planning-database-api-and-ui) §4).
 
 Open items are limitations and thesis work, not acceptance gates: approver
 identity is not authenticated (L9), no real buyer study (NOT ASSESSED), and the

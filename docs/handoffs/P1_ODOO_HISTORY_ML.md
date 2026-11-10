@@ -1,8 +1,7 @@
 # P1 — Odoo-sourced purchase history and ML retraining
 
 Date: 2026-10-17. Branch: `feature/Odoo-history-revamp-new-training` (from `main` at
-`cd52f23`, after the P0 merge #45). Status: implemented in the working tree, not
-committed (owner commits). Plan: [REVAMP_PLAN.md](../REVAMP_PLAN.md) §P1.
+`cd52f23`, after the P0 merge #45). Status: merged as PR #46. Plan: [REVAMP_PLAN.md](../history/REVAMP_PLAN.md) §P1.
 Model documentation: [MODEL_ML.md](../MODEL_ML.md).
 
 ## Problem

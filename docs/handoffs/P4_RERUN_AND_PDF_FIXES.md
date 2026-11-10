@@ -2,7 +2,7 @@
 
 Date: 2026-10-21. Working-tree increment on `feature/littleChanges` on top of `12f383c`
 (merged PR #52, balanced alternative). The regenerated evidence is committed alone as
-`36a7a7d` (not pushed); everything else stays in the working tree for the owner.
+`36a7a7d`; all of it merged as PR #53.
 
 ## Problem
 

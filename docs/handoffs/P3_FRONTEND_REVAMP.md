@@ -2,8 +2,8 @@
 
 Date: 2026-10-18. Branch: `feature/p3-frontend-revamp` (from `main` at `1f1d7eb`, after the
 P2 merge #47). The owner committed a first working-tree state as `cda3f64`; the review and
-CI fixes below are in the working tree, not committed. Plan:
-[REVAMP_PLAN.md](../REVAMP_PLAN.md) §P3. Requirements touched: FR-V2-07/09 / AC-V2-09 (UI
+CI fixes below followed; all merged as PR #48. Plan:
+[REVAMP_PLAN.md](../history/REVAMP_PLAN.md) §P3. Requirements touched: FR-V2-07/09 / AC-V2-09 (UI
 shows evaluations, allocations and explanations), FR-V2-08 (scenarios in the UI),
 FR-V2-10/11/12 (decision and PDF from the UI), NFR-V2 usability and accessibility.
 

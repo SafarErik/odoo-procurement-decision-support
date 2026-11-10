@@ -1,7 +1,7 @@
 # Project baseline refresh after the revamp
 
 Date: 2026-10-19. Prepared in worktree branch `claude/pensive-blackwell-ca7a26` (from `main` at `e3cbf84`), copied into the owner's checkout.
-Not committed; the owner commits. Documentation only; no requirement or code change.
+Merged as PR #50. Documentation only; no requirement or code change.
 Drive was read, not changed.
 
 ## Problem

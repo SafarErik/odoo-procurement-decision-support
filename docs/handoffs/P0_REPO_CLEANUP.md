@@ -1,7 +1,6 @@
 # P0 — Repository cleanup and structure
 
-Date: 2026-10-18. Branch: `feature/p0-repo-cleanup`. Status: implemented in the
-working tree, not committed (owner commits). Plan: [REVAMP_PLAN.md](../REVAMP_PLAN.md).
+Date: 2026-10-18. Branch: `feature/p0-repo-cleanup`. Status: merged as PR #45. Plan: [REVAMP_PLAN.md](../history/REVAMP_PLAN.md).
 
 ## Problem
 

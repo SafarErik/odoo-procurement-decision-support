@@ -1,7 +1,7 @@
 # R2 — Test suite structured by capability
 
 Date: 2026-11-06. Worktree branch `claude/r2-test-structure-3ba511` on `main` `5f475da`.
-Not committed; the owner commits. Drive was not changed. Official task: no clause changes
+Merged as PR #59. Drive was not changed. Official task: no clause changes
 (technical debt only); FR-V2/NFR-V2/AC-V2 definitions unchanged. Production code is
 untouched; only `tests/`, docs and one CI comment changed.
 

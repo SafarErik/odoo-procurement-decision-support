@@ -1,6 +1,6 @@
 # R6 — Backend shared kernel and clean module boundaries
 
-Date 2026-11-06, branch `claude/r6-backend-kernel-f54796` on main `09d8bd2`, uncommitted.
+Date 2026-11-06, branch `claude/r6-backend-kernel-f54796` on main `09d8bd2`; merged as PR #62.
 
 ## Problem
 

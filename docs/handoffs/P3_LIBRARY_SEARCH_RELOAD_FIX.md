@@ -1,7 +1,7 @@
 # P3 follow-up — Case search submitted during a reload is not lost
 
 Date: 2026-10-18. Branch: `claude/busy-tereshkova-19e673` (from `main` at `62caf80`, after the
-P3 merge #48). Not committed; the owner commits. Requirement touched: NFR-V2 usability
+P3 merge #48). Merged with P4 as PR #49. Requirement touched: NFR-V2 usability
 (Cases list filters, FR-V2-07 case library); found by the P4 validation e2e run.
 
 ## Problem

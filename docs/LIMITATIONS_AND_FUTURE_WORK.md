@@ -14,7 +14,7 @@ part of the accepted scope and are not implemented.
 | L4 | Uncalibrated scores | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `supplier_assessment` | 5, 9 |
 | L5 | Linear exposure does not reward diversification | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `base_case`, [MODEL_MILP.md](MODEL_MILP.md) §7 | 5, 9 |
 | L6 | Buyer terms are defaults, not Odoo facts | `odoo_history_preview` in `application/planning_history.py`, [P4_MILP_EVALUATION.json](evidence/P4_MILP_EVALUATION.json) `protocol` | 3, 5, 9 |
-| L7 | One product, one period | [MODEL_MILP.md](MODEL_MILP.md) §7, [REVAMP_PLAN.md](REVAMP_PLAN.md) §4 | 5, 9 |
+| L7 | One product, one period | [MODEL_MILP.md](MODEL_MILP.md) §7, [REVAMP_PLAN.md](history/REVAMP_PLAN.md#4-multi-product-extensibility) §4 | 5, 9 |
 | L8 | Scenarios keep the saved scores | [MODEL_MILP.md](MODEL_MILP.md) §6 | 5, 9 |
 | L9 | Proof-of-concept identity and trust | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `decisions`, [ARCHITECTURE.md](ARCHITECTURE.md) | 4, 9 |
 | L10 | Local, single-machine performance only | [P4_MILP_EVALUATION.json](evidence/P4_MILP_EVALUATION.json) | 7, 9 |
@@ -138,7 +138,7 @@ can inform the price validity range.
 dimension.
 
 **Proposal.** Product-indexed variables `x[i,p]` with shared `y[i]`, per-product demand and
-shared supplier limits (estimated 1–1.5 weeks, [REVAMP_PLAN.md](REVAMP_PLAN.md) §4); later
+shared supplier limits (estimated 1–1.5 weeks, [REVAMP_PLAN.md](history/REVAMP_PLAN.md#4-multi-product-extensibility) §4); later
 a multi-period lot-sizing extension with lead times.
 
 ## L8 Scenarios keep the saved scores

@@ -1,7 +1,7 @@
 # Natural Hungarian copy, quieter workspace and more cost–risk alternatives
 
 Date: 2026-10-20. Working-tree increment on `feature/frontend-revamp`.
-The owner commits and pushes; this work performs neither.
+Merged as PR #52.
 
 ## Problem
 
