@@ -179,8 +179,39 @@ workaround in [history/PERSISTENCE_DEVELOPMENT.md](history/PERSISTENCE_DEVELOPME
 
 ## 7. Troubleshooting
 
-- **CBC fails with a temp path error**: CBC cannot use a temp directory with spaces;
-  `tools.dev check` sets a safe one. For manual runs set `$env:TEMP`/`$env:TMP`.
+- **CBC fails with a temp path error**: CBC cannot use a temp directory with spaces.
+  Set `$env:TEMP` and `$env:TMP` to an existing space-free directory before the demo
+  or evaluation. On a space-containing Windows checkout, `tools.dev check` currently
+  overrides them with another space-containing path under `.artifacts`; its helper
+  can fail while direct pytest succeeds. The [2026-11-13 handoff](handoffs/P4_MEASUREMENT_REFRESH_20261113.md)
+  distinguishes those outcomes. For that prepared local run, the verified Windows
+  short path is retained in `.artifacts/p4-refresh-20261113/cbc-temp-path.txt`:
+
+  ```powershell
+  $cbcTemp = (Get-Content .artifacts/p4-refresh-20261113/cbc-temp-path.txt -Raw).Trim()
+  $env:TEMP = $cbcTemp
+  $env:TMP = $cbcTemp
+  ```
+
+- **Podman services answer inside the VM but Windows localhost refuses them**:
+  use a temporary localhost-only SSH tunnel after verifying VM service health.
+  The following example uses the prepared 2026-11-13 ports (8069, 55440, 55441);
+  match the PostgreSQL ports to `.env` for another setup (the test default is 55432).
+  Run it in a separate terminal and leave it running during the measurements;
+  Ctrl+C closes the tunnel without deleting service data.
+
+  ```powershell
+  $machine = (podman machine inspect podman-machine-default | ConvertFrom-Json)[0]
+  ssh.exe -T -N -o BatchMode=yes -o ExitOnForwardFailure=yes `
+    -i $machine.SSHConfig.IdentityPath -p $machine.SSHConfig.Port `
+    -L 127.0.0.1:8069:127.0.0.1:8069 `
+    -L 127.0.0.1:55440:127.0.0.1:55440 `
+    -L 127.0.0.1:55441:127.0.0.1:55441 `
+    "$($machine.SSHConfig.RemoteUsername)@127.0.0.1"
+  ```
+
+  Do not start a second tunnel on a port already served by a tunnel or native
+  forwarding. Containers and their volumes remain managed by the usual commands.
 - **Saved case shows "planning data unavailable"**: check `/api/v1/health`, that the
   planning database container runs, and that FastAPI was restarted after `.env` edits.
 - **Unicode errors in tooling**: set `$env:PYTHONUTF8 = "1"`.

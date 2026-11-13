@@ -6,10 +6,15 @@ chapters 5 and 7. Status 2026-10-19 (P4 plus the external-review fixes in
 observed**, links the evidence, and proposes a concrete next step. Proposals are not
 part of the accepted scope and are not implemented.
 
+The [2026-11-13 measurement refresh](handoffs/P4_MEASUREMENT_REFRESH_20261113.md)
+adds a new model/data experiment and machine-specific timings. The dated P1 numbers
+below remain historical; use the refresh's separate ML context for the model in the
+current demo/MILP reports. The generated-data and weak-classification limits remain.
+
 | # | Limitation | Evidence | Chapter |
 | --- | --- | --- | --- |
 | L1 | Generated purchase history | [P1 handoff](handoffs/P1_ODOO_HISTORY_ML.md), [MODEL_ML.md](MODEL_ML.md) §2 | 3, 7, 9 |
-| L2 | Tree below a hand-written rule on unseen suppliers | [P1_ML_REPORT.json](evidence/P1_ML_REPORT.json), [P4_ML_REPORT_CHECK.json](evidence/P4_ML_REPORT_CHECK.json) | 5, 7, 9 |
+| L2 | Tree below a hand-written rule on unseen suppliers | [P1_ML_REPORT.json](evidence/P1_ML_REPORT.json), [P4_ML_REPORT_CHECK.json](evidence/P4_ML_REPORT_CHECK.json) (historical); [2026-11-13 ML context](evidence/P4_ML_CONTEXT_20261113.json) | 5, 7, 9 |
 | L3 | Drift between training and test period | [MODEL_ML.md](MODEL_ML.md) §6 | 5, 7, 9 |
 | L4 | Uncalibrated scores | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `supplier_assessment` | 5, 9 |
 | L5 | Linear exposure does not reward diversification | [P4_DEMO_REPORT.json](evidence/P4_DEMO_REPORT.json) `base_case`, [MODEL_MILP.md](MODEL_MILP.md) §7 | 5, 9 |
