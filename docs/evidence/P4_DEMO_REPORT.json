@@ -1,12 +1,12 @@
 {
-  "report": "P4 one-command demonstration (Odoo-history path)",
-  "generated_at": "2026-10-21T20:30:35+00:00",
+  "report": "One-command demonstration (Odoo-history path)",
+  "generated_at": "2026-11-13T10:11:56+00:00",
   "repository": {
-    "commit": "e8b8d045e3b99d711d8c67db6f6107785fb0e549",
+    "commit": "e3e05d655099ccae68bf24d447e39564340bfc70",
     "dirty": false
   },
   "environment": {
-    "python": "3.11.15",
+    "python": "3.11.16",
     "platform": "Windows-10-10.0.26200-SP0"
   },
   "data_notice": "Generated purchase history in the dedicated Odoo test database; values do not describe real suppliers.",
@@ -17,54 +17,54 @@
     "quantity": "200.0",
     "currency": "HUF",
     "suppliers": {
-      "odoo:res.partner:8": "[GEN] Alpha Metals",
-      "odoo:res.partner:13": "[GEN] Fenyves Trade",
-      "odoo:res.partner:18": "[GEN] Kalocsa Profiles",
-      "odoo:res.partner:11": "[GEN] Danube Parts"
+      "odoo:res.partner:6": "[GEN] Alpha Metals",
+      "odoo:res.partner:11": "[GEN] Fenyves Trade",
+      "odoo:res.partner:16": "[GEN] Kalocsa Profiles",
+      "odoo:res.partner:9": "[GEN] Danube Parts"
     }
   },
   "model": {
-    "model_id": "9b45987ce6f3659b9160b8e4beb36491f866cc69df22d58db88aa844a7457dbf",
-    "training_id": "1ea66751df968c1c639377459c556e4e658a71dabdb45a80d7b0f8058eca5dda",
-    "artifact_sha256": "a07c2448e33a3de0398785d5aa8c8e5398dcbf277d19af16f627fbd194173112",
+    "model_id": "a31f0627c79a176da564a699aa908a09f60f7a32cfb2da73047f0d7ecc939bd4",
+    "training_id": "27150b42ee260cf20da70e553d90011344dff819493a876d0e9dea5e3b4cc67b",
+    "artifact_sha256": "5ff5740289a221d4d49a7a66fa49b13bbf42f5f8eb71b62ebd77d12f6a524d29",
     "data_origin": "generated"
   },
   "supplier_assessment": [
     {
       "supplier_id": "odoo:res.partner:11",
-      "supplier_name": "[GEN] Danube Parts",
-      "class": "regular",
-      "score": "0.3636",
-      "summary_en": "Similar past cases: 4 of 11 became problematic in the following period; risk score 0.3636.",
-      "unit_price": "1509.45"
-    },
-    {
-      "supplier_id": "odoo:res.partner:13",
       "supplier_name": "[GEN] Fenyves Trade",
-      "class": "problematic",
-      "score": "1",
-      "summary_en": "Similar past cases: 13 of 13 became problematic in the following period; risk score 1.",
+      "class": "regular",
+      "score": "0.3333",
+      "summary_en": "Similar past cases: 6 of 18 became problematic in the following period; risk score 0.3333.",
       "unit_price": "1489.15"
     },
     {
-      "supplier_id": "odoo:res.partner:18",
+      "supplier_id": "odoo:res.partner:16",
       "supplier_name": "[GEN] Kalocsa Profiles",
       "class": "regular",
-      "score": "0.3333",
-      "summary_en": "Similar past cases: 5 of 15 became problematic in the following period; risk score 0.3333.",
+      "score": "0.4375",
+      "summary_en": "Similar past cases: 14 of 32 became problematic in the following period; risk score 0.4375.",
       "unit_price": "1412.3"
     },
     {
-      "supplier_id": "odoo:res.partner:8",
+      "supplier_id": "odoo:res.partner:6",
       "supplier_name": "[GEN] Alpha Metals",
       "class": "regular",
-      "score": "0.3333",
-      "summary_en": "Similar past cases: 5 of 15 became problematic in the following period; risk score 0.3333.",
+      "score": "0.4375",
+      "summary_en": "Similar past cases: 14 of 32 became problematic in the following period; risk score 0.4375.",
       "unit_price": "1545.7"
+    },
+    {
+      "supplier_id": "odoo:res.partner:9",
+      "supplier_name": "[GEN] Danube Parts",
+      "class": "regular",
+      "score": "0.3333",
+      "summary_en": "Similar past cases: 6 of 18 became problematic in the following period; risk score 0.3333.",
+      "unit_price": "1509.45"
     }
   ],
   "base_case": {
-    "case_id": "6bfc75da-d3f8-4958-b312-f164d422fb1e",
+    "case_id": "c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc",
     "status": "optimal",
     "policy": {
       "concentration_limit": "0.8",
@@ -81,32 +81,32 @@
       {
         "label": "minimum_cost",
         "allocations": {
-          "odoo:res.partner:13": 80,
-          "odoo:res.partner:18": 120
+          "odoo:res.partner:11": 80,
+          "odoo:res.partner:16": 120
         },
         "total_cost": "288608",
-        "risk_exposure": 0.6
+        "risk_exposure": 0.3958
       },
       {
         "label": "alternative_1",
         "allocations": {
-          "odoo:res.partner:18": 120,
-          "odoo:res.partner:8": 80
+          "odoo:res.partner:11": 120,
+          "odoo:res.partner:9": 80
         },
-        "total_cost": "293132",
+        "total_cost": "299454",
         "risk_exposure": 0.3333
       },
       {
         "label": "alternative_2",
         "allocations": {
-          "odoo:res.partner:18": 100,
-          "odoo:res.partner:8": 100
+          "odoo:res.partner:11": 100,
+          "odoo:res.partner:9": 100
         },
-        "total_cost": "295800",
+        "total_cost": "299860",
         "risk_exposure": 0.3333
       }
     ],
-    "seconds": 0.973
+    "seconds": 2.257
   },
   "scenarios": [
     {
@@ -114,7 +114,7 @@
       "approved_quantity": null,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "available": false
         }
       ],
@@ -124,39 +124,30 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:11": 80,
-            "odoo:res.partner:13": 120
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 80
           },
           "total_cost": "299454",
-          "risk_exposure": 0.7454
+          "risk_exposure": 0.3333
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:11": 80,
-            "odoo:res.partner:8": 120
-          },
-          "total_cost": "306240",
-          "risk_exposure": 0.3454
-        },
-        {
-          "label": "alternative_2",
-          "allocations": {
             "odoo:res.partner:11": 100,
-            "odoo:res.partner:8": 100
+            "odoo:res.partner:9": 100
           },
-          "total_cost": "305515",
-          "risk_exposure": 0.3484
+          "total_cost": "299860",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.464
+      "seconds": 1.459
     },
     {
       "kind": "capacity_change",
       "approved_quantity": null,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "capacity": 100
         }
       ],
@@ -166,30 +157,39 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:13": 100,
-            "odoo:res.partner:18": 100
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:16": 100
           },
           "total_cost": "290145",
-          "risk_exposure": 0.6666
+          "risk_exposure": 0.3854
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:18": 100,
-            "odoo:res.partner:8": 100
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 80
           },
-          "total_cost": "295800",
+          "total_cost": "299454",
+          "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_2",
+          "allocations": {
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:9": 100
+          },
+          "total_cost": "299860",
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.514
+      "seconds": 2.138
     },
     {
       "kind": "capacity_change",
       "approved_quantity": null,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "capacity": 240
         }
       ],
@@ -199,32 +199,32 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:13": 40,
-            "odoo:res.partner:18": 160
+            "odoo:res.partner:11": 40,
+            "odoo:res.partner:16": 160
           },
           "total_cost": "285534",
-          "risk_exposure": 0.4666
+          "risk_exposure": 0.4167
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:18": 160,
-            "odoo:res.partner:8": 40
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 80
           },
-          "total_cost": "287796",
+          "total_cost": "299454",
           "risk_exposure": 0.3333
         },
         {
           "label": "alternative_2",
           "allocations": {
-            "odoo:res.partner:18": 100,
-            "odoo:res.partner:8": 100
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:9": 100
           },
-          "total_cost": "295800",
+          "total_cost": "299860",
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.457
+      "seconds": 2.249
     },
     {
       "kind": "demand_change",
@@ -233,7 +233,7 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.072
+      "seconds": 0.268
     },
     {
       "kind": "demand_change",
@@ -245,39 +245,39 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:13": 30,
-            "odoo:res.partner:18": 120
+            "odoo:res.partner:11": 30,
+            "odoo:res.partner:16": 120
           },
           "total_cost": "214150.5",
-          "risk_exposure": 0.4666
+          "risk_exposure": 0.4167
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:18": 120,
-            "odoo:res.partner:8": 30
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 30
           },
-          "total_cost": "215847",
+          "total_cost": "223981.5",
           "risk_exposure": 0.3333
         },
         {
           "label": "alternative_2",
           "allocations": {
-            "odoo:res.partner:18": 75,
-            "odoo:res.partner:8": 75
+            "odoo:res.partner:11": 75,
+            "odoo:res.partner:9": 75
           },
-          "total_cost": "221850",
+          "total_cost": "224895",
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.462
+      "seconds": 2.464
     },
     {
       "kind": "price_change",
       "approved_quantity": null,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "unit_price": "1836.0"
         }
       ],
@@ -287,48 +287,30 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:11": 80,
-            "odoo:res.partner:13": 120
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 80
           },
           "total_cost": "299454",
-          "risk_exposure": 0.7454
+          "risk_exposure": 0.3333
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:11": 80,
-            "odoo:res.partner:8": 120
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:9": 100
           },
-          "total_cost": "306240",
-          "risk_exposure": 0.3454
-        },
-        {
-          "label": "alternative_2",
-          "allocations": {
-            "odoo:res.partner:18": 80,
-            "odoo:res.partner:8": 120
-          },
-          "total_cost": "332364",
-          "risk_exposure": 0.3333
-        },
-        {
-          "label": "alternative_3",
-          "allocations": {
-            "odoo:res.partner:18": 100,
-            "odoo:res.partner:8": 100
-          },
-          "total_cost": "338170",
+          "total_cost": "299860",
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.462
+      "seconds": 2.424
     },
     {
       "kind": "price_change",
       "approved_quantity": null,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "unit_price": "1129.8"
         }
       ],
@@ -338,39 +320,57 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:13": 80,
-            "odoo:res.partner:18": 120
+            "odoo:res.partner:11": 80,
+            "odoo:res.partner:16": 120
           },
           "total_cost": "254708",
-          "risk_exposure": 0.6
+          "risk_exposure": 0.3958
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:18": 120,
-            "odoo:res.partner:8": 80
+            "odoo:res.partner:11": 115,
+            "odoo:res.partner:16": 85
           },
-          "total_cost": "259232",
-          "risk_exposure": 0.3333
+          "total_cost": "267285.25",
+          "risk_exposure": 0.3776
         },
         {
           "label": "alternative_2",
           "allocations": {
-            "odoo:res.partner:18": 100,
-            "odoo:res.partner:8": 100
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:16": 80
           },
-          "total_cost": "267550",
+          "total_cost": "269082",
+          "risk_exposure": 0.375
+        },
+        {
+          "label": "alternative_3",
+          "allocations": {
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 80
+          },
+          "total_cost": "299454",
+          "risk_exposure": 0.3333
+        },
+        {
+          "label": "alternative_4",
+          "allocations": {
+            "odoo:res.partner:11": 100,
+            "odoo:res.partner:9": 100
+          },
+          "total_cost": "299860",
           "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.455
+      "seconds": 3.107
     },
     {
       "kind": "combined",
       "approved_quantity": 220,
       "supplier_changes": [
         {
-          "supplier_id": "odoo:res.partner:18",
+          "supplier_id": "odoo:res.partner:16",
           "capacity": 100,
           "unit_price": "1413.3"
         }
@@ -381,32 +381,32 @@
         {
           "label": "minimum_cost",
           "allocations": {
-            "odoo:res.partner:13": 120,
-            "odoo:res.partner:18": 100
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:16": 100
           },
           "total_cost": "320028",
-          "risk_exposure": 0.697
+          "risk_exposure": 0.3807
         },
         {
           "label": "alternative_1",
           "allocations": {
-            "odoo:res.partner:18": 100,
-            "odoo:res.partner:8": 120
+            "odoo:res.partner:11": 120,
+            "odoo:res.partner:9": 100
           },
-          "total_cost": "326814",
+          "total_cost": "329643",
           "risk_exposure": 0.3333
         },
         {
           "label": "alternative_2",
           "allocations": {
             "odoo:res.partner:11": 110,
-            "odoo:res.partner:8": 110
+            "odoo:res.partner:9": 110
           },
-          "total_cost": "336066.5",
-          "risk_exposure": 0.3484
+          "total_cost": "329846",
+          "risk_exposure": 0.3333
         }
       ],
-      "seconds": 0.455
+      "seconds": 3.386
     },
     {
       "kind": "demand_change",
@@ -415,17 +415,17 @@
       "status": "infeasible",
       "total_cost_delta": null,
       "plans": [],
-      "seconds": 0.081
+      "seconds": 0.478
     }
   ],
   "decisions": {
     "approved": {
-      "case_id": "6bfc75da-d3f8-4958-b312-f164d422fb1e",
+      "case_id": "c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc",
       "plan_index": 1,
-      "approved_content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
+      "approved_content_hash": "6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e"
     },
     "no_award": {
-      "case_id": "3b00cec3-7a9f-4828-a426-082d2767dd77",
+      "case_id": "e0e76995-2786-45cf-9c33-ce4c602fb614",
       "outcome": "no_award",
       "approved_pdf_denied": true
     }
@@ -433,42 +433,42 @@
   "pdf": {
     "hu": {
       "plan": {
-        "sha256": "a498466924db8c11b56b7a210133bbd779a5fc4713e6761fbed8fca909408ff6",
-        "bytes": 29366,
+        "sha256": "615ea16d0326c63e54a3a8f8a0d41803679fe77764ed45f1d6af0384b906d433",
+        "bytes": 29359,
         "pages": 3,
-        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
+        "content_hash": "6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e",
         "language": "hu",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:hu:plan:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
+        "reference": "t17-approved-pdf-v3:c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc:hu:plan:6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e"
       },
       "audit": {
-        "sha256": "7a0053979ae165611896b47b3aa477f6c7708964e9740c8a7737204167f9e386",
-        "bytes": 35604,
+        "sha256": "f9fccad6f65abbbcfc4beb2b4d93d7d645a3d592140d37a4eca49de2f3e744b6",
+        "bytes": 35503,
         "pages": 7,
-        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
+        "content_hash": "6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e",
         "language": "hu",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:hu:audit:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
+        "reference": "t17-approved-pdf-v3:c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc:hu:audit:6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e"
       }
     },
     "en": {
       "plan": {
-        "sha256": "caa803a9511e9646bdf46e36b2690ad76d7072a8665f952ffca4ceedd8e8fcdb",
-        "bytes": 28218,
+        "sha256": "e1641c4d860e83cea41daa88ece10ec803099bcf1e2151c99814d6f88292e561",
+        "bytes": 28209,
         "pages": 3,
-        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
+        "content_hash": "6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e",
         "language": "en",
         "kind": "plan",
-        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:en:plan:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
+        "reference": "t17-approved-pdf-v3:c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc:en:plan:6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e"
       },
       "audit": {
-        "sha256": "bb5589a62a68498fe7654a7469dbcf9be27e36720e1ac28c14074203916eaf1d",
-        "bytes": 34117,
+        "sha256": "e91dee7ac75dc14b69d2a35c08bff9a83675f2699e11170085929a1c3cd75f5b",
+        "bytes": 34013,
         "pages": 7,
-        "content_hash": "97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a",
+        "content_hash": "6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e",
         "language": "en",
         "kind": "audit",
-        "reference": "t17-approved-pdf-v3:6bfc75da-d3f8-4958-b312-f164d422fb1e:en:audit:97b04ccdceb809eb3cc05393b9e35a061242030f13ea4e85cd9a1f8806e5628a"
+        "reference": "t17-approved-pdf-v3:c01e6d5d-344f-4d39-bcbc-bf8b4e1619cc:en:audit:6cb2ffccfcc6c2443d1b8433b96af959060d2cd33c8a077938a0ce66e5b68b6e"
       }
     }
   },
@@ -488,7 +488,7 @@
     "operations_replayed": 13,
     "passed": true
   },
-  "flow_seconds": 6.578,
-  "total_seconds": 20.826,
+  "flow_seconds": 28.032,
+  "total_seconds": 57.01,
   "full_report": "kept locally under .artifacts/demo (contains every response)"
 }

@@ -1,0 +1,211 @@
+{
+  "report": "Environment and input identity for the 2026-11-13 P4 rerun",
+  "recorded_at": "2026-11-13T10:58:45+00:00",
+  "measured_repository": {
+    "commit": "e3e05d655099ccae68bf24d447e39564340bfc70",
+    "dirty": false
+  },
+  "artifact_branch": "codex/chapter7-measurements-20261113",
+  "source_verification": {
+    "unchanged_tracked_code_and_config_files": 174,
+    "manifest_sha256": "f25ff5ece290d9ab62608e888cbd0ea04786dfaacef50bd66096c4bd1ae7bee4"
+  },
+  "environment": {
+    "python": "3.11.16",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "logical_cpus": 14,
+    "services": "Odoo 19 and PostgreSQL 16 in Podman on the same machine; API: one uvicorn worker on 127.0.0.1, client on the same machine"
+  },
+  "dependencies": {
+    "Mako": "1.4.3",
+    "MarkupSafe": "3.0.4",
+    "PuLP": "3.3.0",
+    "PyYAML": "6.0.3",
+    "Pygments": "2.21.0",
+    "SQLAlchemy": "2.1.8",
+    "alembic": "1.20.1",
+    "annotated-doc": "0.0.6",
+    "annotated-types": "0.8.0",
+    "anyio": "4.16.0",
+    "bidict": "0.24.1",
+    "certifi": "2026.10.23",
+    "charset-normalizer": "3.5.2",
+    "click": "8.5.1",
+    "colorama": "0.4.6",
+    "fastapi": "0.162.5",
+    "granian": "2.8.8",
+    "greenlet": "3.5.6",
+    "h11": "0.16.0",
+    "httpcore": "1.0.9",
+    "httptools": "0.9.0",
+    "httpx": "0.28.1",
+    "idna": "3.20",
+    "iniconfig": "2.3.1",
+    "joblib": "1.5.2",
+    "markdown-it-py": "4.3.0",
+    "mdurl": "0.1.2",
+    "numpy": "2.3.5",
+    "odoo-procurement-decision-support": "0.0.1",
+    "opentelemetry-api": "1.45.2",
+    "packaging": "26.3",
+    "pillow": "13.0.0",
+    "platformdirs": "4.14.5",
+    "pluggy": "1.7.0",
+    "podman-compose": "1.6.0",
+    "psutil": "7.2.2",
+    "psycopg": "3.3.9",
+    "psycopg-binary": "3.3.9",
+    "pydantic": "2.14.3",
+    "pydantic-settings": "2.16.2",
+    "pydantic_core": "2.50.4",
+    "pypdf": "6.21.4",
+    "pytest": "8.4.2",
+    "python-dotenv": "1.2.4",
+    "python-engineio": "4.15.1",
+    "python-multipart": "0.0.33",
+    "python-socketio": "5.18.1",
+    "redis": "7.4.1",
+    "reflex": "0.9.12",
+    "reflex-base": "0.9.12",
+    "reflex-build-sdk": "0.1.1",
+    "reflex-components-code": "0.9.6",
+    "reflex-components-core": "0.9.10.post1",
+    "reflex-components-dataeditor": "0.9.3.post1",
+    "reflex-components-gridjs": "0.9.2.post1",
+    "reflex-components-lucide": "1.0.4",
+    "reflex-components-markdown": "0.9.4.post1",
+    "reflex-components-moment": "0.9.4",
+    "reflex-components-plotly": "0.9.7",
+    "reflex-components-radix": "0.9.10.post1",
+    "reflex-components-react-player": "0.9.2",
+    "reflex-components-recharts": "0.9.4.post1",
+    "reflex-components-sonner": "0.9.4",
+    "reflex-hosting-cli": "0.2.2",
+    "reportlab": "4.4.10",
+    "rich": "15.0.0",
+    "ruff": "0.17.5",
+    "scikit-learn": "1.8.0",
+    "scipy": "1.16.3",
+    "simple-websocket": "1.1.0",
+    "starlette": "1.10.0",
+    "threadpoolctl": "3.6.0",
+    "typing-inspection": "0.4.5",
+    "typing_extensions": "4.16.0",
+    "tzdata": "2026.6",
+    "uvicorn": "0.54.0",
+    "watchfiles": "1.3.0",
+    "websockets": "17.4",
+    "wrapt": "2.3.0",
+    "wsproto": "1.3.2"
+  },
+  "podman": {
+    "machine": "podman-machine-default",
+    "cpus": 7,
+    "memory_mib": 2048,
+    "rootful": true,
+    "user_mode_networking": true
+  },
+  "services": {
+    "odoo_image": "odoo:19.0-20260908",
+    "postgresql_image": "postgres:16.15-bookworm",
+    "odoo_database": "pdss_history_gen",
+    "company_id": 1,
+    "currency": "HUF",
+    "persistent_planning_database": "planning",
+    "disposable_planning_database": "planning_test",
+    "schema_revision": "20261021_01",
+    "loopback_ports": {
+      "odoo": 8069,
+      "persistent_postgres": 55440,
+      "disposable_postgres": 55441,
+      "measurement_api": 8010
+    },
+    "windows_forwarding": "Temporary localhost-only SSH tunnels for 8069, 55440 and 55441; native Podman Windows forwarding failed."
+  },
+  "inputs": {
+    "generator_seed": 20261017,
+    "generator_clock": "2026-10-17T00:00:00+00:00",
+    "data_origin": "generated",
+    "seeded_history_orders": 2546,
+    "seeded_completed_receipts": 2823,
+    "quotation_groups_by_supplier_count": {
+      "4": 1,
+      "5": 2,
+      "10": 3
+    },
+    "model_id": "a31f0627c79a176da564a699aa908a09f60f7a32cfb2da73047f0d7ecc939bd4",
+    "model_artifact_sha256": "5ff5740289a221d4d49a7a66fa49b13bbf42f5f8eb71b62ebd77d12f6a524d29",
+    "export_hash": "d9cac6dd188313195d4727501f40b9447764386464d167cf74a0f0f3cb07f293",
+    "export_window": [
+      "2025-05-14T10:00:00+00:00",
+      "2026-11-13T10:00:00+00:00"
+    ],
+    "exported_purchase_lines": 2481,
+    "exported_receipts": 2751,
+    "saved_model_reloaded_and_metrics_identical_to_new_training_report": true
+  },
+  "measurement_validation": {
+    "demo_scenarios": 9,
+    "demo_replayed_operations": 13,
+    "demo_isolated_replay_passed": true,
+    "milp_workloads": 6,
+    "milp_correctness_passed": 21,
+    "repetitions": 30,
+    "warmups": 2,
+    "raw_latency_counts_and_nearest_rank_p95_rechecked": true
+  },
+  "verification": {
+    "format_lint_compile": "passed",
+    "standard_tools_dev_check": "failed: its CBC TEMP/TMP directory contains spaces on this Windows checkout",
+    "fast_pytest_with_short_cbc_temp": {
+      "passed": 487,
+      "deselected": 51
+    },
+    "dependency_consistency": "80 installed packages compatible",
+    "initial_full_integration_attempt": {
+      "passed": 27,
+      "failed": 17,
+      "skipped": 4,
+      "note": "26 PostgreSQL passes plus Odoo HTTP availability; old Odoo keys and wrong external API port caused failures."
+    },
+    "postgres_tests_in_initial_attempt": {
+      "passed": 26
+    },
+    "focused_live_odoo_and_runtime_retry": {
+      "passed": 20,
+      "skipped": 2,
+      "skipped_reason": "Older T6 and T7-S manual fixture contracts not provisioned."
+    },
+    "new_browser_e2e": "not run",
+    "hosted_ci": "not run",
+    "measurement_api_shutdown": "verified: no listener or uvicorn process on port 8010",
+    "retained_services": "Odoo and both PostgreSQL stacks running; PostgreSQL health checks healthy; two verified localhost SSH tunnels retained for local use."
+  },
+  "published_report_sha256": {
+    "P4_DEMO_REPORT.json": "10dd490d60c2ab3dac174cc0491c522d7f94f8bde574ac53af6a7d65e5f6eae2",
+    "P4_MILP_EVALUATION.json": "5c9b662cc53c65fe19b2a5bb0816868ec719cfa030f9bd111db76809910358ee",
+    "P4_ML_CONTEXT_20261113.json": "50f1b593a6cc6703d054dd50a5a32caf64398f88ed8be3fbda1db48f4d3b7c28"
+  },
+  "preserved_local_artifacts_sha256": {
+    ".artifacts/p4-refresh-20261113/inputs/ml/dataset.json": "69ad8dc6f1c11ccffbe229a06c1378e22835f91c19cc5e5516aada6cfd404ca2",
+    ".artifacts/p4-refresh-20261113/inputs/ml/history_export.json": "43c6450603e1961c8ce96d43e7cd65f362fc656130b8a015d702b3aee11eb3f9",
+    ".artifacts/p4-refresh-20261113/inputs/ml/model/manifest.json": "95bbd632a67b722e3459e9149f7ee93cf386049e80df193fc2ab45740d3d51a8",
+    ".artifacts/p4-refresh-20261113/inputs/ml/model/tree.joblib": "5ff5740289a221d4d49a7a66fa49b13bbf42f5f8eb71b62ebd77d12f6a524d29",
+    ".artifacts/p4-refresh-20261113/inputs/ml/report.json": "50f1b593a6cc6703d054dd50a5a32caf64398f88ed8be3fbda1db48f4d3b7c28",
+    ".artifacts/p4-refresh-20261113/inputs/seed/evaluation_groups.json": "44497dfc7cb349c1f14133de9d89a5c0bf40df887f95c8257830957251f5f46e",
+    ".artifacts/p4-refresh-20261113/inputs/seed/manifest.json": "f83bb103dd7c5049363d95c1d513032a2ed50b8f97e3ac45207bd199ec43093d",
+    ".artifacts/p4-refresh-20261113/raw-demo/http-flow-run-26a5e851-3cd8-434d-bb34-5cbe4105955a-en-audit.pdf": "e91dee7ac75dc14b69d2a35c08bff9a83675f2699e11170085929a1c3cd75f5b",
+    ".artifacts/p4-refresh-20261113/raw-demo/http-flow-run-26a5e851-3cd8-434d-bb34-5cbe4105955a-en-plan.pdf": "e1641c4d860e83cea41daa88ece10ec803099bcf1e2151c99814d6f88292e561",
+    ".artifacts/p4-refresh-20261113/raw-demo/http-flow-run-26a5e851-3cd8-434d-bb34-5cbe4105955a-hu-audit.pdf": "f9fccad6f65abbbcfc4beb2b4d93d7d645a3d592140d37a4eca49de2f3e744b6",
+    ".artifacts/p4-refresh-20261113/raw-demo/http-flow-run-26a5e851-3cd8-434d-bb34-5cbe4105955a-hu-plan.pdf": "615ea16d0326c63e54a3a8f8a0d41803679fe77764ed45f1d6af0384b906d433",
+    ".artifacts/p4-refresh-20261113/raw-demo/http-flow-run-26a5e851-3cd8-434d-bb34-5cbe4105955a.json": "04f661b6f87f257ae9f931201ae5bc55d8c988f405191f59bec0af3d009429c8"
+  },
+  "limitations": [
+    "New machine, dependencies, Odoo record identities, rolling export window and retrained model differ from the old experiments; these timings and ML metrics do not isolate the effect of the code refactor.",
+    "Generated history only; no observed supplier-performance or calibrated probability claim.",
+    "P1_ML_REPORT.json and P4_ML_REPORT_CHECK.json remain historical evidence for the earlier model.",
+    "Raw inputs, saved model and demo responses/PDFs are retained locally under the ignored .artifacts/p4-refresh-20261113 directory; no secrets are included in the input/raw-demo copies.",
+    "SSH forwarding is session-local and must be restored after it stops or the machine restarts."
+  ]
+}

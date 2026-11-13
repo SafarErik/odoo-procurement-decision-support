@@ -6,6 +6,12 @@ label, split), `supplier_evaluation/history_model.py` (training, evaluation, art
 inference), `tools/train_history_model.py` (offline pipeline). Evidence:
 [evidence/P1_ML_REPORT.json](evidence/P1_ML_REPORT.json).
 
+The numeric dataset card and metrics below describe that historical P1 experiment.
+The 2026-11-13 thesis-tag rerun trained a new model from a later rolling export;
+its separate [ML context](evidence/P4_ML_CONTEXT_20261113.json) and
+[measurement handoff](handoffs/P4_MEASUREMENT_REFRESH_20261113.md) record the new
+split, metrics and implications. The P1 report and saved-model check were preserved.
+
 > **Honest framing.** The pipeline is Odoo-native: every training row is derived from
 > purchase lines and receipts read through Odoo's API. The history in the test
 > database `pdss_history_gen` is **generated** by `tools/seed_odoo_history.py` with a

@@ -20,6 +20,7 @@ Earlier increments (T0–T18, UX32–UX41) are in [../history/](../history/).
 
 | Handoff | Content |
 | --- | --- |
+| [P4_MEASUREMENT_REFRESH_20261113](P4_MEASUREMENT_REFRESH_20261113.md) | Clean thesis-tag demo/MILP rerun, rebuilt local environment, new model/data and timing context |
 | [PROJECT_BASELINE_REFRESH](PROJECT_BASELINE_REFRESH.md) | Agent baseline aligned with the post-revamp state |
 | [L6_TERMS_PROVENANCE](L6_TERMS_PROVENANCE.md) | Suggested buyer terms carry their source; P4 evidence rerun |
 | [REVIEW_FIXES](REVIEW_FIXES.md) | External-review fixes: L6 visibility, data origin, wording |
